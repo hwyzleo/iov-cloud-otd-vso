@@ -1,0 +1,10 @@
+server:
+  port: 11501
+
+spring:
+  profiles:
+    active: local
+
+mybatis-plus:
+  mapper-locations: classpath:mappers/*.xml
+  type-aliases-package: net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository.po
