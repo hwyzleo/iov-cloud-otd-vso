@@ -5,6 +5,8 @@ import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import java.io.Serializable;
+import java.math.BigDecimal;
+
 import net.hwyz.iov.cloud.tsp.framework.mysql.po.BasePo;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
@@ -61,7 +63,7 @@ public class SaleModelPo extends BasePo {
      * 销售价格
      */
     @TableField("sale_price")
-    private String salePrice;
+    private BigDecimal salePrice;
 
     /**
      * 销售图片

@@ -6,7 +6,7 @@ CREATE TABLE `db_vso`.`tb_sale_model`
     `sale_model_type`      VARCHAR(255) NOT NULL COMMENT '销售车型类型',
     `sale_model_type_code` VARCHAR(50)  NOT NULL COMMENT '销售车型类型代码',
     `sale_name`            VARCHAR(255)          DEFAULT NULL COMMENT '销售名称',
-    `sale_price`           VARCHAR(255)          DEFAULT NULL COMMENT '销售价格',
+    `sale_price`           DECIMAL(10, 2)        DEFAULT NULL COMMENT '销售价格',
     `sale_image`           VARCHAR(255)          DEFAULT NULL COMMENT '销售图片',
     `sale_desc`            TEXT                  DEFAULT NULL COMMENT '销售描述',
     `sale_param`           TEXT                  DEFAULT NULL COMMENT '销售参数',
