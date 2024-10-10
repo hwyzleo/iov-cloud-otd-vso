@@ -35,6 +35,6 @@ public class SaleModelMpController implements SaleModelMpApi {
     public Response<SaleModelResponse> getSaleModelList(@PathVariable("saleCode") String saleCode,
                                                         @RequestHeader ClientAccount clientAccount) {
         logger.info("手机客户端[{}]获取销售代码[{}]销售车型列表", ParamHelper.getClientAccountInfo(clientAccount), saleCode);
-        return new Response<>(saleModelAppService.getSaleModelList(saleCode));
+        return new Response<>(saleModelAppService.getSaleModelResponse(saleCode));
     }
 }
