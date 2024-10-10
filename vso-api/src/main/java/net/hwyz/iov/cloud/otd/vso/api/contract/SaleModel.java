@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 /**
  * 销售车型
@@ -46,7 +47,7 @@ public class SaleModel {
     /**
      * 销售图片
      */
-    private String saleImage;
+    private List<String> saleImage;
 
     /**
      * 销售描述

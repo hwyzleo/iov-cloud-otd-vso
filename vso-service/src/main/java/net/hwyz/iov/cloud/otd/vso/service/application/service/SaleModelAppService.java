@@ -2,7 +2,6 @@ package net.hwyz.iov.cloud.otd.vso.service.application.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import net.hwyz.iov.cloud.otd.vso.api.contract.SaleModel;
 import net.hwyz.iov.cloud.otd.vso.api.contract.response.SaleModelResponse;
 import net.hwyz.iov.cloud.otd.vso.service.facade.assembler.SaleModelResponseAssembler;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository.dao.SaleModelDao;
