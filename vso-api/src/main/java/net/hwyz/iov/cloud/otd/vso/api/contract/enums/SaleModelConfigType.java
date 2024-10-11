@@ -5,17 +5,17 @@ import lombok.AllArgsConstructor;
 import java.util.Arrays;
 
 /**
- * 销售车型类型枚举类
+ * 销售车型配置类型枚举类
  *
  * @author hwyz_leo
  */
 @AllArgsConstructor
-public enum SaleModelType {
+public enum SaleModelConfigType {
 
     /** 车型 **/
     MODEL,
     /** 备胎 **/
-    SPIRE_TIRE,
+    SPARE_TIRE,
     /** 外观 **/
     EXTERIOR,
     /** 车轮 **/
@@ -24,9 +24,9 @@ public enum SaleModelType {
     INTERIOR,
     /** 选装 **/
     OPTIONAL;
-    public static SaleModelType valOf(String val) {
-        return Arrays.stream(SaleModelType.values())
-                .filter(saleModelType -> saleModelType.name().equals(val))
+    public static SaleModelConfigType valOf(String val) {
+        return Arrays.stream(SaleModelConfigType.values())
+                .filter(saleModelConfigType -> saleModelConfigType.name().equals(val))
                 .findFirst()
                 .orElse(null);
     }

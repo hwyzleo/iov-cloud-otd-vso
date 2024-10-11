@@ -4,7 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import net.hwyz.iov.cloud.otd.vso.api.contract.SaleModel;
+import net.hwyz.iov.cloud.otd.vso.api.contract.SaleModelConfig;
 
 import java.util.List;
 
@@ -22,6 +22,6 @@ public class SaleModelResponse {
     /**
      * 销售车型列表
      */
-    private List<SaleModel> saleModels;
+    private List<SaleModelConfig> saleModels;
 
 }

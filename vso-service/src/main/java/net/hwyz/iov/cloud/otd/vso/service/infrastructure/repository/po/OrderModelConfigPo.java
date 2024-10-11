@@ -12,19 +12,19 @@ import lombok.experimental.SuperBuilder;
 
 /**
  * <p>
- * 心愿单 数据对象
+ * 订单车型配置 数据对象
  * </p>
  *
  * @author hwyz_leo
- * @since 2024-10-10
+ * @since 2024-10-11
  */
 @Getter
 @Setter
 @SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
-@TableName("tb_wishlist")
-public class WishlistPo extends BasePo {
+@TableName("tb_order_model_config")
+public class OrderModelConfigPo extends BasePo {
 
     private static final long serialVersionUID = 1L;
 
@@ -35,32 +35,32 @@ public class WishlistPo extends BasePo {
     private Long id;
 
     /**
-     * 账号唯一ID
+     * 订单编码
      */
-    @TableField("account_id")
-    private String accountId;
+    @TableField("order_num")
+    private String orderNum;
 
     /**
-     * 销售代码
+     * 销售车型配置类型
      */
-    @TableField("sale_code")
-    private String saleCode;
+    @TableField("type")
+    private String type;
 
     /**
-     * 销售车型代码
+     * 销售车型配置类型代码
      */
-    @TableField("sale_model_code")
-    private String saleModelCode;
+    @TableField("type_code")
+    private String typeCode;
 
     /**
-     * 意向金
+     * 销售车型配置类型名称
      */
-    @TableField("intention_money")
-    private BigDecimal intentionMoney;
+    @TableField("type_name")
+    private String typeName;
 
     /**
-     * 是否转订单
+     * 销售车型配置类型价格
      */
-    @TableField("is_order")
-    private Boolean isOrder;
+    @TableField("type_price")
+    private BigDecimal typePrice;
 }

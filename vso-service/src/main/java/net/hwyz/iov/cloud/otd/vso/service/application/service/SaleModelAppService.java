@@ -3,9 +3,9 @@ package net.hwyz.iov.cloud.otd.vso.service.application.service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.hwyz.iov.cloud.otd.vso.api.contract.response.SaleModelResponse;
-import net.hwyz.iov.cloud.otd.vso.service.facade.assembler.SaleModelResponseAssembler;
-import net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository.dao.SaleModelDao;
-import net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository.po.SaleModelPo;
+import net.hwyz.iov.cloud.otd.vso.service.facade.assembler.SaleModelConfigAssembler;
+import net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository.dao.SaleModelConfigDao;
+import net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository.po.SaleModelConfigPo;
 import net.hwyz.iov.cloud.tsp.framework.commons.enums.Symbol;
 import org.springframework.stereotype.Service;
 
@@ -23,7 +23,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class SaleModelAppService {
 
-    private final SaleModelDao saleModelDao;
+    private final SaleModelConfigDao saleModelConfigDao;
 
     /**
      * 获取销售车型列表
@@ -33,7 +33,7 @@ public class SaleModelAppService {
      */
     public SaleModelResponse getSaleModelResponse(String saleCode) {
         return SaleModelResponse.builder()
-                .saleModels(SaleModelResponseAssembler.INSTANCE.fromPoList(getSaleModelList(saleCode)))
+                .saleModels(SaleModelConfigAssembler.INSTANCE.fromPoList(getSaleModelConfigList(saleCode)))
                 .build();
     }
 
@@ -43,18 +43,18 @@ public class SaleModelAppService {
      * @param saleCode 销售代码
      * @return 销售车型Map key:销售车型类型_销售车型类型代码 value:销售车型Po
      */
-    public Map<String, SaleModelPo> getSaleModelMap(String saleCode) {
-        return getSaleModelList(saleCode).stream().collect(Collectors.toMap(k -> k.getSaleModelType() + Symbol.UNDERSCORE.value + k.getSaleModelTypeCode(), v -> v));
+    public Map<String, SaleModelConfigPo> getSaleModelConfigMap(String saleCode) {
+        return getSaleModelConfigList(saleCode).stream().collect(Collectors.toMap(k -> k.getType() + Symbol.UNDERSCORE.value + k.getTypeCode(), v -> v));
     }
 
     /**
-     * 获取销售车型列表
+     * 获取销售车型配置列表
      *
      * @param saleCode 销售代码
      * @return 销售车型列表
      */
-    private List<SaleModelPo> getSaleModelList(String saleCode) {
-        return saleModelDao.selectPoByExample(SaleModelPo.builder().saleCode(saleCode).build());
+    private List<SaleModelConfigPo> getSaleModelConfigList(String saleCode) {
+        return saleModelConfigDao.selectPoByExample(SaleModelConfigPo.builder().saleCode(saleCode).build());
     }
 
 }

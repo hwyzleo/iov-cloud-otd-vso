@@ -21,6 +21,13 @@
             <version>${vso.version}</version>
         </dependency>
 
+        <!-- 框架: 异常 -->
+        <dependency>
+            <groupId>net.hwyz.iov.cloud.tsp</groupId>
+            <artifactId>framework-exception-starter</artifactId>
+            <version>${framework-exception.version}</version>
+        </dependency>
+
         <!-- 框架: MySQL -->
         <dependency>
             <groupId>net.hwyz.iov.cloud.tsp</groupId>

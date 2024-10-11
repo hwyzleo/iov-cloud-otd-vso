@@ -6,26 +6,25 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import java.io.Serializable;
 import java.math.BigDecimal;
-
 import net.hwyz.iov.cloud.tsp.framework.mysql.po.BasePo;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 
 /**
  * <p>
- * 销售车型 数据对象
+ * 销售车型配置 数据对象
  * </p>
  *
  * @author hwyz_leo
- * @since 2024-10-08
+ * @since 2024-10-11
  */
 @Getter
 @Setter
 @SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
-@TableName("tb_sale_model")
-public class SaleModelPo extends BasePo {
+@TableName("tb_sale_model_config")
+public class SaleModelConfigPo extends BasePo {
 
     private static final long serialVersionUID = 1L;
 
@@ -42,46 +41,46 @@ public class SaleModelPo extends BasePo {
     private String saleCode;
 
     /**
-     * 销售车型类型
+     * 销售车型配置类型
      */
-    @TableField("sale_model_type")
-    private String saleModelType;
+    @TableField("type")
+    private String type;
 
     /**
-     * 销售车型类型代码
+     * 销售车型配置类型代码
      */
-    @TableField("sale_model_type_code")
-    private String saleModelTypeCode;
+    @TableField("type_code")
+    private String typeCode;
 
     /**
-     * 销售名称
+     * 销售车型配置类型名称
      */
-    @TableField("sale_name")
-    private String saleName;
+    @TableField("type_name")
+    private String typeName;
 
     /**
-     * 销售价格
+     * 销售车型配置类型价格
      */
-    @TableField("sale_price")
-    private BigDecimal salePrice;
+    @TableField("type_price")
+    private BigDecimal typePrice;
 
     /**
-     * 销售图片
+     * 销售车型配置类型图片
      */
-    @TableField("sale_image")
-    private String saleImage;
+    @TableField("type_image")
+    private String typeImage;
 
     /**
-     * 销售描述
+     * 销售车型配置类型描述
      */
-    @TableField("sale_desc")
-    private String saleDesc;
+    @TableField("type_desc")
+    private String typeDesc;
 
     /**
-     * 销售参数
+     * 销售车型配置类型参数
      */
-    @TableField("sale_param")
-    private String saleParam;
+    @TableField("type_param")
+    private String typeParam;
 
     /**
      * 是否启用

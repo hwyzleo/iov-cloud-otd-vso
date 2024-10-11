@@ -22,13 +22,13 @@ import java.util.Map;
 @EqualsAndHashCode(callSuper = true)
 public class WishlistResponse extends Wishlist {
     /**
-     * 销售车型名称
+     * 销售车型配置名称
      */
-    private Map<String, String> saleModelName;
+    private Map<String, String> saleModelConfigName;
     /**
-     * 销售车型价格
+     * 销售车型配置价格
      */
-    private Map<String, BigDecimal> saleModelPrice;
+    private Map<String, BigDecimal> saleModelConfigPrice;
     /**
      * 总价格
      */

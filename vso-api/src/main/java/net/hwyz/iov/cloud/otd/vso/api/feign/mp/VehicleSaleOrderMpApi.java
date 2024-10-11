@@ -17,33 +17,35 @@ public interface VehicleSaleOrderMpApi {
      *
      * @param request       新建心愿单请求
      * @param clientAccount 终端用户
-     * @return 操作结果
+     * @return 订单编号
      */
-    Response<Void> createWishlist(Wishlist request, ClientAccount clientAccount);
+    Response<String> createWishlist(Wishlist request, ClientAccount clientAccount);
 
     /**
      * 修改心愿单
      *
      * @param request       修改心愿单请求
      * @param clientAccount 终端用户
-     * @return 操作结果
+     * @return 订单编号
      */
     Response<Void> modifyWishlist(Wishlist request, ClientAccount clientAccount);
 
     /**
      * 删除心愿单
      *
+     * @param request       删除心愿单请求
      * @param clientAccount 终端用户
      * @return 操作结果
      */
-    Response<Void> deleteWishlist(ClientAccount clientAccount);
+    Response<Void> deleteWishlist(Wishlist request, ClientAccount clientAccount);
 
     /**
      * 获取心愿单详情
      *
+     * @param orderNum      订单编号
      * @param clientAccount 终端用户
      * @return 心愿单详情
      */
-    Response<WishlistResponse> getWishlist(ClientAccount clientAccount);
+    Response<WishlistResponse> getWishlist(String orderNum, ClientAccount clientAccount);
 
 }

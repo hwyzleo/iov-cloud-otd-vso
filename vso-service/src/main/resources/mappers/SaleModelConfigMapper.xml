@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository.dao.WishlistDetailDao">
+<mapper namespace="net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository.dao.SaleModelConfigDao">
 
     <!-- 通用查询映射结果 -->
-    <resultMap id="baseResultMap" type="net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository.po.WishlistDetailPo">
+    <resultMap id="baseResultMap" type="net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository.po.SaleModelConfigPo">
         <id column="id" property="id" />
         <result column="description" property="description" />
         <result column="create_time" property="createTime" />
@@ -12,63 +12,83 @@
         <result column="modify_by" property="modifyBy" />
         <result column="row_version" property="rowVersion" />
         <result column="row_valid" property="rowValid" />
-        <result column="wishlist_id" property="wishlistId" />
-        <result column="sale_model_type" property="saleModelType" />
-        <result column="sale_model_type_code" property="saleModelTypeCode" />
-        <result column="sale_name" property="saleName" />
-        <result column="sale_price" property="salePrice" />
+        <result column="sale_code" property="saleCode" />
+        <result column="type" property="type" />
+        <result column="type_code" property="typeCode" />
+        <result column="type_name" property="typeName" />
+        <result column="type_price" property="typePrice" />
+        <result column="type_image" property="typeImage" />
+        <result column="type_desc" property="typeDesc" />
+        <result column="type_param" property="typeParam" />
+        <result column="enable" property="enable" />
+        <result column="sort" property="sort" />
     </resultMap>
 
     <!-- 通用查询结果列 -->
     <sql id="baseColumnList">
-        id, wishlist_id, sale_model_type, sale_model_type_code, sale_name, sale_price, 
+        id, sale_code, type, type_code, type_name, type_price, type_image, type_desc, type_param, enable, sort, 
         description, create_time, create_by, modify_time, modify_by, row_version, row_valid
     </sql>
 
     <!-- 插入 -->
     <insert id="insertPo" useGeneratedKeys="true" keyProperty="id">
-        INSERT INTO tb_wishlist_detail (
-            id, wishlist_id, sale_model_type, sale_model_type_code, sale_name, sale_price, 
+        INSERT INTO tb_sale_model_config (
+            id, sale_code, type, type_code, type_name, type_price, type_image, type_desc, type_param, enable, sort, 
             description, create_time, create_by, modify_time, modify_by, row_version, row_valid
         )
         VALUES (
-            #{id}, #{wishlistId}, #{saleModelType}, #{saleModelTypeCode}, #{saleName}, #{salePrice}, 
+            #{id}, #{saleCode}, #{type}, #{typeCode}, #{typeName}, #{typePrice}, #{typeImage}, #{typeDesc}, #{typeParam}, #{enable}, #{sort}, 
             #{description}, now(), #{createBy}, now(), #{modifyBy}, 1, 1
         )
     </insert>
 
     <!-- 批量插入 -->
     <insert id="batchInsertPo" useGeneratedKeys="true" keyProperty="id" parameterType="java.util.List">
-        INSERT INTO tb_wishlist_detail (
-            id, wishlist_id, sale_model_type, sale_model_type_code, sale_name, sale_price, 
+        INSERT INTO tb_sale_model_config (
+            id, sale_code, type, type_code, type_name, type_price, type_image, type_desc, type_param, enable, sort, 
             description, create_time, create_by, modify_time, modify_by, row_version, row_valid
         )
         VALUES
         <foreach collection="list" item="item" index="index" separator=",">
         (
-            #{item.id}, #{item.wishlistId}, #{item.saleModelType}, #{item.saleModelTypeCode}, #{item.saleName}, #{item.salePrice}, 
+            #{item.id}, #{item.saleCode}, #{item.type}, #{item.typeCode}, #{item.typeName}, #{item.typePrice}, #{item.typeImage}, #{item.typeDesc}, #{item.typeParam}, #{item.enable}, #{item.sort}, 
             #{item.description}, now(), #{item.createBy}, now(), #{item.modifyBy}, 1, 1
         )
         </foreach>
     </insert>
 
     <!-- 更新 -->
-    <update id="updatePo" parameterType="net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository.po.WishlistDetailPo">
-        UPDATE tb_wishlist_detail t SET
-        <if test="wishlistId != null">
-            t.wishlist_id = #{wishlistId},
+    <update id="updatePo" parameterType="net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository.po.SaleModelConfigPo">
+        UPDATE tb_sale_model_config t SET
+        <if test="saleCode != null and saleCode != ''">
+            t.sale_code = #{saleCode},
         </if>
-        <if test="saleModelType != null and saleModelType != ''">
-            t.sale_model_type = #{saleModelType},
+        <if test="type != null and type != ''">
+            t.type = #{type},
         </if>
-        <if test="saleModelTypeCode != null and saleModelTypeCode != ''">
-            t.sale_model_type_code = #{saleModelTypeCode},
+        <if test="typeCode != null and typeCode != ''">
+            t.type_code = #{typeCode},
         </if>
-        <if test="saleName != null and saleName != ''">
-            t.sale_name = #{saleName},
+        <if test="typeName != null and typeName != ''">
+            t.type_name = #{typeName},
         </if>
-        <if test="salePrice != null">
-            t.sale_price = #{salePrice},
+        <if test="typePrice != null">
+            t.type_price = #{typePrice},
+        </if>
+        <if test="typeImage != null and typeImage != ''">
+            t.type_image = #{typeImage},
+        </if>
+        <if test="typeDesc != null and typeDesc != ''">
+            t.type_desc = #{typeDesc},
+        </if>
+        <if test="typeParam != null and typeParam != ''">
+            t.type_param = #{typeParam},
+        </if>
+        <if test="enable != null">
+            t.enable = #{enable},
+        </if>
+        <if test="sort != null">
+            t.sort = #{sort},
         </if>
         <if test="description != null and description != ''">
             t.description = #{description},
@@ -83,7 +103,7 @@
 
     <!-- 逻辑删除 -->
     <update id="logicalDeletePo" parameterType="Long">
-        UPDATE tb_wishlist_detail t SET
+        UPDATE tb_sale_model_config t SET
         t.row_version = t.row_version + 1,
         t.modify_time = now(),
         t.row_valid = 0
@@ -92,46 +112,55 @@
 
     <!-- 物理删除 -->
     <delete id="physicalDeletePo" parameterType="Long">
-        DELETE FROM tb_wishlist_detail t
+        DELETE FROM tb_sale_model_config t
         WHERE t.id = #{value}
-    </delete>
-
-    <!-- 物理删除心愿单详情 -->
-    <delete id="physicalDeletePoByWishlistId" parameterType="Long">
-        DELETE FROM tb_wishlist_detail t
-        WHERE t.wishlist_id = #{value}
     </delete>
 
     <!-- 根据主键获取对应数据 -->
     <select id="selectPoById" parameterType="Long" resultMap="baseResultMap">
         SELECT <include refid="baseColumnList"/>
-        FROM tb_wishlist_detail t
+        FROM tb_sale_model_config t
         WHERE t.id = #{value}
         AND t.row_valid = 1
     </select>
 
     <!-- 根据数据对象获取对应数据列表 -->
-    <select id="selectPoByExample" parameterType="net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository.po.WishlistDetailPo" resultMap="baseResultMap">
+    <select id="selectPoByExample" parameterType="net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository.po.SaleModelConfigPo" resultMap="baseResultMap">
         SELECT <include refid="baseColumnList"/>
-        FROM tb_wishlist_detail t
+        FROM tb_sale_model_config t
         WHERE t.row_valid = 1
         <if test="id != null">
             AND t.id = #{id}
         </if>
-        <if test="wishlistId != null">
-            AND t.wishlist_id = #{wishlistId}
+        <if test="saleCode != null and saleCode != ''">
+            AND t.sale_code = #{saleCode}
         </if>
-        <if test="saleModelType != null and saleModelType != ''">
-            AND t.sale_model_type = #{saleModelType}
+        <if test="type != null and type != ''">
+            AND t.type = #{type}
         </if>
-        <if test="saleModelTypeCode != null and saleModelTypeCode != ''">
-            AND t.sale_model_type_code = #{saleModelTypeCode}
+        <if test="typeCode != null and typeCode != ''">
+            AND t.type_code = #{typeCode}
         </if>
-        <if test="saleName != null and saleName != ''">
-            AND t.sale_name = #{saleName}
+        <if test="typeName != null and typeName != ''">
+            AND t.type_name = #{typeName}
         </if>
-        <if test="salePrice != null">
-            AND t.sale_price = #{salePrice}
+        <if test="typePrice != null">
+            AND t.type_price = #{typePrice}
+        </if>
+        <if test="typeImage != null and typeImage != ''">
+            AND t.type_image = #{typeImage}
+        </if>
+        <if test="typeDesc != null and typeDesc != ''">
+            AND t.type_desc = #{typeDesc}
+        </if>
+        <if test="typeParam != null and typeParam != ''">
+            AND t.type_param = #{typeParam}
+        </if>
+        <if test="enable != null">
+            AND t.enable = #{enable}
+        </if>
+        <if test="sort != null">
+            AND t.sort = #{sort}
         </if>
         <if test="description != null and description != ''">
             AND t.description = #{description}
@@ -157,7 +186,7 @@
     <!-- 根据Map对象获取对应数据列表 -->
     <select id="selectPoByMap" parameterType="java.util.Map" resultMap="baseResultMap">
         SELECT <include refid="baseColumnList"/>
-        FROM tb_wishlist_detail t
+        FROM tb_sale_model_config t
         WHERE t.row_valid = 1
         <!-- 添加自定义条件 -->
         ORDER BY t.id DESC
@@ -166,7 +195,7 @@
     <!-- 根据Map对象统计记录数 -->
     <select id="countPoByMap" parameterType="java.util.Map" resultType="int">
         SELECT COUNT(*)
-        FROM tb_wishlist_detail t
+        FROM tb_sale_model_config t
         WHERE t.row_valid = 1
         <!-- 添加自定义条件 -->
     </select>

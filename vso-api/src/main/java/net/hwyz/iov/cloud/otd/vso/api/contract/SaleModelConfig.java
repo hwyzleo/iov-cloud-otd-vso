@@ -17,7 +17,7 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class SaleModel {
+public class SaleModelConfig {
 
     /**
      * 销售代码
@@ -25,38 +25,38 @@ public class SaleModel {
     private String saleCode;
 
     /**
-     * 销售车型类型
+     * 销售车型配置类型
      */
-    private String saleModelType;
+    private String type;
 
     /**
-     * 销售车型类型代码
+     * 销售车型配置类型代码
      */
-    private String saleModelTypeCode;
+    private String typeCode;
 
     /**
-     * 销售名称
+     * 销售车型配置类型名称
      */
-    private String saleName;
+    private String typeName;
 
     /**
-     * 销售价格
+     * 销售车型配置类型价格
      */
-    private BigDecimal salePrice;
+    private BigDecimal typePrice;
 
     /**
-     * 销售图片
+     * 销售车型配置类型图片
      */
-    private List<String> saleImage;
+    private List<String> typeImage;
 
     /**
-     * 销售描述
+     * 销售车型配置类型描述
      */
-    private String saleDesc;
+    private String typeDesc;
 
     /**
-     * 销售参数
+     * 销售车型配置类型参数
      */
-    private String saleParam;
+    private String typeParam;
 
 }

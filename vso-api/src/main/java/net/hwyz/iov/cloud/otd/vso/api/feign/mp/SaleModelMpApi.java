@@ -12,12 +12,12 @@ import net.hwyz.iov.cloud.tsp.framework.commons.bean.Response;
 public interface SaleModelMpApi {
 
     /**
-     * 获取销售车型列表
+     * 获取销售车型配置列表
      *
      * @param saleCode      销售代码
      * @param clientAccount 终端用户
-     * @return 销售车型列表
+     * @return 销售车型配置列表
      */
-    Response<SaleModelResponse> getSaleModelList(String saleCode, ClientAccount clientAccount);
+    Response<SaleModelResponse> getSaleModelConfigList(String saleCode, ClientAccount clientAccount);
 
 }

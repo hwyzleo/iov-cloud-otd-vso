@@ -3,20 +3,21 @@ package net.hwyz.iov.cloud.otd.vso.service.application.service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.hwyz.iov.cloud.otd.vso.api.contract.Wishlist;
+import net.hwyz.iov.cloud.otd.vso.api.contract.enums.SaleModelConfigType;
 import net.hwyz.iov.cloud.otd.vso.api.contract.response.WishlistResponse;
-import net.hwyz.iov.cloud.otd.vso.service.infrastructure.exception.SaleModelTypeCodeNoteExistException;
-import net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository.dao.WishlistDao;
-import net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository.dao.WishlistDetailDao;
-import net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository.po.SaleModelPo;
-import net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository.po.WishlistDetailPo;
-import net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository.po.WishlistPo;
+import net.hwyz.iov.cloud.otd.vso.service.domain.external.service.ExVehicleModelConfigService;
+import net.hwyz.iov.cloud.otd.vso.service.domain.factory.OrderFactory;
+import net.hwyz.iov.cloud.otd.vso.service.domain.order.model.OrderDo;
+import net.hwyz.iov.cloud.otd.vso.service.domain.order.model.OrderModelConfigDo;
+import net.hwyz.iov.cloud.otd.vso.service.domain.order.repository.OrderRepository;
+import net.hwyz.iov.cloud.otd.vso.service.infrastructure.exception.ModelConfigCodeNoteExistException;
+import net.hwyz.iov.cloud.otd.vso.service.infrastructure.exception.SaleModelConfigTypeCodeNoteExistException;
+import net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository.po.SaleModelConfigPo;
 import net.hwyz.iov.cloud.tsp.framework.commons.enums.Symbol;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -29,25 +30,25 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class VehicleSaleOrderAppService {
 
-    private final WishlistDao wishlistDao;
-    private final WishlistDetailDao wishlistDetailDao;
+    private final OrderFactory orderFactory;
+    private final OrderRepository orderRepository;
     private final SaleModelAppService saleModelAppService;
+    private final ExVehicleModelConfigService exVehicleModelConfigService;
 
     /**
      * 创建用户心愿单
      *
      * @param accountId 账号ID
      * @param wishlist  心愿单
+     * @return 订单编号
      */
-    public void createUserWishlist(String accountId, Wishlist wishlist) {
-        WishlistPo wishlistPo = WishlistPo.builder()
-                .accountId(accountId)
-                .saleCode(wishlist.getSaleCode())
-                .saleModelCode(wishlist.getSaleModelCode())
-                .isOrder(false)
-                .build();
-        wishlistDao.insertPo(wishlistPo);
-        batchCreateWishlistDetail(wishlist, wishlistPo.getId());
+    public String createUserWishlist(String accountId, Wishlist wishlist) {
+        String saleCode = wishlist.getSaleCode();
+        String modelConfigCode = getModelConfigCode(wishlist.getSaleModelConfigType());
+        OrderDo orderDo = orderFactory.buildFromWishlist(accountId, saleCode);
+        orderDo.saveModelConfig(modelConfigCode, getOrderModelConfigMap(saleCode, wishlist.getSaleModelConfigType()));
+        orderRepository.save(orderDo);
+        return orderDo.getOrderNum();
     }
 
     /**
@@ -57,69 +58,86 @@ public class VehicleSaleOrderAppService {
      * @param wishlist  心愿单
      */
     public void modifyUserWishlist(String accountId, Wishlist wishlist) {
-        WishlistPo userWishlistPo = getUserWishlistPo(accountId);
-        if (userWishlistPo != null) {
-            userWishlistPo.setSaleCode(wishlist.getSaleCode());
-            userWishlistPo.setSaleModelCode(wishlist.getSaleModelCode());
-            wishlistDao.updatePo(userWishlistPo);
-            wishlistDetailDao.physicalDeletePoByWishlistId(userWishlistPo.getId());
-            batchCreateWishlistDetail(wishlist, userWishlistPo.getId());
-        } else {
-            logger.warn("用户[{}]心愿单不存在，修改改为新增", accountId);
-            createUserWishlist(accountId, wishlist);
-        }
+        OrderDo orderDo = orderRepository.get(accountId, wishlist.getOrderNum());
+        String modelConfigCode = getModelConfigCode(wishlist.getSaleModelConfigType());
+        orderDo.saveModelConfig(modelConfigCode, getOrderModelConfigMap(wishlist.getSaleCode(), wishlist.getSaleModelConfigType()));
+        orderRepository.save(orderDo);
     }
 
     /**
-     * 批量新增心愿单详情
+     * 转换订单车型配置Map
      *
-     * @param wishlist   心愿单
-     * @param wishlistId 心愿单ID
+     * @param saleCode               销售编号
+     * @param saleModelConfigTypeMap 销售车型配置类型Map
+     * @return 订单车型配置Map
      */
-    private void batchCreateWishlistDetail(Wishlist wishlist, Long wishlistId) {
-        Map<String, SaleModelPo> saleModelMap = saleModelAppService.getSaleModelMap(wishlist.getSaleCode());
-        List<WishlistDetailPo> wishlistDetailPoList = new ArrayList<>();
-        wishlist.getSaleModelType().forEach((key, value) -> {
-            SaleModelPo saleModelPo = saleModelMap.get(key + Symbol.UNDERSCORE.value + value);
-            if (saleModelPo == null) {
-                throw new SaleModelTypeCodeNoteExistException(wishlist.getSaleCode(), key, value);
+    private Map<SaleModelConfigType, OrderModelConfigDo> getOrderModelConfigMap(String saleCode, Map<String, String> saleModelConfigTypeMap) {
+        Map<SaleModelConfigType, OrderModelConfigDo> orderModelConfigMap = new HashMap<>();
+        Map<String, SaleModelConfigPo> saleModelConfigMap = saleModelAppService.getSaleModelConfigMap(saleCode);
+        saleModelConfigTypeMap.forEach((key, value) -> {
+            SaleModelConfigType saleModelConfigType = SaleModelConfigType.valOf(key);
+            if (saleModelConfigType == null) {
+                throw new SaleModelConfigTypeCodeNoteExistException(saleCode, key, value);
             }
-            WishlistDetailPo wishlistDetailPo = WishlistDetailPo.builder()
-                    .wishlistId(wishlistId)
-                    .saleModelType(key)
-                    .saleModelTypeCode(value)
-                    .saleName(saleModelPo.getSaleName())
-                    .salePrice(saleModelPo.getSalePrice())
+            SaleModelConfigPo saleModelConfigPo = saleModelConfigMap.get(key + Symbol.UNDERSCORE.value + value);
+            if (saleModelConfigPo == null) {
+                throw new SaleModelConfigTypeCodeNoteExistException(saleCode, key, value);
+            }
+            OrderModelConfigDo orderModelConfigDo = OrderModelConfigDo.builder()
+                    .type(saleModelConfigType)
+                    .typeCode(saleModelConfigPo.getTypeCode())
+                    .typeName(saleModelConfigPo.getTypeName())
+                    .typePrice(saleModelConfigPo.getTypePrice())
                     .build();
-            wishlistDetailPoList.add(wishlistDetailPo);
+            orderModelConfigDo.init();
+            orderModelConfigMap.put(saleModelConfigType, orderModelConfigDo);
         });
-        wishlistDetailDao.batchInsertPo(wishlistDetailPoList);
+        return orderModelConfigMap;
+    }
+
+    /**
+     * 获取车型配置代码
+     *
+     * @param saleModelConfigType 销售车型配置类型
+     * @return 车型配置代码
+     */
+    private String getModelConfigCode(Map<String, String> saleModelConfigType) {
+        String modelCode = saleModelConfigType.get(SaleModelConfigType.MODEL.name());
+        String exteriorCode = saleModelConfigType.get(SaleModelConfigType.EXTERIOR.name());
+        String interiorCode = saleModelConfigType.get(SaleModelConfigType.INTERIOR.name());
+        String wheelCode = saleModelConfigType.get(SaleModelConfigType.WHEEL.name());
+        String spareTireCode = saleModelConfigType.get(SaleModelConfigType.SPARE_TIRE.name());
+        String adasCode = saleModelConfigType.get(SaleModelConfigType.OPTIONAL.name());
+        String vehicleModeConfigCode = exVehicleModelConfigService.getVehicleModeConfigCode(modelCode, exteriorCode,
+                interiorCode, wheelCode, spareTireCode, adasCode);
+        if (vehicleModeConfigCode == null) {
+            throw new ModelConfigCodeNoteExistException(modelCode, exteriorCode, interiorCode, wheelCode, spareTireCode, adasCode);
+        }
+        return vehicleModeConfigCode;
     }
 
     /**
      * 删除用户心愿单
      *
      * @param accountId 账号ID
+     * @param orderNum  订单编号
      */
-    public void deleteUserWishlist(String accountId) {
-        WishlistPo userWishlistPo = getUserWishlistPo(accountId);
-        if (userWishlistPo != null) {
-            wishlistDetailDao.physicalDeletePoByWishlistId(userWishlistPo.getId());
-            wishlistDao.physicalDeletePo(userWishlistPo.getId());
-        } else {
-            logger.warn("用户[{}]心愿单不存在，忽略删除", accountId);
-        }
+    public void deleteUserWishlist(String accountId, String orderNum) {
+        OrderDo orderDo = orderRepository.get(accountId, orderNum);
+        orderDo.markDelete();
+        orderRepository.save(orderDo);
     }
 
     /**
      * 获取用户心愿单详情
      *
      * @param accountId 账号ID
+     * @param orderNum  订单编号
      * @return 用户心愿单详情
      */
-    public WishlistResponse getUserWishlistResponse(String accountId) {
-        WishlistPo wishlistPo = getUserWishlistPo(accountId);
-        if (wishlistPo == null) {
+    public WishlistResponse getUserWishlistResponse(String accountId, String orderNum) {
+        OrderDo orderDo = orderRepository.get(accountId, orderNum);
+        if (orderDo == null) {
             return null;
         }
         Map<String, String> saleModelType = new HashMap<>();
@@ -127,53 +145,37 @@ public class VehicleSaleOrderAppService {
         Map<String, BigDecimal> saleModelPrice = new HashMap<>();
         boolean isValid = true;
         BigDecimal totalPrice = BigDecimal.ZERO;
-        Map<String, SaleModelPo> saleModelMap = saleModelAppService.getSaleModelMap(wishlistPo.getSaleCode());
-        for (WishlistDetailPo wishlistDetailPo : wishlistDetailDao.selectPoByExample(WishlistDetailPo.builder().wishlistId(wishlistPo.getId()).build())) {
-            saleModelType.put(wishlistDetailPo.getSaleModelType(), wishlistDetailPo.getSaleModelTypeCode());
-            saleModelName.put(wishlistDetailPo.getSaleModelType(), wishlistDetailPo.getSaleName());
-            saleModelPrice.put(wishlistDetailPo.getSaleModelType(), wishlistDetailPo.getSalePrice());
-            totalPrice = totalPrice.add(wishlistDetailPo.getSalePrice());
+        Map<String, SaleModelConfigPo> saleModelMap = saleModelAppService.getSaleModelConfigMap(orderDo.getSaleCode());
+        for (OrderModelConfigDo orderModelConfigDo : orderDo.getModelConfigMap().values()) {
+            saleModelType.put(orderModelConfigDo.getType().name(), orderModelConfigDo.getTypeCode());
+            saleModelName.put(orderModelConfigDo.getType().name(), orderModelConfigDo.getTypeName());
+            saleModelPrice.put(orderModelConfigDo.getType().name(), orderModelConfigDo.getTypePrice());
+            totalPrice = totalPrice.add(orderModelConfigDo.getTypePrice());
             if (isValid) {
-                SaleModelPo saleModelPo = saleModelMap.get(wishlistDetailPo.getSaleModelType() + Symbol.UNDERSCORE.value + wishlistDetailPo.getSaleModelTypeCode());
-                if (saleModelPo == null) {
+                SaleModelConfigPo saleModelConfigPo = saleModelMap.get(orderModelConfigDo.getType().name() +
+                        Symbol.UNDERSCORE.value + orderModelConfigDo.getTypeCode());
+                if (saleModelConfigPo == null) {
                     isValid = false;
                     continue;
                 }
-                if (!saleModelPo.getSaleName().equals(wishlistDetailPo.getSaleName())) {
+                if (!saleModelConfigPo.getTypeName().equals(orderModelConfigDo.getTypeName())) {
                     isValid = false;
                     continue;
                 }
-                if (saleModelPo.getSalePrice().compareTo(wishlistDetailPo.getSalePrice()) != 0) {
+                if (saleModelConfigPo.getTypePrice().compareTo(orderModelConfigDo.getTypePrice()) != 0) {
                     isValid = false;
                 }
             }
         }
         return WishlistResponse.builder()
-                .saleCode(wishlistPo.getSaleCode())
-                .saleModelCode(wishlistPo.getSaleModelCode())
-                .saleModelType(saleModelType)
-                .saleModelName(saleModelName)
-                .saleModelPrice(saleModelPrice)
+                .saleCode(orderDo.getSaleCode())
+                .orderNum(orderDo.getOrderNum())
+                .saleModelConfigType(saleModelType)
+                .saleModelConfigName(saleModelName)
+                .saleModelConfigPrice(saleModelPrice)
                 .totalPrice(totalPrice)
                 .isValid(isValid)
                 .build();
-    }
-
-    /**
-     * 获取用户心愿单详情
-     *
-     * @param accountId 账号ID
-     * @return 用户心愿单详情
-     */
-    private WishlistPo getUserWishlistPo(String accountId) {
-        List<WishlistPo> wishlistPoList = wishlistDao.selectPoByExample(WishlistPo.builder().accountId(accountId).isOrder(false).build());
-        if (wishlistPoList.isEmpty()) {
-            return null;
-        }
-        if (wishlistPoList.size() > 1) {
-            logger.warn("用户[{}]心愿单数量[{}]大于1", accountId, wishlistPoList.size());
-        }
-        return wishlistPoList.get(0);
     }
 
 }

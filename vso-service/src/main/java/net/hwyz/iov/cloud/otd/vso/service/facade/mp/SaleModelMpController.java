@@ -24,17 +24,17 @@ public class SaleModelMpController implements SaleModelMpApi {
     private final SaleModelAppService saleModelAppService;
 
     /**
-     * 获取销售车型列表
+     * 获取销售车型配置列表
      *
      * @param saleCode      销售代码
      * @param clientAccount 终端用户
-     * @return 销售车型列表
+     * @return 销售车型配置列表
      */
     @Override
     @GetMapping("/{saleCode}")
-    public Response<SaleModelResponse> getSaleModelList(@PathVariable("saleCode") String saleCode,
-                                                        @RequestHeader ClientAccount clientAccount) {
-        logger.info("手机客户端[{}]获取销售代码[{}]销售车型列表", ParamHelper.getClientAccountInfo(clientAccount), saleCode);
+    public Response<SaleModelResponse> getSaleModelConfigList(@PathVariable("saleCode") String saleCode,
+                                                              @RequestHeader ClientAccount clientAccount) {
+        logger.info("手机客户端[{}]获取销售代码[{}]销售车型配置列表", ParamHelper.getClientAccountInfo(clientAccount), saleCode);
         return new Response<>(saleModelAppService.getSaleModelResponse(saleCode));
     }
 }

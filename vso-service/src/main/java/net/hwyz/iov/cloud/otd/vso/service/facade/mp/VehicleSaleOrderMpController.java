@@ -34,10 +34,9 @@ public class VehicleSaleOrderMpController implements VehicleSaleOrderMpApi {
      */
     @Override
     @PostMapping("/wishlist/action/create")
-    public Response<Void> createWishlist(@RequestBody @Valid Wishlist request, @RequestHeader ClientAccount clientAccount) {
+    public Response<String> createWishlist(@RequestBody @Valid Wishlist request, @RequestHeader ClientAccount clientAccount) {
         logger.info("手机客户端[{}]新建心愿单", ParamHelper.getClientAccountInfo(clientAccount));
-        vehicleSaleOrderAppService.createUserWishlist(clientAccount.getAccountId(), request);
-        return new Response<>();
+        return new Response<>(vehicleSaleOrderAppService.createUserWishlist(clientAccount.getAccountId(), request));
     }
 
     /**
@@ -50,7 +49,7 @@ public class VehicleSaleOrderMpController implements VehicleSaleOrderMpApi {
     @Override
     @PostMapping("/wishlist/action/modify")
     public Response<Void> modifyWishlist(@RequestBody @Valid Wishlist request, @RequestHeader ClientAccount clientAccount) {
-        logger.info("手机客户端[{}]修改心愿单", ParamHelper.getClientAccountInfo(clientAccount));
+        logger.info("手机客户端[{}]修改心愿单[{}]", ParamHelper.getClientAccountInfo(clientAccount), request.getOrderNum());
         vehicleSaleOrderAppService.modifyUserWishlist(clientAccount.getAccountId(), request);
         return new Response<>();
     }
@@ -63,9 +62,9 @@ public class VehicleSaleOrderMpController implements VehicleSaleOrderMpApi {
      */
     @Override
     @PostMapping("/wishlist/action/delete")
-    public Response<Void> deleteWishlist(@RequestHeader ClientAccount clientAccount) {
-        logger.info("手机客户端[{}]删除心愿单", ParamHelper.getClientAccountInfo(clientAccount));
-        vehicleSaleOrderAppService.deleteUserWishlist(clientAccount.getAccountId());
+    public Response<Void> deleteWishlist(@RequestBody @Valid Wishlist request, @RequestHeader ClientAccount clientAccount) {
+        logger.info("手机客户端[{}]删除心愿单[{}]", ParamHelper.getClientAccountInfo(clientAccount), request.getOrderNum());
+        vehicleSaleOrderAppService.deleteUserWishlist(clientAccount.getAccountId(), request.getOrderNum());
         return new Response<>();
     }
 
@@ -76,10 +75,10 @@ public class VehicleSaleOrderMpController implements VehicleSaleOrderMpApi {
      * @return 心愿单详情
      */
     @Override
-    @GetMapping("/wishlist")
-    public Response<WishlistResponse> getWishlist(@RequestHeader ClientAccount clientAccount) {
-        logger.info("手机客户端[{}]获取心愿单详情", ParamHelper.getClientAccountInfo(clientAccount));
-        return new Response<>(vehicleSaleOrderAppService.getUserWishlistResponse(clientAccount.getAccountId()));
+    @GetMapping("/wishlist/{orderNum}")
+    public Response<WishlistResponse> getWishlist(@PathVariable String orderNum, @RequestHeader ClientAccount clientAccount) {
+        logger.info("手机客户端[{}]获取心愿单[{}]详情", ParamHelper.getClientAccountInfo(clientAccount), orderNum);
+        return new Response<>(vehicleSaleOrderAppService.getUserWishlistResponse(clientAccount.getAccountId(), orderNum));
     }
 
 }
