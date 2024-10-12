@@ -2,9 +2,11 @@ package net.hwyz.iov.cloud.otd.vso.service.application.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import net.hwyz.iov.cloud.otd.vso.api.contract.Order;
 import net.hwyz.iov.cloud.otd.vso.api.contract.Wishlist;
 import net.hwyz.iov.cloud.otd.vso.api.contract.enums.SaleModelConfigType;
 import net.hwyz.iov.cloud.otd.vso.api.contract.response.WishlistResponse;
+import net.hwyz.iov.cloud.otd.vso.service.domain.contract.enums.OrderState;
 import net.hwyz.iov.cloud.otd.vso.service.domain.external.service.ExVehicleModelConfigService;
 import net.hwyz.iov.cloud.otd.vso.service.domain.factory.OrderFactory;
 import net.hwyz.iov.cloud.otd.vso.service.domain.order.model.OrderDo;
@@ -12,12 +14,18 @@ import net.hwyz.iov.cloud.otd.vso.service.domain.order.model.OrderModelConfigDo;
 import net.hwyz.iov.cloud.otd.vso.service.domain.order.repository.OrderRepository;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.exception.ModelConfigCodeNoteExistException;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.exception.SaleModelConfigTypeCodeNoteExistException;
+import net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository.dao.OrderDao;
+import net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository.dao.OrderModelConfigDao;
+import net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository.po.OrderModelConfigPo;
+import net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository.po.OrderPo;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository.po.SaleModelConfigPo;
 import net.hwyz.iov.cloud.tsp.framework.commons.enums.Symbol;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -30,10 +38,48 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class VehicleSaleOrderAppService {
 
+    private final OrderDao orderDao;
     private final OrderFactory orderFactory;
     private final OrderRepository orderRepository;
+    private final OrderModelConfigDao orderModelConfigDao;
     private final SaleModelAppService saleModelAppService;
     private final ExVehicleModelConfigService exVehicleModelConfigService;
+
+    /**
+     * 获取订单列表
+     *
+     * @param accountId 账号ID
+     * @return 订单列表
+     */
+    public List<Order> getOrderList(String accountId) {
+        List<Order> list = new ArrayList<>();
+        orderDao.selectPoByExample(OrderPo.builder().orderPersonId(accountId).build()).forEach(orderPo -> {
+            String displayName = "";
+            OrderState orderState = OrderState.valOf(orderPo.getOrderState());
+            switch (orderState) {
+                case WISHLIST -> {
+                    List<OrderModelConfigPo> orderModelConfigPoList = orderModelConfigDao.selectPoByExample(OrderModelConfigPo.builder()
+                            .orderNum(orderPo.getOrderNum())
+                            .type(SaleModelConfigType.MODEL.name())
+                            .build());
+                    if (!orderModelConfigPoList.isEmpty()) {
+                        displayName = orderModelConfigPoList.get(0).getTypeName();
+                    } else {
+                        displayName = orderPo.getModelConfigCode();
+                    }
+                }
+                default -> {
+                    displayName = orderPo.getOrderNum();
+                }
+            }
+            list.add(Order.builder()
+                    .orderNum(orderPo.getOrderNum())
+                    .orderState(orderState.value)
+                    .displayName(displayName)
+                    .build());
+        });
+        return list;
+    }
 
     /**
      * 创建用户心愿单

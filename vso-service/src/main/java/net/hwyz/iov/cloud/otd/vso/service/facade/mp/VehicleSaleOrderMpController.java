@@ -3,14 +3,19 @@ package net.hwyz.iov.cloud.otd.vso.service.facade.mp;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import net.hwyz.iov.cloud.otd.vso.api.contract.Order;
 import net.hwyz.iov.cloud.otd.vso.api.contract.Wishlist;
 import net.hwyz.iov.cloud.otd.vso.api.contract.response.WishlistResponse;
 import net.hwyz.iov.cloud.otd.vso.api.feign.mp.VehicleSaleOrderMpApi;
 import net.hwyz.iov.cloud.otd.vso.service.application.service.VehicleSaleOrderAppService;
+import net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository.dao.OrderDao;
+import net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository.po.OrderPo;
 import net.hwyz.iov.cloud.tsp.framework.commons.bean.ClientAccount;
 import net.hwyz.iov.cloud.tsp.framework.commons.bean.Response;
 import net.hwyz.iov.cloud.tsp.framework.commons.util.ParamHelper;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 /**
  * 车辆销售订单相关手机接口实现类
@@ -23,7 +28,21 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping(value = "/mp/vehicleSaleOrder")
 public class VehicleSaleOrderMpController implements VehicleSaleOrderMpApi {
 
+    private final OrderDao orderDao;
     private final VehicleSaleOrderAppService vehicleSaleOrderAppService;
+
+    /**
+     * 获取订单列表
+     *
+     * @param clientAccount 终端用户
+     * @return 订单列表
+     */
+    @Override
+    @GetMapping("")
+    public Response<List<Order>> getOrderList(ClientAccount clientAccount) {
+        logger.info("手机客户端[{}]获取订单列表", ParamHelper.getClientAccountInfo(clientAccount));
+        return new Response<>(vehicleSaleOrderAppService.getOrderList(clientAccount.getAccountId()));
+    }
 
     /**
      * 新建心愿单

@@ -1,9 +1,12 @@
 package net.hwyz.iov.cloud.otd.vso.api.feign.mp;
 
+import net.hwyz.iov.cloud.otd.vso.api.contract.Order;
 import net.hwyz.iov.cloud.otd.vso.api.contract.Wishlist;
 import net.hwyz.iov.cloud.otd.vso.api.contract.response.WishlistResponse;
 import net.hwyz.iov.cloud.tsp.framework.commons.bean.ClientAccount;
 import net.hwyz.iov.cloud.tsp.framework.commons.bean.Response;
+
+import java.util.List;
 
 /**
  * 车辆销售订单相关手机接口
@@ -11,6 +14,14 @@ import net.hwyz.iov.cloud.tsp.framework.commons.bean.Response;
  * @author hwyz_leo
  */
 public interface VehicleSaleOrderMpApi {
+
+    /**
+     * 获取订单列表
+     *
+     * @param clientAccount 终端用户
+     * @return 订单列表
+     */
+    Response<List<Order>> getOrderList(ClientAccount clientAccount);
 
     /**
      * 新建心愿单
