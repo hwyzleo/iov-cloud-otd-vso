@@ -8,6 +8,7 @@ import lombok.experimental.SuperBuilder;
 import net.hwyz.iov.cloud.otd.vso.api.contract.Wishlist;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -29,6 +30,10 @@ public class WishlistResponse extends Wishlist {
      * 销售车型配置价格
      */
     private Map<String, BigDecimal> saleModelConfigPrice;
+    /**
+     * 销售车型图片
+     */
+    private List<String> saleModelImages;
     /**
      * 总价格
      */

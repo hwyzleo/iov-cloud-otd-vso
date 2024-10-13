@@ -11,7 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import java.math.BigDecimal;
 
 /**
- * 销售车型 DAO 测试类
+ * 销售车型配置 DAO 测试类
  *
  * @author hwyz_leo
  */

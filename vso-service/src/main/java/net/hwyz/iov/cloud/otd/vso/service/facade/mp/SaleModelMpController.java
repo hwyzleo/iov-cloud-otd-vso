@@ -2,13 +2,15 @@ package net.hwyz.iov.cloud.otd.vso.service.facade.mp;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import net.hwyz.iov.cloud.otd.vso.api.contract.response.SaleModelResponse;
+import net.hwyz.iov.cloud.otd.vso.api.contract.SaleModelConfig;
 import net.hwyz.iov.cloud.otd.vso.api.feign.mp.SaleModelMpApi;
 import net.hwyz.iov.cloud.otd.vso.service.application.service.SaleModelAppService;
 import net.hwyz.iov.cloud.tsp.framework.commons.bean.ClientAccount;
 import net.hwyz.iov.cloud.tsp.framework.commons.bean.Response;
 import net.hwyz.iov.cloud.tsp.framework.commons.util.ParamHelper;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 /**
  * 销售车型相关手机接口实现类
@@ -32,8 +34,8 @@ public class SaleModelMpController implements SaleModelMpApi {
      */
     @Override
     @GetMapping("/{saleCode}")
-    public Response<SaleModelResponse> getSaleModelConfigList(@PathVariable("saleCode") String saleCode,
-                                                              @RequestHeader ClientAccount clientAccount) {
+    public Response<List<SaleModelConfig>> getSaleModelConfigList(@PathVariable("saleCode") String saleCode,
+                                                                  @RequestHeader ClientAccount clientAccount) {
         logger.info("手机客户端[{}]获取销售代码[{}]销售车型配置列表", ParamHelper.getClientAccountInfo(clientAccount), saleCode);
         return new Response<>(saleModelAppService.getSaleModelResponse(saleCode));
     }

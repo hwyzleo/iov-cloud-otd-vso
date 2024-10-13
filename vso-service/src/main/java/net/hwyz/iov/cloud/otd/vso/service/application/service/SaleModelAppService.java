@@ -2,7 +2,7 @@ package net.hwyz.iov.cloud.otd.vso.service.application.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import net.hwyz.iov.cloud.otd.vso.api.contract.response.SaleModelResponse;
+import net.hwyz.iov.cloud.otd.vso.api.contract.SaleModelConfig;
 import net.hwyz.iov.cloud.otd.vso.service.facade.assembler.SaleModelConfigAssembler;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository.dao.SaleModelConfigDao;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository.po.SaleModelConfigPo;
@@ -31,10 +31,8 @@ public class SaleModelAppService {
      * @param saleCode 销售代码
      * @return 销售车型列表
      */
-    public SaleModelResponse getSaleModelResponse(String saleCode) {
-        return SaleModelResponse.builder()
-                .saleModels(SaleModelConfigAssembler.INSTANCE.fromPoList(getSaleModelConfigList(saleCode)))
-                .build();
+    public List<SaleModelConfig> getSaleModelResponse(String saleCode) {
+        return SaleModelConfigAssembler.INSTANCE.fromPoList(getSaleModelConfigList(saleCode));
     }
 
     /**

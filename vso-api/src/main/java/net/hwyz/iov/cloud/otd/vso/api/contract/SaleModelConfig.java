@@ -9,7 +9,7 @@ import java.math.BigDecimal;
 import java.util.List;
 
 /**
- * 销售车型
+ * 销售车型配置
  *
  * @author hwyz_leo
  */

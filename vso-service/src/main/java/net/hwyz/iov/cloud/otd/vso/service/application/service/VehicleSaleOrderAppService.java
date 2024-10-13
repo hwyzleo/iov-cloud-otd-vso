@@ -1,5 +1,7 @@
 package net.hwyz.iov.cloud.otd.vso.service.application.service;
 
+import cn.hutool.core.lang.TypeReference;
+import cn.hutool.json.JSONUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.hwyz.iov.cloud.otd.vso.api.contract.Order;
@@ -188,6 +190,7 @@ public class VehicleSaleOrderAppService {
         }
         Map<String, String> saleModelType = new HashMap<>();
         Map<String, String> saleModelName = new HashMap<>();
+        List<String> saleModelImages = new ArrayList<>();
         Map<String, BigDecimal> saleModelPrice = new HashMap<>();
         boolean isValid = true;
         BigDecimal totalPrice = BigDecimal.ZERO;
@@ -197,13 +200,19 @@ public class VehicleSaleOrderAppService {
             saleModelName.put(orderModelConfigDo.getType().name(), orderModelConfigDo.getTypeName());
             saleModelPrice.put(orderModelConfigDo.getType().name(), orderModelConfigDo.getTypePrice());
             totalPrice = totalPrice.add(orderModelConfigDo.getTypePrice());
+            SaleModelConfigPo saleModelConfigPo = saleModelMap.get(orderModelConfigDo.getType().name() +
+                    Symbol.UNDERSCORE.value + orderModelConfigDo.getTypeCode());
+            if (saleModelConfigPo == null) {
+                isValid = false;
+                continue;
+            }
+            List<String> images = JSONUtil.toBean(saleModelConfigPo.getTypeImage(), new TypeReference<>() {
+            }, true);
+            if (!images.isEmpty() && (orderModelConfigDo.getType() == SaleModelConfigType.EXTERIOR
+                    || orderModelConfigDo.getType() == SaleModelConfigType.INTERIOR)) {
+                saleModelImages.add(images.get(0));
+            }
             if (isValid) {
-                SaleModelConfigPo saleModelConfigPo = saleModelMap.get(orderModelConfigDo.getType().name() +
-                        Symbol.UNDERSCORE.value + orderModelConfigDo.getTypeCode());
-                if (saleModelConfigPo == null) {
-                    isValid = false;
-                    continue;
-                }
                 if (!saleModelConfigPo.getTypeName().equals(orderModelConfigDo.getTypeName())) {
                     isValid = false;
                     continue;
@@ -219,6 +228,7 @@ public class VehicleSaleOrderAppService {
                 .saleModelConfigType(saleModelType)
                 .saleModelConfigName(saleModelName)
                 .saleModelConfigPrice(saleModelPrice)
+                .saleModelImages(saleModelImages)
                 .totalPrice(totalPrice)
                 .isValid(isValid)
                 .build();
