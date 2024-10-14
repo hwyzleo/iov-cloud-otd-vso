@@ -3,6 +3,7 @@ package net.hwyz.iov.cloud.otd.vso.service.facade.mp;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.hwyz.iov.cloud.otd.vso.api.contract.PurchaseBenefits;
+import net.hwyz.iov.cloud.otd.vso.api.contract.SaleModel;
 import net.hwyz.iov.cloud.otd.vso.api.contract.SaleModelConfig;
 import net.hwyz.iov.cloud.otd.vso.api.feign.mp.SaleModelMpApi;
 import net.hwyz.iov.cloud.otd.vso.service.application.service.SaleModelAppService;
@@ -27,6 +28,21 @@ public class SaleModelMpController implements SaleModelMpApi {
     private final SaleModelAppService saleModelAppService;
 
     /**
+     * 获取销售车型信息
+     *
+     * @param saleCode      销售代码
+     * @param clientAccount 终端用户
+     * @return 销售车型信息
+     */
+    @Override
+    @GetMapping("/{saleCode}")
+    public Response<SaleModel> getSaleModel(@PathVariable("saleCode") String saleCode,
+                                            @RequestHeader ClientAccount clientAccount) {
+        logger.info("手机客户端[{}]获取销售代码[{}]销售车型信息", ParamHelper.getClientAccountInfo(clientAccount), saleCode);
+        return new Response<>(saleModelAppService.getSaleModel(saleCode));
+    }
+
+    /**
      * 获取销售车型配置列表
      *
      * @param saleCode      销售代码
@@ -34,7 +50,7 @@ public class SaleModelMpController implements SaleModelMpApi {
      * @return 销售车型配置列表
      */
     @Override
-    @GetMapping("/{saleCode}")
+    @GetMapping("/{saleCode}/config")
     public Response<List<SaleModelConfig>> getSaleModelConfigList(@PathVariable("saleCode") String saleCode,
                                                                   @RequestHeader ClientAccount clientAccount) {
         logger.info("手机客户端[{}]获取销售代码[{}]销售车型配置列表", ParamHelper.getClientAccountInfo(clientAccount), saleCode);

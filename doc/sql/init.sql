@@ -1,3 +1,27 @@
+DROP TABLE IF EXISTS `db_vso`.`tb_sale_model`;
+CREATE TABLE `db_vso`.`tb_sale_model`
+(
+    `id`            BIGINT       NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `sale_code`     VARCHAR(50)  NOT NULL COMMENT '销售代码',
+    `model_name`    VARCHAR(255) NOT NULL COMMENT '销售车型名称',
+    `parameters`    JSON                  DEFAULT NULL COMMENT '销售车型相关参数',
+    `images`        JSON                  DEFAULT NULL COMMENT '销售车型图片集',
+    `earnest_money` TINYINT      NOT NULL COMMENT '是否允许意向金（小定）',
+    `down_payment`  TINYINT      NOT NULL COMMENT '是否允许定金（大定）',
+    `enable`        TINYINT      NOT NULL COMMENT '是否启用',
+    `sort`          INT          NOT NULL COMMENT '排序',
+    `description`   VARCHAR(255)          DEFAULT NULL COMMENT '备注',
+    `create_time`   TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `create_by`     BIGINT                DEFAULT NULL COMMENT '创建者',
+    `modify_time`   TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '修改时间',
+    `modify_by`     BIGINT                DEFAULT NULL COMMENT '修改者',
+    `row_version`   INT                   DEFAULT NULL COMMENT '记录版本',
+    `row_valid`     TINYINT               DEFAULT NULL COMMENT '是否有效',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY (`sale_code`)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4 COMMENT ='销售车型';
+
 DROP TABLE IF EXISTS `db_vso`.`tb_sale_model_config`;
 CREATE TABLE `db_vso`.`tb_sale_model_config`
 (

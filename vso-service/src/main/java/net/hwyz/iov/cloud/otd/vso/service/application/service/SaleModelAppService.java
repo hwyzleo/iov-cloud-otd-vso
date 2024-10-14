@@ -3,13 +3,17 @@ package net.hwyz.iov.cloud.otd.vso.service.application.service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.hwyz.iov.cloud.otd.vso.api.contract.PurchaseBenefits;
+import net.hwyz.iov.cloud.otd.vso.api.contract.SaleModel;
 import net.hwyz.iov.cloud.otd.vso.api.contract.SaleModelConfig;
 import net.hwyz.iov.cloud.otd.vso.service.facade.assembler.PurchaseBenefitsAssembler;
+import net.hwyz.iov.cloud.otd.vso.service.facade.assembler.SaleModelAssembler;
 import net.hwyz.iov.cloud.otd.vso.service.facade.assembler.SaleModelConfigAssembler;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository.dao.PurchaseBenefitsDao;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository.dao.SaleModelConfigDao;
+import net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository.dao.SaleModelDao;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository.po.PurchaseBenefitsPo;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository.po.SaleModelConfigPo;
+import net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository.po.SaleModelPo;
 import net.hwyz.iov.cloud.tsp.framework.commons.enums.Symbol;
 import org.springframework.stereotype.Service;
 
@@ -27,8 +31,23 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class SaleModelAppService {
 
+    private final SaleModelDao saleModelDao;
     private final SaleModelConfigDao saleModelConfigDao;
     private final PurchaseBenefitsDao purchaseBenefitsDao;
+
+    /**
+     * 获取销售车型信息
+     *
+     * @param saleCode 销售代码
+     * @return 销售车型信息
+     */
+    public SaleModel getSaleModel(String saleCode) {
+        List<SaleModelPo> saleModelPoList = saleModelDao.selectPoByExample(SaleModelPo.builder().saleCode(saleCode).build());
+        if (saleModelPoList.isEmpty()) {
+            return null;
+        }
+        return SaleModelAssembler.INSTANCE.fromPo(saleModelPoList.get(0));
+    }
 
     /**
      * 获取销售车型列表
