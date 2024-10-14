@@ -2,9 +2,13 @@ package net.hwyz.iov.cloud.otd.vso.service.application.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import net.hwyz.iov.cloud.otd.vso.api.contract.PurchaseBenefits;
 import net.hwyz.iov.cloud.otd.vso.api.contract.SaleModelConfig;
+import net.hwyz.iov.cloud.otd.vso.service.facade.assembler.PurchaseBenefitsAssembler;
 import net.hwyz.iov.cloud.otd.vso.service.facade.assembler.SaleModelConfigAssembler;
+import net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository.dao.PurchaseBenefitsDao;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository.dao.SaleModelConfigDao;
+import net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository.po.PurchaseBenefitsPo;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository.po.SaleModelConfigPo;
 import net.hwyz.iov.cloud.tsp.framework.commons.enums.Symbol;
 import org.springframework.stereotype.Service;
@@ -24,6 +28,7 @@ import java.util.stream.Collectors;
 public class SaleModelAppService {
 
     private final SaleModelConfigDao saleModelConfigDao;
+    private final PurchaseBenefitsDao purchaseBenefitsDao;
 
     /**
      * 获取销售车型列表
@@ -43,6 +48,17 @@ public class SaleModelAppService {
      */
     public Map<String, SaleModelConfigPo> getSaleModelConfigMap(String saleCode) {
         return getSaleModelConfigList(saleCode).stream().collect(Collectors.toMap(k -> k.getType() + Symbol.UNDERSCORE.value + k.getTypeCode(), v -> v));
+    }
+
+    /**
+     * 获取销售车型购车权益
+     *
+     * @param saleCode 销售代码
+     * @return 销售车型购车权益
+     */
+    public PurchaseBenefits getPurchaseBenefits(String saleCode) {
+        PurchaseBenefitsPo purchaseBenefitsPo = purchaseBenefitsDao.selectCurrentPoBySaleCode(saleCode);
+        return PurchaseBenefitsAssembler.INSTANCE.fromPo(purchaseBenefitsPo);
     }
 
     /**

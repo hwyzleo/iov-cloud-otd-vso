@@ -2,6 +2,7 @@ package net.hwyz.iov.cloud.otd.vso.service.facade.mp;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import net.hwyz.iov.cloud.otd.vso.api.contract.PurchaseBenefits;
 import net.hwyz.iov.cloud.otd.vso.api.contract.SaleModelConfig;
 import net.hwyz.iov.cloud.otd.vso.api.feign.mp.SaleModelMpApi;
 import net.hwyz.iov.cloud.otd.vso.service.application.service.SaleModelAppService;
@@ -38,5 +39,20 @@ public class SaleModelMpController implements SaleModelMpApi {
                                                                   @RequestHeader ClientAccount clientAccount) {
         logger.info("手机客户端[{}]获取销售代码[{}]销售车型配置列表", ParamHelper.getClientAccountInfo(clientAccount), saleCode);
         return new Response<>(saleModelAppService.getSaleModelResponse(saleCode));
+    }
+
+    /**
+     * 获取销售车型购车权益
+     *
+     * @param saleCode      销售代码
+     * @param clientAccount 终端用户
+     * @return 销售车型购车权益
+     */
+    @Override
+    @GetMapping("/purchaseBenefits/{saleCode}")
+    public Response<PurchaseBenefits> getPurchaseBenefits(@PathVariable("saleCode") String saleCode,
+                                                          @RequestHeader ClientAccount clientAccount) {
+        logger.info("手机客户端[{}]获取销售代码[{}]销售车型购车权益", ParamHelper.getClientAccountInfo(clientAccount), saleCode);
+        return new Response<>(saleModelAppService.getPurchaseBenefits(saleCode));
     }
 }
