@@ -1,5 +1,6 @@
 package net.hwyz.iov.cloud.otd.vso.api.feign.mp;
 
+import net.hwyz.iov.cloud.otd.vso.api.contract.PurchaseAgreement;
 import net.hwyz.iov.cloud.otd.vso.api.contract.PurchaseBenefits;
 import net.hwyz.iov.cloud.otd.vso.api.contract.SaleModel;
 import net.hwyz.iov.cloud.otd.vso.api.contract.SaleModelConfig;
@@ -41,5 +42,15 @@ public interface SaleModelMpApi {
      * @return 销售车型购车权益
      */
     Response<PurchaseBenefits> getPurchaseBenefits(String saleCode, ClientAccount clientAccount);
+
+    /**
+     * 获取销售车型购车协议
+     *
+     * @param saleCode      销售代码
+     * @param type          协议类型
+     * @param clientAccount 终端用户
+     * @return 销售车型购车协议
+     */
+    Response<PurchaseAgreement> getPurchaseAgreement(String saleCode, Integer type, ClientAccount clientAccount);
 
 }

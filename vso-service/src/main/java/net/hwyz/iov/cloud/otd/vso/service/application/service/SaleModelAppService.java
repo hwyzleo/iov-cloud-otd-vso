@@ -2,15 +2,19 @@ package net.hwyz.iov.cloud.otd.vso.service.application.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import net.hwyz.iov.cloud.otd.vso.api.contract.PurchaseAgreement;
 import net.hwyz.iov.cloud.otd.vso.api.contract.PurchaseBenefits;
 import net.hwyz.iov.cloud.otd.vso.api.contract.SaleModel;
 import net.hwyz.iov.cloud.otd.vso.api.contract.SaleModelConfig;
+import net.hwyz.iov.cloud.otd.vso.service.facade.assembler.PurchaseAgreementAssembler;
 import net.hwyz.iov.cloud.otd.vso.service.facade.assembler.PurchaseBenefitsAssembler;
 import net.hwyz.iov.cloud.otd.vso.service.facade.assembler.SaleModelAssembler;
 import net.hwyz.iov.cloud.otd.vso.service.facade.assembler.SaleModelConfigAssembler;
+import net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository.dao.PurchaseAgreementDao;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository.dao.PurchaseBenefitsDao;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository.dao.SaleModelConfigDao;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository.dao.SaleModelDao;
+import net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository.po.PurchaseAgreementPo;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository.po.PurchaseBenefitsPo;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository.po.SaleModelConfigPo;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository.po.SaleModelPo;
@@ -34,6 +38,7 @@ public class SaleModelAppService {
     private final SaleModelDao saleModelDao;
     private final SaleModelConfigDao saleModelConfigDao;
     private final PurchaseBenefitsDao purchaseBenefitsDao;
+    private final PurchaseAgreementDao purchaseAgreementDao;
 
     /**
      * 获取销售车型信息
@@ -78,6 +83,23 @@ public class SaleModelAppService {
     public PurchaseBenefits getPurchaseBenefits(String saleCode) {
         PurchaseBenefitsPo purchaseBenefitsPo = purchaseBenefitsDao.selectCurrentPoBySaleCode(saleCode);
         return PurchaseBenefitsAssembler.INSTANCE.fromPo(purchaseBenefitsPo);
+    }
+
+    /**
+     * 获取销售车型购车协议
+     *
+     * @param saleCode 销售代码
+     * @return 销售车型购车协议
+     */
+    public PurchaseAgreement getPurchaseAgreement(String saleCode, Integer type) {
+        List<PurchaseAgreementPo> purchaseAgreementPoList = purchaseAgreementDao.selectPoByExample(PurchaseAgreementPo.builder()
+                .saleCode(saleCode)
+                .type(type)
+                .build());
+        if (purchaseAgreementPoList.isEmpty()) {
+            return null;
+        }
+        return PurchaseAgreementAssembler.INSTANCE.fromPo(purchaseAgreementPoList.get(0));
     }
 
     /**
