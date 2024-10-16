@@ -1,15 +1,19 @@
 package net.hwyz.iov.cloud.otd.vso.service.application.service;
 
+import cn.hutool.core.lang.TypeReference;
+import cn.hutool.core.util.StrUtil;
+import cn.hutool.json.JSONUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import net.hwyz.iov.cloud.otd.vso.api.contract.PurchaseAgreement;
-import net.hwyz.iov.cloud.otd.vso.api.contract.PurchaseBenefits;
-import net.hwyz.iov.cloud.otd.vso.api.contract.SaleModel;
-import net.hwyz.iov.cloud.otd.vso.api.contract.SaleModelConfig;
+import net.hwyz.iov.cloud.otd.vso.api.contract.*;
+import net.hwyz.iov.cloud.otd.vso.api.contract.enums.SaleModelConfigType;
+import net.hwyz.iov.cloud.otd.vso.service.domain.external.service.ExVehicleModelConfigService;
 import net.hwyz.iov.cloud.otd.vso.service.facade.assembler.PurchaseAgreementAssembler;
 import net.hwyz.iov.cloud.otd.vso.service.facade.assembler.PurchaseBenefitsAssembler;
 import net.hwyz.iov.cloud.otd.vso.service.facade.assembler.SaleModelAssembler;
 import net.hwyz.iov.cloud.otd.vso.service.facade.assembler.SaleModelConfigAssembler;
+import net.hwyz.iov.cloud.otd.vso.service.infrastructure.exception.ModelConfigCodeNoteExistException;
+import net.hwyz.iov.cloud.otd.vso.service.infrastructure.exception.SaleModelNoteExistException;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository.dao.PurchaseAgreementDao;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository.dao.PurchaseBenefitsDao;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository.dao.SaleModelConfigDao;
@@ -21,6 +25,8 @@ import net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository.po.SaleModel
 import net.hwyz.iov.cloud.tsp.framework.commons.enums.Symbol;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -39,6 +45,7 @@ public class SaleModelAppService {
     private final SaleModelConfigDao saleModelConfigDao;
     private final PurchaseBenefitsDao purchaseBenefitsDao;
     private final PurchaseAgreementDao purchaseAgreementDao;
+    private final ExVehicleModelConfigService exVehicleModelConfigService;
 
     /**
      * 获取销售车型信息
@@ -62,6 +69,107 @@ public class SaleModelAppService {
      */
     public List<SaleModelConfig> getSaleModelResponse(String saleCode) {
         return SaleModelConfigAssembler.INSTANCE.fromPoList(getSaleModelConfigList(saleCode));
+    }
+
+    /**
+     * 获取选中的销售车型信息
+     *
+     * @param saleCode      销售代码
+     * @param modelCode     车型代码
+     * @param exteriorCode  外饰代码
+     * @param interiorCode  内饰代码
+     * @param wheelCode     车轮代码
+     * @param spareTireCode 备胎代码
+     * @param adasCode      智驾代码
+     * @return 选中的销售车型信息
+     */
+    public SelectedSaleModel getSelectedSaleModel(String saleCode, String modelCode, String exteriorCode, String interiorCode,
+                                                  String wheelCode, String spareTireCode, String adasCode) {
+        List<SaleModelPo> saleModelPoList = saleModelDao.selectPoByExample(SaleModelPo.builder().saleCode(saleCode).build());
+        if (saleModelPoList.isEmpty()) {
+            throw new SaleModelNoteExistException(saleCode);
+        }
+        SaleModelPo saleModelPo = saleModelPoList.get(0);
+        Map<String, String> saleModelConfigType = new HashMap<>();
+        saleModelConfigType.put(SaleModelConfigType.MODEL.name(), modelCode);
+        saleModelConfigType.put(SaleModelConfigType.EXTERIOR.name(), exteriorCode);
+        saleModelConfigType.put(SaleModelConfigType.INTERIOR.name(), interiorCode);
+        saleModelConfigType.put(SaleModelConfigType.WHEEL.name(), wheelCode);
+        saleModelConfigType.put(SaleModelConfigType.SPARE_TIRE.name(), spareTireCode);
+        saleModelConfigType.put(SaleModelConfigType.ADAS.name(), adasCode);
+        List<String> modelImages = new ArrayList<>();
+        String modelName = "";
+        StringBuilder modelDesc = new StringBuilder();
+        Map<String, SaleModelConfigPo> saleModelConfigMap = getSaleModelConfigMap(saleCode);
+        SaleModelConfigPo modelConfig = saleModelConfigMap.get(SaleModelConfigType.MODEL.name() + Symbol.UNDERSCORE.value + modelCode);
+        if (modelConfig != null) {
+            modelName = modelConfig.getTypeName();
+        }
+        SaleModelConfigPo spareTireConfig = saleModelConfigMap.get(SaleModelConfigType.SPARE_TIRE.name() + Symbol.UNDERSCORE.value + spareTireCode);
+        if (spareTireConfig != null) {
+            if (StrUtil.isNotBlank(spareTireConfig.getTypeName())) {
+                modelDesc.append(spareTireConfig.getTypeName());
+            }
+        }
+        SaleModelConfigPo exteriorConfig = saleModelConfigMap.get(SaleModelConfigType.EXTERIOR.name() + Symbol.UNDERSCORE.value + exteriorCode);
+        if (exteriorConfig != null) {
+            if (StrUtil.isNotBlank(exteriorConfig.getTypeName())) {
+                if (modelDesc.length() > 0) {
+                    modelDesc.append(" | ");
+                }
+                modelDesc.append(exteriorConfig.getTypeName());
+            }
+            if (StrUtil.isNotBlank(exteriorConfig.getTypeImage())) {
+                List<String> list = JSONUtil.toBean(exteriorConfig.getTypeImage(), new TypeReference<>() {
+                }, true);
+                if (!list.isEmpty()) {
+                    modelImages.add(list.get(0));
+                }
+            }
+        }
+        SaleModelConfigPo wheelConfig = saleModelConfigMap.get(SaleModelConfigType.WHEEL.name() + Symbol.UNDERSCORE.value + wheelCode);
+        if (wheelConfig != null) {
+            if (StrUtil.isNotBlank(wheelConfig.getTypeName())) {
+                if (modelDesc.length() > 0) {
+                    modelDesc.append(" | ");
+                }
+                modelDesc.append(wheelConfig.getTypeName());
+            }
+        }
+        SaleModelConfigPo interiorConfig = saleModelConfigMap.get(SaleModelConfigType.INTERIOR.name() + Symbol.UNDERSCORE.value + interiorCode);
+        if (interiorConfig != null) {
+            if (StrUtil.isNotBlank(interiorConfig.getTypeName())) {
+                if (modelDesc.length() > 0) {
+                    modelDesc.append(" | ");
+                }
+                modelDesc.append(interiorConfig.getTypeName());
+            }
+            if (StrUtil.isNotBlank(interiorConfig.getTypeImage())) {
+                List<String> list = JSONUtil.toBean(interiorConfig.getTypeImage(), new TypeReference<>() {
+                }, true);
+                if (!list.isEmpty()) {
+                    modelImages.add(list.get(0));
+                }
+            }
+        }
+        SaleModelConfigPo adasConfig = saleModelConfigMap.get(SaleModelConfigType.ADAS.name() + Symbol.UNDERSCORE.value + adasCode);
+        if (adasConfig != null) {
+            if (StrUtil.isNotBlank(adasConfig.getTypeName())) {
+                if (modelDesc.length() > 0) {
+                    modelDesc.append(" | ");
+                }
+                modelDesc.append(adasConfig.getTypeName());
+            }
+        }
+        return SelectedSaleModel.builder()
+                .saleCode(saleCode)
+                .earnestMoney(saleModelPo.getEarnestMoney())
+                .downPayment(saleModelPo.getDownPayment())
+                .modelConfigCode(getModelConfigCode(saleModelConfigType))
+                .modelImages(modelImages)
+                .modelName(modelName)
+                .modelDesc(modelDesc.toString())
+                .build();
     }
 
     /**
@@ -100,6 +208,27 @@ public class SaleModelAppService {
             return null;
         }
         return PurchaseAgreementAssembler.INSTANCE.fromPo(purchaseAgreementPoList.get(0));
+    }
+
+    /**
+     * 获取车型配置代码
+     *
+     * @param saleModelConfigType 销售车型配置类型
+     * @return 车型配置代码
+     */
+    public String getModelConfigCode(Map<String, String> saleModelConfigType) {
+        String modelCode = saleModelConfigType.get(SaleModelConfigType.MODEL.name());
+        String exteriorCode = saleModelConfigType.get(SaleModelConfigType.EXTERIOR.name());
+        String interiorCode = saleModelConfigType.get(SaleModelConfigType.INTERIOR.name());
+        String wheelCode = saleModelConfigType.get(SaleModelConfigType.WHEEL.name());
+        String spareTireCode = saleModelConfigType.get(SaleModelConfigType.SPARE_TIRE.name());
+        String adasCode = saleModelConfigType.get(SaleModelConfigType.ADAS.name());
+        String vehicleModeConfigCode = exVehicleModelConfigService.getVehicleModeConfigCode(modelCode, exteriorCode,
+                interiorCode, wheelCode, spareTireCode, adasCode);
+        if (vehicleModeConfigCode == null) {
+            throw new ModelConfigCodeNoteExistException(modelCode, exteriorCode, interiorCode, wheelCode, spareTireCode, adasCode);
+        }
+        return vehicleModeConfigCode;
     }
 
     /**

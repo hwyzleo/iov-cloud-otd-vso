@@ -1,9 +1,6 @@
 package net.hwyz.iov.cloud.otd.vso.api.feign.mp;
 
-import net.hwyz.iov.cloud.otd.vso.api.contract.PurchaseAgreement;
-import net.hwyz.iov.cloud.otd.vso.api.contract.PurchaseBenefits;
-import net.hwyz.iov.cloud.otd.vso.api.contract.SaleModel;
-import net.hwyz.iov.cloud.otd.vso.api.contract.SaleModelConfig;
+import net.hwyz.iov.cloud.otd.vso.api.contract.*;
 import net.hwyz.iov.cloud.tsp.framework.commons.bean.ClientAccount;
 import net.hwyz.iov.cloud.tsp.framework.commons.bean.Response;
 
@@ -33,6 +30,22 @@ public interface SaleModelMpApi {
      * @return 销售车型配置列表
      */
     Response<List<SaleModelConfig>> getSaleModelConfigList(String saleCode, ClientAccount clientAccount);
+
+    /**
+     * 获取已选择的销售车型及配置
+     *
+     * @param saleCode      销售代码
+     * @param modelCode     车型代码
+     * @param exteriorCode  外饰代码
+     * @param interiorCode  内饰代码
+     * @param wheelCode     车轮代码
+     * @param spareTireCode 备胎代码
+     * @param adasCode      智驾代码
+     * @param clientAccount 终端用户
+     * @return 已选择的销售车型及配置
+     */
+    Response<SelectedSaleModel> getSelectedSaleModel(String saleCode, String modelCode, String exteriorCode, String interiorCode,
+                                                     String wheelCode, String spareTireCode, String adasCode, ClientAccount clientAccount);
 
     /**
      * 获取销售车型购车权益

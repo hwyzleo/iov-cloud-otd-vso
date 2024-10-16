@@ -9,12 +9,10 @@ import net.hwyz.iov.cloud.otd.vso.api.contract.Wishlist;
 import net.hwyz.iov.cloud.otd.vso.api.contract.enums.SaleModelConfigType;
 import net.hwyz.iov.cloud.otd.vso.api.contract.response.WishlistResponse;
 import net.hwyz.iov.cloud.otd.vso.service.domain.contract.enums.OrderState;
-import net.hwyz.iov.cloud.otd.vso.service.domain.external.service.ExVehicleModelConfigService;
 import net.hwyz.iov.cloud.otd.vso.service.domain.factory.OrderFactory;
 import net.hwyz.iov.cloud.otd.vso.service.domain.order.model.OrderDo;
 import net.hwyz.iov.cloud.otd.vso.service.domain.order.model.OrderModelConfigDo;
 import net.hwyz.iov.cloud.otd.vso.service.domain.order.repository.OrderRepository;
-import net.hwyz.iov.cloud.otd.vso.service.infrastructure.exception.ModelConfigCodeNoteExistException;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.exception.SaleModelConfigTypeCodeNoteExistException;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository.dao.OrderDao;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository.dao.OrderModelConfigDao;
@@ -45,7 +43,6 @@ public class VehicleSaleOrderAppService {
     private final OrderRepository orderRepository;
     private final OrderModelConfigDao orderModelConfigDao;
     private final SaleModelAppService saleModelAppService;
-    private final ExVehicleModelConfigService exVehicleModelConfigService;
 
     /**
      * 获取订单列表
@@ -92,7 +89,7 @@ public class VehicleSaleOrderAppService {
      */
     public String createUserWishlist(String accountId, Wishlist wishlist) {
         String saleCode = wishlist.getSaleCode();
-        String modelConfigCode = getModelConfigCode(wishlist.getSaleModelConfigType());
+        String modelConfigCode = saleModelAppService.getModelConfigCode(wishlist.getSaleModelConfigType());
         OrderDo orderDo = orderFactory.buildFromWishlist(accountId, saleCode);
         orderDo.saveModelConfig(modelConfigCode, getOrderModelConfigMap(saleCode, wishlist.getSaleModelConfigType()));
         orderRepository.save(orderDo);
@@ -107,7 +104,7 @@ public class VehicleSaleOrderAppService {
      */
     public void modifyUserWishlist(String accountId, Wishlist wishlist) {
         OrderDo orderDo = orderRepository.get(accountId, wishlist.getOrderNum());
-        String modelConfigCode = getModelConfigCode(wishlist.getSaleModelConfigType());
+        String modelConfigCode = saleModelAppService.getModelConfigCode(wishlist.getSaleModelConfigType());
         orderDo.saveModelConfig(modelConfigCode, getOrderModelConfigMap(wishlist.getSaleCode(), wishlist.getSaleModelConfigType()));
         orderRepository.save(orderDo);
     }
@@ -141,27 +138,6 @@ public class VehicleSaleOrderAppService {
             orderModelConfigMap.put(saleModelConfigType, orderModelConfigDo);
         });
         return orderModelConfigMap;
-    }
-
-    /**
-     * 获取车型配置代码
-     *
-     * @param saleModelConfigType 销售车型配置类型
-     * @return 车型配置代码
-     */
-    private String getModelConfigCode(Map<String, String> saleModelConfigType) {
-        String modelCode = saleModelConfigType.get(SaleModelConfigType.MODEL.name());
-        String exteriorCode = saleModelConfigType.get(SaleModelConfigType.EXTERIOR.name());
-        String interiorCode = saleModelConfigType.get(SaleModelConfigType.INTERIOR.name());
-        String wheelCode = saleModelConfigType.get(SaleModelConfigType.WHEEL.name());
-        String spareTireCode = saleModelConfigType.get(SaleModelConfigType.SPARE_TIRE.name());
-        String adasCode = saleModelConfigType.get(SaleModelConfigType.OPTIONAL.name());
-        String vehicleModeConfigCode = exVehicleModelConfigService.getVehicleModeConfigCode(modelCode, exteriorCode,
-                interiorCode, wheelCode, spareTireCode, adasCode);
-        if (vehicleModeConfigCode == null) {
-            throw new ModelConfigCodeNoteExistException(modelCode, exteriorCode, interiorCode, wheelCode, spareTireCode, adasCode);
-        }
-        return vehicleModeConfigCode;
     }
 
     /**

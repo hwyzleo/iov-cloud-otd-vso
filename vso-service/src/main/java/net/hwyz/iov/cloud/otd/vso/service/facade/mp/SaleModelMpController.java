@@ -2,10 +2,7 @@ package net.hwyz.iov.cloud.otd.vso.service.facade.mp;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import net.hwyz.iov.cloud.otd.vso.api.contract.PurchaseAgreement;
-import net.hwyz.iov.cloud.otd.vso.api.contract.PurchaseBenefits;
-import net.hwyz.iov.cloud.otd.vso.api.contract.SaleModel;
-import net.hwyz.iov.cloud.otd.vso.api.contract.SaleModelConfig;
+import net.hwyz.iov.cloud.otd.vso.api.contract.*;
 import net.hwyz.iov.cloud.otd.vso.api.feign.mp.SaleModelMpApi;
 import net.hwyz.iov.cloud.otd.vso.service.application.service.SaleModelAppService;
 import net.hwyz.iov.cloud.tsp.framework.commons.bean.ClientAccount;
@@ -56,6 +53,30 @@ public class SaleModelMpController implements SaleModelMpApi {
                                                                   @RequestHeader ClientAccount clientAccount) {
         logger.info("手机客户端[{}]获取销售代码[{}]销售车型配置列表", ParamHelper.getClientAccountInfo(clientAccount), saleCode);
         return new Response<>(saleModelAppService.getSaleModelResponse(saleCode));
+    }
+
+    /**
+     * 获取已选择的销售车型及配置
+     *
+     * @param saleCode      销售代码
+     * @param modelCode     车型代码
+     * @param exteriorCode  外饰代码
+     * @param interiorCode  内饰代码
+     * @param wheelCode     车轮代码
+     * @param spareTireCode 备胎代码
+     * @param adasCode      智驾代码
+     * @param clientAccount 终端用户
+     * @return 已选择的销售车型及配置
+     */
+    @Override
+    @GetMapping("/selectedSaleModel")
+    public Response<SelectedSaleModel> getSelectedSaleModel(@RequestParam String saleCode, @RequestParam String modelCode,
+                                                            @RequestParam String exteriorCode, @RequestParam String interiorCode,
+                                                            @RequestParam String wheelCode, @RequestParam String spareTireCode,
+                                                            @RequestParam String adasCode, @RequestHeader ClientAccount clientAccount) {
+        logger.info("手机客户端[{}]获取已选择的销售车型及配置", ParamHelper.getClientAccountInfo(clientAccount));
+        return new Response<>(saleModelAppService.getSelectedSaleModel(saleCode, modelCode, exteriorCode, interiorCode,
+                wheelCode, spareTireCode, adasCode));
     }
 
     /**

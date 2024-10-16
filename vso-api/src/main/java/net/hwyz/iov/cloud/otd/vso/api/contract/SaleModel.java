@@ -1,9 +1,9 @@
 package net.hwyz.iov.cloud.otd.vso.api.contract;
 
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
 /**
  * 销售车型
@@ -11,7 +11,7 @@ import lombok.NoArgsConstructor;
  * @author hwyz_leo
  */
 @Data
-@Builder
+@SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
 public class SaleModel {

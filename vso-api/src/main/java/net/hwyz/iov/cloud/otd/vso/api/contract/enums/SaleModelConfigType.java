@@ -22,8 +22,8 @@ public enum SaleModelConfigType {
     WHEEL,
     /** 内饰 **/
     INTERIOR,
-    /** 选装 **/
-    OPTIONAL;
+    /** 智驾 **/
+    ADAS;
     public static SaleModelConfigType valOf(String val) {
         return Arrays.stream(SaleModelConfigType.values())
                 .filter(saleModelConfigType -> saleModelConfigType.name().equals(val))
