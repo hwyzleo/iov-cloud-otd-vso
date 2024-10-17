@@ -25,10 +25,8 @@ import net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository.po.SaleModel
 import net.hwyz.iov.cloud.tsp.framework.commons.enums.Symbol;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.math.BigDecimal;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -101,15 +99,21 @@ public class SaleModelAppService {
         String modelName = "";
         StringBuilder modelDesc = new StringBuilder();
         Map<String, SaleModelConfigPo> saleModelConfigMap = getSaleModelConfigMap(saleCode);
+        Map<String, String> modelConfigName = new LinkedHashMap<>();
+        Map<String, BigDecimal> modelConfigPrice = new LinkedHashMap<>();
         SaleModelConfigPo modelConfig = saleModelConfigMap.get(SaleModelConfigType.MODEL.name() + Symbol.UNDERSCORE.value + modelCode);
         if (modelConfig != null) {
             modelName = modelConfig.getTypeName();
+            modelConfigName.put(SaleModelConfigType.MODEL.name(), modelConfig.getTypeName());
+            modelConfigPrice.put(SaleModelConfigType.MODEL.name(), modelConfig.getTypePrice());
         }
         SaleModelConfigPo spareTireConfig = saleModelConfigMap.get(SaleModelConfigType.SPARE_TIRE.name() + Symbol.UNDERSCORE.value + spareTireCode);
         if (spareTireConfig != null) {
             if (StrUtil.isNotBlank(spareTireConfig.getTypeName())) {
                 modelDesc.append(spareTireConfig.getTypeName());
             }
+            modelConfigName.put(SaleModelConfigType.SPARE_TIRE.name(), spareTireConfig.getTypeName());
+            modelConfigPrice.put(SaleModelConfigType.SPARE_TIRE.name(), spareTireConfig.getTypePrice());
         }
         SaleModelConfigPo exteriorConfig = saleModelConfigMap.get(SaleModelConfigType.EXTERIOR.name() + Symbol.UNDERSCORE.value + exteriorCode);
         if (exteriorConfig != null) {
@@ -119,6 +123,8 @@ public class SaleModelAppService {
                 }
                 modelDesc.append(exteriorConfig.getTypeName());
             }
+            modelConfigName.put(SaleModelConfigType.EXTERIOR.name(), exteriorConfig.getTypeName());
+            modelConfigPrice.put(SaleModelConfigType.EXTERIOR.name(), exteriorConfig.getTypePrice());
             if (StrUtil.isNotBlank(exteriorConfig.getTypeImage())) {
                 List<String> list = JSONUtil.toBean(exteriorConfig.getTypeImage(), new TypeReference<>() {
                 }, true);
@@ -135,6 +141,8 @@ public class SaleModelAppService {
                 }
                 modelDesc.append(wheelConfig.getTypeName());
             }
+            modelConfigName.put(SaleModelConfigType.WHEEL.name(), wheelConfig.getTypeName());
+            modelConfigPrice.put(SaleModelConfigType.WHEEL.name(), wheelConfig.getTypePrice());
         }
         SaleModelConfigPo interiorConfig = saleModelConfigMap.get(SaleModelConfigType.INTERIOR.name() + Symbol.UNDERSCORE.value + interiorCode);
         if (interiorConfig != null) {
@@ -144,6 +152,8 @@ public class SaleModelAppService {
                 }
                 modelDesc.append(interiorConfig.getTypeName());
             }
+            modelConfigName.put(SaleModelConfigType.INTERIOR.name(), interiorConfig.getTypeName());
+            modelConfigPrice.put(SaleModelConfigType.INTERIOR.name(), interiorConfig.getTypePrice());
             if (StrUtil.isNotBlank(interiorConfig.getTypeImage())) {
                 List<String> list = JSONUtil.toBean(interiorConfig.getTypeImage(), new TypeReference<>() {
                 }, true);
@@ -160,6 +170,13 @@ public class SaleModelAppService {
                 }
                 modelDesc.append(adasConfig.getTypeName());
             }
+            modelConfigName.put(SaleModelConfigType.ADAS.name(), adasConfig.getTypeName());
+            modelConfigPrice.put(SaleModelConfigType.ADAS.name(), adasConfig.getTypePrice());
+        }
+        String purchaseBenefitsIntro = "";
+        PurchaseBenefits purchaseBenefits = getPurchaseBenefits(saleCode);
+        if (purchaseBenefits != null) {
+            purchaseBenefitsIntro = purchaseBenefits.getIntro();
         }
         return SelectedSaleModel.builder()
                 .saleCode(saleCode)
@@ -169,6 +186,9 @@ public class SaleModelAppService {
                 .modelImages(modelImages)
                 .modelName(modelName)
                 .modelDesc(modelDesc.toString())
+                .modelConfigName(modelConfigName)
+                .modelConfigPrice(modelConfigPrice)
+                .purchaseBenefitsIntro(purchaseBenefitsIntro)
                 .build();
     }
 
