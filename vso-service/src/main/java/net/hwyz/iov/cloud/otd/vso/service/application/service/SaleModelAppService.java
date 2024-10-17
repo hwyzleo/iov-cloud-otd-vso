@@ -101,11 +101,13 @@ public class SaleModelAppService {
         Map<String, SaleModelConfigPo> saleModelConfigMap = getSaleModelConfigMap(saleCode);
         Map<String, String> modelConfigName = new LinkedHashMap<>();
         Map<String, BigDecimal> modelConfigPrice = new LinkedHashMap<>();
+        BigDecimal totalPrice = BigDecimal.ZERO;
         SaleModelConfigPo modelConfig = saleModelConfigMap.get(SaleModelConfigType.MODEL.name() + Symbol.UNDERSCORE.value + modelCode);
         if (modelConfig != null) {
             modelName = modelConfig.getTypeName();
             modelConfigName.put(SaleModelConfigType.MODEL.name(), modelConfig.getTypeName());
             modelConfigPrice.put(SaleModelConfigType.MODEL.name(), modelConfig.getTypePrice());
+            totalPrice = totalPrice.add(modelConfig.getTypePrice());
         }
         SaleModelConfigPo spareTireConfig = saleModelConfigMap.get(SaleModelConfigType.SPARE_TIRE.name() + Symbol.UNDERSCORE.value + spareTireCode);
         if (spareTireConfig != null) {
@@ -114,6 +116,7 @@ public class SaleModelAppService {
             }
             modelConfigName.put(SaleModelConfigType.SPARE_TIRE.name(), spareTireConfig.getTypeName());
             modelConfigPrice.put(SaleModelConfigType.SPARE_TIRE.name(), spareTireConfig.getTypePrice());
+            totalPrice = totalPrice.add(spareTireConfig.getTypePrice());
         }
         SaleModelConfigPo exteriorConfig = saleModelConfigMap.get(SaleModelConfigType.EXTERIOR.name() + Symbol.UNDERSCORE.value + exteriorCode);
         if (exteriorConfig != null) {
@@ -125,6 +128,7 @@ public class SaleModelAppService {
             }
             modelConfigName.put(SaleModelConfigType.EXTERIOR.name(), exteriorConfig.getTypeName());
             modelConfigPrice.put(SaleModelConfigType.EXTERIOR.name(), exteriorConfig.getTypePrice());
+            totalPrice = totalPrice.add(exteriorConfig.getTypePrice());
             if (StrUtil.isNotBlank(exteriorConfig.getTypeImage())) {
                 List<String> list = JSONUtil.toBean(exteriorConfig.getTypeImage(), new TypeReference<>() {
                 }, true);
@@ -143,6 +147,7 @@ public class SaleModelAppService {
             }
             modelConfigName.put(SaleModelConfigType.WHEEL.name(), wheelConfig.getTypeName());
             modelConfigPrice.put(SaleModelConfigType.WHEEL.name(), wheelConfig.getTypePrice());
+            totalPrice = totalPrice.add(wheelConfig.getTypePrice());
         }
         SaleModelConfigPo interiorConfig = saleModelConfigMap.get(SaleModelConfigType.INTERIOR.name() + Symbol.UNDERSCORE.value + interiorCode);
         if (interiorConfig != null) {
@@ -154,6 +159,7 @@ public class SaleModelAppService {
             }
             modelConfigName.put(SaleModelConfigType.INTERIOR.name(), interiorConfig.getTypeName());
             modelConfigPrice.put(SaleModelConfigType.INTERIOR.name(), interiorConfig.getTypePrice());
+            totalPrice = totalPrice.add(interiorConfig.getTypePrice());
             if (StrUtil.isNotBlank(interiorConfig.getTypeImage())) {
                 List<String> list = JSONUtil.toBean(interiorConfig.getTypeImage(), new TypeReference<>() {
                 }, true);
@@ -172,6 +178,7 @@ public class SaleModelAppService {
             }
             modelConfigName.put(SaleModelConfigType.ADAS.name(), adasConfig.getTypeName());
             modelConfigPrice.put(SaleModelConfigType.ADAS.name(), adasConfig.getTypePrice());
+            totalPrice = totalPrice.add(adasConfig.getTypePrice());
         }
         String purchaseBenefitsIntro = "";
         PurchaseBenefits purchaseBenefits = getPurchaseBenefits(saleCode);
@@ -188,6 +195,7 @@ public class SaleModelAppService {
                 .modelDesc(modelDesc.toString())
                 .modelConfigName(modelConfigName)
                 .modelConfigPrice(modelConfigPrice)
+                .totalPrice(totalPrice)
                 .purchaseBenefitsIntro(purchaseBenefitsIntro)
                 .build();
     }

@@ -1,5 +1,7 @@
-package net.hwyz.iov.cloud.otd.vso.api.contract;
+package net.hwyz.iov.cloud.otd.vso.api.contract.request;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -8,7 +10,7 @@ import lombok.experimental.SuperBuilder;
 import java.util.Map;
 
 /**
- * 心愿单
+ * 已选择的销售车型请求
  *
  * @author hwyz_leo
  */
@@ -16,11 +18,12 @@ import java.util.Map;
 @SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
-public class Wishlist {
+public class SelectedSaleModelRequest {
 
     /**
      * 销售代码
      */
+    @NotBlank(message = "销售代码不能为空")
     private String saleCode;
 
     /**
@@ -33,6 +36,7 @@ public class Wishlist {
      * key: 销售车型配置类型
      * value: 销售车型配置类型代码
      */
+    @NotEmpty(message = "销售车型配置类型不能为空")
     Map<String, String> saleModelConfigType;
 
 }

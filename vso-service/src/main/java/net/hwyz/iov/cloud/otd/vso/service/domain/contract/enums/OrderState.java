@@ -13,7 +13,11 @@ import java.util.Arrays;
 public enum OrderState {
 
     /** 心愿单 **/
-    WISHLIST(100);
+    WISHLIST(100),
+    /** 意向金（小定）待付款 **/
+    EARNEST_MONEY_UNPAID(200),
+    /** 意向金（小定）已付款 **/
+    EARNEST_MONEY_PAID(210);
 
     public final Integer value;
 

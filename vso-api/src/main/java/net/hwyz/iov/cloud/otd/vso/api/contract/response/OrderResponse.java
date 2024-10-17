@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 心愿单响应
+ * 订单详情响应
  *
  * @author hwyz_leo
  */
@@ -21,7 +21,11 @@ import java.util.Map;
 @NoArgsConstructor
 @AllArgsConstructor
 @EqualsAndHashCode(callSuper = true)
-public class WishlistResponse extends SelectedSaleModelRequest {
+public class OrderResponse extends SelectedSaleModelRequest {
+    /**
+     * 订单状态
+     */
+    private Integer orderState;
     /**
      * 销售车型配置名称
      */

@@ -28,4 +28,18 @@ public class OrderFactory {
         return orderDo;
     }
 
+    /**
+     * 基于意向金（小定）创建车辆销售订单领域对象
+     *
+     * @param accountId 账号ID
+     * @param saleCode  销售代码
+     * @return 车辆销售订单领域对象
+     */
+    public OrderDo buildFromEarnestMoney(String accountId, String saleCode) {
+        OrderDo orderDo = OrderDo.builder()
+                .build();
+        orderDo.init(accountId, saleCode, OrderState.EARNEST_MONEY_UNPAID);
+        return orderDo;
+    }
+
 }

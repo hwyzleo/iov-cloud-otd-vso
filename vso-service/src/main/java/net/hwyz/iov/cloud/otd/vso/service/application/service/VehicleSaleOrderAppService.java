@@ -5,8 +5,10 @@ import cn.hutool.json.JSONUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.hwyz.iov.cloud.otd.vso.api.contract.Order;
-import net.hwyz.iov.cloud.otd.vso.api.contract.Wishlist;
 import net.hwyz.iov.cloud.otd.vso.api.contract.enums.SaleModelConfigType;
+import net.hwyz.iov.cloud.otd.vso.api.contract.request.EarnestMoneyOrderRequest;
+import net.hwyz.iov.cloud.otd.vso.api.contract.request.SelectedSaleModelRequest;
+import net.hwyz.iov.cloud.otd.vso.api.contract.response.OrderResponse;
 import net.hwyz.iov.cloud.otd.vso.api.contract.response.WishlistResponse;
 import net.hwyz.iov.cloud.otd.vso.service.domain.contract.enums.OrderState;
 import net.hwyz.iov.cloud.otd.vso.service.domain.factory.OrderFactory;
@@ -84,14 +86,14 @@ public class VehicleSaleOrderAppService {
      * 创建用户心愿单
      *
      * @param accountId 账号ID
-     * @param wishlist  心愿单
+     * @param request   车型选择请求
      * @return 订单编号
      */
-    public String createUserWishlist(String accountId, Wishlist wishlist) {
-        String saleCode = wishlist.getSaleCode();
-        String modelConfigCode = saleModelAppService.getModelConfigCode(wishlist.getSaleModelConfigType());
+    public String createUserWishlist(String accountId, SelectedSaleModelRequest request) {
+        String saleCode = request.getSaleCode();
+        String modelConfigCode = saleModelAppService.getModelConfigCode(request.getSaleModelConfigType());
         OrderDo orderDo = orderFactory.buildFromWishlist(accountId, saleCode);
-        orderDo.saveModelConfig(modelConfigCode, getOrderModelConfigMap(saleCode, wishlist.getSaleModelConfigType()));
+        orderDo.saveModelConfig(modelConfigCode, getOrderModelConfigMap(saleCode, request.getSaleModelConfigType()));
         orderRepository.save(orderDo);
         return orderDo.getOrderNum();
     }
@@ -100,12 +102,12 @@ public class VehicleSaleOrderAppService {
      * 修改用户心愿单
      *
      * @param accountId 账号ID
-     * @param wishlist  心愿单
+     * @param request   车型选择请求
      */
-    public void modifyUserWishlist(String accountId, Wishlist wishlist) {
-        OrderDo orderDo = orderRepository.get(accountId, wishlist.getOrderNum());
-        String modelConfigCode = saleModelAppService.getModelConfigCode(wishlist.getSaleModelConfigType());
-        orderDo.saveModelConfig(modelConfigCode, getOrderModelConfigMap(wishlist.getSaleCode(), wishlist.getSaleModelConfigType()));
+    public void modifyUserWishlist(String accountId, SelectedSaleModelRequest request) {
+        OrderDo orderDo = orderRepository.get(accountId, request.getOrderNum());
+        String modelConfigCode = saleModelAppService.getModelConfigCode(request.getSaleModelConfigType());
+        orderDo.saveModelConfig(modelConfigCode, getOrderModelConfigMap(request.getSaleCode(), request.getSaleModelConfigType()));
         orderRepository.save(orderDo);
     }
 
@@ -199,6 +201,87 @@ public class VehicleSaleOrderAppService {
             }
         }
         return WishlistResponse.builder()
+                .saleCode(orderDo.getSaleCode())
+                .orderNum(orderDo.getOrderNum())
+                .saleModelConfigType(saleModelType)
+                .saleModelConfigName(saleModelName)
+                .saleModelConfigPrice(saleModelPrice)
+                .saleModelImages(saleModelImages)
+                .totalPrice(totalPrice)
+                .isValid(isValid)
+                .build();
+    }
+
+    /**
+     * 意向金（小定）下订单
+     *
+     * @param accountId 账号ID
+     * @param request   意向金下单请求
+     * @return 订单编号
+     */
+    public String earnestMoneyOrder(String accountId, EarnestMoneyOrderRequest request) {
+        OrderDo orderDo;
+        if (request.getOrderNum() != null) {
+            // 由心愿单转小定
+            orderDo = orderRepository.get(accountId, request.getOrderNum());
+        } else {
+            // 直接小定
+            orderDo = orderFactory.buildFromEarnestMoney(accountId, request.getSaleCode());
+        }
+        String modelConfigCode = saleModelAppService.getModelConfigCode(request.getSaleModelConfigType());
+        orderDo.saveModelConfig(modelConfigCode, getOrderModelConfigMap(request.getSaleCode(), request.getSaleModelConfigType()));
+        orderDo.saveLicenseCity(request.getLicenseCity());
+        orderRepository.save(orderDo);
+        return orderDo.getOrderNum();
+    }
+
+    /**
+     * 获取用户订单详情
+     *
+     * @param accountId 账号ID
+     * @param orderNum  订单编号
+     * @return 用户心愿单详情
+     */
+    public OrderResponse getUserOrderResponse(String accountId, String orderNum) {
+        OrderDo orderDo = orderRepository.get(accountId, orderNum);
+        if (orderDo == null) {
+            return null;
+        }
+        Map<String, String> saleModelType = new HashMap<>();
+        Map<String, String> saleModelName = new HashMap<>();
+        List<String> saleModelImages = new ArrayList<>();
+        Map<String, BigDecimal> saleModelPrice = new HashMap<>();
+        boolean isValid = true;
+        BigDecimal totalPrice = BigDecimal.ZERO;
+        Map<String, SaleModelConfigPo> saleModelMap = saleModelAppService.getSaleModelConfigMap(orderDo.getSaleCode());
+        for (OrderModelConfigDo orderModelConfigDo : orderDo.getModelConfigMap().values()) {
+            saleModelType.put(orderModelConfigDo.getType().name(), orderModelConfigDo.getTypeCode());
+            saleModelName.put(orderModelConfigDo.getType().name(), orderModelConfigDo.getTypeName());
+            saleModelPrice.put(orderModelConfigDo.getType().name(), orderModelConfigDo.getTypePrice());
+            totalPrice = totalPrice.add(orderModelConfigDo.getTypePrice());
+            SaleModelConfigPo saleModelConfigPo = saleModelMap.get(orderModelConfigDo.getType().name() +
+                    Symbol.UNDERSCORE.value + orderModelConfigDo.getTypeCode());
+            if (saleModelConfigPo == null) {
+                isValid = false;
+                continue;
+            }
+            List<String> images = JSONUtil.toBean(saleModelConfigPo.getTypeImage(), new TypeReference<>() {
+            }, true);
+            if (!images.isEmpty() && (orderModelConfigDo.getType() == SaleModelConfigType.EXTERIOR
+                    || orderModelConfigDo.getType() == SaleModelConfigType.INTERIOR)) {
+                saleModelImages.add(images.get(0));
+            }
+            if (isValid) {
+                if (!saleModelConfigPo.getTypeName().equals(orderModelConfigDo.getTypeName())) {
+                    isValid = false;
+                    continue;
+                }
+                if (saleModelConfigPo.getTypePrice().compareTo(orderModelConfigDo.getTypePrice()) != 0) {
+                    isValid = false;
+                }
+            }
+        }
+        return OrderResponse.builder()
                 .saleCode(orderDo.getSaleCode())
                 .orderNum(orderDo.getOrderNum())
                 .saleModelConfigType(saleModelType)

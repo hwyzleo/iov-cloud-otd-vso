@@ -49,6 +49,10 @@ public class OrderDo extends BaseDo<String> implements DomainObj<OrderDo> {
      * 订单车型配置类型Map
      */
     private Map<SaleModelConfigType, OrderModelConfigDo> modelConfigMap;
+    /**
+     * 上牌城市
+     */
+    private String licenseCity;
 
     /**
      * 初始化
@@ -74,6 +78,18 @@ public class OrderDo extends BaseDo<String> implements DomainObj<OrderDo> {
         if (this.modelConfigCode == null || !this.modelConfigCode.equals(modelConfigCode)) {
             this.modelConfigCode = modelConfigCode;
             this.modelConfigMap = modelConfigMap;
+            stateChange();
+        }
+    }
+
+    /**
+     * 保存上牌城市
+     *
+     * @param licenseCity 上牌城市
+     */
+    public void saveLicenseCity(String licenseCity) {
+        if (this.licenseCity == null || !this.licenseCity.equals(licenseCity)) {
+            this.licenseCity = licenseCity;
             stateChange();
         }
     }
