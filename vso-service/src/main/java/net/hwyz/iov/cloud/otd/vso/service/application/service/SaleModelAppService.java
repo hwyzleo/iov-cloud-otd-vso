@@ -12,8 +12,8 @@ import net.hwyz.iov.cloud.otd.vso.service.facade.assembler.PurchaseAgreementAsse
 import net.hwyz.iov.cloud.otd.vso.service.facade.assembler.PurchaseBenefitsAssembler;
 import net.hwyz.iov.cloud.otd.vso.service.facade.assembler.SaleModelAssembler;
 import net.hwyz.iov.cloud.otd.vso.service.facade.assembler.SaleModelConfigAssembler;
-import net.hwyz.iov.cloud.otd.vso.service.infrastructure.exception.ModelConfigCodeNoteExistException;
-import net.hwyz.iov.cloud.otd.vso.service.infrastructure.exception.SaleModelNoteExistException;
+import net.hwyz.iov.cloud.otd.vso.service.infrastructure.exception.ModelConfigCodeNotExistException;
+import net.hwyz.iov.cloud.otd.vso.service.infrastructure.exception.SaleModelNotExistException;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository.dao.PurchaseAgreementDao;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository.dao.PurchaseBenefitsDao;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository.dao.SaleModelConfigDao;
@@ -85,7 +85,7 @@ public class SaleModelAppService {
                                                   String wheelCode, String spareTireCode, String adasCode) {
         List<SaleModelPo> saleModelPoList = saleModelDao.selectPoByExample(SaleModelPo.builder().saleCode(saleCode).build());
         if (saleModelPoList.isEmpty()) {
-            throw new SaleModelNoteExistException(saleCode);
+            throw new SaleModelNotExistException(saleCode);
         }
         SaleModelPo saleModelPo = saleModelPoList.get(0);
         Map<String, String> saleModelConfigType = new HashMap<>();
@@ -254,7 +254,7 @@ public class SaleModelAppService {
         String vehicleModeConfigCode = exVehicleModelConfigService.getVehicleModeConfigCode(modelCode, exteriorCode,
                 interiorCode, wheelCode, spareTireCode, adasCode);
         if (vehicleModeConfigCode == null) {
-            throw new ModelConfigCodeNoteExistException(modelCode, exteriorCode, interiorCode, wheelCode, spareTireCode, adasCode);
+            throw new ModelConfigCodeNotExistException(modelCode, exteriorCode, interiorCode, wheelCode, spareTireCode, adasCode);
         }
         return vehicleModeConfigCode;
     }

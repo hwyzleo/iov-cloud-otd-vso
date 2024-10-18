@@ -8,11 +8,11 @@ import lombok.extern.slf4j.Slf4j;
  * @author hwyz_leo
  */
 @Slf4j
-public class SaleModelNoteExistException extends VsoBaseException {
+public class SaleModelNotExistException extends VsoBaseException {
 
     private static final int ERROR_CODE = 401003;
 
-    public SaleModelNoteExistException(String saleCode) {
+    public SaleModelNotExistException(String saleCode) {
         super(ERROR_CODE);
         logger.warn("销售车型[{}]不存在", saleCode);
     }

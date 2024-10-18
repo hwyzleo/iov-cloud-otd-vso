@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.hwyz.iov.cloud.otd.vso.api.contract.Order;
 import net.hwyz.iov.cloud.otd.vso.api.contract.request.EarnestMoneyOrderRequest;
+import net.hwyz.iov.cloud.otd.vso.api.contract.request.OrderPaymentRequest;
 import net.hwyz.iov.cloud.otd.vso.api.contract.request.SelectedSaleModelRequest;
 import net.hwyz.iov.cloud.otd.vso.api.contract.response.OrderResponse;
 import net.hwyz.iov.cloud.otd.vso.api.contract.response.WishlistResponse;
@@ -35,14 +36,15 @@ public class VehicleSaleOrderMpController implements VehicleSaleOrderMpApi {
     /**
      * 获取订单列表
      *
+     * @param type          订单类型
      * @param clientAccount 终端用户
      * @return 订单列表
      */
     @Override
     @GetMapping("/order")
-    public Response<List<Order>> getOrderList(ClientAccount clientAccount) {
-        logger.info("手机客户端[{}]获取订单列表", ParamHelper.getClientAccountInfo(clientAccount));
-        return new Response<>(vehicleSaleOrderAppService.getOrderList(clientAccount.getAccountId()));
+    public Response<List<Order>> getOrderList(@RequestParam String type, @RequestHeader ClientAccount clientAccount) {
+        logger.info("手机客户端[{}]获取[{}]订单列表", ParamHelper.getClientAccountInfo(clientAccount), type);
+        return new Response<>(vehicleSaleOrderAppService.getOrderList(type, clientAccount.getAccountId()));
     }
 
     /**
@@ -127,5 +129,34 @@ public class VehicleSaleOrderMpController implements VehicleSaleOrderMpApi {
     public Response<OrderResponse> getOrder(@PathVariable String orderNum, @RequestHeader ClientAccount clientAccount) {
         logger.info("手机客户端[{}]获取订单[{}]详情", ParamHelper.getClientAccountInfo(clientAccount), orderNum);
         return new Response<>(vehicleSaleOrderAppService.getUserOrderResponse(clientAccount.getAccountId(), orderNum));
+    }
+
+    /**
+     * 取消订单
+     *
+     * @param order         订单对象
+     * @param clientAccount 终端用户
+     * @return 操作结果
+     */
+    @Override
+    @PostMapping("/order/action/cancel")
+    public Response<Void> cancelOrder(Order order, ClientAccount clientAccount) {
+        logger.info("手机客户端[{}]取消订单[{}]", ParamHelper.getClientAccountInfo(clientAccount), order.getOrderNum());
+        vehicleSaleOrderAppService.cancelOrder(clientAccount.getAccountId(), order.getOrderNum());
+        return new Response<>();
+    }
+
+    /**
+     * 支付订单
+     *
+     * @param request       支付订单请求
+     * @param clientAccount 终端用户
+     * @return 操作结果
+     */
+    @Override
+    @PostMapping("/order/action/pay")
+    public Response<Void> payOrder(OrderPaymentRequest request, ClientAccount clientAccount) {
+        logger.info("手机客户端[{}]支付订单[{}]", ParamHelper.getClientAccountInfo(clientAccount), request.getOrderNum());
+        return null;
     }
 }

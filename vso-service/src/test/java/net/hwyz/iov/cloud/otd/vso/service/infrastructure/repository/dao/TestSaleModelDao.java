@@ -7,6 +7,8 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import java.math.BigDecimal;
+
 /**
  * 销售车型 DAO 测试类
  *
@@ -27,7 +29,9 @@ public class TestSaleModelDao extends BaseTest {
                 .parameters("{}")
                 .images("{}")
                 .earnestMoney(true)
+                .earnestMoneyPrice(BigDecimal.valueOf(5000))
                 .downPayment(true)
+                .downPaymentPrice(BigDecimal.valueOf(5000))
                 .enable(true)
                 .sort(99)
                 .build();

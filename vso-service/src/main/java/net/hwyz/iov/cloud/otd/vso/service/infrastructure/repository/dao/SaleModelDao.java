@@ -10,7 +10,7 @@ import org.apache.ibatis.annotations.Mapper;
  * </p>
  *
  * @author hwyz_leo
- * @since 2024-10-14
+ * @since 2024-10-18
  */
 @Mapper
 public interface SaleModelDao extends BaseDao<SaleModelPo, Long> {

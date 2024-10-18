@@ -5,6 +5,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 
+import java.math.BigDecimal;
+
 /**
  * 销售车型
  *
@@ -27,13 +29,23 @@ public class SaleModel {
     private String modelName;
 
     /**
-     * 是否允许意向金（小定）
+     * 是否允许意向金
      */
     private Boolean earnestMoney;
 
     /**
-     * 是否允许定金（大定）
+     * 意向金价格
+     */
+    private BigDecimal earnestMoneyPrice;
+
+    /**
+     * 是否允许定金
      */
     private Boolean downPayment;
+
+    /**
+     * 定金价格
+     */
+    private BigDecimal downPaymentPrice;
 
 }

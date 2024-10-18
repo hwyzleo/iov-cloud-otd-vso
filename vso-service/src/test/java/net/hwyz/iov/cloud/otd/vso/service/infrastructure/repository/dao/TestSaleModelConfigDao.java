@@ -26,7 +26,7 @@ public class TestSaleModelConfigDao extends BaseTest {
     public void testInsertPo() throws Exception {
         SaleModelConfigPo saleModelConfigPo = SaleModelConfigPo.builder()
                 .saleCode("H01")
-                .type(SaleModelConfigType.OPTIONAL.name())
+                .type(SaleModelConfigType.ADAS.name())
                 .typeCode("XZ02")
                 .typeName("高阶智驾")
                 .typePrice(BigDecimal.valueOf(20000))

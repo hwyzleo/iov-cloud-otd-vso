@@ -15,11 +15,11 @@ import net.hwyz.iov.cloud.otd.vso.service.domain.factory.OrderFactory;
 import net.hwyz.iov.cloud.otd.vso.service.domain.order.model.OrderDo;
 import net.hwyz.iov.cloud.otd.vso.service.domain.order.model.OrderModelConfigDo;
 import net.hwyz.iov.cloud.otd.vso.service.domain.order.repository.OrderRepository;
-import net.hwyz.iov.cloud.otd.vso.service.infrastructure.exception.SaleModelConfigTypeCodeNoteExistException;
+import net.hwyz.iov.cloud.otd.vso.service.infrastructure.exception.OrderNotExistException;
+import net.hwyz.iov.cloud.otd.vso.service.infrastructure.exception.SaleModelConfigTypeCodeNotExistException;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository.dao.OrderDao;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository.dao.OrderModelConfigDao;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository.po.OrderModelConfigPo;
-import net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository.po.OrderPo;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository.po.SaleModelConfigPo;
 import net.hwyz.iov.cloud.tsp.framework.commons.enums.Symbol;
 import org.springframework.stereotype.Service;
@@ -49,29 +49,32 @@ public class VehicleSaleOrderAppService {
     /**
      * 获取订单列表
      *
+     * @param type      订单类型
      * @param accountId 账号ID
      * @return 订单列表
      */
-    public List<Order> getOrderList(String accountId) {
+    public List<Order> getOrderList(String type, String accountId) {
         List<Order> list = new ArrayList<>();
-        orderDao.selectPoByExample(OrderPo.builder().orderPersonId(accountId).build()).forEach(orderPo -> {
+        Map<String, Object> map = new HashMap<>();
+        map.put("orderPersonId", accountId);
+        if ("valid".equals(type)) {
+            map.put("stateValid", 1);
+        }
+        orderDao.selectPoByMap(map).forEach(orderPo -> {
             String displayName = "";
             OrderState orderState = OrderState.valOf(orderPo.getOrderState());
-            switch (orderState) {
-                case WISHLIST -> {
-                    List<OrderModelConfigPo> orderModelConfigPoList = orderModelConfigDao.selectPoByExample(OrderModelConfigPo.builder()
-                            .orderNum(orderPo.getOrderNum())
-                            .type(SaleModelConfigType.MODEL.name())
-                            .build());
-                    if (!orderModelConfigPoList.isEmpty()) {
-                        displayName = orderModelConfigPoList.get(0).getTypeName();
-                    } else {
-                        displayName = orderPo.getModelConfigCode();
-                    }
+            if (orderState == OrderState.WISHLIST) {
+                List<OrderModelConfigPo> orderModelConfigPoList = orderModelConfigDao.selectPoByExample(OrderModelConfigPo.builder()
+                        .orderNum(orderPo.getOrderNum())
+                        .type(SaleModelConfigType.MODEL.name())
+                        .build());
+                if (!orderModelConfigPoList.isEmpty()) {
+                    displayName = orderModelConfigPoList.get(0).getTypeName();
+                } else {
+                    displayName = orderPo.getModelConfigCode();
                 }
-                default -> {
-                    displayName = orderPo.getOrderNum();
-                }
+            } else {
+                displayName = orderPo.getOrderNum();
             }
             list.add(Order.builder()
                     .orderNum(orderPo.getOrderNum())
@@ -124,11 +127,11 @@ public class VehicleSaleOrderAppService {
         saleModelConfigTypeMap.forEach((key, value) -> {
             SaleModelConfigType saleModelConfigType = SaleModelConfigType.valOf(key);
             if (saleModelConfigType == null) {
-                throw new SaleModelConfigTypeCodeNoteExistException(saleCode, key, value);
+                throw new SaleModelConfigTypeCodeNotExistException(saleCode, key, value);
             }
             SaleModelConfigPo saleModelConfigPo = saleModelConfigMap.get(key + Symbol.UNDERSCORE.value + value);
             if (saleModelConfigPo == null) {
-                throw new SaleModelConfigTypeCodeNoteExistException(saleCode, key, value);
+                throw new SaleModelConfigTypeCodeNotExistException(saleCode, key, value);
             }
             OrderModelConfigDo orderModelConfigDo = OrderModelConfigDo.builder()
                     .type(saleModelConfigType)
@@ -291,6 +294,21 @@ public class VehicleSaleOrderAppService {
                 .totalPrice(totalPrice)
                 .isValid(isValid)
                 .build();
+    }
+
+    /**
+     * 取消订单
+     *
+     * @param accountId 账号ID
+     * @param orderNum  订单编号
+     */
+    public void cancelOrder(String accountId, String orderNum) {
+        OrderDo orderDo = orderRepository.get(accountId, orderNum);
+        if (orderDo == null) {
+            throw new OrderNotExistException(orderNum);
+        }
+        orderDo.cancel();
+        orderRepository.save(orderDo);
     }
 
 }

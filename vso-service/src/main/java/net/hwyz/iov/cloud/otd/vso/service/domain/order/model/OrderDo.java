@@ -6,6 +6,8 @@ import lombok.experimental.SuperBuilder;
 import lombok.extern.slf4j.Slf4j;
 import net.hwyz.iov.cloud.otd.vso.api.contract.enums.SaleModelConfigType;
 import net.hwyz.iov.cloud.otd.vso.service.domain.contract.enums.OrderState;
+import net.hwyz.iov.cloud.otd.vso.service.infrastructure.exception.OrderIllegalDeleteException;
+import net.hwyz.iov.cloud.otd.vso.service.infrastructure.exception.OrderNotExistException;
 import net.hwyz.iov.cloud.tsp.framework.commons.domain.BaseDo;
 import net.hwyz.iov.cloud.tsp.framework.commons.domain.DomainObj;
 
@@ -98,10 +100,24 @@ public class OrderDo extends BaseDo<String> implements DomainObj<OrderDo> {
      * 标记删除
      */
     public void markDelete() {
+        if (this.orderState != OrderState.WISHLIST) {
+            throw new OrderIllegalDeleteException(this.orderNum);
+        }
         if (this.modelConfigMap != null) {
             this.modelConfigMap.values().forEach(OrderModelConfigDo::markDelete);
         }
         stateDelete();
+    }
+
+    /**
+     * 取消订单
+     */
+    public void cancel() {
+        if (this.orderState == OrderState.WISHLIST) {
+            throw new OrderNotExistException(this.orderNum);
+        }
+        this.orderState = OrderState.CANCEL;
+        stateChange();
     }
 
     /**

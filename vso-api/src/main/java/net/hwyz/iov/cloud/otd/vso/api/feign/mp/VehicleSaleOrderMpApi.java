@@ -2,6 +2,7 @@ package net.hwyz.iov.cloud.otd.vso.api.feign.mp;
 
 import net.hwyz.iov.cloud.otd.vso.api.contract.Order;
 import net.hwyz.iov.cloud.otd.vso.api.contract.request.EarnestMoneyOrderRequest;
+import net.hwyz.iov.cloud.otd.vso.api.contract.request.OrderPaymentRequest;
 import net.hwyz.iov.cloud.otd.vso.api.contract.request.SelectedSaleModelRequest;
 import net.hwyz.iov.cloud.otd.vso.api.contract.response.OrderResponse;
 import net.hwyz.iov.cloud.otd.vso.api.contract.response.WishlistResponse;
@@ -20,10 +21,11 @@ public interface VehicleSaleOrderMpApi {
     /**
      * 获取订单列表
      *
+     * @param type          订单类型
      * @param clientAccount 终端用户
      * @return 订单列表
      */
-    Response<List<Order>> getOrderList(ClientAccount clientAccount);
+    Response<List<Order>> getOrderList(String type, ClientAccount clientAccount);
 
     /**
      * 新建心愿单
@@ -78,5 +80,23 @@ public interface VehicleSaleOrderMpApi {
      * @return 订单详情
      */
     Response<OrderResponse> getOrder(String orderNum, ClientAccount clientAccount);
+
+    /**
+     * 取消订单
+     *
+     * @param order         订单对象
+     * @param clientAccount 终端用户
+     * @return 操作结果
+     */
+    Response<Void> cancelOrder(Order order, ClientAccount clientAccount);
+
+    /**
+     * 支付订单
+     *
+     * @param request       支付订单请求
+     * @param clientAccount 终端用户
+     * @return 操作结果
+     */
+    Response<Void> payOrder(OrderPaymentRequest request, ClientAccount clientAccount);
 
 }

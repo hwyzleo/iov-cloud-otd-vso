@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import java.io.Serializable;
+import java.math.BigDecimal;
 import net.hwyz.iov.cloud.tsp.framework.mysql.po.BasePo;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
@@ -15,7 +16,7 @@ import lombok.experimental.SuperBuilder;
  * </p>
  *
  * @author hwyz_leo
- * @since 2024-10-14
+ * @since 2024-10-18
  */
 @Getter
 @Setter
@@ -58,16 +59,28 @@ public class SaleModelPo extends BasePo {
     private String images;
 
     /**
-     * 是否允许意向金（小定）
+     * 是否允许意向金
      */
     @TableField("earnest_money")
     private Boolean earnestMoney;
 
     /**
-     * 是否允许定金（大定）
+     * 意向金价格
+     */
+    @TableField("earnest_money_price")
+    private BigDecimal earnestMoneyPrice;
+
+    /**
+     * 是否允许定金
      */
     @TableField("down_payment")
     private Boolean downPayment;
+
+    /**
+     * 定金价格
+     */
+    @TableField("down_payment_price")
+    private BigDecimal downPaymentPrice;
 
     /**
      * 是否启用

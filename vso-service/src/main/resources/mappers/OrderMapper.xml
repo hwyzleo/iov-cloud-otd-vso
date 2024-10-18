@@ -332,6 +332,12 @@
         FROM tb_order t
         WHERE t.row_valid = 1
         <!-- 添加自定义条件 -->
+        <if test="orderPersonId != null and orderPersonId != ''">
+            AND t.order_person_id = #{orderPersonId}
+        </if>
+        <if test="stateValid != null and stateValid = 1">
+            AND t.order_state != 950
+        </if>
         ORDER BY t.id DESC
     </select>
 
