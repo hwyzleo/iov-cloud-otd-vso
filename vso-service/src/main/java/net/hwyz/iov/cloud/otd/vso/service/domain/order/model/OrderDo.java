@@ -12,7 +12,9 @@ import net.hwyz.iov.cloud.otd.vso.service.infrastructure.exception.OrderStateNot
 import net.hwyz.iov.cloud.tsp.framework.commons.domain.BaseDo;
 import net.hwyz.iov.cloud.tsp.framework.commons.domain.DomainObj;
 
+import java.math.BigDecimal;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * 车辆销售订单领域对象
@@ -86,6 +88,62 @@ public class OrderDo extends BaseDo<String> implements DomainObj<OrderDo> {
     }
 
     /**
+     * 获取车型配置类型
+     *
+     * @return 车型配置类型Map
+     */
+    public Map<String, String> getModelConfigType() {
+        return modelConfigMap.entrySet().stream()
+                .collect(Collectors.toMap(e -> e.getKey().name(), e -> e.getValue().getTypeCode()));
+    }
+
+    /**
+     * 获取车型配置名称
+     *
+     * @return 车型配置名称Map
+     */
+    public Map<String, String> getModelConfigName() {
+        return modelConfigMap.entrySet().stream()
+                .collect(Collectors.toMap(e -> e.getKey().name(), e -> e.getValue().getTypeName()));
+    }
+
+    /**
+     * 获取车型配置描述
+     *
+     * @return 车型配置描述
+     */
+    public String getModelConfigDesc() {
+        StringBuilder desc = new StringBuilder();
+        modelConfigMap.values().forEach(modelConfig -> {
+            if (desc.length() > 0) {
+                desc.append(" | ");
+            }
+            desc.append(modelConfig.getTypeName());
+        });
+        return desc.toString();
+    }
+
+    /**
+     * 获取车型配置价格
+     *
+     * @return 车型配置价格Map
+     */
+    public Map<String, BigDecimal> getModelConfigPrice() {
+        return modelConfigMap.entrySet().stream()
+                .collect(Collectors.toMap(e -> e.getKey().name(), e -> e.getValue().getTypePrice()));
+    }
+
+    /**
+     * 获取车型配置总价
+     *
+     * @return 车型配置总价
+     */
+    public BigDecimal getTotalPrice() {
+        return modelConfigMap.values().stream()
+                .map(OrderModelConfigDo::getTypePrice).reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    /**
      * 保存上牌城市
      *
      * @param licenseCity 上牌城市
@@ -153,6 +211,18 @@ public class OrderDo extends BaseDo<String> implements DomainObj<OrderDo> {
             throw new OrderStateNotAllowedException(this.orderNum, this.orderState, "EARNEST_MONEY_TO_DOWN_PAYMENT");
         }
         this.orderState = OrderState.DOWN_PAYMENT_PAID;
+        stateChange();
+    }
+
+    /**
+     * 锁定订单
+     */
+    public void lock() {
+        if (this.orderState != OrderState.DOWN_PAYMENT_PAID) {
+            throw new OrderStateNotAllowedException(this.orderNum, this.orderState, "LOCK");
+        }
+        this.modelConfigLock = true;
+        this.orderState = OrderState.ARRANGE_PRODUCTION;
         stateChange();
     }
 

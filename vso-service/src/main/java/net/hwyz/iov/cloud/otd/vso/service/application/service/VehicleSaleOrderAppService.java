@@ -26,7 +26,6 @@ import net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository.po.SaleModel
 import net.hwyz.iov.cloud.tsp.framework.commons.enums.Symbol;
 import org.springframework.stereotype.Service;
 
-import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -117,37 +116,6 @@ public class VehicleSaleOrderAppService {
     }
 
     /**
-     * 转换订单车型配置Map
-     *
-     * @param saleCode               销售编号
-     * @param saleModelConfigTypeMap 销售车型配置类型Map
-     * @return 订单车型配置Map
-     */
-    private Map<SaleModelConfigType, OrderModelConfigDo> getOrderModelConfigMap(String saleCode, Map<String, String> saleModelConfigTypeMap) {
-        Map<SaleModelConfigType, OrderModelConfigDo> orderModelConfigMap = new HashMap<>();
-        Map<String, SaleModelConfigPo> saleModelConfigMap = saleModelAppService.getSaleModelConfigMap(saleCode);
-        saleModelConfigTypeMap.forEach((key, value) -> {
-            SaleModelConfigType saleModelConfigType = SaleModelConfigType.valOf(key);
-            if (saleModelConfigType == null) {
-                throw new SaleModelConfigTypeCodeNotExistException(saleCode, key, value);
-            }
-            SaleModelConfigPo saleModelConfigPo = saleModelConfigMap.get(key + Symbol.UNDERSCORE.value + value);
-            if (saleModelConfigPo == null) {
-                throw new SaleModelConfigTypeCodeNotExistException(saleCode, key, value);
-            }
-            OrderModelConfigDo orderModelConfigDo = OrderModelConfigDo.builder()
-                    .type(saleModelConfigType)
-                    .typeCode(saleModelConfigPo.getTypeCode())
-                    .typeName(saleModelConfigPo.getTypeName())
-                    .typePrice(saleModelConfigPo.getTypePrice())
-                    .build();
-            orderModelConfigDo.init();
-            orderModelConfigMap.put(saleModelConfigType, orderModelConfigDo);
-        });
-        return orderModelConfigMap;
-    }
-
-    /**
      * 删除用户心愿单
      *
      * @param accountId 账号ID
@@ -171,49 +139,16 @@ public class VehicleSaleOrderAppService {
         if (orderDo == null) {
             return null;
         }
-        Map<String, String> saleModelType = new HashMap<>();
-        Map<String, String> saleModelName = new HashMap<>();
-        List<String> saleModelImages = new ArrayList<>();
-        Map<String, BigDecimal> saleModelPrice = new HashMap<>();
-        boolean isValid = true;
-        BigDecimal totalPrice = BigDecimal.ZERO;
-        Map<String, SaleModelConfigPo> saleModelMap = saleModelAppService.getSaleModelConfigMap(orderDo.getSaleCode());
-        for (OrderModelConfigDo orderModelConfigDo : orderDo.getModelConfigMap().values()) {
-            saleModelType.put(orderModelConfigDo.getType().name(), orderModelConfigDo.getTypeCode());
-            saleModelName.put(orderModelConfigDo.getType().name(), orderModelConfigDo.getTypeName());
-            saleModelPrice.put(orderModelConfigDo.getType().name(), orderModelConfigDo.getTypePrice());
-            totalPrice = totalPrice.add(orderModelConfigDo.getTypePrice());
-            SaleModelConfigPo saleModelConfigPo = saleModelMap.get(orderModelConfigDo.getType().name() +
-                    Symbol.UNDERSCORE.value + orderModelConfigDo.getTypeCode());
-            if (saleModelConfigPo == null) {
-                isValid = false;
-                continue;
-            }
-            List<String> images = JSONUtil.toBean(saleModelConfigPo.getTypeImage(), new TypeReference<>() {
-            }, true);
-            if (!images.isEmpty() && (orderModelConfigDo.getType() == SaleModelConfigType.EXTERIOR
-                    || orderModelConfigDo.getType() == SaleModelConfigType.INTERIOR)) {
-                saleModelImages.add(images.get(0));
-            }
-            if (isValid) {
-                if (!saleModelConfigPo.getTypeName().equals(orderModelConfigDo.getTypeName())) {
-                    isValid = false;
-                    continue;
-                }
-                if (saleModelConfigPo.getTypePrice().compareTo(orderModelConfigDo.getTypePrice()) != 0) {
-                    isValid = false;
-                }
-            }
-        }
         return WishlistResponse.builder()
                 .saleCode(orderDo.getSaleCode())
                 .orderNum(orderDo.getOrderNum())
-                .saleModelConfigType(saleModelType)
-                .saleModelConfigName(saleModelName)
-                .saleModelConfigPrice(saleModelPrice)
-                .saleModelImages(saleModelImages)
-                .totalPrice(totalPrice)
-                .isValid(isValid)
+                .saleModelConfigType(orderDo.getModelConfigType())
+                .saleModelConfigName(orderDo.getModelConfigName())
+                .saleModelConfigPrice(orderDo.getModelConfigPrice())
+                .totalPrice(orderDo.getTotalPrice())
+                .saleModelImages(getSaleModelImages(orderDo.getSaleCode(), orderDo.getModelConfigMap()))
+                .saleModelDesc(orderDo.getModelConfigDesc())
+                .isValid(!checkSaleModelChange(orderDo.getSaleCode(), orderDo.getModelConfigMap()))
                 .build();
     }
 
@@ -252,49 +187,15 @@ public class VehicleSaleOrderAppService {
         if (orderDo == null) {
             return null;
         }
-        Map<String, String> saleModelType = new HashMap<>();
-        Map<String, String> saleModelName = new HashMap<>();
         List<String> saleModelImages = new ArrayList<>();
-        Map<String, BigDecimal> saleModelPrice = new HashMap<>();
-        boolean isValid = true;
-        BigDecimal totalPrice = BigDecimal.ZERO;
-        Map<String, SaleModelConfigPo> saleModelMap = saleModelAppService.getSaleModelConfigMap(orderDo.getSaleCode());
-        for (OrderModelConfigDo orderModelConfigDo : orderDo.getModelConfigMap().values()) {
-            saleModelType.put(orderModelConfigDo.getType().name(), orderModelConfigDo.getTypeCode());
-            saleModelName.put(orderModelConfigDo.getType().name(), orderModelConfigDo.getTypeName());
-            saleModelPrice.put(orderModelConfigDo.getType().name(), orderModelConfigDo.getTypePrice());
-            totalPrice = totalPrice.add(orderModelConfigDo.getTypePrice());
-            SaleModelConfigPo saleModelConfigPo = saleModelMap.get(orderModelConfigDo.getType().name() +
-                    Symbol.UNDERSCORE.value + orderModelConfigDo.getTypeCode());
-            if (saleModelConfigPo == null) {
-                isValid = false;
-                continue;
-            }
-            List<String> images = JSONUtil.toBean(saleModelConfigPo.getTypeImage(), new TypeReference<>() {
-            }, true);
-            if (!images.isEmpty() && (orderModelConfigDo.getType() == SaleModelConfigType.EXTERIOR
-                    || orderModelConfigDo.getType() == SaleModelConfigType.INTERIOR)) {
-                saleModelImages.add(images.get(0));
-            }
-            if (isValid) {
-                if (!saleModelConfigPo.getTypeName().equals(orderModelConfigDo.getTypeName())) {
-                    isValid = false;
-                    continue;
-                }
-                if (saleModelConfigPo.getTypePrice().compareTo(orderModelConfigDo.getTypePrice()) != 0) {
-                    isValid = false;
-                }
-            }
-        }
         return OrderResponse.builder()
                 .saleCode(orderDo.getSaleCode())
                 .orderNum(orderDo.getOrderNum())
-                .saleModelConfigType(saleModelType)
-                .saleModelConfigName(saleModelName)
-                .saleModelConfigPrice(saleModelPrice)
+                .saleModelConfigType(orderDo.getModelConfigType())
+                .saleModelConfigName(orderDo.getModelConfigName())
+                .saleModelConfigPrice(orderDo.getModelConfigPrice())
                 .saleModelImages(saleModelImages)
-                .totalPrice(totalPrice)
-                .isValid(isValid)
+                .totalPrice(orderDo.getTotalPrice())
                 .build();
     }
 
@@ -304,7 +205,7 @@ public class VehicleSaleOrderAppService {
      * @param accountId 账号ID
      * @param orderNum  订单编号
      */
-    public void cancelOrder(String accountId, String orderNum) {
+    public void cancel(String accountId, String orderNum) {
         OrderDo orderDo = orderRepository.get(accountId, orderNum);
         if (orderDo == null) {
             throw new OrderNotExistException(orderNum);
@@ -319,7 +220,7 @@ public class VehicleSaleOrderAppService {
      * @param accountId 账号ID
      * @param request   支付订单请求
      */
-    public OrderPaymentResponse payOrder(String accountId, OrderPaymentRequest request) {
+    public OrderPaymentResponse pay(String accountId, OrderPaymentRequest request) {
         OrderDo orderDo = orderRepository.get(accountId, request.getOrderNum());
         if (orderDo == null) {
             throw new OrderNotExistException(request.getOrderNum());
@@ -337,7 +238,7 @@ public class VehicleSaleOrderAppService {
      * @param accountId 账号ID
      * @param orderNum  订单编号
      */
-    public void requestRefundOrder(String accountId, String orderNum) {
+    public void requestRefund(String accountId, String orderNum) {
         OrderDo orderDo = orderRepository.get(accountId, orderNum);
         if (orderDo == null) {
             throw new OrderNotExistException(orderNum);
@@ -359,6 +260,102 @@ public class VehicleSaleOrderAppService {
         }
         orderDo.earnestMoneyToDownPayment();
         orderRepository.save(orderDo);
+    }
+
+    /**
+     * 锁定订单
+     *
+     * @param accountId 账号ID
+     * @param orderNum  订单编号
+     */
+    public void lock(String accountId, String orderNum) {
+        OrderDo orderDo = orderRepository.get(accountId, orderNum);
+        if (orderDo == null) {
+            throw new OrderNotExistException(orderNum);
+        }
+        orderDo.lock();
+        orderRepository.save(orderDo);
+    }
+
+    /**
+     * 转换订单车型配置Map
+     *
+     * @param saleCode               销售编号
+     * @param saleModelConfigTypeMap 销售车型配置类型Map
+     * @return 订单车型配置Map
+     */
+    private Map<SaleModelConfigType, OrderModelConfigDo> getOrderModelConfigMap(String saleCode, Map<String, String> saleModelConfigTypeMap) {
+        Map<SaleModelConfigType, OrderModelConfigDo> orderModelConfigMap = new HashMap<>();
+        Map<String, SaleModelConfigPo> saleModelConfigMap = saleModelAppService.getSaleModelConfigMap(saleCode);
+        saleModelConfigTypeMap.forEach((key, value) -> {
+            SaleModelConfigType saleModelConfigType = SaleModelConfigType.valOf(key);
+            if (saleModelConfigType == null) {
+                throw new SaleModelConfigTypeCodeNotExistException(saleCode, key, value);
+            }
+            SaleModelConfigPo saleModelConfigPo = saleModelConfigMap.get(key + Symbol.UNDERSCORE.value + value);
+            if (saleModelConfigPo == null) {
+                throw new SaleModelConfigTypeCodeNotExistException(saleCode, key, value);
+            }
+            OrderModelConfigDo orderModelConfigDo = OrderModelConfigDo.builder()
+                    .type(saleModelConfigType)
+                    .typeCode(saleModelConfigPo.getTypeCode())
+                    .typeName(saleModelConfigPo.getTypeName())
+                    .typePrice(saleModelConfigPo.getTypePrice())
+                    .build();
+            orderModelConfigDo.init();
+            orderModelConfigMap.put(saleModelConfigType, orderModelConfigDo);
+        });
+        return orderModelConfigMap;
+    }
+
+    /**
+     * 获取用户选择车型配置对应的图片集
+     *
+     * @param saleCode       销售代码
+     * @param modelConfigMap 用户选择的销售车型配置
+     * @return 用户选择配置对应的图片集
+     */
+    private List<String> getSaleModelImages(String saleCode, Map<SaleModelConfigType, OrderModelConfigDo> modelConfigMap) {
+        List<String> images = new ArrayList<>();
+        Map<String, SaleModelConfigPo> saleModelConfigMap = saleModelAppService.getSaleModelConfigMap(saleCode);
+        modelConfigMap.forEach((key, value) -> {
+            SaleModelConfigPo saleModelConfigPo = saleModelConfigMap.get(key.name() + Symbol.UNDERSCORE.value + value.getTypeCode());
+            if (saleModelConfigPo != null && !saleModelConfigPo.getTypeImage().isEmpty() && (
+                    SaleModelConfigType.EXTERIOR.name().equals(saleModelConfigPo.getType()) ||
+                            SaleModelConfigType.INTERIOR.name().equals(saleModelConfigPo.getType()))) {
+                List<String> list = JSONUtil.toBean(saleModelConfigPo.getTypeImage(), new TypeReference<List<String>>() {
+                }, true);
+                if (!list.isEmpty()) {
+                    images.add(list.get(0));
+                }
+            }
+        });
+        return images;
+    }
+
+    /**
+     * 检查用户选择车型配置与当前对应的销售车型是否已经发生的变更
+     *
+     * @param saleCode       销售代码
+     * @param modelConfigMap 用户选择的销售车型配置
+     * @return 用户选择配置与当前对应的销售车型是否已经发生的变更
+     */
+    private Boolean checkSaleModelChange(String saleCode, Map<SaleModelConfigType, OrderModelConfigDo> modelConfigMap) {
+        Map<String, SaleModelConfigPo> saleModelMap = saleModelAppService.getSaleModelConfigMap(saleCode);
+        for (OrderModelConfigDo orderModelConfigDo : modelConfigMap.values()) {
+            SaleModelConfigPo saleModelConfigPo = saleModelMap.get(orderModelConfigDo.getType().name() +
+                    Symbol.UNDERSCORE.value + orderModelConfigDo.getTypeCode());
+            if (saleModelConfigPo == null) {
+                return true;
+            }
+            if (!saleModelConfigPo.getTypeName().equals(orderModelConfigDo.getTypeName())) {
+                return true;
+            }
+            if (saleModelConfigPo.getTypePrice().compareTo(orderModelConfigDo.getTypePrice()) != 0) {
+                return true;
+            }
+        }
+        return false;
     }
 
 }

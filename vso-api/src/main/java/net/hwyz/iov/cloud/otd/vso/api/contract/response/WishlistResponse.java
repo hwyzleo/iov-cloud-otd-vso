@@ -5,11 +5,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
-import net.hwyz.iov.cloud.otd.vso.api.contract.request.SelectedSaleModelRequest;
-
-import java.math.BigDecimal;
-import java.util.List;
-import java.util.Map;
+import net.hwyz.iov.cloud.otd.vso.api.contract.SelectedSaleModel;
 
 /**
  * 心愿单响应
@@ -21,23 +17,11 @@ import java.util.Map;
 @NoArgsConstructor
 @AllArgsConstructor
 @EqualsAndHashCode(callSuper = true)
-public class WishlistResponse extends SelectedSaleModelRequest {
+public class WishlistResponse extends SelectedSaleModel {
     /**
-     * 销售车型配置名称
+     * 订单号
      */
-    private Map<String, String> saleModelConfigName;
-    /**
-     * 销售车型配置价格
-     */
-    private Map<String, BigDecimal> saleModelConfigPrice;
-    /**
-     * 销售车型图片
-     */
-    private List<String> saleModelImages;
-    /**
-     * 总价格
-     */
-    private BigDecimal totalPrice;
+    private String orderNum;
     /**
      * 是否有效
      */

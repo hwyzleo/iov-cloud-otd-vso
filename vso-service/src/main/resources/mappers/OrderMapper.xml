@@ -14,14 +14,25 @@
         <result column="row_valid" property="rowValid" />
         <result column="order_num" property="orderNum" />
         <result column="order_state" property="orderState" />
+        <result column="order_state_time" property="orderStateTime" />
+        <result column="order_time" property="orderTime" />
+        <result column="cancel_time" property="cancelTime" />
+        <result column="benefits_id" property="benefitsId" />
+        <result column="agreement_id" property="agreementId" />
+        <result column="contract_num" property="contractNum" />
+        <result column="contract_time" property="contractTime" />
         <result column="sale_code" property="saleCode" />
         <result column="model_config_code" property="modelConfigCode" />
         <result column="model_config_lock" property="modelConfigLock" />
         <result column="pay_state" property="payState" />
+        <result column="down_payment_time" property="downPaymentTime" />
+        <result column="final_payment_time" property="finalPaymentTime" />
         <result column="order_type" property="orderType" />
         <result column="order_person_id" property="orderPersonId" />
         <result column="order_person_name" property="orderPersonName" />
         <result column="order_person_phone" property="orderPersonPhone" />
+        <result column="order_person_id_type" property="orderPersonIdType" />
+        <result column="order_person_id_num" property="orderPersonIdNum" />
         <result column="recommender_id" property="recommenderId" />
         <result column="contact_person_name" property="contactPersonName" />
         <result column="contact_person_phone" property="contactPersonPhone" />
@@ -30,7 +41,8 @@
         <result column="sales_person_phone" property="salesPersonPhone" />
         <result column="sales_person_order" property="salesPersonOrder" />
         <result column="sales_channel" property="salesChannel" />
-        <result column="buy_plan" property="buyPlan" />
+        <result column="purchase_plan" property="purchasePlan" />
+        <result column="financing_plan_id" property="financingPlanId" />
         <result column="delivery_city" property="deliveryCity" />
         <result column="delivery_method" property="deliveryMethod" />
         <result column="delivery_person_id" property="deliveryPersonId" />
@@ -42,22 +54,24 @@
         <result column="estimated_delivery_time" property="estimatedDeliveryTime" />
         <result column="actual_delivery_time" property="actualDeliveryTime" />
         <result column="license_city" property="licenseCity" />
+        <result column="dealership" property="dealership" />
+        <result column="delivery_center" property="deliveryCenter" />
     </resultMap>
 
     <!-- 通用查询结果列 -->
     <sql id="baseColumnList">
-        id, order_num, order_state, sale_code, model_config_code, model_config_lock, pay_state, order_type, order_person_id, order_person_name, order_person_phone, recommender_id, contact_person_name, contact_person_phone, sales_person_id, sales_person_name, sales_person_phone, sales_person_order, sales_channel, buy_plan, delivery_city, delivery_method, delivery_person_id, delivery_person_name, delivery_remark, reception_person_id, reception_person_name, invoicing_time, estimated_delivery_time, actual_delivery_time, license_city, 
+        id, order_num, order_state, order_state_time, order_time, cancel_time, benefits_id, agreement_id, contract_num, contract_time, sale_code, model_config_code, model_config_lock, pay_state, down_payment_time, final_payment_time, order_type, order_person_id, order_person_name, order_person_phone, order_person_id_type, order_person_id_num, recommender_id, contact_person_name, contact_person_phone, sales_person_id, sales_person_name, sales_person_phone, sales_person_order, sales_channel, purchase_plan, financing_plan_id, delivery_city, delivery_method, delivery_person_id, delivery_person_name, delivery_remark, reception_person_id, reception_person_name, invoicing_time, estimated_delivery_time, actual_delivery_time, license_city, dealership, delivery_center, 
         description, create_time, create_by, modify_time, modify_by, row_version, row_valid
     </sql>
 
     <!-- 插入 -->
     <insert id="insertPo" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO tb_order (
-            id, order_num, order_state, sale_code, model_config_code, model_config_lock, pay_state, order_type, order_person_id, order_person_name, order_person_phone, recommender_id, contact_person_name, contact_person_phone, sales_person_id, sales_person_name, sales_person_phone, sales_person_order, sales_channel, buy_plan, delivery_city, delivery_method, delivery_person_id, delivery_person_name, delivery_remark, reception_person_id, reception_person_name, invoicing_time, estimated_delivery_time, actual_delivery_time, license_city, 
+            id, order_num, order_state, order_state_time, order_time, cancel_time, benefits_id, agreement_id, contract_num, contract_time, sale_code, model_config_code, model_config_lock, pay_state, down_payment_time, final_payment_time, order_type, order_person_id, order_person_name, order_person_phone, order_person_id_type, order_person_id_num, recommender_id, contact_person_name, contact_person_phone, sales_person_id, sales_person_name, sales_person_phone, sales_person_order, sales_channel, purchase_plan, financing_plan_id, delivery_city, delivery_method, delivery_person_id, delivery_person_name, delivery_remark, reception_person_id, reception_person_name, invoicing_time, estimated_delivery_time, actual_delivery_time, license_city, dealership, delivery_center, 
             description, create_time, create_by, modify_time, modify_by, row_version, row_valid
         )
         VALUES (
-            #{id}, #{orderNum}, #{orderState}, #{saleCode}, #{modelConfigCode}, #{modelConfigLock}, #{payState}, #{orderType}, #{orderPersonId}, #{orderPersonName}, #{orderPersonPhone}, #{recommenderId}, #{contactPersonName}, #{contactPersonPhone}, #{salesPersonId}, #{salesPersonName}, #{salesPersonPhone}, #{salesPersonOrder}, #{salesChannel}, #{buyPlan}, #{deliveryCity}, #{deliveryMethod}, #{deliveryPersonId}, #{deliveryPersonName}, #{deliveryRemark}, #{receptionPersonId}, #{receptionPersonName}, #{invoicingTime}, #{estimatedDeliveryTime}, #{actualDeliveryTime}, #{licenseCity}, 
+            #{id}, #{orderNum}, #{orderState}, #{orderStateTime}, #{orderTime}, #{cancelTime}, #{benefitsId}, #{agreementId}, #{contractNum}, #{contractTime}, #{saleCode}, #{modelConfigCode}, #{modelConfigLock}, #{payState}, #{downPaymentTime}, #{finalPaymentTime}, #{orderType}, #{orderPersonId}, #{orderPersonName}, #{orderPersonPhone}, #{orderPersonIdType}, #{orderPersonIdNum}, #{recommenderId}, #{contactPersonName}, #{contactPersonPhone}, #{salesPersonId}, #{salesPersonName}, #{salesPersonPhone}, #{salesPersonOrder}, #{salesChannel}, #{purchasePlan}, #{financingPlanId}, #{deliveryCity}, #{deliveryMethod}, #{deliveryPersonId}, #{deliveryPersonName}, #{deliveryRemark}, #{receptionPersonId}, #{receptionPersonName}, #{invoicingTime}, #{estimatedDeliveryTime}, #{actualDeliveryTime}, #{licenseCity}, #{dealership}, #{deliveryCenter}, 
             #{description}, now(), #{createBy}, now(), #{modifyBy}, 1, 1
         )
     </insert>
@@ -65,13 +79,13 @@
     <!-- 批量插入 -->
     <insert id="batchInsertPo" useGeneratedKeys="true" keyProperty="id" parameterType="java.util.List">
         INSERT INTO tb_order (
-            id, order_num, order_state, sale_code, model_config_code, model_config_lock, pay_state, order_type, order_person_id, order_person_name, order_person_phone, recommender_id, contact_person_name, contact_person_phone, sales_person_id, sales_person_name, sales_person_phone, sales_person_order, sales_channel, buy_plan, delivery_city, delivery_method, delivery_person_id, delivery_person_name, delivery_remark, reception_person_id, reception_person_name, invoicing_time, estimated_delivery_time, actual_delivery_time, license_city, 
+            id, order_num, order_state, order_state_time, order_time, cancel_time, benefits_id, agreement_id, contract_num, contract_time, sale_code, model_config_code, model_config_lock, pay_state, down_payment_time, final_payment_time, order_type, order_person_id, order_person_name, order_person_phone, order_person_id_type, order_person_id_num, recommender_id, contact_person_name, contact_person_phone, sales_person_id, sales_person_name, sales_person_phone, sales_person_order, sales_channel, purchase_plan, financing_plan_id, delivery_city, delivery_method, delivery_person_id, delivery_person_name, delivery_remark, reception_person_id, reception_person_name, invoicing_time, estimated_delivery_time, actual_delivery_time, license_city, dealership, delivery_center, 
             description, create_time, create_by, modify_time, modify_by, row_version, row_valid
         )
         VALUES
         <foreach collection="list" item="item" index="index" separator=",">
         (
-            #{item.id}, #{item.orderNum}, #{item.orderState}, #{item.saleCode}, #{item.modelConfigCode}, #{item.modelConfigLock}, #{item.payState}, #{item.orderType}, #{item.orderPersonId}, #{item.orderPersonName}, #{item.orderPersonPhone}, #{item.recommenderId}, #{item.contactPersonName}, #{item.contactPersonPhone}, #{item.salesPersonId}, #{item.salesPersonName}, #{item.salesPersonPhone}, #{item.salesPersonOrder}, #{item.salesChannel}, #{item.buyPlan}, #{item.deliveryCity}, #{item.deliveryMethod}, #{item.deliveryPersonId}, #{item.deliveryPersonName}, #{item.deliveryRemark}, #{item.receptionPersonId}, #{item.receptionPersonName}, #{item.invoicingTime}, #{item.estimatedDeliveryTime}, #{item.actualDeliveryTime}, #{item.licenseCity}, 
+            #{item.id}, #{item.orderNum}, #{item.orderState}, #{item.orderStateTime}, #{item.orderTime}, #{item.cancelTime}, #{item.benefitsId}, #{item.agreementId}, #{item.contractNum}, #{item.contractTime}, #{item.saleCode}, #{item.modelConfigCode}, #{item.modelConfigLock}, #{item.payState}, #{item.downPaymentTime}, #{item.finalPaymentTime}, #{item.orderType}, #{item.orderPersonId}, #{item.orderPersonName}, #{item.orderPersonPhone}, #{item.orderPersonIdType}, #{item.orderPersonIdNum}, #{item.recommenderId}, #{item.contactPersonName}, #{item.contactPersonPhone}, #{item.salesPersonId}, #{item.salesPersonName}, #{item.salesPersonPhone}, #{item.salesPersonOrder}, #{item.salesChannel}, #{item.purchasePlan}, #{item.financingPlanId}, #{item.deliveryCity}, #{item.deliveryMethod}, #{item.deliveryPersonId}, #{item.deliveryPersonName}, #{item.deliveryRemark}, #{item.receptionPersonId}, #{item.receptionPersonName}, #{item.invoicingTime}, #{item.estimatedDeliveryTime}, #{item.actualDeliveryTime}, #{item.licenseCity}, #{item.dealership}, #{item.deliveryCenter}, 
             #{item.description}, now(), #{item.createBy}, now(), #{item.modifyBy}, 1, 1
         )
         </foreach>
@@ -80,8 +94,32 @@
     <!-- 更新 -->
     <update id="updatePo" parameterType="net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository.po.OrderPo">
         UPDATE tb_order t SET
+        <if test="orderNum != null and orderNum != ''">
+            t.order_num = #{orderNum},
+        </if>
         <if test="orderState != null">
             t.order_state = #{orderState},
+        </if>
+        <if test="orderStateTime != null">
+            t.order_state_time = #{orderStateTime},
+        </if>
+        <if test="orderTime != null">
+            t.order_time = #{orderTime},
+        </if>
+        <if test="cancelTime != null">
+            t.cancel_time = #{cancelTime},
+        </if>
+        <if test="benefitsId != null">
+            t.benefits_id = #{benefitsId},
+        </if>
+        <if test="agreementId != null">
+            t.agreement_id = #{agreementId},
+        </if>
+        <if test="contractNum != null and contractNum != ''">
+            t.contract_num = #{contractNum},
+        </if>
+        <if test="contractTime != null">
+            t.contract_time = #{contractTime},
         </if>
         <if test="saleCode != null and saleCode != ''">
             t.sale_code = #{saleCode},
@@ -95,6 +133,12 @@
         <if test="payState != null">
             t.pay_state = #{payState},
         </if>
+        <if test="downPaymentTime != null">
+            t.down_payment_time = #{downPaymentTime},
+        </if>
+        <if test="finalPaymentTime != null">
+            t.final_payment_time = #{finalPaymentTime},
+        </if>
         <if test="orderType != null">
             t.order_type = #{orderType},
         </if>
@@ -106,6 +150,12 @@
         </if>
         <if test="orderPersonPhone != null and orderPersonPhone != ''">
             t.order_person_phone = #{orderPersonPhone},
+        </if>
+        <if test="orderPersonIdType != null">
+            t.order_person_id_type = #{orderPersonIdType},
+        </if>
+        <if test="orderPersonIdNum != null and orderPersonIdNum != ''">
+            t.order_person_id_num = #{orderPersonIdNum},
         </if>
         <if test="recommenderId != null and recommenderId != ''">
             t.recommender_id = #{recommenderId},
@@ -131,8 +181,11 @@
         <if test="salesChannel != null and salesChannel != ''">
             t.sales_channel = #{salesChannel},
         </if>
-        <if test="buyPlan != null and buyPlan != ''">
-            t.buy_plan = #{buyPlan},
+        <if test="purchasePlan != null">
+            t.purchase_plan = #{purchasePlan},
+        </if>
+        <if test="financingPlanId != null">
+            t.financing_plan_id = #{financingPlanId},
         </if>
         <if test="deliveryCity != null and deliveryCity != ''">
             t.delivery_city = #{deliveryCity},
@@ -167,6 +220,12 @@
         <if test="licenseCity != null and licenseCity != ''">
             t.license_city = #{licenseCity},
         </if>
+        <if test="dealership != null and dealership != ''">
+            t.dealership = #{dealership},
+        </if>
+        <if test="deliveryCenter != null and deliveryCenter != ''">
+            t.delivery_center = #{deliveryCenter},
+        </if>
         <if test="description != null and description != ''">
             t.description = #{description},
         </if>
@@ -175,7 +234,7 @@
         </if>
         t.row_version = t.row_version + 1,
         t.modify_time = now()
-        WHERE order_num = #{orderNum}
+        WHERE id = #{id}
     </update>
 
     <!-- 逻辑删除 -->
@@ -191,12 +250,6 @@
     <delete id="physicalDeletePo" parameterType="Long">
         DELETE FROM tb_order t
         WHERE t.id = #{value}
-    </delete>
-
-    <!-- 根据订单编号删除订单 -->
-    <delete id="physicalDeletePoByOrderNum" parameterType="string">
-        DELETE FROM tb_order t
-        WHERE t.order_num = #{value}
     </delete>
 
     <!-- 根据主键获取对应数据 -->
@@ -221,6 +274,27 @@
         <if test="orderState != null">
             AND t.order_state = #{orderState}
         </if>
+        <if test="orderStateTime != null">
+            AND t.order_state_time = #{orderStateTime}
+        </if>
+        <if test="orderTime != null">
+            AND t.order_time = #{orderTime}
+        </if>
+        <if test="cancelTime != null">
+            AND t.cancel_time = #{cancelTime}
+        </if>
+        <if test="benefitsId != null">
+            AND t.benefits_id = #{benefitsId}
+        </if>
+        <if test="agreementId != null">
+            AND t.agreement_id = #{agreementId}
+        </if>
+        <if test="contractNum != null and contractNum != ''">
+            AND t.contract_num = #{contractNum}
+        </if>
+        <if test="contractTime != null">
+            AND t.contract_time = #{contractTime}
+        </if>
         <if test="saleCode != null and saleCode != ''">
             AND t.sale_code = #{saleCode}
         </if>
@@ -233,6 +307,12 @@
         <if test="payState != null">
             AND t.pay_state = #{payState}
         </if>
+        <if test="downPaymentTime != null">
+            AND t.down_payment_time = #{downPaymentTime}
+        </if>
+        <if test="finalPaymentTime != null">
+            AND t.final_payment_time = #{finalPaymentTime}
+        </if>
         <if test="orderType != null">
             AND t.order_type = #{orderType}
         </if>
@@ -244,6 +324,12 @@
         </if>
         <if test="orderPersonPhone != null and orderPersonPhone != ''">
             AND t.order_person_phone = #{orderPersonPhone}
+        </if>
+        <if test="orderPersonIdType != null">
+            AND t.order_person_id_type = #{orderPersonIdType}
+        </if>
+        <if test="orderPersonIdNum != null and orderPersonIdNum != ''">
+            AND t.order_person_id_num = #{orderPersonIdNum}
         </if>
         <if test="recommenderId != null and recommenderId != ''">
             AND t.recommender_id = #{recommenderId}
@@ -269,8 +355,11 @@
         <if test="salesChannel != null and salesChannel != ''">
             AND t.sales_channel = #{salesChannel}
         </if>
-        <if test="buyPlan != null and buyPlan != ''">
-            AND t.buy_plan = #{buyPlan}
+        <if test="purchasePlan != null">
+            AND t.purchase_plan = #{purchasePlan}
+        </if>
+        <if test="financingPlanId != null">
+            AND t.financing_plan_id = #{financingPlanId}
         </if>
         <if test="deliveryCity != null and deliveryCity != ''">
             AND t.delivery_city = #{deliveryCity}
@@ -305,6 +394,12 @@
         <if test="licenseCity != null and licenseCity != ''">
             AND t.license_city = #{licenseCity}
         </if>
+        <if test="dealership != null and dealership != ''">
+            AND t.dealership = #{dealership}
+        </if>
+        <if test="deliveryCenter != null and deliveryCenter != ''">
+            AND t.delivery_center = #{deliveryCenter}
+        </if>
         <if test="description != null and description != ''">
             AND t.description = #{description}
         </if>
@@ -332,12 +427,6 @@
         FROM tb_order t
         WHERE t.row_valid = 1
         <!-- 添加自定义条件 -->
-        <if test="orderPersonId != null and orderPersonId != ''">
-            AND t.order_person_id = #{orderPersonId}
-        </if>
-        <if test="stateValid != null and stateValid = 1">
-            AND t.order_state != 950
-        </if>
         ORDER BY t.id DESC
     </select>
 

@@ -65,7 +65,7 @@ public interface VehicleSaleOrderMpApi {
     Response<WishlistResponse> getWishlist(String orderNum, ClientAccount clientAccount);
 
     /**
-     * 意向金（小定）下订单
+     * 意向金下订单
      *
      * @param request       意向金下单请求
      * @param clientAccount 终端用户
@@ -89,7 +89,7 @@ public interface VehicleSaleOrderMpApi {
      * @param clientAccount 终端用户
      * @return 操作结果
      */
-    Response<Void> cancelOrder(Order order, ClientAccount clientAccount);
+    Response<Void> cancel(Order order, ClientAccount clientAccount);
 
     /**
      * 支付订单
@@ -98,7 +98,7 @@ public interface VehicleSaleOrderMpApi {
      * @param clientAccount 终端用户
      * @return 操作结果
      */
-    Response<OrderPaymentResponse> payOrder(OrderPaymentRequest request, ClientAccount clientAccount);
+    Response<OrderPaymentResponse> pay(OrderPaymentRequest request, ClientAccount clientAccount);
 
     /**
      * 申请退款订单
@@ -107,7 +107,7 @@ public interface VehicleSaleOrderMpApi {
      * @param clientAccount 终端用户
      * @return 操作结果
      */
-    Response<Void> requestRefundOrder(Order order, ClientAccount clientAccount);
+    Response<Void> requestRefund(Order order, ClientAccount clientAccount);
 
     /**
      * 意向金转定金
@@ -117,5 +117,14 @@ public interface VehicleSaleOrderMpApi {
      * @return 操作结果
      */
     Response<Void> earnestMoneyToDownPayment(Order order, ClientAccount clientAccount);
+
+    /**
+     * 锁定订单
+     *
+     * @param order         订单对象
+     * @param clientAccount 终端用户
+     * @return 操作结果
+     */
+    Response<Void> lock(Order order, ClientAccount clientAccount);
 
 }

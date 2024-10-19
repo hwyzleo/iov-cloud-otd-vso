@@ -16,7 +16,7 @@ import lombok.experimental.SuperBuilder;
  * </p>
  *
  * @author hwyz_leo
- * @since 2024-10-10
+ * @since 2024-10-19
  */
 @Getter
 @Setter
@@ -41,10 +41,52 @@ public class OrderPo extends BasePo {
     private String orderNum;
 
     /**
-     * 订单状态：100-心愿单
+     * 订单状态
      */
     @TableField("order_state")
     private Integer orderState;
+
+    /**
+     * 订单状态时间
+     */
+    @TableField("order_state_time")
+    private Date orderStateTime;
+
+    /**
+     * 下单时间
+     */
+    @TableField("order_time")
+    private Date orderTime;
+
+    /**
+     * 取消时间
+     */
+    @TableField("cancel_time")
+    private Date cancelTime;
+
+    /**
+     * 购车权益ID
+     */
+    @TableField("benefits_id")
+    private Long benefitsId;
+
+    /**
+     * 购车协议ID
+     */
+    @TableField("agreement_id")
+    private Long agreementId;
+
+    /**
+     * 购车合同号
+     */
+    @TableField("contract_num")
+    private String contractNum;
+
+    /**
+     * 购车合同签署时间
+     */
+    @TableField("contract_time")
+    private Date contractTime;
 
     /**
      * 销售代码
@@ -62,19 +104,31 @@ public class OrderPo extends BasePo {
      * 车型配置是否锁定
      */
     @TableField("model_config_lock")
-    private Boolean modelConfigLock;
+    private Byte modelConfigLock;
 
     /**
-     * 支付状态
+     * 支付状态：10-意向金已支付，15-意向金已退，20-定金已支付，25-定金已退，30-尾款已支付，35-尾款已退
      */
     @TableField("pay_state")
-    private Integer payState;
+    private Short payState;
+
+    /**
+     * 定金支付时间
+     */
+    @TableField("down_payment_time")
+    private Date downPaymentTime;
+
+    /**
+     * 尾款支付时间
+     */
+    @TableField("final_payment_time")
+    private Date finalPaymentTime;
 
     /**
      * 订单类型：1-C端普通客户，2-C端大客户，3-B端大客户，4-员工内购，5-员工推荐，6-内部用车，7-媒体用车，8-展车用车
      */
     @TableField("order_type")
-    private Integer orderType;
+    private Short orderType;
 
     /**
      * 下单人员ID
@@ -93,6 +147,18 @@ public class OrderPo extends BasePo {
      */
     @TableField("order_person_phone")
     private String orderPersonPhone;
+
+    /**
+     * 下单人员证件类型：1-身份证
+     */
+    @TableField("order_person_id_type")
+    private Short orderPersonIdType;
+
+    /**
+     * 下单人员证件号
+     */
+    @TableField("order_person_id_num")
+    private String orderPersonIdNum;
 
     /**
      * 推荐用户ID
@@ -145,8 +211,14 @@ public class OrderPo extends BasePo {
     /**
      * 购车方案：1-全款购车，2-金融贷款
      */
-    @TableField("buy_plan")
-    private String buyPlan;
+    @TableField("purchase_plan")
+    private Short purchasePlan;
+
+    /**
+     * 购车金融方案ID
+     */
+    @TableField("financing_plan_id")
+    private Long financingPlanId;
 
     /**
      * 交付城市
@@ -213,4 +285,16 @@ public class OrderPo extends BasePo {
      */
     @TableField("license_city")
     private String licenseCity;
+
+    /**
+     * 销售门店
+     */
+    @TableField("dealership")
+    private String dealership;
+
+    /**
+     * 交付中心
+     */
+    @TableField("delivery_center")
+    private String deliveryCenter;
 }

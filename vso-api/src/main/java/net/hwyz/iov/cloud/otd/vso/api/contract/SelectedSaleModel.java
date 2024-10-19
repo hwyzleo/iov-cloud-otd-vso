@@ -1,6 +1,9 @@
 package net.hwyz.iov.cloud.otd.vso.api.contract;
 
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 
 import java.math.BigDecimal;
@@ -25,29 +28,40 @@ public class SelectedSaleModel extends SaleModel {
     private String modelConfigCode;
 
     /**
-     * 车型图片集
+     * 销售车型图片集
      */
-    private List<String> modelImages;
+    private List<String> saleModelImages;
 
     /**
-     * 车型描述
+     * 销售车型配置名称
+     * key: 销售车型配置类型
+     * value: 销售车型配置代码
      */
-    private String modelDesc;
+    private Map<String, String> saleModelConfigType;
 
     /**
-     * 车型配置名称
+     * 销售车型配置名称
+     * key: 销售车型配置类型
+     * value: 销售车型配置名称
      */
-    private Map<String, String> modelConfigName;
+    private Map<String, String> saleModelConfigName;
 
     /**
-     * 车型配置价格
+     * 销售车型配置价格
+     * key: 销售车型配置类型
+     * value: 销售车型配置价格
      */
-    private Map<String, BigDecimal> modelConfigPrice;
+    private Map<String, BigDecimal> saleModelConfigPrice;
 
     /**
      * 总价格
      */
     private BigDecimal totalPrice;
+
+    /**
+     * 销售车型描述
+     */
+    private String saleModelDesc;
 
     /**
      * 购车权益简介
