@@ -8,7 +8,7 @@ import net.hwyz.iov.cloud.otd.vso.api.contract.enums.SaleModelConfigType;
 import net.hwyz.iov.cloud.otd.vso.service.domain.contract.enums.OrderState;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.exception.OrderIllegalDeleteException;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.exception.OrderNotExistException;
-import net.hwyz.iov.cloud.otd.vso.service.infrastructure.exception.OrderPayNotAllowedException;
+import net.hwyz.iov.cloud.otd.vso.service.infrastructure.exception.OrderStateNotAllowedException;
 import net.hwyz.iov.cloud.tsp.framework.commons.domain.BaseDo;
 import net.hwyz.iov.cloud.tsp.framework.commons.domain.DomainObj;
 
@@ -130,8 +130,30 @@ public class OrderDo extends BaseDo<String> implements DomainObj<OrderDo> {
                 this.orderState = OrderState.EARNEST_MONEY_PAID;
                 stateChange();
             }
-            default -> throw new OrderPayNotAllowedException(this.orderNum);
+            default -> throw new OrderStateNotAllowedException(this.orderNum, this.orderState, "PAY");
         }
+    }
+
+    /**
+     * 申请退款订单
+     */
+    public void requestRefund() {
+        if (this.orderState.value < OrderState.EARNEST_MONEY_PAID.value) {
+            throw new OrderStateNotAllowedException(this.orderNum, this.orderState, "REQUEST_REFUND");
+        }
+        this.orderState = OrderState.REFUND_APPLY;
+        stateChange();
+    }
+
+    /**
+     * 意向金转定金
+     */
+    public void earnestMoneyToDownPayment() {
+        if (this.orderState != OrderState.EARNEST_MONEY_PAID) {
+            throw new OrderStateNotAllowedException(this.orderNum, this.orderState, "EARNEST_MONEY_TO_DOWN_PAYMENT");
+        }
+        this.orderState = OrderState.DOWN_PAYMENT_PAID;
+        stateChange();
     }
 
     /**

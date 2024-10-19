@@ -324,10 +324,41 @@ public class VehicleSaleOrderAppService {
         if (orderDo == null) {
             throw new OrderNotExistException(request.getOrderNum());
         }
+        // TODO 调用外部商户
         orderDo.pay();
         orderRepository.save(orderDo);
         return OrderPaymentResponse.builder()
                 .build();
+    }
+
+    /**
+     * 申请退款订单
+     *
+     * @param accountId 账号ID
+     * @param orderNum  订单编号
+     */
+    public void requestRefundOrder(String accountId, String orderNum) {
+        OrderDo orderDo = orderRepository.get(accountId, orderNum);
+        if (orderDo == null) {
+            throw new OrderNotExistException(orderNum);
+        }
+        orderDo.requestRefund();
+        orderRepository.save(orderDo);
+    }
+
+    /**
+     * 意向金转定金
+     *
+     * @param accountId 账号ID
+     * @param orderNum  订单编号
+     */
+    public void earnestMoneyToDownPayment(String accountId, String orderNum) {
+        OrderDo orderDo = orderRepository.get(accountId, orderNum);
+        if (orderDo == null) {
+            throw new OrderNotExistException(orderNum);
+        }
+        orderDo.earnestMoneyToDownPayment();
+        orderRepository.save(orderDo);
     }
 
 }

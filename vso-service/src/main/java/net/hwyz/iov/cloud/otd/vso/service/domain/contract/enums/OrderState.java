@@ -22,6 +22,10 @@ public enum OrderState {
     DOWN_PAYMENT_UNPAID(300),
     /** 定金已付款 **/
     DOWN_PAYMENT_PAID(310),
+    /** 退款申请 **/
+    REFUND_APPLY(920),
+    /** 退款完成 **/
+    REFUND_COMPLETE(925),
     /** 已取消 **/
     CANCEL(950);
 

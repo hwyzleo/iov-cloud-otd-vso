@@ -141,7 +141,7 @@ public class VehicleSaleOrderMpController implements VehicleSaleOrderMpApi {
      */
     @Override
     @PostMapping("/order/action/cancel")
-    public Response<Void> cancelOrder(Order order, ClientAccount clientAccount) {
+    public Response<Void> cancelOrder(@RequestBody @Valid Order order, @RequestHeader ClientAccount clientAccount) {
         logger.info("手机客户端[{}]取消订单[{}]", ParamHelper.getClientAccountInfo(clientAccount), order.getOrderNum());
         vehicleSaleOrderAppService.cancelOrder(clientAccount.getAccountId(), order.getOrderNum());
         return new Response<>();
@@ -156,8 +156,38 @@ public class VehicleSaleOrderMpController implements VehicleSaleOrderMpApi {
      */
     @Override
     @PostMapping("/order/action/pay")
-    public Response<OrderPaymentResponse> payOrder(OrderPaymentRequest request, ClientAccount clientAccount) {
+    public Response<OrderPaymentResponse> payOrder(@RequestBody @Valid OrderPaymentRequest request, @RequestHeader ClientAccount clientAccount) {
         logger.info("手机客户端[{}]支付订单[{}]", ParamHelper.getClientAccountInfo(clientAccount), request.getOrderNum());
         return new Response<>(vehicleSaleOrderAppService.payOrder(clientAccount.getAccountId(), request));
+    }
+
+    /**
+     * 申请退款订单
+     *
+     * @param order         订单对象
+     * @param clientAccount 终端用户
+     * @return 操作结果
+     */
+    @Override
+    @PostMapping("/order/action/requestRefund")
+    public Response<Void> requestRefundOrder(@RequestBody @Valid Order order, @RequestHeader ClientAccount clientAccount) {
+        logger.info("手机客户端[{}]退款订单[{}]", ParamHelper.getClientAccountInfo(clientAccount), order.getOrderNum());
+        vehicleSaleOrderAppService.requestRefundOrder(clientAccount.getAccountId(), order.getOrderNum());
+        return new Response<>();
+    }
+
+    /**
+     * 意向金转定金
+     *
+     * @param order         订单对象
+     * @param clientAccount 终端用户
+     * @return 操作结果
+     */
+    @Override
+    @PostMapping("/order/action/earnestMoneyToDownPayment")
+    public Response<Void> earnestMoneyToDownPayment(@RequestBody @Valid Order order, @RequestHeader ClientAccount clientAccount) {
+        logger.info("手机客户端[{}]订单[{}]意向金转定金", ParamHelper.getClientAccountInfo(clientAccount), order.getOrderNum());
+        vehicleSaleOrderAppService.earnestMoneyToDownPayment(clientAccount.getAccountId(), order.getOrderNum());
+        return new Response<>();
     }
 }

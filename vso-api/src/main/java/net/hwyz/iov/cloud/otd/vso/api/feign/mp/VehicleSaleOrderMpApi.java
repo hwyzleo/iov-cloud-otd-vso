@@ -100,4 +100,22 @@ public interface VehicleSaleOrderMpApi {
      */
     Response<OrderPaymentResponse> payOrder(OrderPaymentRequest request, ClientAccount clientAccount);
 
+    /**
+     * 申请退款订单
+     *
+     * @param order         订单对象
+     * @param clientAccount 终端用户
+     * @return 操作结果
+     */
+    Response<Void> requestRefundOrder(Order order, ClientAccount clientAccount);
+
+    /**
+     * 意向金转定金
+     *
+     * @param order         订单对象
+     * @param clientAccount 终端用户
+     * @return 操作结果
+     */
+    Response<Void> earnestMoneyToDownPayment(Order order, ClientAccount clientAccount);
+
 }
