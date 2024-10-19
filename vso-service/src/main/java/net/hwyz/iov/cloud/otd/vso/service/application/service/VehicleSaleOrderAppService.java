@@ -7,7 +7,9 @@ import lombok.extern.slf4j.Slf4j;
 import net.hwyz.iov.cloud.otd.vso.api.contract.Order;
 import net.hwyz.iov.cloud.otd.vso.api.contract.enums.SaleModelConfigType;
 import net.hwyz.iov.cloud.otd.vso.api.contract.request.EarnestMoneyOrderRequest;
+import net.hwyz.iov.cloud.otd.vso.api.contract.request.OrderPaymentRequest;
 import net.hwyz.iov.cloud.otd.vso.api.contract.request.SelectedSaleModelRequest;
+import net.hwyz.iov.cloud.otd.vso.api.contract.response.OrderPaymentResponse;
 import net.hwyz.iov.cloud.otd.vso.api.contract.response.OrderResponse;
 import net.hwyz.iov.cloud.otd.vso.api.contract.response.WishlistResponse;
 import net.hwyz.iov.cloud.otd.vso.service.domain.contract.enums.OrderState;
@@ -309,6 +311,23 @@ public class VehicleSaleOrderAppService {
         }
         orderDo.cancel();
         orderRepository.save(orderDo);
+    }
+
+    /**
+     * 支付订单
+     *
+     * @param accountId 账号ID
+     * @param request   支付订单请求
+     */
+    public OrderPaymentResponse payOrder(String accountId, OrderPaymentRequest request) {
+        OrderDo orderDo = orderRepository.get(accountId, request.getOrderNum());
+        if (orderDo == null) {
+            throw new OrderNotExistException(request.getOrderNum());
+        }
+        orderDo.pay();
+        orderRepository.save(orderDo);
+        return OrderPaymentResponse.builder()
+                .build();
     }
 
 }

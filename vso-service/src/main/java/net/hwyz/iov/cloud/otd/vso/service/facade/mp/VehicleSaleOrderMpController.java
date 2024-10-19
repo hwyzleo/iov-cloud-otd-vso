@@ -7,6 +7,7 @@ import net.hwyz.iov.cloud.otd.vso.api.contract.Order;
 import net.hwyz.iov.cloud.otd.vso.api.contract.request.EarnestMoneyOrderRequest;
 import net.hwyz.iov.cloud.otd.vso.api.contract.request.OrderPaymentRequest;
 import net.hwyz.iov.cloud.otd.vso.api.contract.request.SelectedSaleModelRequest;
+import net.hwyz.iov.cloud.otd.vso.api.contract.response.OrderPaymentResponse;
 import net.hwyz.iov.cloud.otd.vso.api.contract.response.OrderResponse;
 import net.hwyz.iov.cloud.otd.vso.api.contract.response.WishlistResponse;
 import net.hwyz.iov.cloud.otd.vso.api.feign.mp.VehicleSaleOrderMpApi;
@@ -155,8 +156,8 @@ public class VehicleSaleOrderMpController implements VehicleSaleOrderMpApi {
      */
     @Override
     @PostMapping("/order/action/pay")
-    public Response<Void> payOrder(OrderPaymentRequest request, ClientAccount clientAccount) {
+    public Response<OrderPaymentResponse> payOrder(OrderPaymentRequest request, ClientAccount clientAccount) {
         logger.info("手机客户端[{}]支付订单[{}]", ParamHelper.getClientAccountInfo(clientAccount), request.getOrderNum());
-        return null;
+        return new Response<>(vehicleSaleOrderAppService.payOrder(clientAccount.getAccountId(), request));
     }
 }

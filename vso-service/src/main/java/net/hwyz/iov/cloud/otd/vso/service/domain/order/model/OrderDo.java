@@ -8,6 +8,7 @@ import net.hwyz.iov.cloud.otd.vso.api.contract.enums.SaleModelConfigType;
 import net.hwyz.iov.cloud.otd.vso.service.domain.contract.enums.OrderState;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.exception.OrderIllegalDeleteException;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.exception.OrderNotExistException;
+import net.hwyz.iov.cloud.otd.vso.service.infrastructure.exception.OrderPayNotAllowedException;
 import net.hwyz.iov.cloud.tsp.framework.commons.domain.BaseDo;
 import net.hwyz.iov.cloud.tsp.framework.commons.domain.DomainObj;
 
@@ -118,6 +119,19 @@ public class OrderDo extends BaseDo<String> implements DomainObj<OrderDo> {
         }
         this.orderState = OrderState.CANCEL;
         stateChange();
+    }
+
+    /**
+     * 支付订单
+     */
+    public void pay() {
+        switch (this.orderState) {
+            case EARNEST_MONEY_UNPAID -> {
+                this.orderState = OrderState.EARNEST_MONEY_PAID;
+                stateChange();
+            }
+            default -> throw new OrderPayNotAllowedException(this.orderNum);
+        }
     }
 
     /**

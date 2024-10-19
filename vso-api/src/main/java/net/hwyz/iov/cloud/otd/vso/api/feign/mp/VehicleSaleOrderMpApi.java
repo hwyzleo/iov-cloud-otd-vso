@@ -4,6 +4,7 @@ import net.hwyz.iov.cloud.otd.vso.api.contract.Order;
 import net.hwyz.iov.cloud.otd.vso.api.contract.request.EarnestMoneyOrderRequest;
 import net.hwyz.iov.cloud.otd.vso.api.contract.request.OrderPaymentRequest;
 import net.hwyz.iov.cloud.otd.vso.api.contract.request.SelectedSaleModelRequest;
+import net.hwyz.iov.cloud.otd.vso.api.contract.response.OrderPaymentResponse;
 import net.hwyz.iov.cloud.otd.vso.api.contract.response.OrderResponse;
 import net.hwyz.iov.cloud.otd.vso.api.contract.response.WishlistResponse;
 import net.hwyz.iov.cloud.tsp.framework.commons.bean.ClientAccount;
@@ -97,6 +98,6 @@ public interface VehicleSaleOrderMpApi {
      * @param clientAccount 终端用户
      * @return 操作结果
      */
-    Response<Void> payOrder(OrderPaymentRequest request, ClientAccount clientAccount);
+    Response<OrderPaymentResponse> payOrder(OrderPaymentRequest request, ClientAccount clientAccount);
 
 }
