@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.hwyz.iov.cloud.otd.vso.api.contract.Order;
 import net.hwyz.iov.cloud.otd.vso.api.contract.enums.SaleModelConfigType;
+import net.hwyz.iov.cloud.otd.vso.api.contract.request.DownPaymentOrderRequest;
 import net.hwyz.iov.cloud.otd.vso.api.contract.request.EarnestMoneyOrderRequest;
 import net.hwyz.iov.cloud.otd.vso.api.contract.request.OrderPaymentRequest;
 import net.hwyz.iov.cloud.otd.vso.api.contract.request.SelectedSaleModelRequest;
@@ -153,7 +154,7 @@ public class VehicleSaleOrderAppService {
     }
 
     /**
-     * 意向金（小定）下订单
+     * 意向金下订单
      *
      * @param accountId 账号ID
      * @param request   意向金下单请求
@@ -162,15 +163,41 @@ public class VehicleSaleOrderAppService {
     public String earnestMoneyOrder(String accountId, EarnestMoneyOrderRequest request) {
         OrderDo orderDo;
         if (request.getOrderNum() != null) {
-            // 由心愿单转小定
+            // 由心愿单转意向金
             orderDo = orderRepository.get(accountId, request.getOrderNum());
         } else {
-            // 直接小定
+            // 直接意向金
             orderDo = orderFactory.buildFromEarnestMoney(accountId, request.getSaleCode());
         }
         String modelConfigCode = saleModelAppService.getModelConfigCode(request.getSaleModelConfigType());
         orderDo.saveModelConfig(modelConfigCode, getOrderModelConfigMap(request.getSaleCode(), request.getSaleModelConfigType()));
         orderDo.saveLicenseCity(request.getLicenseCity());
+        orderRepository.save(orderDo);
+        return orderDo.getOrderNum();
+    }
+
+    /**
+     * 定金下订单
+     *
+     * @param accountId 账号ID
+     * @param request   定金下单请求
+     * @return 订单编号
+     */
+    public String downPaymentOrder(String accountId, DownPaymentOrderRequest request) {
+        OrderDo orderDo;
+        if (request.getOrderNum() != null) {
+            // 由心愿单转定金
+            orderDo = orderRepository.get(accountId, request.getOrderNum());
+        } else {
+            // 直接定金
+            orderDo = orderFactory.buildFromDownPayment(accountId, request.getSaleCode());
+        }
+        String modelConfigCode = saleModelAppService.getModelConfigCode(request.getSaleModelConfigType());
+        orderDo.saveModelConfig(modelConfigCode, getOrderModelConfigMap(request.getSaleCode(), request.getSaleModelConfigType()));
+        orderDo.saveOrderPerson(accountId, request.getOrderPersonName(), request.getOrderPersonIdType(), request.getOrderPersonIdNum());
+        orderDo.saveLicenseCity(request.getLicenseCity());
+        orderDo.saveDealership(request.getDealership());
+        orderDo.saveDeliveryCenter(request.getDeliveryCenter());
         orderRepository.save(orderDo);
         return orderDo.getOrderNum();
     }

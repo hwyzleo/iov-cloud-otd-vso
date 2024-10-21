@@ -1,6 +1,7 @@
 package net.hwyz.iov.cloud.otd.vso.api.feign.mp;
 
 import net.hwyz.iov.cloud.otd.vso.api.contract.Order;
+import net.hwyz.iov.cloud.otd.vso.api.contract.request.DownPaymentOrderRequest;
 import net.hwyz.iov.cloud.otd.vso.api.contract.request.EarnestMoneyOrderRequest;
 import net.hwyz.iov.cloud.otd.vso.api.contract.request.OrderPaymentRequest;
 import net.hwyz.iov.cloud.otd.vso.api.contract.request.SelectedSaleModelRequest;
@@ -72,6 +73,15 @@ public interface VehicleSaleOrderMpApi {
      * @return 订单编号
      */
     Response<String> earnestMoneyOrder(EarnestMoneyOrderRequest request, ClientAccount clientAccount);
+
+    /**
+     * 定金下订单
+     *
+     * @param request       定金下单请求
+     * @param clientAccount 终端用户
+     * @return 订单编号
+     */
+    Response<String> downPaymentOrder(DownPaymentOrderRequest request, ClientAccount clientAccount);
 
     /**
      * 获取订单详情

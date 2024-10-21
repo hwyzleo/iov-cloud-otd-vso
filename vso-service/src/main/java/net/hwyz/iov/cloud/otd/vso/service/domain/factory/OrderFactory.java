@@ -29,7 +29,7 @@ public class OrderFactory {
     }
 
     /**
-     * 基于意向金（小定）创建车辆销售订单领域对象
+     * 基于意向金创建车辆销售订单领域对象
      *
      * @param accountId 账号ID
      * @param saleCode  销售代码
@@ -39,6 +39,20 @@ public class OrderFactory {
         OrderDo orderDo = OrderDo.builder()
                 .build();
         orderDo.init(accountId, saleCode, OrderState.EARNEST_MONEY_UNPAID);
+        return orderDo;
+    }
+
+    /**
+     * 基于定金创建车辆销售订单领域对象
+     *
+     * @param accountId 账号ID
+     * @param saleCode  销售代码
+     * @return 车辆销售订单领域对象
+     */
+    public OrderDo buildFromDownPayment(String accountId, String saleCode) {
+        OrderDo orderDo = OrderDo.builder()
+                .build();
+        orderDo.init(accountId, saleCode, OrderState.DOWN_PAYMENT_UNPAID);
         return orderDo;
     }
 

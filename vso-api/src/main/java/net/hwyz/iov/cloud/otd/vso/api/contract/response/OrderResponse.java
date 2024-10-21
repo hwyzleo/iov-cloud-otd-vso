@@ -5,9 +5,11 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
+import net.hwyz.iov.cloud.otd.vso.api.contract.SelectedSaleModel;
 import net.hwyz.iov.cloud.otd.vso.api.contract.request.SelectedSaleModelRequest;
 
 import java.math.BigDecimal;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
@@ -21,29 +23,17 @@ import java.util.Map;
 @NoArgsConstructor
 @AllArgsConstructor
 @EqualsAndHashCode(callSuper = true)
-public class OrderResponse extends SelectedSaleModelRequest {
+public class OrderResponse extends SelectedSaleModel {
+    /**
+     * 订单编号
+     */
+    private String orderNum;
     /**
      * 订单状态
      */
     private Integer orderState;
     /**
-     * 销售车型配置名称
+     * 下单时间
      */
-    private Map<String, String> saleModelConfigName;
-    /**
-     * 销售车型配置价格
-     */
-    private Map<String, BigDecimal> saleModelConfigPrice;
-    /**
-     * 销售车型图片
-     */
-    private List<String> saleModelImages;
-    /**
-     * 总价格
-     */
-    private BigDecimal totalPrice;
-    /**
-     * 是否有效
-     */
-    private Boolean isValid;
+    private Date orderTime;
 }

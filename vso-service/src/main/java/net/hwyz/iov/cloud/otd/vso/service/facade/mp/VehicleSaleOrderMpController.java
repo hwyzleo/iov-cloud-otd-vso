@@ -4,6 +4,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.hwyz.iov.cloud.otd.vso.api.contract.Order;
+import net.hwyz.iov.cloud.otd.vso.api.contract.request.DownPaymentOrderRequest;
 import net.hwyz.iov.cloud.otd.vso.api.contract.request.EarnestMoneyOrderRequest;
 import net.hwyz.iov.cloud.otd.vso.api.contract.request.OrderPaymentRequest;
 import net.hwyz.iov.cloud.otd.vso.api.contract.request.SelectedSaleModelRequest;
@@ -114,8 +115,22 @@ public class VehicleSaleOrderMpController implements VehicleSaleOrderMpApi {
     @Override
     @PostMapping("/action/earnestMoneyOrder")
     public Response<String> earnestMoneyOrder(@RequestBody @Valid EarnestMoneyOrderRequest request, @RequestHeader ClientAccount clientAccount) {
-        logger.info("手机客户端[{}]意向金（小定）下订单", ParamHelper.getClientAccountInfo(clientAccount));
+        logger.info("手机客户端[{}]意向金下订单", ParamHelper.getClientAccountInfo(clientAccount));
         return new Response<>(vehicleSaleOrderAppService.earnestMoneyOrder(clientAccount.getAccountId(), request));
+    }
+
+    /**
+     * 定金下订单
+     *
+     * @param request       定金下单请求
+     * @param clientAccount 终端用户
+     * @return 订单编号
+     */
+    @Override
+    @PostMapping("/action/downPaymentOrder")
+    public Response<String> downPaymentOrder(@RequestBody @Valid DownPaymentOrderRequest request, @RequestHeader ClientAccount clientAccount) {
+        logger.info("手机客户端[{}]定金下订单", ParamHelper.getClientAccountInfo(clientAccount));
+        return new Response<>(vehicleSaleOrderAppService.downPaymentOrder(clientAccount.getAccountId(), request));
     }
 
     /**

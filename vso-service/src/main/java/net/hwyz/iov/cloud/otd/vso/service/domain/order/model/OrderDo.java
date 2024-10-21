@@ -39,6 +39,18 @@ public class OrderDo extends BaseDo<String> implements DomainObj<OrderDo> {
      */
     private String orderPersonId;
     /**
+     * 下单人员姓名
+     */
+    private String orderPersonName;
+    /**
+     * 下单人员证件类型
+     */
+    private Integer orderPersonIdType;
+    /**
+     * 下单人员证件号码
+     */
+    private String orderPersonIdNum;
+    /**
      * 销售代码
      */
     private String saleCode;
@@ -58,6 +70,14 @@ public class OrderDo extends BaseDo<String> implements DomainObj<OrderDo> {
      * 上牌城市
      */
     private String licenseCity;
+    /**
+     * 销售门店
+     */
+    private String dealership;
+    /**
+     * 交付中心
+     */
+    private String deliveryCenter;
 
     /**
      * 初始化
@@ -144,6 +164,34 @@ public class OrderDo extends BaseDo<String> implements DomainObj<OrderDo> {
     }
 
     /**
+     * 保存下单人信息
+     *
+     * @param orderPersonId     下单人ID
+     * @param orderPersonName   下单人姓名
+     * @param orderPersonIdType 下单人证件类型
+     * @param orderPersonIdNum  下单人证件号
+     */
+    public void saveOrderPerson(String orderPersonId, String orderPersonName, Integer orderPersonIdType,
+                                String orderPersonIdNum) {
+        if (this.orderPersonId == null) {
+            this.orderPersonId = orderPersonId;
+            stateChange();
+        }
+        if (this.orderPersonName == null || !this.orderPersonName.equals(orderPersonName)) {
+            this.orderPersonName = orderPersonName;
+            stateChange();
+        }
+        if (this.orderPersonIdType == null || !this.orderPersonIdType.equals(orderPersonIdType)) {
+            this.orderPersonIdType = orderPersonIdType;
+            stateChange();
+        }
+        if (this.orderPersonIdNum == null || !this.orderPersonIdNum.equals(orderPersonIdNum)) {
+            this.orderPersonIdNum = orderPersonIdNum;
+            stateChange();
+        }
+    }
+
+    /**
      * 保存上牌城市
      *
      * @param licenseCity 上牌城市
@@ -151,6 +199,30 @@ public class OrderDo extends BaseDo<String> implements DomainObj<OrderDo> {
     public void saveLicenseCity(String licenseCity) {
         if (this.licenseCity == null || !this.licenseCity.equals(licenseCity)) {
             this.licenseCity = licenseCity;
+            stateChange();
+        }
+    }
+
+    /**
+     * 保存销售门店
+     *
+     * @param dealership 销售门店
+     */
+    public void saveDealership(String dealership) {
+        if (this.dealership == null || !this.dealership.equals(dealership)) {
+            this.dealership = dealership;
+            stateChange();
+        }
+    }
+
+    /**
+     * 保存交付中心
+     *
+     * @param deliveryCenter 交付中心
+     */
+    public void saveDeliveryCenter(String deliveryCenter) {
+        if (this.deliveryCenter == null || !this.deliveryCenter.equals(deliveryCenter)) {
+            this.deliveryCenter = deliveryCenter;
             stateChange();
         }
     }
