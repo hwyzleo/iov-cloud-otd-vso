@@ -252,6 +252,12 @@
         WHERE t.id = #{value}
     </delete>
 
+    <!-- 物理删除订单 -->
+    <delete id="physicalDeletePoByOrderNum" parameterType="Long">
+        DELETE FROM tb_order t
+        WHERE t.order_num = #{orderNum}
+    </delete>
+
     <!-- 根据主键获取对应数据 -->
     <select id="selectPoById" parameterType="Long" resultMap="baseResultMap">
         SELECT <include refid="baseColumnList"/>

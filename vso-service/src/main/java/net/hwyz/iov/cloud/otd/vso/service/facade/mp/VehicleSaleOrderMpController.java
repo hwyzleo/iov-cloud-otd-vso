@@ -32,7 +32,6 @@ import java.util.List;
 @RequestMapping(value = "/mp/vehicleSaleOrder")
 public class VehicleSaleOrderMpController implements VehicleSaleOrderMpApi {
 
-    private final OrderDao orderDao;
     private final VehicleSaleOrderAppService vehicleSaleOrderAppService;
 
     /**
@@ -44,7 +43,7 @@ public class VehicleSaleOrderMpController implements VehicleSaleOrderMpApi {
      */
     @Override
     @GetMapping("/order")
-    public Response<List<Order>> getOrderList(@RequestParam String type, @RequestHeader ClientAccount clientAccount) {
+    public Response<List<Order>> getOrderList(@RequestParam(required = false) String type, @RequestHeader ClientAccount clientAccount) {
         logger.info("手机客户端[{}]获取[{}]订单列表", ParamHelper.getClientAccountInfo(clientAccount), type);
         return new Response<>(vehicleSaleOrderAppService.getOrderList(type, clientAccount.getAccountId()));
     }

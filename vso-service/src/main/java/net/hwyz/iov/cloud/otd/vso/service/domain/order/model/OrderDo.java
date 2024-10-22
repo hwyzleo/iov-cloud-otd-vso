@@ -13,6 +13,7 @@ import net.hwyz.iov.cloud.tsp.framework.commons.domain.BaseDo;
 import net.hwyz.iov.cloud.tsp.framework.commons.domain.DomainObj;
 
 import java.math.BigDecimal;
+import java.util.Date;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -34,6 +35,10 @@ public class OrderDo extends BaseDo<String> implements DomainObj<OrderDo> {
      * 订单状态
      */
     private OrderState orderState;
+    /**
+     * 订单状态时间
+     */
+    private Date orderStateTime;
     /**
      * 下单人员ID
      */
@@ -88,6 +93,7 @@ public class OrderDo extends BaseDo<String> implements DomainObj<OrderDo> {
     public void init(String orderPersonId, String saleCode, OrderState orderState) {
         generateOrderNum();
         this.orderState = orderState;
+        this.orderStateTime = new Date();
         this.modelConfigLock = false;
         this.orderPersonId = orderPersonId;
         this.saleCode = saleCode;

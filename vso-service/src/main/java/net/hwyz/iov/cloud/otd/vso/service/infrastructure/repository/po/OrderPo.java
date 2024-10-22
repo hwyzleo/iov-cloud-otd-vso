@@ -104,13 +104,13 @@ public class OrderPo extends BasePo {
      * 车型配置是否锁定
      */
     @TableField("model_config_lock")
-    private Byte modelConfigLock;
+    private Boolean modelConfigLock;
 
     /**
      * 支付状态：10-意向金已支付，15-意向金已退，20-定金已支付，25-定金已退，30-尾款已支付，35-尾款已退
      */
     @TableField("pay_state")
-    private Short payState;
+    private Integer payState;
 
     /**
      * 定金支付时间
@@ -128,7 +128,7 @@ public class OrderPo extends BasePo {
      * 订单类型：1-C端普通客户，2-C端大客户，3-B端大客户，4-员工内购，5-员工推荐，6-内部用车，7-媒体用车，8-展车用车
      */
     @TableField("order_type")
-    private Short orderType;
+    private Integer orderType;
 
     /**
      * 下单人员ID
@@ -152,7 +152,7 @@ public class OrderPo extends BasePo {
      * 下单人员证件类型：1-身份证
      */
     @TableField("order_person_id_type")
-    private Short orderPersonIdType;
+    private Integer orderPersonIdType;
 
     /**
      * 下单人员证件号
@@ -200,7 +200,7 @@ public class OrderPo extends BasePo {
      * 销售人员是否代理下单
      */
     @TableField("sales_person_order")
-    private Byte salesPersonOrder;
+    private Boolean salesPersonOrder;
 
     /**
      * 销售渠道
@@ -212,7 +212,7 @@ public class OrderPo extends BasePo {
      * 购车方案：1-全款购车，2-金融贷款
      */
     @TableField("purchase_plan")
-    private Short purchasePlan;
+    private Integer purchasePlan;
 
     /**
      * 购车金融方案ID
