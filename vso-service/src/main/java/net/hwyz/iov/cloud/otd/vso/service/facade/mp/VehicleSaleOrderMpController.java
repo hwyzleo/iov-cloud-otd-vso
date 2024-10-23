@@ -13,7 +13,6 @@ import net.hwyz.iov.cloud.otd.vso.api.contract.response.OrderResponse;
 import net.hwyz.iov.cloud.otd.vso.api.contract.response.WishlistResponse;
 import net.hwyz.iov.cloud.otd.vso.api.feign.mp.VehicleSaleOrderMpApi;
 import net.hwyz.iov.cloud.otd.vso.service.application.service.VehicleSaleOrderAppService;
-import net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository.dao.OrderDao;
 import net.hwyz.iov.cloud.tsp.framework.commons.bean.ClientAccount;
 import net.hwyz.iov.cloud.tsp.framework.commons.bean.Response;
 import net.hwyz.iov.cloud.tsp.framework.commons.util.ParamHelper;
@@ -85,9 +84,9 @@ public class VehicleSaleOrderMpController implements VehicleSaleOrderMpApi {
      */
     @Override
     @PostMapping("/wishlist/action/delete")
-    public Response<Void> deleteWishlist(@RequestBody @Valid SelectedSaleModelRequest request, @RequestHeader ClientAccount clientAccount) {
-        logger.info("手机客户端[{}]删除心愿单[{}]", ParamHelper.getClientAccountInfo(clientAccount), request.getOrderNum());
-        vehicleSaleOrderAppService.deleteUserWishlist(clientAccount.getAccountId(), request.getOrderNum());
+    public Response<Void> deleteWishlist(@RequestBody @Valid Order order, @RequestHeader ClientAccount clientAccount) {
+        logger.info("手机客户端[{}]删除心愿单[{}]", ParamHelper.getClientAccountInfo(clientAccount), order.getOrderNum());
+        vehicleSaleOrderAppService.deleteUserWishlist(clientAccount.getAccountId(), order.getOrderNum());
         return new Response<>();
     }
 

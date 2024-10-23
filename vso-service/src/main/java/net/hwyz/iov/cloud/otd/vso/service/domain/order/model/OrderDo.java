@@ -25,7 +25,7 @@ import java.util.stream.Collectors;
 @Slf4j
 @Getter
 @SuperBuilder
-public class OrderDo extends BaseDo<String> implements DomainObj<OrderDo> {
+public class OrderDo extends BaseDo<Long> implements DomainObj<OrderDo> {
 
     /**
      * 订单编码

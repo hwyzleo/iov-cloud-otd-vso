@@ -50,11 +50,11 @@ public interface VehicleSaleOrderMpApi {
     /**
      * 删除心愿单
      *
-     * @param request       删除心愿单请求
+     * @param order         心愿单
      * @param clientAccount 终端用户
      * @return 操作结果
      */
-    Response<Void> deleteWishlist(SelectedSaleModelRequest request, ClientAccount clientAccount);
+    Response<Void> deleteWishlist(Order order, ClientAccount clientAccount);
 
     /**
      * 获取心愿单详情

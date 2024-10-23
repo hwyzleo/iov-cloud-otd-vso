@@ -47,6 +47,7 @@ public class OrderRepositoryImpl extends AbstractRepository<String, OrderDo> imp
             modelConfigMap.put(SaleModelConfigType.valOf(orderModelConfigPo.getType()), orderModelConfigDo);
         });
         OrderDo orderDo = OrderDo.builder()
+                .id(orderPo.getId())
                 .orderNum(orderPo.getOrderNum())
                 .orderState(OrderState.valOf(orderPo.getOrderState()))
                 .orderPersonId(orderPo.getOrderPersonId())

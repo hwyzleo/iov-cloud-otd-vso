@@ -253,7 +253,7 @@
     </delete>
 
     <!-- 物理删除订单 -->
-    <delete id="physicalDeletePoByOrderNum" parameterType="Long">
+    <delete id="physicalDeletePoByOrderNum" parameterType="string">
         DELETE FROM tb_order t
         WHERE t.order_num = #{orderNum}
     </delete>
