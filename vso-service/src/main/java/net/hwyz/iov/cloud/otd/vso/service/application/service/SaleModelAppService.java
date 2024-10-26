@@ -262,19 +262,19 @@ public class SaleModelAppService {
     }
 
     /**
-     * 获取销售区域列表
+     * 获取上牌区域列表
      *
      * @return 销售区域列表
      */
-    public List<SaleArea> getSaleAreaList() {
-        List<SaleArea> list = new ArrayList<>();
+    public List<LicenseArea> getLicenseAreaList() {
+        List<LicenseArea> list = new ArrayList<>();
         exDictionaryService.getDictionaryMap("province").forEach(province ->
-                list.add(SaleArea.builder()
+                list.add(LicenseArea.builder()
                         .provinceCode(province.get("code").toString())
                         .displayName(province.get("name").toString())
                         .build()));
         exDictionaryService.getDictionaryMap("city").forEach(city ->
-                list.add(SaleArea.builder()
+                list.add(LicenseArea.builder()
                         .provinceCode(city.get("province_code").toString())
                         .cityCode(city.get("code").toString())
                         .displayName(city.get("name").toString())

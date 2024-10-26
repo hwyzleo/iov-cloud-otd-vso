@@ -67,11 +67,11 @@ public interface SaleModelMpApi {
     Response<PurchaseAgreement> getPurchaseAgreement(String saleCode, Integer type, ClientAccount clientAccount);
 
     /**
-     * 获取销售区域列表
+     * 获取上牌区域列表
      *
      * @param clientAccount 终端用户
      * @return 销售区域列表
      */
-    Response<List<SaleArea>> getSaleAreaList(ClientAccount clientAccount);
+    Response<List<LicenseArea>> getLicenseAreaList(ClientAccount clientAccount);
 
 }

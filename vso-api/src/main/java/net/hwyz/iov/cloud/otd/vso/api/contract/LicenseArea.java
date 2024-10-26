@@ -6,7 +6,7 @@ import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 
 /**
- * 销售区域
+ * 上牌区域
  *
  * @author hwyz_leo
  */
@@ -14,7 +14,7 @@ import lombok.experimental.SuperBuilder;
 @SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
-public class SaleArea {
+public class LicenseArea {
 
     /**
      * 省级行政区代码
