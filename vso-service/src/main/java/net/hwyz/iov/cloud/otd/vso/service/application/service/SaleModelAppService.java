@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.hwyz.iov.cloud.otd.vso.api.contract.*;
 import net.hwyz.iov.cloud.otd.vso.api.contract.enums.SaleModelConfigType;
+import net.hwyz.iov.cloud.otd.vso.service.domain.external.service.ExDictionaryService;
 import net.hwyz.iov.cloud.otd.vso.service.domain.external.service.ExVehicleModelConfigService;
 import net.hwyz.iov.cloud.otd.vso.service.facade.assembler.PurchaseAgreementAssembler;
 import net.hwyz.iov.cloud.otd.vso.service.facade.assembler.PurchaseBenefitsAssembler;
@@ -41,6 +42,7 @@ public class SaleModelAppService {
 
     private final SaleModelDao saleModelDao;
     private final SaleModelConfigDao saleModelConfigDao;
+    private final ExDictionaryService exDictionaryService;
     private final PurchaseBenefitsDao purchaseBenefitsDao;
     private final PurchaseAgreementDao purchaseAgreementDao;
     private final ExVehicleModelConfigService exVehicleModelConfigService;
@@ -257,6 +259,27 @@ public class SaleModelAppService {
             throw new ModelConfigCodeNotExistException(modelCode, exteriorCode, interiorCode, wheelCode, spareTireCode, adasCode);
         }
         return vehicleModeConfigCode;
+    }
+
+    /**
+     * 获取销售区域列表
+     *
+     * @return 销售区域列表
+     */
+    public List<SaleArea> getSaleAreaList() {
+        List<SaleArea> list = new ArrayList<>();
+        exDictionaryService.getDictionaryMap("province").forEach(province ->
+                list.add(SaleArea.builder()
+                        .provinceCode(province.get("code").toString())
+                        .displayName(province.get("name").toString())
+                        .build()));
+        exDictionaryService.getDictionaryMap("city").forEach(city ->
+                list.add(SaleArea.builder()
+                        .provinceCode(city.get("province_code").toString())
+                        .cityCode(city.get("code").toString())
+                        .displayName(city.get("name").toString())
+                        .build()));
+        return list;
     }
 
     /**

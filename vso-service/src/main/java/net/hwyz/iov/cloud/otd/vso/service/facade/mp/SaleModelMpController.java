@@ -109,4 +109,17 @@ public class SaleModelMpController implements SaleModelMpApi {
         logger.info("手机客户端[{}]获取销售代码[{}]销售车型购车协议[{}]", ParamHelper.getClientAccountInfo(clientAccount), saleCode, type);
         return new Response<>(saleModelAppService.getPurchaseAgreement(saleCode, type));
     }
+
+    /**
+     * 获取销售区域列表
+     *
+     * @param clientAccount 终端用户
+     * @return 销售区域列表
+     */
+    @Override
+    @GetMapping("/saleArea")
+    public Response<List<SaleArea>> getSaleAreaList(ClientAccount clientAccount) {
+        logger.info("手机客户端[{}]获取销售区域列表", ParamHelper.getClientAccountInfo(clientAccount));
+        return new Response<>(saleModelAppService.getSaleAreaList());
+    }
 }
