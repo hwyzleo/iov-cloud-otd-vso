@@ -40,6 +40,10 @@ public class OrderDo extends BaseDo<Long> implements DomainObj<OrderDo> {
      */
     private Date orderStateTime;
     /**
+     * 下单时间
+     */
+    private Date orderTime;
+    /**
      * 下单人员ID
      */
     private String orderPersonId;
@@ -93,11 +97,26 @@ public class OrderDo extends BaseDo<Long> implements DomainObj<OrderDo> {
     public void init(String orderPersonId, String saleCode, OrderState orderState) {
         generateOrderNum();
         this.orderState = orderState;
-        this.orderStateTime = new Date();
+        Date now = new Date();
+        this.orderStateTime = now;
+        if (this.orderState != OrderState.WISHLIST) {
+            this.orderTime = now;
+        }
         this.modelConfigLock = false;
         this.orderPersonId = orderPersonId;
         this.saleCode = saleCode;
         stateInit();
+    }
+
+    /**
+     * 意向金下单
+     */
+    public void earnestMoneyOrder() {
+        this.orderState = OrderState.EARNEST_MONEY_UNPAID;
+        Date now = new Date();
+        this.orderStateTime = now;
+        this.orderTime = now;
+        stateChange();
     }
 
     /**

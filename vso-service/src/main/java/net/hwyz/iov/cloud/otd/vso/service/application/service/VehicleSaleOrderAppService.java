@@ -1,6 +1,7 @@
 package net.hwyz.iov.cloud.otd.vso.service.application.service;
 
 import cn.hutool.core.lang.TypeReference;
+import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -13,7 +14,6 @@ import net.hwyz.iov.cloud.otd.vso.api.contract.request.SelectedSaleModelRequest;
 import net.hwyz.iov.cloud.otd.vso.api.contract.response.OrderPaymentResponse;
 import net.hwyz.iov.cloud.otd.vso.api.contract.response.OrderResponse;
 import net.hwyz.iov.cloud.otd.vso.api.contract.response.WishlistResponse;
-import net.hwyz.iov.cloud.otd.vso.service.domain.contract.enums.OrderState;
 import net.hwyz.iov.cloud.otd.vso.service.domain.factory.OrderFactory;
 import net.hwyz.iov.cloud.otd.vso.service.domain.order.model.OrderDo;
 import net.hwyz.iov.cloud.otd.vso.service.domain.order.model.OrderModelConfigDo;
@@ -64,8 +64,9 @@ public class VehicleSaleOrderAppService {
         }
         orderDao.selectPoByMap(map).forEach(orderPo -> {
             String displayName = "";
-            OrderState orderState = OrderState.valOf(orderPo.getOrderState());
-            if (orderState == OrderState.WISHLIST) {
+            if (StrUtil.isNotBlank(orderPo.getDeliveryVin())) {
+                displayName = orderPo.getDeliveryVin();
+            } else {
                 List<OrderModelConfigPo> orderModelConfigPoList = orderModelConfigDao.selectPoByExample(OrderModelConfigPo.builder()
                         .orderNum(orderPo.getOrderNum())
                         .type(SaleModelConfigType.MODEL.name())
@@ -75,12 +76,10 @@ public class VehicleSaleOrderAppService {
                 } else {
                     displayName = orderPo.getModelConfigCode();
                 }
-            } else {
-                displayName = orderPo.getOrderNum();
             }
             list.add(Order.builder()
                     .orderNum(orderPo.getOrderNum())
-                    .orderState(orderState.value)
+                    .orderState(orderPo.getOrderState())
                     .displayName(displayName)
                     .build());
         });
@@ -165,6 +164,7 @@ public class VehicleSaleOrderAppService {
         if (request.getOrderNum() != null) {
             // 由心愿单转意向金
             orderDo = orderRepository.get(accountId, request.getOrderNum());
+            orderDo.earnestMoneyOrder();
         } else {
             // 直接意向金
             orderDo = orderFactory.buildFromEarnestMoney(accountId, request.getSaleCode());
@@ -214,14 +214,16 @@ public class VehicleSaleOrderAppService {
         if (orderDo == null) {
             return null;
         }
-        List<String> saleModelImages = new ArrayList<>();
         return OrderResponse.builder()
                 .saleCode(orderDo.getSaleCode())
                 .orderNum(orderDo.getOrderNum())
+                .orderState(orderDo.getOrderState().value)
+                .orderTime(orderDo.getOrderTime())
                 .saleModelConfigType(orderDo.getModelConfigType())
                 .saleModelConfigName(orderDo.getModelConfigName())
                 .saleModelConfigPrice(orderDo.getModelConfigPrice())
-                .saleModelImages(saleModelImages)
+                .saleModelImages(getSaleModelImages(orderDo.getSaleCode(), orderDo.getModelConfigMap()))
+                .saleModelDesc(orderDo.getModelConfigDesc())
                 .totalPrice(orderDo.getTotalPrice())
                 .build();
     }
@@ -256,6 +258,12 @@ public class VehicleSaleOrderAppService {
         orderDo.pay();
         orderRepository.save(orderDo);
         return OrderPaymentResponse.builder()
+                .orderNum(orderDo.getOrderNum())
+                .paymentMerchant("TEST")
+                .paymentReference("REFERENCE")
+                .paymentAmount(request.getPaymentAmount())
+                .paymentDateType(1)
+                .paymentData("DATA")
                 .build();
     }
 

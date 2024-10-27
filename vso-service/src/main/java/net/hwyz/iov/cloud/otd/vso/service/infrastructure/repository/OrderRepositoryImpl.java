@@ -50,6 +50,8 @@ public class OrderRepositoryImpl extends AbstractRepository<String, OrderDo> imp
                 .id(orderPo.getId())
                 .orderNum(orderPo.getOrderNum())
                 .orderState(OrderState.valOf(orderPo.getOrderState()))
+                .orderStateTime(orderPo.getOrderStateTime())
+                .orderTime(orderPo.getOrderTime())
                 .orderPersonId(orderPo.getOrderPersonId())
                 .saleCode(orderPo.getSaleCode())
                 .modelConfigCode(orderPo.getModelConfigCode())

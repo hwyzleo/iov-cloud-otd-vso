@@ -129,6 +129,7 @@ CREATE TABLE `db_vso`.`tb_order`
     `sales_channel`           VARCHAR(50)          DEFAULT NULL COMMENT '销售渠道',
     `purchase_plan`           SMALLINT             DEFAULT NULL COMMENT '购车方案：1-全款购车，2-金融贷款',
     `financing_plan_id`       BIGINT               DEFAULT NULL COMMENT '购车金融方案ID',
+    `delivery_vin`            VARCHAR(17)          DEFAULT NULL COMMENT '交付车辆',
     `delivery_city`           VARCHAR(50)          DEFAULT NULL COMMENT '交付城市',
     `delivery_method`         VARCHAR(50)          DEFAULT NULL COMMENT '交付方式：1-现场交付，2-远程交付，3-钣喷交付',
     `delivery_person_id`      VARCHAR(64)          DEFAULT NULL COMMENT '交付人员ID',

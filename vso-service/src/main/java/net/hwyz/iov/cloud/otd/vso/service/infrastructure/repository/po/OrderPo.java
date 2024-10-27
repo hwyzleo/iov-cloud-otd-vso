@@ -221,6 +221,12 @@ public class OrderPo extends BasePo {
     private Long financingPlanId;
 
     /**
+     * 交付车辆
+     */
+    @TableField("delivery_vin")
+    private String deliveryVin;
+
+    /**
      * 交付城市
      */
     @TableField("delivery_city")
