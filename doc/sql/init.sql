@@ -115,6 +115,7 @@ CREATE TABLE `db_vso`.`tb_order`
     `final_payment_time`      TIMESTAMP            DEFAULT NULL COMMENT '尾款支付时间',
     `order_type`              SMALLINT             DEFAULT NULL COMMENT '订单类型：1-C端普通客户，2-C端大客户，3-B端大客户，4-员工内购，5-员工推荐，6-内部用车，7-媒体用车，8-展车用车',
     `order_person_id`         VARCHAR(64)          DEFAULT NULL COMMENT '下单人员ID',
+    `order_person_type`       SMALLINT             DEFAULT NULL COMMENT '下单人员类型：1-个人，2-企业',
     `order_person_name`       VARCHAR(50)          DEFAULT NULL COMMENT '下单人员姓名',
     `order_person_phone`      VARCHAR(50)          DEFAULT NULL COMMENT '下单人员电话',
     `order_person_id_type`    SMALLINT             DEFAULT NULL COMMENT '下单人员证件类型：1-身份证',

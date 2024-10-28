@@ -13,6 +13,14 @@ public interface OrderRepository extends BaseRepository<String, OrderDo> {
     /**
      * 获取订单
      *
+     * @param orderNum 订单编号
+     * @return 订单领域对象
+     */
+    OrderDo get(String orderNum);
+
+    /**
+     * 获取订单
+     *
      * @param orderPersonId 下单人员ID
      * @param orderNum      订单编号
      * @return 订单领域对象

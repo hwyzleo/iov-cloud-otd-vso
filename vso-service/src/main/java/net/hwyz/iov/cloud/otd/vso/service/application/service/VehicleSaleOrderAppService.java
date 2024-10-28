@@ -7,10 +7,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.hwyz.iov.cloud.otd.vso.api.contract.Order;
 import net.hwyz.iov.cloud.otd.vso.api.contract.enums.SaleModelConfigType;
-import net.hwyz.iov.cloud.otd.vso.api.contract.request.DownPaymentOrderRequest;
-import net.hwyz.iov.cloud.otd.vso.api.contract.request.EarnestMoneyOrderRequest;
-import net.hwyz.iov.cloud.otd.vso.api.contract.request.OrderPaymentRequest;
-import net.hwyz.iov.cloud.otd.vso.api.contract.request.SelectedSaleModelRequest;
+import net.hwyz.iov.cloud.otd.vso.api.contract.request.*;
 import net.hwyz.iov.cloud.otd.vso.api.contract.response.OrderPaymentResponse;
 import net.hwyz.iov.cloud.otd.vso.api.contract.response.OrderResponse;
 import net.hwyz.iov.cloud.otd.vso.api.contract.response.WishlistResponse;
@@ -309,6 +306,106 @@ public class VehicleSaleOrderAppService {
             throw new OrderNotExistException(orderNum);
         }
         orderDo.lock();
+        orderRepository.save(orderDo);
+    }
+
+    /**
+     * 分配交付人员
+     *
+     * @param orderNum 订单编号
+     * @param request  分配交付人员请求
+     */
+    public void assignDeliveryPerson(String orderNum, AssignDeliveryPersonRequest request) {
+        OrderDo orderDo = orderRepository.get(orderNum);
+        if (orderDo == null) {
+            throw new OrderNotExistException(orderNum);
+        }
+        orderDo.saveDeliveryPerson(request.getDeliveryPersonId(), request.getDeliveryPersonName());
+        orderRepository.save(orderDo);
+    }
+
+    /**
+     * 分配车辆
+     *
+     * @param orderNum 订单编号
+     * @param request  分配车辆请求
+     */
+    public void assignVehicle(String orderNum, AssignVehicleRequest request) {
+        OrderDo orderDo = orderRepository.get(orderNum);
+        if (orderDo == null) {
+            throw new OrderNotExistException(orderNum);
+        }
+        orderDo.saveDeliveryVehicle(request.getVin());
+        orderRepository.save(orderDo);
+    }
+
+    /**
+     * 准备运输
+     *
+     * @param orderNum 订单编号
+     */
+    public void prepareTransport(String orderNum) {
+        OrderDo orderDo = orderRepository.get(orderNum);
+        if (orderDo == null) {
+            throw new OrderNotExistException(orderNum);
+        }
+        orderDo.prepareTransport();
+        orderRepository.save(orderDo);
+    }
+
+    /**
+     * 运输中
+     *
+     * @param orderNum 订单编号
+     */
+    public void transporting(String orderNum) {
+        OrderDo orderDo = orderRepository.get(orderNum);
+        if (orderDo == null) {
+            throw new OrderNotExistException(orderNum);
+        }
+        orderDo.transporting();
+        orderRepository.save(orderDo);
+    }
+
+    /**
+     * 待交付
+     *
+     * @param orderNum 订单编号
+     */
+    public void prepareDelivery(String orderNum) {
+        OrderDo orderDo = orderRepository.get(orderNum);
+        if (orderDo == null) {
+            throw new OrderNotExistException(orderNum);
+        }
+        orderDo.prepareDelivery();
+        orderRepository.save(orderDo);
+    }
+
+    /**
+     * 已交付
+     *
+     * @param orderNum 订单编号
+     */
+    public void delivered(String orderNum) {
+        OrderDo orderDo = orderRepository.get(orderNum);
+        if (orderDo == null) {
+            throw new OrderNotExistException(orderNum);
+        }
+        orderDo.delivered();
+        orderRepository.save(orderDo);
+    }
+
+    /**
+     * 激活车辆
+     *
+     * @param orderNum 订单编号
+     */
+    public void activate(String orderNum) {
+        OrderDo orderDo = orderRepository.get(orderNum);
+        if (orderDo == null) {
+            throw new OrderNotExistException(orderNum);
+        }
+        orderDo.activate();
         orderRepository.save(orderDo);
     }
 

@@ -34,8 +34,8 @@ public class OrderRepositoryImpl extends AbstractRepository<String, OrderDo> imp
     private final OrderModelConfigDao orderModelConfigDao;
 
     @Override
-    public OrderDo get(String orderPersonId, String orderNum) {
-        List<OrderPo> orderPoList = orderDao.selectPoByExample(OrderPo.builder().orderPersonId(orderPersonId).orderNum(orderNum).build());
+    public OrderDo get(String orderNum) {
+        List<OrderPo> orderPoList = orderDao.selectPoByExample(OrderPo.builder().orderNum(orderNum).build());
         if (orderPoList.isEmpty()) {
             return null;
         }
@@ -60,6 +60,15 @@ public class OrderRepositoryImpl extends AbstractRepository<String, OrderDo> imp
                 .build();
         orderDo.stateLoad();
         return orderDo;
+    }
+
+    @Override
+    public OrderDo get(String orderPersonId, String orderNum) {
+        OrderDo orderDo = get(orderNum);
+        if (orderDo != null && orderDo.getOrderPersonId().equals(orderPersonId)) {
+            return orderDo;
+        }
+        return null;
     }
 
     @Override

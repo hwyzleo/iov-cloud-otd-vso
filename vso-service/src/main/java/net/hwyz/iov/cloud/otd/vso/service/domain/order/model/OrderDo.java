@@ -87,6 +87,18 @@ public class OrderDo extends BaseDo<Long> implements DomainObj<OrderDo> {
      * 交付中心
      */
     private String deliveryCenter;
+    /**
+     * 交付人员ID
+     */
+    private String deliveryPersonId;
+    /**
+     * 交付人员姓名
+     */
+    private String deliveryPersonName;
+    /**
+     * 交付车辆
+     */
+    private String deliveryVin;
 
     /**
      * 初始化
@@ -320,6 +332,100 @@ public class OrderDo extends BaseDo<Long> implements DomainObj<OrderDo> {
         }
         this.modelConfigLock = true;
         this.orderState = OrderState.ARRANGE_PRODUCTION;
+        stateChange();
+    }
+
+    /**
+     * 保存交付人员信息
+     *
+     * @param deliveryPersonId   交付人员ID
+     * @param deliveryPersonName 交付人员姓名
+     */
+    public void saveDeliveryPerson(String deliveryPersonId, String deliveryPersonName) {
+        if (this.deliveryPersonId == null || !this.deliveryPersonId.equals(deliveryPersonId)) {
+            this.deliveryPersonId = deliveryPersonId;
+            stateChange();
+        }
+        if (this.deliveryPersonName == null || !this.deliveryPersonName.equals(deliveryPersonName)) {
+            this.deliveryPersonName = deliveryPersonName;
+            stateChange();
+        }
+    }
+
+    /**
+     * 保存交付车辆
+     *
+     * @param deliveryVin 交付车辆
+     */
+    public void saveDeliveryVehicle(String deliveryVin) {
+        if (this.orderState != OrderState.ARRANGE_PRODUCTION) {
+            throw new OrderStateNotAllowedException(this.orderNum, this.orderState, "DELIVERY_VEHICLE");
+        }
+        if (this.deliveryVin == null || !this.deliveryVin.equals(deliveryVin)) {
+            this.deliveryVin = deliveryVin;
+            this.orderState = OrderState.ALLOCATION_VEHICLE;
+            this.orderStateTime = new Date();
+            stateChange();
+        }
+    }
+
+    /**
+     * 准备运输
+     */
+    public void prepareTransport() {
+        if (this.orderState != OrderState.ALLOCATION_VEHICLE) {
+            throw new OrderStateNotAllowedException(this.orderNum, this.orderState, "PREPARE_TRANSPORT");
+        }
+        this.orderState = OrderState.PREPARE_TRANSPORT;
+        this.orderStateTime = new Date();
+        stateChange();
+    }
+
+    /**
+     * 运输中
+     */
+    public void transporting() {
+        if (this.orderState != OrderState.PREPARE_TRANSPORT) {
+            throw new OrderStateNotAllowedException(this.orderNum, this.orderState, "TRANSPORTING");
+        }
+        this.orderState = OrderState.TRANSPORTING;
+        this.orderStateTime = new Date();
+        stateChange();
+    }
+
+    /**
+     * 准备交付
+     */
+    public void prepareDelivery() {
+        if (this.orderState != OrderState.TRANSPORTING) {
+            throw new OrderStateNotAllowedException(this.orderNum, this.orderState, "PREPARE_DELIVER");
+        }
+        this.orderState = OrderState.PREPARE_DELIVER;
+        this.orderStateTime = new Date();
+        stateChange();
+    }
+
+    /**
+     * 完成交付
+     */
+    public void delivered() {
+        if (this.orderState != OrderState.PREPARE_DELIVER) {
+            throw new OrderStateNotAllowedException(this.orderNum, this.orderState, "DELIVERED");
+        }
+        this.orderState = OrderState.DELIVERED;
+        this.orderStateTime = new Date();
+        stateChange();
+    }
+
+    /**
+     * 激活车辆
+     */
+    public void activate() {
+        if (this.orderState != OrderState.DELIVERED) {
+            throw new OrderStateNotAllowedException(this.orderNum, this.orderState, "ACTIVATE");
+        }
+        this.orderState = OrderState.ACTIVATED;
+        this.orderStateTime = new Date();
         stateChange();
     }
 

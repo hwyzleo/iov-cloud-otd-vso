@@ -137,6 +137,12 @@ public class OrderPo extends BasePo {
     private String orderPersonId;
 
     /**
+     * 下单人员类型
+     */
+    @TableField("order_person_type")
+    private String orderPersonType;
+
+    /**
      * 下单人员姓名
      */
     @TableField("order_person_name")
