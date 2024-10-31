@@ -140,7 +140,7 @@ public class OrderPo extends BasePo {
      * 下单人员类型
      */
     @TableField("order_person_type")
-    private String orderPersonType;
+    private Integer orderPersonType;
 
     /**
      * 下单人员姓名

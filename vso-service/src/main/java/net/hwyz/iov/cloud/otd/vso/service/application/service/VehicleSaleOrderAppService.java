@@ -157,10 +157,12 @@ public class VehicleSaleOrderAppService {
      * @return 订单编号
      */
     public String earnestMoneyOrder(String accountId, EarnestMoneyOrderRequest request) {
-        OrderDo orderDo;
-        if (request.getOrderNum() != null) {
+        OrderDo orderDo = null;
+        if (StrUtil.isNotBlank(request.getOrderNum())) {
             // 由心愿单转意向金
             orderDo = orderRepository.get(accountId, request.getOrderNum());
+        }
+        if (orderDo != null) {
             orderDo.earnestMoneyOrder();
         } else {
             // 直接意向金
@@ -181,17 +183,22 @@ public class VehicleSaleOrderAppService {
      * @return 订单编号
      */
     public String downPaymentOrder(String accountId, DownPaymentOrderRequest request) {
-        OrderDo orderDo;
-        if (request.getOrderNum() != null) {
+        OrderDo orderDo = null;
+        if (StrUtil.isNotBlank(request.getOrderNum())) {
             // 由心愿单转定金
             orderDo = orderRepository.get(accountId, request.getOrderNum());
+        }
+        if (orderDo != null) {
+            orderDo.downPaymentOrder();
         } else {
             // 直接定金
             orderDo = orderFactory.buildFromDownPayment(accountId, request.getSaleCode());
         }
         String modelConfigCode = saleModelAppService.getModelConfigCode(request.getSaleModelConfigType());
         orderDo.saveModelConfig(modelConfigCode, getOrderModelConfigMap(request.getSaleCode(), request.getSaleModelConfigType()));
-        orderDo.saveOrderPerson(accountId, request.getOrderPersonName(), request.getOrderPersonIdType(), request.getOrderPersonIdNum());
+        orderDo.saveOrderPerson(accountId, request.getOrderPersonType(), request.getOrderPersonName(),
+                request.getOrderPersonIdType(), request.getOrderPersonIdNum());
+        orderDo.savePurchasePlan(request.getPurchasePlan());
         orderDo.saveLicenseCity(request.getLicenseCity());
         orderDo.saveDealership(request.getDealership());
         orderDo.saveDeliveryCenter(request.getDeliveryCenter());
@@ -216,6 +223,14 @@ public class VehicleSaleOrderAppService {
                 .orderNum(orderDo.getOrderNum())
                 .orderState(orderDo.getOrderState().value)
                 .orderTime(orderDo.getOrderTime())
+                .orderPersonType(orderDo.getOrderPersonType())
+                .purchasePlan(orderDo.getPurchasePlan())
+                .orderPersonName(orderDo.getOrderPersonName())
+                .orderPersonIdType(orderDo.getOrderPersonIdType())
+                .orderPersonIdNum(orderDo.getOrderPersonIdNum())
+                .licenseCityCode(orderDo.getLicenseCity())
+                .dealershipCode(orderDo.getDealership())
+                .deliveryCenterCode(orderDo.getDeliveryCenter())
                 .saleModelConfigType(orderDo.getModelConfigType())
                 .saleModelConfigName(orderDo.getModelConfigName())
                 .saleModelConfigPrice(orderDo.getModelConfigPrice())

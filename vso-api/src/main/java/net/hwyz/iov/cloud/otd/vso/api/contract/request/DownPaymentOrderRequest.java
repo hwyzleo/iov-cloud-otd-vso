@@ -21,10 +21,10 @@ import lombok.experimental.SuperBuilder;
 public class DownPaymentOrderRequest extends SelectedSaleModelRequest {
 
     /**
-     * 订单类型
+     * 下单人员类型
      */
-    @NotNull(message = "订单类型不能为空")
-    private Integer orderType;
+    @NotNull(message = "下单人员类型不能为空")
+    private Integer orderPersonType;
     /**
      * 购车方案
      */

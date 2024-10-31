@@ -48,6 +48,10 @@ public class OrderDo extends BaseDo<Long> implements DomainObj<OrderDo> {
      */
     private String orderPersonId;
     /**
+     * 下单人员类型
+     */
+    private Integer orderPersonType;
+    /**
      * 下单人员姓名
      */
     private String orderPersonName;
@@ -59,6 +63,10 @@ public class OrderDo extends BaseDo<Long> implements DomainObj<OrderDo> {
      * 下单人员证件号码
      */
     private String orderPersonIdNum;
+    /**
+     * 购车方案
+     */
+    private Integer purchasePlan;
     /**
      * 销售代码
      */
@@ -125,6 +133,17 @@ public class OrderDo extends BaseDo<Long> implements DomainObj<OrderDo> {
      */
     public void earnestMoneyOrder() {
         this.orderState = OrderState.EARNEST_MONEY_UNPAID;
+        Date now = new Date();
+        this.orderStateTime = now;
+        this.orderTime = now;
+        stateChange();
+    }
+
+    /**
+     * 定金下单
+     */
+    public void downPaymentOrder() {
+        this.orderState = OrderState.DOWN_PAYMENT_UNPAID;
         Date now = new Date();
         this.orderStateTime = now;
         this.orderTime = now;
@@ -201,17 +220,34 @@ public class OrderDo extends BaseDo<Long> implements DomainObj<OrderDo> {
     }
 
     /**
+     * 保存购车方案
+     *
+     * @param purchasePlan 购车方案
+     */
+    public void savePurchasePlan(Integer purchasePlan) {
+        if (this.purchasePlan == null || !this.purchasePlan.equals(purchasePlan)) {
+            this.purchasePlan = purchasePlan;
+            stateChange();
+        }
+    }
+
+    /**
      * 保存下单人信息
      *
      * @param orderPersonId     下单人ID
+     * @param orderPersonType   下单人类型
      * @param orderPersonName   下单人姓名
      * @param orderPersonIdType 下单人证件类型
      * @param orderPersonIdNum  下单人证件号
      */
-    public void saveOrderPerson(String orderPersonId, String orderPersonName, Integer orderPersonIdType,
-                                String orderPersonIdNum) {
+    public void saveOrderPerson(String orderPersonId, Integer orderPersonType, String orderPersonName,
+                                Integer orderPersonIdType, String orderPersonIdNum) {
         if (this.orderPersonId == null) {
             this.orderPersonId = orderPersonId;
+            stateChange();
+        }
+        if (this.orderPersonType == null || !this.orderPersonType.equals(orderPersonType)) {
+            this.orderPersonType = orderPersonType;
             stateChange();
         }
         if (this.orderPersonName == null || !this.orderPersonName.equals(orderPersonName)) {
@@ -295,6 +331,10 @@ public class OrderDo extends BaseDo<Long> implements DomainObj<OrderDo> {
         switch (this.orderState) {
             case EARNEST_MONEY_UNPAID -> {
                 this.orderState = OrderState.EARNEST_MONEY_PAID;
+                stateChange();
+            }
+            case DOWN_PAYMENT_UNPAID -> {
+                this.orderState = OrderState.DOWN_PAYMENT_PAID;
                 stateChange();
             }
             default -> throw new OrderStateNotAllowedException(this.orderNum, this.orderState, "PAY");
