@@ -10,20 +10,10 @@
         <module>vso-service</module>
     </modules>
 
-    <parent>
-        <groupId>net.hwyz.iov.cloud.tsp</groupId>
-        <artifactId>service-parent</artifactId>
-        <version>0.0.1-SNAPSHOT</version>
-    </parent>
-
     <groupId>net.hwyz.iov.cloud.otd</groupId>
     <artifactId>vso</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <description>车辆销售订单</description>
     <name>vso</name>
-
-    <properties>
-        <vso.version>0.0.1-SNAPSHOT</vso.version>
-    </properties>
 
 </project>
