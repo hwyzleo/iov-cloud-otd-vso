@@ -10,6 +10,7 @@
         <relativePath/>
     </parent>
 
+    <groupId>net.hwyz.iov.cloud.otd</groupId>
     <artifactId>vso-api</artifactId>
     <version>0.0.1-SNAPSHOT</version>
 
