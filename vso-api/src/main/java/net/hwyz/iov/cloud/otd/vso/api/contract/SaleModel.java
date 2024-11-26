@@ -6,6 +6,7 @@ import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 /**
  * 销售车型
@@ -27,6 +28,11 @@ public class SaleModel {
      * 销售车型名称
      */
     private String modelName;
+
+    /**
+     * 销售车型图片集
+     */
+    private List<String> images;
 
     /**
      * 是否允许意向金

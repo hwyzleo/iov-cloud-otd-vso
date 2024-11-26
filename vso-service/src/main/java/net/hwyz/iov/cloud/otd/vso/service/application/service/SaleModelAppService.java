@@ -48,6 +48,16 @@ public class SaleModelAppService {
     private final ExVehicleModelConfigService exVehicleModelConfigService;
 
     /**
+     * 获取销售车型列表
+     *
+     * @return 销售车型列表
+     */
+    public List<SaleModel> getSaleModelList() {
+        List<SaleModelPo> saleModelPoList = saleModelDao.selectPoByExample(SaleModelPo.builder().build());
+        return SaleModelAssembler.INSTANCE.fromPoList(saleModelPoList);
+    }
+
+    /**
      * 获取销售车型信息
      *
      * @param saleCode 销售代码

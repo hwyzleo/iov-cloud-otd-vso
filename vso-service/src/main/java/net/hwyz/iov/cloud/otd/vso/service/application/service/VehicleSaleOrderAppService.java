@@ -170,7 +170,7 @@ public class VehicleSaleOrderAppService {
         }
         String modelConfigCode = saleModelAppService.getModelConfigCode(request.getSaleModelConfigType());
         orderDo.saveModelConfig(modelConfigCode, getOrderModelConfigMap(request.getSaleCode(), request.getSaleModelConfigType()));
-        orderDo.saveLicenseCity(request.getLicenseCity());
+        orderDo.saveLicenseCity(request.getLicenseCityCode());
         orderRepository.save(orderDo);
         return orderDo.getOrderNum();
     }
@@ -199,7 +199,7 @@ public class VehicleSaleOrderAppService {
         orderDo.saveOrderPerson(accountId, request.getOrderPersonType(), request.getOrderPersonName(),
                 request.getOrderPersonIdType(), request.getOrderPersonIdNum());
         orderDo.savePurchasePlan(request.getPurchasePlan());
-        orderDo.saveLicenseCity(request.getLicenseCity());
+        orderDo.saveLicenseCity(request.getLicenseCityCode());
         orderDo.saveDealership(request.getDealership());
         orderDo.saveDeliveryCenter(request.getDeliveryCenter());
         orderRepository.save(orderDo);

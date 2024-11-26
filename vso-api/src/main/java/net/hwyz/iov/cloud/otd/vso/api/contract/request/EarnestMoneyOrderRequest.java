@@ -20,9 +20,9 @@ import lombok.experimental.SuperBuilder;
 public class EarnestMoneyOrderRequest extends SelectedSaleModelRequest {
 
     /**
-     * 上牌城市
+     * 上牌城市代码
      */
-    @NotBlank(message = "上牌城市不能为空")
-    private String licenseCity;
+    @NotBlank(message = "上牌城市代码不能为空")
+    private String licenseCityCode;
 
 }

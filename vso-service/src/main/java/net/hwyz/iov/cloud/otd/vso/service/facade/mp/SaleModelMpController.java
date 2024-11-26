@@ -26,6 +26,19 @@ public class SaleModelMpController implements SaleModelMpApi {
     private final SaleModelAppService saleModelAppService;
 
     /**
+     * 获取销售车型列表
+     *
+     * @param clientAccount 终端用户
+     * @return 销售车型列表
+     */
+    @Override
+    @GetMapping("")
+    public Response<List<SaleModel>> getSaleModelList(@RequestHeader ClientAccount clientAccount) {
+        logger.info("手机客户端[{}]获取销售车型列表", ParamHelper.getClientAccountInfo(clientAccount));
+        return new Response<>(saleModelAppService.getSaleModelList());
+    }
+
+    /**
      * 获取销售车型信息
      *
      * @param saleCode      销售代码

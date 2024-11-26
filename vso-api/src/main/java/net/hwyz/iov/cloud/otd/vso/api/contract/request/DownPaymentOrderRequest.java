@@ -46,10 +46,10 @@ public class DownPaymentOrderRequest extends SelectedSaleModelRequest {
     @NotBlank(message = "订单人证件号码不能为空")
     private String orderPersonIdNum;
     /**
-     * 上牌城市
+     * 上牌城市代码
      */
-    @NotBlank(message = "上牌城市不能为空")
-    private String licenseCity;
+    @NotBlank(message = "上牌城市代码不能为空")
+    private String licenseCityCode;
     /**
      * 销售门店
      */

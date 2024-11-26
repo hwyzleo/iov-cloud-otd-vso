@@ -14,6 +14,14 @@ import java.util.List;
 public interface SaleModelMpApi {
 
     /**
+     * 获取销售车型列表
+     *
+     * @param clientAccount 终端用户
+     * @return 销售车型列表
+     */
+    Response<List<SaleModel>> getSaleModelList(ClientAccount clientAccount);
+
+    /**
      * 获取销售车型信息
      *
      * @param saleCode      销售代码
