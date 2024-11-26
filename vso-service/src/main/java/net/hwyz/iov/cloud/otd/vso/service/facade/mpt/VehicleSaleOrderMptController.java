@@ -3,12 +3,12 @@ package net.hwyz.iov.cloud.otd.vso.service.facade.mpt;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import net.hwyz.iov.cloud.framework.common.bean.MptAccount;
+import net.hwyz.iov.cloud.framework.common.util.ParamHelper;
 import net.hwyz.iov.cloud.otd.vso.api.contract.request.AssignDeliveryPersonRequest;
 import net.hwyz.iov.cloud.otd.vso.api.contract.request.AssignVehicleRequest;
 import net.hwyz.iov.cloud.otd.vso.api.feign.mpt.VehicleSaleOrderMptApi;
 import net.hwyz.iov.cloud.otd.vso.service.application.service.VehicleSaleOrderAppService;
-import net.hwyz.iov.cloud.tsp.framework.commons.bean.MptAccount;
-import net.hwyz.iov.cloud.tsp.framework.commons.util.ParamHelper;
 import org.springframework.web.bind.annotation.*;
 
 /**

@@ -18,12 +18,11 @@ pipeline {
         stage('构建并发布') {
             steps {
                 script {
-                    sh '''
-                        echo '============================== 构建并发布 =============================='
-                        mvn clean deploy -DaltDeploymentRepository=${REPO_ID}::default::${REPO_URL}
-                    '''
                     dir(DIR_API) {
-                        sh "mvn clean deploy -DaltDeploymentRepository=${REPO_ID}::default::${REPO_URL}"
+                        sh '''
+                            echo '============================== 构建并发布 =============================='
+                            mvn clean deploy -DaltDeploymentRepository=${REPO_ID}::default::${REPO_URL}
+                        '''
                     }
                 }
             }

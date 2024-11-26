@@ -1,7 +1,7 @@
 package net.hwyz.iov.cloud.otd.vso.service;
 
 import cn.hutool.json.JSONUtil;
-import net.hwyz.iov.cloud.tsp.framework.commons.enums.CustomHeaders;
+import net.hwyz.iov.cloud.framework.common.enums.CustomHeaders;
 import org.junit.jupiter.api.BeforeAll;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpHeaders;

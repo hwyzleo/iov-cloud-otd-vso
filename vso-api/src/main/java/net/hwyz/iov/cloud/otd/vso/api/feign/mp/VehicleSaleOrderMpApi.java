@@ -1,5 +1,7 @@
 package net.hwyz.iov.cloud.otd.vso.api.feign.mp;
 
+import net.hwyz.iov.cloud.framework.common.bean.ClientAccount;
+import net.hwyz.iov.cloud.framework.common.bean.Response;
 import net.hwyz.iov.cloud.otd.vso.api.contract.Order;
 import net.hwyz.iov.cloud.otd.vso.api.contract.request.DownPaymentOrderRequest;
 import net.hwyz.iov.cloud.otd.vso.api.contract.request.EarnestMoneyOrderRequest;
@@ -8,8 +10,6 @@ import net.hwyz.iov.cloud.otd.vso.api.contract.request.SelectedSaleModelRequest;
 import net.hwyz.iov.cloud.otd.vso.api.contract.response.OrderPaymentResponse;
 import net.hwyz.iov.cloud.otd.vso.api.contract.response.OrderResponse;
 import net.hwyz.iov.cloud.otd.vso.api.contract.response.WishlistResponse;
-import net.hwyz.iov.cloud.tsp.framework.commons.bean.ClientAccount;
-import net.hwyz.iov.cloud.tsp.framework.commons.bean.Response;
 
 import java.util.List;
 

@@ -2,11 +2,11 @@ package net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import net.hwyz.iov.cloud.framework.common.domain.AbstractRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.order.model.OrderModelConfigDo;
 import net.hwyz.iov.cloud.otd.vso.service.domain.order.repository.OrderModelConfigRepository;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository.assembler.OrderModelConfigPoAssembler;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository.dao.OrderModelConfigDao;
-import net.hwyz.iov.cloud.tsp.framework.commons.domain.AbstractRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;

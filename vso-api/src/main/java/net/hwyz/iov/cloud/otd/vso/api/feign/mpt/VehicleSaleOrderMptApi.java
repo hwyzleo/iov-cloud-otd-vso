@@ -1,8 +1,8 @@
 package net.hwyz.iov.cloud.otd.vso.api.feign.mpt;
 
+import net.hwyz.iov.cloud.framework.common.bean.MptAccount;
 import net.hwyz.iov.cloud.otd.vso.api.contract.request.AssignDeliveryPersonRequest;
 import net.hwyz.iov.cloud.otd.vso.api.contract.request.AssignVehicleRequest;
-import net.hwyz.iov.cloud.tsp.framework.commons.bean.MptAccount;
 
 /**
  * 车辆销售订单相关管理接口

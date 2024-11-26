@@ -4,13 +4,13 @@ import cn.hutool.core.util.IdUtil;
 import lombok.Getter;
 import lombok.experimental.SuperBuilder;
 import lombok.extern.slf4j.Slf4j;
+import net.hwyz.iov.cloud.framework.common.domain.BaseDo;
+import net.hwyz.iov.cloud.framework.common.domain.DomainObj;
 import net.hwyz.iov.cloud.otd.vso.api.contract.enums.SaleModelConfigType;
 import net.hwyz.iov.cloud.otd.vso.service.domain.contract.enums.OrderState;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.exception.OrderIllegalDeleteException;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.exception.OrderNotExistException;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.exception.OrderStateNotAllowedException;
-import net.hwyz.iov.cloud.tsp.framework.commons.domain.BaseDo;
-import net.hwyz.iov.cloud.tsp.framework.commons.domain.DomainObj;
 
 import java.math.BigDecimal;
 import java.util.Date;

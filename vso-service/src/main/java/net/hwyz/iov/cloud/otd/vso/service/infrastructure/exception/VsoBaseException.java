@@ -1,6 +1,7 @@
 package net.hwyz.iov.cloud.otd.vso.service.infrastructure.exception;
 
-import net.hwyz.iov.cloud.tsp.framework.commons.exception.BaseException;
+
+import net.hwyz.iov.cloud.framework.common.exception.BaseException;
 
 /**
  * 车辆销售订单服务基础异常

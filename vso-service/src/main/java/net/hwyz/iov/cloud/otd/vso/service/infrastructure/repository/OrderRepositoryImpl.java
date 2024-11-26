@@ -2,6 +2,7 @@ package net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import net.hwyz.iov.cloud.framework.common.domain.AbstractRepository;
 import net.hwyz.iov.cloud.otd.vso.api.contract.enums.SaleModelConfigType;
 import net.hwyz.iov.cloud.otd.vso.service.domain.contract.enums.OrderState;
 import net.hwyz.iov.cloud.otd.vso.service.domain.factory.OrderFactory;
@@ -14,7 +15,6 @@ import net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository.dao.OrderDao
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository.dao.OrderModelConfigDao;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository.po.OrderModelConfigPo;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository.po.OrderPo;
-import net.hwyz.iov.cloud.tsp.framework.commons.domain.AbstractRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.*;
