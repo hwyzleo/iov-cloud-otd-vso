@@ -29,14 +29,24 @@
         <dependency>
             <groupId>net.hwyz.iov.cloud.framework</groupId>
             <artifactId>framework-exception-starter</artifactId>
-            <version>${framework-exception.version}</version>
         </dependency>
 
         <!-- 框架: MySQL -->
         <dependency>
             <groupId>net.hwyz.iov.cloud.framework</groupId>
             <artifactId>framework-mysql-starter</artifactId>
-            <version>${framework-mysql.version}</version>
+        </dependency>
+
+        <!-- 框架: 安全 -->
+        <dependency>
+            <groupId>net.hwyz.iov.cloud.framework</groupId>
+            <artifactId>framework-security-starter</artifactId>
+        </dependency>
+
+        <!-- 框架: 审计 -->
+        <dependency>
+            <groupId>net.hwyz.iov.cloud.framework</groupId>
+            <artifactId>framework-audit-starter</artifactId>
         </dependency>
     </dependencies>
 

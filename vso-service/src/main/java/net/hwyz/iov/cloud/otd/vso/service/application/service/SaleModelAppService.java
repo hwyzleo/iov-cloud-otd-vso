@@ -1,18 +1,19 @@
 package net.hwyz.iov.cloud.otd.vso.service.application.service;
 
 import cn.hutool.core.lang.TypeReference;
+import cn.hutool.core.util.ObjUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.hwyz.iov.cloud.framework.common.enums.Symbol;
+import net.hwyz.iov.cloud.framework.common.util.ParamHelper;
 import net.hwyz.iov.cloud.otd.vso.api.contract.*;
 import net.hwyz.iov.cloud.otd.vso.api.contract.enums.SaleModelConfigType;
 import net.hwyz.iov.cloud.otd.vso.service.domain.external.service.ExDictionaryService;
 import net.hwyz.iov.cloud.otd.vso.service.domain.external.service.ExVehicleModelConfigService;
 import net.hwyz.iov.cloud.otd.vso.service.facade.assembler.PurchaseAgreementAssembler;
 import net.hwyz.iov.cloud.otd.vso.service.facade.assembler.PurchaseBenefitsAssembler;
-import net.hwyz.iov.cloud.otd.vso.service.facade.assembler.SaleModelAssembler;
 import net.hwyz.iov.cloud.otd.vso.service.facade.assembler.SaleModelConfigAssembler;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.exception.ModelConfigCodeNotExistException;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.exception.SaleModelNotExistException;
@@ -48,27 +49,65 @@ public class SaleModelAppService {
     private final ExVehicleModelConfigService exVehicleModelConfigService;
 
     /**
+     * 查询销售车型信息
+     *
+     * @param saleCode  销售代码
+     * @param modelName 销售车型名称
+     * @param beginTime 开始时间
+     * @param endTime   结束时间
+     * @return 销售车型列表
+     */
+    public List<SaleModelPo> search(String saleCode, String modelName, Date beginTime, Date endTime) {
+        Map<String, Object> map = new HashMap<>();
+        map.put("saleCode", saleCode);
+        map.put("modelName", ParamHelper.fuzzyQueryParam(modelName));
+        map.put("beginTime", beginTime);
+        map.put("endTime", endTime);
+        return saleModelDao.selectPoByMap(map);
+    }
+
+    /**
+     * 检查销售代码是否唯一
+     *
+     * @param saleModelId 销售车型ID
+     * @param saleCode    销售代码
+     * @return 结果
+     */
+    public Boolean checkSaleCodeUnique(Long saleModelId, String saleCode) {
+        if (ObjUtil.isNull(saleModelId)) {
+            saleModelId = -1L;
+        }
+        SaleModelPo saleModelPo = getSaleModelByCode(saleCode);
+        return !ObjUtil.isNotNull(saleModelPo) || saleModelPo.getId().longValue() == saleModelId.longValue();
+    }
+
+    /**
      * 获取销售车型列表
      *
      * @return 销售车型列表
      */
-    public List<SaleModel> getSaleModelList() {
-        List<SaleModelPo> saleModelPoList = saleModelDao.selectPoByExample(SaleModelPo.builder().build());
-        return SaleModelAssembler.INSTANCE.fromPoList(saleModelPoList);
+    public List<SaleModelPo> getSaleModelList() {
+        return saleModelDao.selectPoByExample(SaleModelPo.builder().build());
     }
 
     /**
-     * 获取销售车型信息
+     * 根据主键ID获取销售车型信息
+     *
+     * @param id 主键ID
+     * @return 销售车型信息
+     */
+    public SaleModelPo getSaleModelById(Long id) {
+        return saleModelDao.selectPoById(id);
+    }
+
+    /**
+     * 根据销售代码获取销售车型信息
      *
      * @param saleCode 销售代码
      * @return 销售车型信息
      */
-    public SaleModel getSaleModel(String saleCode) {
-        List<SaleModelPo> saleModelPoList = saleModelDao.selectPoByExample(SaleModelPo.builder().saleCode(saleCode).build());
-        if (saleModelPoList.isEmpty()) {
-            return null;
-        }
-        return SaleModelAssembler.INSTANCE.fromPo(saleModelPoList.get(0));
+    public SaleModelPo getSaleModelByCode(String saleCode) {
+        return saleModelDao.selectPoBySaleCode(saleCode);
     }
 
     /**
@@ -93,8 +132,7 @@ public class SaleModelAppService {
      * @param adasCode      智驾代码
      * @return 选中的销售车型信息
      */
-    public SelectedSaleModel getSelectedSaleModel(String saleCode, String modelCode, String exteriorCode, String interiorCode,
-                                                  String wheelCode, String spareTireCode, String adasCode) {
+    public SelectedSaleModel getSelectedSaleModel(String saleCode, String modelCode, String exteriorCode, String interiorCode, String wheelCode, String spareTireCode, String adasCode) {
         List<SaleModelPo> saleModelPoList = saleModelDao.selectPoByExample(SaleModelPo.builder().saleCode(saleCode).build());
         if (saleModelPoList.isEmpty()) {
             throw new SaleModelNotExistException(saleCode);
@@ -215,6 +253,54 @@ public class SaleModelAppService {
     }
 
     /**
+     * 新增销售车型
+     *
+     * @param saleModel 销售车型信息
+     * @return 结果
+     */
+    public int createSaleModel(SaleModelPo saleModel) {
+        if (ObjUtil.isNull(saleModel.getParameters())) {
+            saleModel.setParameters("{}");
+        }
+        if (ObjUtil.isNull(saleModel.getImages())) {
+            saleModel.setImages("[]");
+        }
+        return saleModelDao.insertPo(saleModel);
+    }
+
+    /**
+     * 修改销售车型
+     *
+     * @param saleModel 销售车型信息
+     * @return 结果
+     */
+    public int modifySaleModel(SaleModelPo saleModel) {
+        return saleModelDao.updatePo(saleModel);
+    }
+
+    /**
+     * 修改销售车型图片集
+     *
+     * @param saleModel 销售车型信息
+     * @return 结果
+     */
+    public int modifySaleModelImages(SaleModelPo saleModel) {
+        SaleModelPo saleModelPo = saleModelDao.selectPoBySaleCode(saleModel.getSaleCode());
+        saleModelPo.setImages(saleModel.getImages());
+        return saleModelDao.updatePo(saleModelPo);
+    }
+
+    /**
+     * 批量删除销售车型
+     *
+     * @param ids 销售车型ID数组
+     * @return 结果
+     */
+    public int deleteSaleModelByIds(Long[] ids) {
+        return saleModelDao.batchPhysicalDeletePo(ids);
+    }
+
+    /**
      * 获取销售车型Map
      *
      * @param saleCode 销售代码
@@ -242,10 +328,7 @@ public class SaleModelAppService {
      * @return 销售车型购车协议
      */
     public PurchaseAgreement getPurchaseAgreement(String saleCode, Integer type) {
-        List<PurchaseAgreementPo> purchaseAgreementPoList = purchaseAgreementDao.selectPoByExample(PurchaseAgreementPo.builder()
-                .saleCode(saleCode)
-                .type(type)
-                .build());
+        List<PurchaseAgreementPo> purchaseAgreementPoList = purchaseAgreementDao.selectPoByExample(PurchaseAgreementPo.builder().saleCode(saleCode).type(type).build());
         if (purchaseAgreementPoList.isEmpty()) {
             return null;
         }
@@ -265,8 +348,7 @@ public class SaleModelAppService {
         String wheelCode = saleModelConfigType.get(SaleModelConfigType.WHEEL.name());
         String spareTireCode = saleModelConfigType.get(SaleModelConfigType.SPARE_TIRE.name());
         String adasCode = saleModelConfigType.get(SaleModelConfigType.ADAS.name());
-        String vehicleModeConfigCode = exVehicleModelConfigService.getVehicleModeConfigCode(modelCode, exteriorCode,
-                interiorCode, wheelCode, spareTireCode, adasCode);
+        String vehicleModeConfigCode = exVehicleModelConfigService.getVehicleModeConfigCode(modelCode, exteriorCode, interiorCode, wheelCode, spareTireCode, adasCode);
         if (vehicleModeConfigCode == null) {
             throw new ModelConfigCodeNotExistException(modelCode, exteriorCode, interiorCode, wheelCode, spareTireCode, adasCode);
         }
@@ -280,17 +362,8 @@ public class SaleModelAppService {
      */
     public List<LicenseArea> getLicenseAreaList() {
         List<LicenseArea> list = new ArrayList<>();
-        exDictionaryService.getDictionaryMap("province").forEach(province ->
-                list.add(LicenseArea.builder()
-                        .provinceCode(province.get("code").toString())
-                        .displayName(province.get("name").toString())
-                        .build()));
-        exDictionaryService.getDictionaryMap("city").forEach(city ->
-                list.add(LicenseArea.builder()
-                        .provinceCode(city.get("province_code").toString())
-                        .cityCode(city.get("code").toString())
-                        .displayName(city.get("name").toString())
-                        .build()));
+        exDictionaryService.getDictionaryMap("province").forEach(province -> list.add(LicenseArea.builder().provinceCode(province.get("code").toString()).displayName(province.get("name").toString()).build()));
+        exDictionaryService.getDictionaryMap("city").forEach(city -> list.add(LicenseArea.builder().provinceCode(city.get("province_code").toString()).cityCode(city.get("code").toString()).displayName(city.get("name").toString()).build()));
         return list;
     }
 

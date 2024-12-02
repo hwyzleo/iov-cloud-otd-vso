@@ -8,6 +8,8 @@ import net.hwyz.iov.cloud.framework.common.util.ParamHelper;
 import net.hwyz.iov.cloud.otd.vso.api.contract.*;
 import net.hwyz.iov.cloud.otd.vso.api.feign.mp.SaleModelMpApi;
 import net.hwyz.iov.cloud.otd.vso.service.application.service.SaleModelAppService;
+import net.hwyz.iov.cloud.otd.vso.service.facade.assembler.SaleModelAssembler;
+import net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository.po.SaleModelPo;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -35,7 +37,8 @@ public class SaleModelMpController implements SaleModelMpApi {
     @GetMapping("")
     public Response<List<SaleModel>> getSaleModelList(@RequestHeader ClientAccount clientAccount) {
         logger.info("手机客户端[{}]获取销售车型列表", ParamHelper.getClientAccountInfo(clientAccount));
-        return new Response<>(saleModelAppService.getSaleModelList());
+        List<SaleModelPo> saleModelPoList = saleModelAppService.getSaleModelList();
+        return new Response<>(SaleModelAssembler.INSTANCE.fromPoList(saleModelPoList));
     }
 
     /**
@@ -50,7 +53,8 @@ public class SaleModelMpController implements SaleModelMpApi {
     public Response<SaleModel> getSaleModel(@PathVariable("saleCode") String saleCode,
                                             @RequestHeader ClientAccount clientAccount) {
         logger.info("手机客户端[{}]获取销售代码[{}]销售车型信息", ParamHelper.getClientAccountInfo(clientAccount), saleCode);
-        return new Response<>(saleModelAppService.getSaleModel(saleCode));
+        SaleModelPo saleModelPo = saleModelAppService.getSaleModelByCode(saleCode);
+        return new Response<>(SaleModelAssembler.INSTANCE.fromPo(saleModelPo));
     }
 
     /**
