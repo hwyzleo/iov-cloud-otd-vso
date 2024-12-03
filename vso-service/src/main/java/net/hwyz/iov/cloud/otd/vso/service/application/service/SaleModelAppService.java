@@ -8,13 +8,15 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.hwyz.iov.cloud.framework.common.enums.Symbol;
 import net.hwyz.iov.cloud.framework.common.util.ParamHelper;
-import net.hwyz.iov.cloud.otd.vso.api.contract.*;
+import net.hwyz.iov.cloud.otd.vso.api.contract.LicenseArea;
+import net.hwyz.iov.cloud.otd.vso.api.contract.PurchaseAgreement;
+import net.hwyz.iov.cloud.otd.vso.api.contract.PurchaseBenefits;
+import net.hwyz.iov.cloud.otd.vso.api.contract.SelectedSaleModel;
 import net.hwyz.iov.cloud.otd.vso.api.contract.enums.SaleModelConfigType;
 import net.hwyz.iov.cloud.otd.vso.service.domain.external.service.ExDictionaryService;
 import net.hwyz.iov.cloud.otd.vso.service.domain.external.service.ExVehicleModelConfigService;
 import net.hwyz.iov.cloud.otd.vso.service.facade.assembler.PurchaseAgreementAssembler;
 import net.hwyz.iov.cloud.otd.vso.service.facade.assembler.PurchaseBenefitsAssembler;
-import net.hwyz.iov.cloud.otd.vso.service.facade.assembler.SaleModelConfigAssembler;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.exception.ModelConfigCodeNotExistException;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.exception.SaleModelNotExistException;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository.dao.PurchaseAgreementDao;
@@ -111,13 +113,45 @@ public class SaleModelAppService {
     }
 
     /**
-     * 获取销售车型列表
+     * 根据销售模型ID获取销售车型配置列表
+     *
+     * @param saleModelId 销售模型ID
+     * @return 销售车型配置列表
+     */
+    public List<SaleModelConfigPo> getSaleModelConfigList(Long saleModelId) {
+        return getSaleModelConfigList(getSaleModelById(saleModelId).getSaleCode());
+    }
+
+    /**
+     * 根据销售代码获取销售车型配置列表
      *
      * @param saleCode 销售代码
-     * @return 销售车型列表
+     * @return 销售车型配置列表
      */
-    public List<SaleModelConfig> getSaleModelResponse(String saleCode) {
-        return SaleModelConfigAssembler.INSTANCE.fromPoList(getSaleModelConfigList(saleCode));
+    public List<SaleModelConfigPo> getSaleModelConfigList(String saleCode) {
+        return saleModelConfigDao.selectPoByExample(SaleModelConfigPo.builder().saleCode(saleCode).build());
+    }
+
+    /**
+     * 根据销售车型ID及销售车型配置ID获取销售车型配置信息
+     *
+     * @param saleModelId       销售车型ID
+     * @param saleModelConfigId 销售车型配置ID
+     * @return 销售车型配置信息
+     */
+    public SaleModelConfigPo getSaleModelConfigById(Long saleModelId, Long saleModelConfigId) {
+        SaleModelPo saleModelPo = getSaleModelById(saleModelId);
+        if (ObjUtil.isNull(saleModelPo)) {
+            return null;
+        }
+        List<SaleModelConfigPo> saleModelConfigPoList = saleModelConfigDao.selectPoByExample(SaleModelConfigPo.builder()
+                .id(saleModelConfigId)
+                .saleCode(saleModelPo.getSaleCode())
+                .build());
+        if (saleModelConfigPoList.isEmpty()) {
+            return null;
+        }
+        return saleModelConfigPoList.get(0);
     }
 
     /**
@@ -269,6 +303,24 @@ public class SaleModelAppService {
     }
 
     /**
+     * 新增销售车型配置
+     *
+     * @param saleModelId     销售车型ID
+     * @param saleModelConfig 销售车型配置信息
+     * @return 结果
+     */
+    public int createSaleModelConfig(Long saleModelId, SaleModelConfigPo saleModelConfig) {
+        SaleModelPo saleModelPo = getSaleModelById(saleModelId);
+        if (ObjUtil.isNotNull(saleModelPo) && saleModelPo.getSaleCode().equals(saleModelConfig.getSaleCode())) {
+            if (ObjUtil.isNull(saleModelConfig.getTypeImage())) {
+                saleModelConfig.setTypeImage("[]");
+            }
+            return saleModelConfigDao.insertPo(saleModelConfig);
+        }
+        return -1;
+    }
+
+    /**
      * 修改销售车型
      *
      * @param saleModel 销售车型信息
@@ -276,6 +328,24 @@ public class SaleModelAppService {
      */
     public int modifySaleModel(SaleModelPo saleModel) {
         return saleModelDao.updatePo(saleModel);
+    }
+
+    /**
+     * 修改销售车型配置
+     *
+     * @param saleModelId     销售车型ID
+     * @param saleModelConfig 销售车型配置信息
+     * @return 结果
+     */
+    public int modifySaleModelConfig(Long saleModelId, SaleModelConfigPo saleModelConfig) {
+        SaleModelPo saleModelPo = getSaleModelById(saleModelId);
+        if (ObjUtil.isNotNull(saleModelPo) && saleModelPo.getSaleCode().equals(saleModelConfig.getSaleCode())) {
+            if (ObjUtil.isNull(saleModelConfig.getTypeImage())) {
+                saleModelConfig.setTypeImage("[]");
+            }
+            return saleModelConfigDao.updatePo(saleModelConfig);
+        }
+        return -1;
     }
 
     /**
@@ -297,7 +367,25 @@ public class SaleModelAppService {
      * @return 结果
      */
     public int deleteSaleModelByIds(Long[] ids) {
+        for (Long id : ids) {
+            deleteSaleModelConfigByIds(id, null);
+        }
         return saleModelDao.batchPhysicalDeletePo(ids);
+    }
+
+    /**
+     * 批量删除销售车型配置
+     *
+     * @param saleModelId 销售车型ID
+     * @param ids         销售车型配置ID数组
+     * @return 结果
+     */
+    public int deleteSaleModelConfigByIds(Long saleModelId, Long[] ids) {
+        SaleModelPo saleModelPo = getSaleModelById(saleModelId);
+        if (ObjUtil.isNotNull(saleModelPo)) {
+            return saleModelConfigDao.batchPhysicalDeletePo(saleModelPo.getSaleCode(), ids);
+        }
+        return -1;
     }
 
     /**
@@ -365,16 +453,6 @@ public class SaleModelAppService {
         exDictionaryService.getDictionaryMap("province").forEach(province -> list.add(LicenseArea.builder().provinceCode(province.get("code").toString()).displayName(province.get("name").toString()).build()));
         exDictionaryService.getDictionaryMap("city").forEach(city -> list.add(LicenseArea.builder().provinceCode(city.get("province_code").toString()).cityCode(city.get("code").toString()).displayName(city.get("name").toString()).build()));
         return list;
-    }
-
-    /**
-     * 获取销售车型配置列表
-     *
-     * @param saleCode 销售代码
-     * @return 销售车型列表
-     */
-    private List<SaleModelConfigPo> getSaleModelConfigList(String saleCode) {
-        return saleModelConfigDao.selectPoByExample(SaleModelConfigPo.builder().saleCode(saleCode).build());
     }
 
 }

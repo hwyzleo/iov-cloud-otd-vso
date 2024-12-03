@@ -9,7 +9,7 @@ import java.math.BigDecimal;
 import java.util.List;
 
 /**
- * 销售车型
+ * 手机销售车型
  *
  * @author hwyz_leo
  */
@@ -17,7 +17,7 @@ import java.util.List;
 @SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
-public class SaleModel {
+public class SaleModelMp {
 
     /**
      * 销售代码

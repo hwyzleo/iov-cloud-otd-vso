@@ -8,7 +8,9 @@ import net.hwyz.iov.cloud.framework.common.util.ParamHelper;
 import net.hwyz.iov.cloud.otd.vso.api.contract.*;
 import net.hwyz.iov.cloud.otd.vso.api.feign.mp.SaleModelMpApi;
 import net.hwyz.iov.cloud.otd.vso.service.application.service.SaleModelAppService;
-import net.hwyz.iov.cloud.otd.vso.service.facade.assembler.SaleModelAssembler;
+import net.hwyz.iov.cloud.otd.vso.service.facade.assembler.SaleModelConfigMpAssembler;
+import net.hwyz.iov.cloud.otd.vso.service.facade.assembler.SaleModelMpAssembler;
+import net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository.po.SaleModelConfigPo;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository.po.SaleModelPo;
 import org.springframework.web.bind.annotation.*;
 
@@ -35,10 +37,10 @@ public class SaleModelMpController implements SaleModelMpApi {
      */
     @Override
     @GetMapping("")
-    public Response<List<SaleModel>> getSaleModelList(@RequestHeader ClientAccount clientAccount) {
+    public Response<List<SaleModelMp>> getSaleModelList(@RequestHeader ClientAccount clientAccount) {
         logger.info("手机客户端[{}]获取销售车型列表", ParamHelper.getClientAccountInfo(clientAccount));
         List<SaleModelPo> saleModelPoList = saleModelAppService.getSaleModelList();
-        return new Response<>(SaleModelAssembler.INSTANCE.fromPoList(saleModelPoList));
+        return new Response<>(SaleModelMpAssembler.INSTANCE.fromPoList(saleModelPoList));
     }
 
     /**
@@ -50,11 +52,11 @@ public class SaleModelMpController implements SaleModelMpApi {
      */
     @Override
     @GetMapping("/{saleCode}")
-    public Response<SaleModel> getSaleModel(@PathVariable("saleCode") String saleCode,
-                                            @RequestHeader ClientAccount clientAccount) {
+    public Response<SaleModelMp> getSaleModel(@PathVariable("saleCode") String saleCode,
+                                              @RequestHeader ClientAccount clientAccount) {
         logger.info("手机客户端[{}]获取销售代码[{}]销售车型信息", ParamHelper.getClientAccountInfo(clientAccount), saleCode);
         SaleModelPo saleModelPo = saleModelAppService.getSaleModelByCode(saleCode);
-        return new Response<>(SaleModelAssembler.INSTANCE.fromPo(saleModelPo));
+        return new Response<>(SaleModelMpAssembler.INSTANCE.fromPo(saleModelPo));
     }
 
     /**
@@ -66,10 +68,12 @@ public class SaleModelMpController implements SaleModelMpApi {
      */
     @Override
     @GetMapping("/{saleCode}/config")
-    public Response<List<SaleModelConfig>> getSaleModelConfigList(@PathVariable("saleCode") String saleCode,
-                                                                  @RequestHeader ClientAccount clientAccount) {
+    public Response<List<SaleModelConfigMp>> getSaleModelConfigList(@PathVariable("saleCode") String saleCode,
+                                                                    @RequestHeader ClientAccount clientAccount) {
         logger.info("手机客户端[{}]获取销售代码[{}]销售车型配置列表", ParamHelper.getClientAccountInfo(clientAccount), saleCode);
-        return new Response<>(saleModelAppService.getSaleModelResponse(saleCode));
+        List<SaleModelConfigPo> saleModelConfigPoList = saleModelAppService.getSaleModelConfigList(saleCode);
+        List<SaleModelConfigMp> saleModelConfigMpList = SaleModelConfigMpAssembler.INSTANCE.fromPoList(saleModelConfigPoList);
+        return new Response<>(saleModelConfigMpList);
     }
 
     /**

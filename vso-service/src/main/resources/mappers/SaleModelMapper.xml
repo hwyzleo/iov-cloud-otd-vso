@@ -210,7 +210,7 @@
         <if test="endTime != null">
             and date_format(t.create_time,'%Y%m%d') &lt;= date_format(#{endTime},'%Y%m%d')
         </if>
-        ORDER BY t.id DESC
+        ORDER BY t.sort ASC, t.id DESC
     </select>
 
     <!-- 通过销售编码查询销售车型信息 -->

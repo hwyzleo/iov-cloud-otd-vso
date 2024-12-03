@@ -15,4 +15,13 @@ import org.apache.ibatis.annotations.Mapper;
 @Mapper
 public interface SaleModelConfigDao extends BaseDao<SaleModelConfigPo, Long> {
 
+    /**
+     * 批量物理删除销售车型配置信息
+     *
+     * @param saleCode 销售代码
+     * @param ids      销售车型ID数组
+     * @return 影响行数
+     */
+    int batchPhysicalDeletePo(String saleCode, Long[] ids);
+
 }

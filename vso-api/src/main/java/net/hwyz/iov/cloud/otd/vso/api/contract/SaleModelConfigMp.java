@@ -17,7 +17,7 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class SaleModelConfig {
+public class SaleModelConfigMp {
 
     /**
      * 销售代码

@@ -19,7 +19,7 @@ public interface SaleModelMpApi {
      * @param clientAccount 终端用户
      * @return 销售车型列表
      */
-    Response<List<SaleModel>> getSaleModelList(ClientAccount clientAccount);
+    Response<List<SaleModelMp>> getSaleModelList(ClientAccount clientAccount);
 
     /**
      * 获取销售车型信息
@@ -28,7 +28,7 @@ public interface SaleModelMpApi {
      * @param clientAccount 终端用户
      * @return 销售车型信息
      */
-    Response<SaleModel> getSaleModel(String saleCode, ClientAccount clientAccount);
+    Response<SaleModelMp> getSaleModel(String saleCode, ClientAccount clientAccount);
 
     /**
      * 获取销售车型配置列表
@@ -37,7 +37,7 @@ public interface SaleModelMpApi {
      * @param clientAccount 终端用户
      * @return 销售车型配置列表
      */
-    Response<List<SaleModelConfig>> getSaleModelConfigList(String saleCode, ClientAccount clientAccount);
+    Response<List<SaleModelConfigMp>> getSaleModelConfigList(String saleCode, ClientAccount clientAccount);
 
     /**
      * 获取已选择的销售车型及配置

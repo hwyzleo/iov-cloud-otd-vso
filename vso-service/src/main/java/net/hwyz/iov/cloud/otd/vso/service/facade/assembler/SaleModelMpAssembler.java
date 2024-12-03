@@ -1,6 +1,6 @@
 package net.hwyz.iov.cloud.otd.vso.service.facade.assembler;
 
-import net.hwyz.iov.cloud.otd.vso.api.contract.SaleModel;
+import net.hwyz.iov.cloud.otd.vso.api.contract.SaleModelMp;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository.po.SaleModelPo;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -15,9 +15,9 @@ import java.util.List;
  * @author hwyz_leo
  */
 @Mapper
-public interface SaleModelAssembler {
+public interface SaleModelMpAssembler {
 
-    SaleModelAssembler INSTANCE = Mappers.getMapper(SaleModelAssembler.class);
+    SaleModelMpAssembler INSTANCE = Mappers.getMapper(SaleModelMpAssembler.class);
 
     /**
      * 数据对象转数据传输对象
@@ -28,7 +28,7 @@ public interface SaleModelAssembler {
     @Mappings({
             @Mapping(target = "images", expression = "java(cn.hutool.json.JSONUtil.toList(saleModelPo.getImages(), String.class))")
     })
-    SaleModel fromPo(SaleModelPo saleModelPo);
+    SaleModelMp fromPo(SaleModelPo saleModelPo);
 
     /**
      * 数据对象列表转数据传输对象列表
@@ -36,6 +36,6 @@ public interface SaleModelAssembler {
      * @param saleModelPoList 数据对象列表
      * @return 数据传输对象列表
      */
-    List<SaleModel> fromPoList(List<SaleModelPo> saleModelPoList);
+    List<SaleModelMp> fromPoList(List<SaleModelPo> saleModelPoList);
 
 }

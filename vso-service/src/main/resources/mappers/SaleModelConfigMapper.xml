@@ -116,6 +116,18 @@
         WHERE t.id = #{value}
     </delete>
 
+    <!-- 批量物理删除销售车型配置信息 -->
+    <delete id="batchPhysicalDeletePo" parameterType="Long">
+        DELETE FROM tb_sale_model_config t
+        WHERE t.sale_code = #{saleCode}
+        <if test="ids != null">
+            AND t.id IN
+            <foreach collection="ids" item="id" open="(" separator="," close=")">
+                #{id}
+            </foreach>
+        </if>
+    </delete>
+
     <!-- 根据主键获取对应数据 -->
     <select id="selectPoById" parameterType="Long" resultMap="baseResultMap">
         SELECT <include refid="baseColumnList"/>
@@ -180,7 +192,7 @@
         <if test="rowVersion != null">
             AND t.row_version = #{rowVersion}
         </if>
-        ORDER BY t.id DESC
+        ORDER BY t.sort ASC, t.id DESC
     </select>
 
     <!-- 根据Map对象获取对应数据列表 -->

@@ -1,9 +1,9 @@
 package net.hwyz.iov.cloud.otd.vso.api.feign.mpt;
 
 import jakarta.servlet.http.HttpServletResponse;
-import net.hwyz.iov.cloud.framework.common.bean.MptAccount;
 import net.hwyz.iov.cloud.framework.common.web.domain.AjaxResult;
 import net.hwyz.iov.cloud.framework.common.web.page.TableDataInfo;
+import net.hwyz.iov.cloud.otd.vso.api.contract.SaleModelConfigMpt;
 import net.hwyz.iov.cloud.otd.vso.api.contract.SaleModelMpt;
 
 /**
@@ -38,6 +38,23 @@ public interface SaleModelMptApi {
     AjaxResult getInfo(Long saleModelId);
 
     /**
+     * 根据销售车型ID查询销售车型配置信息
+     *
+     * @param saleModelId 销售车型ID
+     * @return 销售车型配置信息列表
+     */
+    TableDataInfo listConfigBySaleCode(Long saleModelId);
+
+    /**
+     * 根据销售车型配置ID获取销售车型配置信息
+     *
+     * @param saleModelId       销售车型ID
+     * @param saleModelConfigId 销售车型配置ID
+     * @return 销售车型配置信息
+     */
+    AjaxResult getConfig(Long saleModelId, Long saleModelConfigId);
+
+    /**
      * 新增销售车型信息
      *
      * @param saleModel 销售车型信息
@@ -46,12 +63,30 @@ public interface SaleModelMptApi {
     AjaxResult add(SaleModelMpt saleModel);
 
     /**
+     * 新增销售车型配置信息
+     *
+     * @param saleModelId     销售车型ID
+     * @param saleModelConfig 销售车型配置信息
+     * @return 结果
+     */
+    AjaxResult addConfig(Long saleModelId, SaleModelConfigMpt saleModelConfig);
+
+    /**
      * 修改保存销售车型信息
      *
      * @param saleModel 销售车型信息
      * @return 结果
      */
     AjaxResult edit(SaleModelMpt saleModel);
+
+    /**
+     * 修改保存销售车型配置信息
+     *
+     * @param saleModelId     销售车型ID
+     * @param saleModelConfig 销售车型配置信息
+     * @return 结果
+     */
+    AjaxResult editConfig(Long saleModelId, SaleModelConfigMpt saleModelConfig);
 
     /**
      * 修改保存销售车型图片集
@@ -68,5 +103,14 @@ public interface SaleModelMptApi {
      * @return 结果
      */
     AjaxResult remove(Long[] saleModelIds);
+
+    /**
+     * 删除销售车型配置信息
+     *
+     * @param saleModelId        销售车型ID
+     * @param saleModelConfigIds 销售车型配置ID数组
+     * @return 结果
+     */
+    AjaxResult remove(Long saleModelId, Long[] saleModelConfigIds);
 
 }

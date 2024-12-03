@@ -20,7 +20,7 @@ import java.util.Map;
 @NoArgsConstructor
 @AllArgsConstructor
 @EqualsAndHashCode(callSuper = true)
-public class SelectedSaleModel extends SaleModel {
+public class SelectedSaleModel extends SaleModelMp {
 
     /**
      * 车型配置代码
