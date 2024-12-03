@@ -1,6 +1,8 @@
 package net.hwyz.iov.cloud.otd.vso.api.feign.mpt;
 
 import net.hwyz.iov.cloud.framework.common.bean.MptAccount;
+import net.hwyz.iov.cloud.framework.common.web.page.TableDataInfo;
+import net.hwyz.iov.cloud.otd.vso.api.contract.VehicleSaleOrderMpt;
 import net.hwyz.iov.cloud.otd.vso.api.contract.request.AssignDeliveryPersonRequest;
 import net.hwyz.iov.cloud.otd.vso.api.contract.request.AssignVehicleRequest;
 
@@ -10,6 +12,14 @@ import net.hwyz.iov.cloud.otd.vso.api.contract.request.AssignVehicleRequest;
  * @author hwyz_leo
  */
 public interface VehicleSaleOrderMptApi {
+
+    /**
+     * 分页查询车辆销售订单信息
+     *
+     * @param vehicleSaleOrder 车辆销售订单信息
+     * @return 车辆销售订单信息列表
+     */
+    TableDataInfo list(VehicleSaleOrderMpt vehicleSaleOrder);
 
     /**
      * 分配交付人员

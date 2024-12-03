@@ -21,13 +21,11 @@ import net.hwyz.iov.cloud.otd.vso.service.infrastructure.exception.SaleModelConf
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository.dao.OrderDao;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository.dao.OrderModelConfigDao;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository.po.OrderModelConfigPo;
+import net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository.po.OrderPo;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository.po.SaleModelConfigPo;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * 车辆销售订单相关应用服务类
@@ -44,6 +42,24 @@ public class VehicleSaleOrderAppService {
     private final OrderRepository orderRepository;
     private final OrderModelConfigDao orderModelConfigDao;
     private final SaleModelAppService saleModelAppService;
+
+    /**
+     * 查询车辆销售订单信息
+     *
+     * @param orderNum   订单号
+     * @param orderState 订单状态
+     * @param beginTime  开始时间
+     * @param endTime    结束时间
+     * @return 销售车型列表
+     */
+    public List<OrderPo> search(String orderNum, Integer orderState, Date beginTime, Date endTime) {
+        Map<String, Object> map = new HashMap<>();
+        map.put("orderNum", orderNum);
+        map.put("orderState", orderState);
+        map.put("beginTime", beginTime);
+        map.put("endTime", endTime);
+        return orderDao.selectPoByMap(map);
+    }
 
     /**
      * 获取订单列表

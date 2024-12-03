@@ -450,6 +450,18 @@
         <if test="stateValid != null and stateValid = 1">
             AND t.order_state &lt; 950
         </if>
+        <if test="orderNum != null and orderNum != ''">
+            AND t.order_num = #{orderNum}
+        </if>
+        <if test="orderState != null">
+            AND t.order_state = #{orderState}
+        </if>
+        <if test="beginTime != null">
+            and date_format(t.order_state_time,'%Y%m%d') &gt;= date_format(#{beginTime},'%Y%m%d')
+        </if>
+        <if test="endTime != null">
+            and date_format(t.order_state_time,'%Y%m%d') &lt;= date_format(#{endTime},'%Y%m%d')
+        </if>
         ORDER BY t.id DESC
     </select>
 

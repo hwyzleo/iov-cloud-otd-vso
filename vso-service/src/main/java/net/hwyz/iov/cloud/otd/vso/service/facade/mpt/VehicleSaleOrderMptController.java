@@ -5,11 +5,20 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.hwyz.iov.cloud.framework.common.bean.MptAccount;
 import net.hwyz.iov.cloud.framework.common.util.ParamHelper;
+import net.hwyz.iov.cloud.framework.common.web.controller.BaseController;
+import net.hwyz.iov.cloud.framework.common.web.page.TableDataInfo;
+import net.hwyz.iov.cloud.framework.security.annotation.RequiresPermissions;
+import net.hwyz.iov.cloud.framework.security.util.SecurityUtils;
+import net.hwyz.iov.cloud.otd.vso.api.contract.VehicleSaleOrderMpt;
 import net.hwyz.iov.cloud.otd.vso.api.contract.request.AssignDeliveryPersonRequest;
 import net.hwyz.iov.cloud.otd.vso.api.contract.request.AssignVehicleRequest;
 import net.hwyz.iov.cloud.otd.vso.api.feign.mpt.VehicleSaleOrderMptApi;
 import net.hwyz.iov.cloud.otd.vso.service.application.service.VehicleSaleOrderAppService;
+import net.hwyz.iov.cloud.otd.vso.service.facade.assembler.VehicleSaleOrderMptAssembler;
+import net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository.po.OrderPo;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 /**
  * 车辆销售订单相关管理接口实现类
@@ -20,9 +29,27 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping(value = "/mpt/vehicleSaleOrder")
-public class VehicleSaleOrderMptController implements VehicleSaleOrderMptApi {
+public class VehicleSaleOrderMptController extends BaseController implements VehicleSaleOrderMptApi {
 
     private final VehicleSaleOrderAppService vehicleSaleOrderAppService;
+
+    /**
+     * 分页查询车辆销售订单信息
+     *
+     * @param vehicleSaleOrder 车辆销售订单信息
+     * @return 车辆销售订单信息列表
+     */
+    @RequiresPermissions("otd:vehicleSaleOrder:list")
+    @Override
+    @GetMapping(value = "/list")
+    public TableDataInfo list(VehicleSaleOrderMpt vehicleSaleOrder) {
+        logger.info("管理后台用户[{}]分页查询车辆销售订单信息", SecurityUtils.getUsername());
+        startPage();
+        List<OrderPo> orderPoList = vehicleSaleOrderAppService.search(vehicleSaleOrder.getOrderNum(),
+                vehicleSaleOrder.getOrderState(), getBeginTime(vehicleSaleOrder), getEndTime(vehicleSaleOrder));
+        List<VehicleSaleOrderMpt> vehicleSaleOrderMptList = VehicleSaleOrderMptAssembler.INSTANCE.fromPoList(orderPoList);
+        return getDataTable(vehicleSaleOrderMptList);
+    }
 
     /**
      * 分配交付人员
