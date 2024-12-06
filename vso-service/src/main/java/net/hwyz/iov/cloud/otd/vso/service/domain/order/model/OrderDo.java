@@ -56,6 +56,10 @@ public class OrderDo extends BaseDo<Long> implements DomainObj<OrderDo> {
      */
     private String orderPersonName;
     /**
+     * 下单人员电话
+     */
+    private String orderPersonPhone;
+    /**
      * 下单人员证件类型
      */
     private Integer orderPersonIdType;
@@ -111,10 +115,11 @@ public class OrderDo extends BaseDo<Long> implements DomainObj<OrderDo> {
     /**
      * 初始化
      *
-     * @param orderPersonId 下单人ID
-     * @param saleCode      销售代码
+     * @param orderPersonId    下单人ID
+     * @param orderPersonPhone 下单人电话
+     * @param saleCode         销售代码
      */
-    public void init(String orderPersonId, String saleCode, OrderState orderState) {
+    public void init(String orderPersonId, String orderPersonPhone, String saleCode, OrderState orderState) {
         generateOrderNum();
         this.orderState = orderState;
         Date now = new Date();
@@ -124,6 +129,7 @@ public class OrderDo extends BaseDo<Long> implements DomainObj<OrderDo> {
         }
         this.modelConfigLock = false;
         this.orderPersonId = orderPersonId;
+        this.orderPersonPhone = orderPersonPhone;
         this.saleCode = saleCode;
         stateInit();
     }

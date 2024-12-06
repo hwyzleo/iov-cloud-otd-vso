@@ -18,13 +18,14 @@ public class OrderFactory {
      * 基于心愿单创建车辆销售订单领域对象
      *
      * @param accountId 账号ID
+     * @param mobile    手机号
      * @param saleCode  销售代码
      * @return 车辆销售订单领域对象
      */
-    public OrderDo buildFromWishlist(String accountId, String saleCode) {
+    public OrderDo buildFromWishlist(String accountId, String mobile, String saleCode) {
         OrderDo orderDo = OrderDo.builder()
                 .build();
-        orderDo.init(accountId, saleCode, OrderState.WISHLIST);
+        orderDo.init(accountId, mobile, saleCode, OrderState.WISHLIST);
         return orderDo;
     }
 
@@ -32,13 +33,14 @@ public class OrderFactory {
      * 基于意向金创建车辆销售订单领域对象
      *
      * @param accountId 账号ID
+     * @param mobile    手机号
      * @param saleCode  销售代码
      * @return 车辆销售订单领域对象
      */
-    public OrderDo buildFromEarnestMoney(String accountId, String saleCode) {
+    public OrderDo buildFromEarnestMoney(String accountId, String mobile, String saleCode) {
         OrderDo orderDo = OrderDo.builder()
                 .build();
-        orderDo.init(accountId, saleCode, OrderState.EARNEST_MONEY_UNPAID);
+        orderDo.init(accountId, mobile, saleCode, OrderState.EARNEST_MONEY_UNPAID);
         return orderDo;
     }
 
@@ -46,13 +48,14 @@ public class OrderFactory {
      * 基于定金创建车辆销售订单领域对象
      *
      * @param accountId 账号ID
+     * @param mobile    手机号
      * @param saleCode  销售代码
      * @return 车辆销售订单领域对象
      */
-    public OrderDo buildFromDownPayment(String accountId, String saleCode) {
+    public OrderDo buildFromDownPayment(String accountId, String mobile, String saleCode) {
         OrderDo orderDo = OrderDo.builder()
                 .build();
-        orderDo.init(accountId, saleCode, OrderState.DOWN_PAYMENT_UNPAID);
+        orderDo.init(accountId, mobile, saleCode, OrderState.DOWN_PAYMENT_UNPAID);
         return orderDo;
     }
 

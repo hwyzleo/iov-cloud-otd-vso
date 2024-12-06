@@ -1,6 +1,7 @@
 package net.hwyz.iov.cloud.otd.vso.service.application.service;
 
 import cn.hutool.core.lang.TypeReference;
+import cn.hutool.core.util.ObjUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONUtil;
 import lombok.RequiredArgsConstructor;
@@ -16,6 +17,7 @@ import net.hwyz.iov.cloud.otd.vso.service.domain.factory.OrderFactory;
 import net.hwyz.iov.cloud.otd.vso.service.domain.order.model.OrderDo;
 import net.hwyz.iov.cloud.otd.vso.service.domain.order.model.OrderModelConfigDo;
 import net.hwyz.iov.cloud.otd.vso.service.domain.order.repository.OrderRepository;
+import net.hwyz.iov.cloud.otd.vso.service.infrastructure.exception.AccountNotExistException;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.exception.OrderNotExistException;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.exception.SaleModelConfigTypeCodeNotExistException;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository.dao.OrderDao;
@@ -23,6 +25,8 @@ import net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository.dao.OrderMod
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository.po.OrderModelConfigPo;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository.po.OrderPo;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository.po.SaleModelConfigPo;
+import net.hwyz.iov.cloud.tsp.account.api.contract.Account;
+import net.hwyz.iov.cloud.tsp.account.api.feign.service.ExAccountService;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -39,6 +43,7 @@ public class VehicleSaleOrderAppService {
 
     private final OrderDao orderDao;
     private final OrderFactory orderFactory;
+    private final ExAccountService accountService;
     private final OrderRepository orderRepository;
     private final OrderModelConfigDao orderModelConfigDao;
     private final SaleModelAppService saleModelAppService;
@@ -108,8 +113,12 @@ public class VehicleSaleOrderAppService {
      */
     public String createUserWishlist(String accountId, SelectedSaleModelRequest request) {
         String saleCode = request.getSaleCode();
+        Account accountInfo = accountService.getAccountInfo(accountId);
+        if (ObjUtil.isNull(accountInfo)) {
+            throw new AccountNotExistException(accountId);
+        }
         String modelConfigCode = saleModelAppService.getModelConfigCode(request.getSaleModelConfigType());
-        OrderDo orderDo = orderFactory.buildFromWishlist(accountId, saleCode);
+        OrderDo orderDo = orderFactory.buildFromWishlist(accountId, accountInfo.getMobile(), saleCode);
         orderDo.saveModelConfig(modelConfigCode, getOrderModelConfigMap(saleCode, request.getSaleModelConfigType()));
         orderRepository.save(orderDo);
         return orderDo.getOrderNum();
@@ -182,7 +191,11 @@ public class VehicleSaleOrderAppService {
             orderDo.earnestMoneyOrder();
         } else {
             // 直接意向金
-            orderDo = orderFactory.buildFromEarnestMoney(accountId, request.getSaleCode());
+            Account accountInfo = accountService.getAccountInfo(accountId);
+            if (ObjUtil.isNull(accountInfo)) {
+                throw new AccountNotExistException(accountId);
+            }
+            orderDo = orderFactory.buildFromEarnestMoney(accountId, accountInfo.getMobile(), request.getSaleCode());
         }
         String modelConfigCode = saleModelAppService.getModelConfigCode(request.getSaleModelConfigType());
         orderDo.saveModelConfig(modelConfigCode, getOrderModelConfigMap(request.getSaleCode(), request.getSaleModelConfigType()));
@@ -208,7 +221,11 @@ public class VehicleSaleOrderAppService {
             orderDo.downPaymentOrder();
         } else {
             // 直接定金
-            orderDo = orderFactory.buildFromDownPayment(accountId, request.getSaleCode());
+            Account accountInfo = accountService.getAccountInfo(accountId);
+            if (ObjUtil.isNull(accountInfo)) {
+                throw new AccountNotExistException(accountId);
+            }
+            orderDo = orderFactory.buildFromDownPayment(accountId, accountInfo.getMobile(), request.getSaleCode());
         }
         String modelConfigCode = saleModelAppService.getModelConfigCode(request.getSaleModelConfigType());
         orderDo.saveModelConfig(modelConfigCode, getOrderModelConfigMap(request.getSaleCode(), request.getSaleModelConfigType()));
