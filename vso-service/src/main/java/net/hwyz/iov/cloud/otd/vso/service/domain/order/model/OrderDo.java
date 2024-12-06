@@ -194,23 +194,23 @@ public class OrderDo extends BaseDo<Long> implements DomainObj<OrderDo> {
             desc.append(modelConfigMap.get(SaleModelConfigType.MODEL).getTypeName());
             desc.append(" | ");
         }
-        if (!modelConfigMap.containsKey(SaleModelConfigType.SPARE_TIRE)) {
+        if (modelConfigMap.containsKey(SaleModelConfigType.SPARE_TIRE)) {
             desc.append(modelConfigMap.get(SaleModelConfigType.SPARE_TIRE).getTypeName());
             desc.append(" | ");
         }
-        if (!modelConfigMap.containsKey(SaleModelConfigType.EXTERIOR)) {
+        if (modelConfigMap.containsKey(SaleModelConfigType.EXTERIOR)) {
             desc.append(modelConfigMap.get(SaleModelConfigType.EXTERIOR).getTypeName());
             desc.append(" | ");
         }
-        if (!modelConfigMap.containsKey(SaleModelConfigType.WHEEL)) {
+        if (modelConfigMap.containsKey(SaleModelConfigType.WHEEL)) {
             desc.append(modelConfigMap.get(SaleModelConfigType.WHEEL).getTypeName());
             desc.append(" | ");
         }
-        if (!modelConfigMap.containsKey(SaleModelConfigType.INTERIOR)) {
+        if (modelConfigMap.containsKey(SaleModelConfigType.INTERIOR)) {
             desc.append(modelConfigMap.get(SaleModelConfigType.INTERIOR).getTypeName());
             desc.append(" | ");
         }
-        if (!modelConfigMap.containsKey(SaleModelConfigType.ADAS)) {
+        if (modelConfigMap.containsKey(SaleModelConfigType.ADAS)) {
             desc.append(modelConfigMap.get(SaleModelConfigType.ADAS).getTypeName());
         }
         return desc.toString();
