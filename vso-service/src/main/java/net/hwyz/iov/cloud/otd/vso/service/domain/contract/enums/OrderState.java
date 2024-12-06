@@ -22,20 +22,32 @@ public enum OrderState {
     DOWN_PAYMENT_UNPAID(300),
     /** 定金已付款 **/
     DOWN_PAYMENT_PAID(310),
-    /** 安排生产 **/
+    /** 已锁单，安排生产 **/
     ARRANGE_PRODUCTION(400),
-    /** 分配车辆 **/
+    /** 已分配车辆 **/
     ALLOCATION_VEHICLE(450),
     /** 待运输 **/
     PREPARE_TRANSPORT(500),
-    /** 运输中 **/
+    /** 已发车，运输中 **/
     TRANSPORTING(550),
-    /** 待交付 **/
+    /** 验收入库，待交付 **/
     PREPARE_DELIVER(600),
+    /** 尾款已付款 **/
+    FINAL_PAYMENT_PAID(620),
+    /** 已开票 **/
+    INVOICED(630),
     /** 已交付 **/
     DELIVERED(650),
     /** 已激活 **/
     ACTIVATED(700),
+    /** 退车申请 **/
+    RETURN_APPLY(800),
+    /** 退车入库 **/
+    RETURN_STORAGE(820),
+    /** 退车审核 **/
+    RETURN_AUDIT(840),
+    /** 退车完成 **/
+    RETURN_COMPLETED(860),
     /** 退款申请 **/
     REFUND_APPLY(920),
     /** 退款完成 **/

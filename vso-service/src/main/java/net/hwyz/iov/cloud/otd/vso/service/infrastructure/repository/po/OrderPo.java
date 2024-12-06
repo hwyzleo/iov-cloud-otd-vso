@@ -119,6 +119,30 @@ public class OrderPo extends BasePo {
     private Date downPaymentTime;
 
     /**
+     * 锁单时间
+     */
+    @TableField("lock_time")
+    private Date lockTime;
+
+    /**
+     * 配车时间
+     */
+    @TableField("assign_time")
+    private Date assignTime;
+
+    /**
+     * 解配时间
+     */
+    @TableField("revoke_time")
+    private Date revokeTime;
+
+    /**
+     * 改配时间
+     */
+    @TableField("reassign_time")
+    private Date reassignTime;
+
+    /**
      * 尾款支付时间
      */
     @TableField("final_payment_time")

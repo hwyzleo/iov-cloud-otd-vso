@@ -44,6 +44,14 @@ public class OrderDo extends BaseDo<Long> implements DomainObj<OrderDo> {
      */
     private Date orderTime;
     /**
+     * 定金支付时间
+     */
+    private Date downPaymentTime;
+    /**
+     * 锁单时间
+     */
+    private Date lockTime;
+    /**
      * 下单人员ID
      */
     private String orderPersonId;
@@ -344,6 +352,7 @@ public class OrderDo extends BaseDo<Long> implements DomainObj<OrderDo> {
             throw new OrderNotExistException(this.orderNum);
         }
         this.orderState = OrderState.CANCEL;
+        this.orderStateTime = new Date();
         stateChange();
     }
 
@@ -354,10 +363,14 @@ public class OrderDo extends BaseDo<Long> implements DomainObj<OrderDo> {
         switch (this.orderState) {
             case EARNEST_MONEY_UNPAID -> {
                 this.orderState = OrderState.EARNEST_MONEY_PAID;
+                this.orderStateTime = new Date();
                 stateChange();
             }
             case DOWN_PAYMENT_UNPAID -> {
                 this.orderState = OrderState.DOWN_PAYMENT_PAID;
+                Date now = new Date();
+                this.orderStateTime = now;
+                this.downPaymentTime = now;
                 stateChange();
             }
             default -> throw new OrderStateNotAllowedException(this.orderNum, this.orderState, "PAY");
@@ -372,6 +385,7 @@ public class OrderDo extends BaseDo<Long> implements DomainObj<OrderDo> {
             throw new OrderStateNotAllowedException(this.orderNum, this.orderState, "REQUEST_REFUND");
         }
         this.orderState = OrderState.REFUND_APPLY;
+        this.orderStateTime = new Date();
         stateChange();
     }
 
@@ -383,6 +397,9 @@ public class OrderDo extends BaseDo<Long> implements DomainObj<OrderDo> {
             throw new OrderStateNotAllowedException(this.orderNum, this.orderState, "EARNEST_MONEY_TO_DOWN_PAYMENT");
         }
         this.orderState = OrderState.DOWN_PAYMENT_PAID;
+        Date now = new Date();
+        this.orderStateTime = now;
+        this.downPaymentTime = now;
         stateChange();
     }
 
@@ -395,6 +412,9 @@ public class OrderDo extends BaseDo<Long> implements DomainObj<OrderDo> {
         }
         this.modelConfigLock = true;
         this.orderState = OrderState.ARRANGE_PRODUCTION;
+        Date now = new Date();
+        this.orderStateTime = now;
+        this.lockTime = now;
         stateChange();
     }
 
