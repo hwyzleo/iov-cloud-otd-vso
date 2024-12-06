@@ -15,6 +15,7 @@
     <version>0.0.1-SNAPSHOT</version>
 
     <properties>
+        <vmd.version>0.0.1-SNAPSHOT</vmd.version>
         <vso.version>0.0.1-SNAPSHOT</vso.version>
     </properties>
 
@@ -23,6 +24,12 @@
             <groupId>net.hwyz.iov.cloud.otd</groupId>
             <artifactId>vso-api</artifactId>
             <version>${vso.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>net.hwyz.iov.cloud.tsp</groupId>
+            <artifactId>vmd-api</artifactId>
+            <version>${vmd.version}</version>
         </dependency>
 
         <!-- 框架: 异常 -->
