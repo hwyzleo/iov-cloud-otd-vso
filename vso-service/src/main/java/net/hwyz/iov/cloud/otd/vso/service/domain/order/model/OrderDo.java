@@ -190,12 +190,29 @@ public class OrderDo extends BaseDo<Long> implements DomainObj<OrderDo> {
      */
     public String getModelConfigDesc() {
         StringBuilder desc = new StringBuilder();
-        modelConfigMap.values().forEach(modelConfig -> {
-            if (desc.length() > 0) {
-                desc.append(" | ");
-            }
-            desc.append(modelConfig.getTypeName());
-        });
+        if (modelConfigMap.containsKey(SaleModelConfigType.MODEL)) {
+            desc.append(modelConfigMap.get(SaleModelConfigType.MODEL).getTypeName());
+            desc.append(" | ");
+        }
+        if (!modelConfigMap.containsKey(SaleModelConfigType.SPARE_TIRE)) {
+            desc.append(modelConfigMap.get(SaleModelConfigType.SPARE_TIRE).getTypeName());
+            desc.append(" | ");
+        }
+        if (!modelConfigMap.containsKey(SaleModelConfigType.EXTERIOR)) {
+            desc.append(modelConfigMap.get(SaleModelConfigType.EXTERIOR).getTypeName());
+            desc.append(" | ");
+        }
+        if (!modelConfigMap.containsKey(SaleModelConfigType.WHEEL)) {
+            desc.append(modelConfigMap.get(SaleModelConfigType.WHEEL).getTypeName());
+            desc.append(" | ");
+        }
+        if (!modelConfigMap.containsKey(SaleModelConfigType.INTERIOR)) {
+            desc.append(modelConfigMap.get(SaleModelConfigType.INTERIOR).getTypeName());
+            desc.append(" | ");
+        }
+        if (!modelConfigMap.containsKey(SaleModelConfigType.ADAS)) {
+            desc.append(modelConfigMap.get(SaleModelConfigType.ADAS).getTypeName());
+        }
         return desc.toString();
     }
 
