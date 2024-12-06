@@ -57,4 +57,9 @@ public class VehicleSaleOrderMpt extends BaseRequest {
      */
     private String orderPersonPhone;
 
+    /**
+     * 下单人员ID
+     */
+    private String orderPersonId;
+
 }

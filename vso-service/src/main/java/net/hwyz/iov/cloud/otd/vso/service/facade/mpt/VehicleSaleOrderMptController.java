@@ -48,7 +48,7 @@ public class VehicleSaleOrderMptController extends BaseController implements Veh
         List<OrderPo> orderPoList = vehicleSaleOrderAppService.search(vehicleSaleOrder.getOrderNum(),
                 vehicleSaleOrder.getOrderState(), getBeginTime(vehicleSaleOrder), getEndTime(vehicleSaleOrder));
         List<VehicleSaleOrderMpt> vehicleSaleOrderMptList = VehicleSaleOrderMptAssembler.INSTANCE.fromPoList(orderPoList);
-        return getDataTable(vehicleSaleOrderMptList);
+        return getDataTable(orderPoList, vehicleSaleOrderMptList);
     }
 
     /**
