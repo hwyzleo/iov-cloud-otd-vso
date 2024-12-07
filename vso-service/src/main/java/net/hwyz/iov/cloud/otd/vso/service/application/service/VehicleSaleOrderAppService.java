@@ -300,7 +300,7 @@ public class VehicleSaleOrderAppService {
             throw new OrderNotExistException(request.getOrderNum());
         }
         // TODO 调用外部商户
-        orderDo.pay();
+        orderDo.pay(request.getPaymentAmount());
         orderRepository.save(orderDo);
         return OrderPaymentResponse.builder()
                 .orderNum(orderDo.getOrderNum())

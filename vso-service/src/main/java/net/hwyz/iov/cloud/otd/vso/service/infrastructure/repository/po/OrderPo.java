@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import java.io.Serializable;
+import java.math.BigDecimal;
 import java.util.Date;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
@@ -113,10 +114,28 @@ public class OrderPo extends BasePo {
     private Integer payState;
 
     /**
+     * 意向金支付时间
+     */
+    @TableField("earnest_money_time")
+    private Date earnestMoneyTime;
+
+    /**
+     * 意向金支付金额
+     */
+    @TableField("earnest_money_amount")
+    private BigDecimal earnestMoneyAmount;
+
+    /**
      * 定金支付时间
      */
     @TableField("down_payment_time")
     private Date downPaymentTime;
+
+    /**
+     * 定金支付金额
+     */
+    @TableField("down_payment_amount")
+    private BigDecimal downPaymentAmount;
 
     /**
      * 锁单时间

@@ -24,7 +24,8 @@ public interface OrderPoAssembler {
      * @return 领域对象
      */
     @Mappings({
-            @Mapping(target="orderState", expression = "java(net.hwyz.iov.cloud.otd.vso.service.domain.contract.enums.OrderState.valOf(orderPo.getOrderState()))")
+            @Mapping(target="orderState", expression = "java(net.hwyz.iov.cloud.otd.vso.service.domain.contract.enums.OrderState.valOf(orderPo.getOrderState()))"),
+            @Mapping(target="payState", expression = "java(net.hwyz.iov.cloud.otd.vso.service.domain.contract.enums.PayState.valOf(orderPo.getPayState()))")
     })
     OrderDo toDo(OrderPo orderPo);
 
@@ -35,7 +36,8 @@ public interface OrderPoAssembler {
      * @return 数据对象
      */
     @Mappings({
-            @Mapping(target="orderState", source = "orderState.value")
+            @Mapping(target="orderState", source = "orderState.value"),
+            @Mapping(target="payState", source = "payState.value")
     })
     OrderPo fromDo(OrderDo orderDo);
 

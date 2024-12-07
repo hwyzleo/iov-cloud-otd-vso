@@ -62,4 +62,14 @@ public class VehicleSaleOrderMpt extends BaseRequest {
      */
     private String orderPersonId;
 
+    /**
+     * 定金支付时间
+     */
+    private Date downPaymentTime;
+
+    /**
+     * 锁单时间
+     */
+    private Date lockTime;
+
 }

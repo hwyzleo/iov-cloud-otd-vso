@@ -8,9 +8,11 @@ import net.hwyz.iov.cloud.framework.common.domain.BaseDo;
 import net.hwyz.iov.cloud.framework.common.domain.DomainObj;
 import net.hwyz.iov.cloud.otd.vso.api.contract.enums.SaleModelConfigType;
 import net.hwyz.iov.cloud.otd.vso.service.domain.contract.enums.OrderState;
+import net.hwyz.iov.cloud.otd.vso.service.domain.contract.enums.PayState;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.exception.OrderIllegalDeleteException;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.exception.OrderNotExistException;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.exception.OrderStateNotAllowedException;
+import net.hwyz.iov.cloud.otd.vso.service.infrastructure.exception.SaleModelConfigHasLockedException;
 
 import java.math.BigDecimal;
 import java.util.Date;
@@ -44,9 +46,25 @@ public class OrderDo extends BaseDo<Long> implements DomainObj<OrderDo> {
      */
     private Date orderTime;
     /**
+     * 支付状态
+     */
+    private PayState payState;
+    /**
+     * 意向金支付时间
+     */
+    private Date earnestMoneyTime;
+    /**
+     * 意向金支付金额
+     */
+    private BigDecimal earnestMoneyAmount;
+    /**
      * 定金支付时间
      */
     private Date downPaymentTime;
+    /**
+     * 定金支付金额
+     */
+    private BigDecimal downPaymentAmount;
     /**
      * 锁单时间
      */
@@ -170,6 +188,9 @@ public class OrderDo extends BaseDo<Long> implements DomainObj<OrderDo> {
      * @param modelConfigCode 车型配置代码
      */
     public void saveModelConfig(String modelConfigCode, Map<SaleModelConfigType, OrderModelConfigDo> modelConfigMap) {
+        if (modelConfigLock) {
+            throw new SaleModelConfigHasLockedException(orderNum);
+        }
         if (this.modelConfigCode == null || !this.modelConfigCode.equals(modelConfigCode)) {
             this.modelConfigCode = modelConfigCode;
             this.modelConfigMap = modelConfigMap;
@@ -358,12 +379,18 @@ public class OrderDo extends BaseDo<Long> implements DomainObj<OrderDo> {
 
     /**
      * 支付订单
+     *
+     * @param payAmount 支付金额
      */
-    public void pay() {
+    public void pay(BigDecimal payAmount) {
         switch (this.orderState) {
             case EARNEST_MONEY_UNPAID -> {
                 this.orderState = OrderState.EARNEST_MONEY_PAID;
-                this.orderStateTime = new Date();
+                Date now = new Date();
+                this.orderStateTime = now;
+                this.earnestMoneyTime = now;
+                this.earnestMoneyAmount = payAmount;
+                this.payState = PayState.EARNEST_MONEY_PAID;
                 stateChange();
             }
             case DOWN_PAYMENT_UNPAID -> {
@@ -371,6 +398,8 @@ public class OrderDo extends BaseDo<Long> implements DomainObj<OrderDo> {
                 Date now = new Date();
                 this.orderStateTime = now;
                 this.downPaymentTime = now;
+                this.downPaymentAmount = payAmount;
+                this.payState = PayState.DOWN_PAYMENT_PAID;
                 stateChange();
             }
             default -> throw new OrderStateNotAllowedException(this.orderNum, this.orderState, "PAY");
@@ -400,6 +429,8 @@ public class OrderDo extends BaseDo<Long> implements DomainObj<OrderDo> {
         Date now = new Date();
         this.orderStateTime = now;
         this.downPaymentTime = now;
+        this.downPaymentAmount = BigDecimal.ZERO;
+        this.payState = PayState.DOWN_PAYMENT_PAID;
         stateChange();
     }
 

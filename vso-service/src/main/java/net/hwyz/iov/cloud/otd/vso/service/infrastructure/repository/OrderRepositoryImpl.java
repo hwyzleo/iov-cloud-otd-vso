@@ -100,14 +100,16 @@ public class OrderRepositoryImpl extends AbstractRepository<String, OrderDo> imp
             }
             case CHANGED -> {
                 orderDao.updatePo(OrderPoAssembler.INSTANCE.fromDo(orderDo));
-                orderModelConfigDao.batchPhysicalDeletePoByOrderNum(orderDo.getOrderNum());
-                List<OrderModelConfigPo> orderModelConfigPoList = new ArrayList<>();
-                orderDo.getModelConfigMap().values().forEach(orderModelConfigDo -> {
-                    OrderModelConfigPo orderModelConfigPo = OrderModelConfigPoAssembler.INSTANCE.fromDo(orderModelConfigDo);
-                    orderModelConfigPo.setOrderNum(orderDo.getOrderNum());
-                    orderModelConfigPoList.add(orderModelConfigPo);
-                });
-                orderModelConfigDao.batchInsertPo(orderModelConfigPoList);
+                if (!orderDo.getModelConfigLock()) {
+                    orderModelConfigDao.batchPhysicalDeletePoByOrderNum(orderDo.getOrderNum());
+                    List<OrderModelConfigPo> orderModelConfigPoList = new ArrayList<>();
+                    orderDo.getModelConfigMap().values().forEach(orderModelConfigDo -> {
+                        OrderModelConfigPo orderModelConfigPo = OrderModelConfigPoAssembler.INSTANCE.fromDo(orderModelConfigDo);
+                        orderModelConfigPo.setOrderNum(orderDo.getOrderNum());
+                        orderModelConfigPoList.add(orderModelConfigPo);
+                    });
+                    orderModelConfigDao.batchInsertPo(orderModelConfigPoList);
+                }
             }
             case DELETED -> {
                 if (orderDo.getOrderState() == OrderState.WISHLIST) {
