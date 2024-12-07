@@ -88,4 +88,9 @@ public class VehicleSaleOrderMpt extends BaseRequest {
      */
     private Date lockTime;
 
+    /**
+     * 创建时间
+     */
+    private Date createTime;
+
 }
