@@ -3,6 +3,7 @@ package net.hwyz.iov.cloud.otd.vso.api.contract;
 import lombok.*;
 import net.hwyz.iov.cloud.framework.common.web.domain.BaseRequest;
 
+import java.math.BigDecimal;
 import java.util.Date;
 
 /**
@@ -63,9 +64,24 @@ public class VehicleSaleOrderMpt extends BaseRequest {
     private String orderPersonId;
 
     /**
+     * 意向金支付时间
+     */
+    private Date earnestMoneyTime;
+
+    /**
+     * 意向金支付金额
+     */
+    private BigDecimal earnestMoneyAmount;
+
+    /**
      * 定金支付时间
      */
     private Date downPaymentTime;
+
+    /**
+     * 定金支付金额
+     */
+    private BigDecimal downPaymentAmount;
 
     /**
      * 锁单时间
