@@ -42,7 +42,7 @@ public class VehicleSaleOrderMptController extends BaseController implements Veh
      * @param vehicleSaleOrder 车辆销售订单信息
      * @return 车辆销售订单信息列表
      */
-    @RequiresPermissions("completeVehicle:order:operation:list")
+    @RequiresPermissions("completeVehicle:order:info:list")
     @Override
     @GetMapping(value = "/list")
     public TableDataInfo list(VehicleSaleOrderMpt vehicleSaleOrder) {
