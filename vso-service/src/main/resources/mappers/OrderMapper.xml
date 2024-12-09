@@ -496,6 +496,12 @@
         <if test="orderState != null">
             AND t.order_state = #{orderState}
         </if>
+        <if test="orderStateRange != null and orderStateRange.size() >0">
+            AND t.order_state IN
+            <foreach collection="orderStateRange" item="state" open="(" separator="," close=")">
+                #{state}
+            </foreach>
+        </if>
         <if test="beginTime != null">
             and date_format(t.order_state_time,'%Y%m%d') &gt;= date_format(#{beginTime},'%Y%m%d')
         </if>

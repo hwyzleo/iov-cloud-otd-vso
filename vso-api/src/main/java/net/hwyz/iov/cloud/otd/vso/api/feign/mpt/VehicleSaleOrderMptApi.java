@@ -22,6 +22,22 @@ public interface VehicleSaleOrderMptApi {
     TableDataInfo list(VehicleSaleOrderMpt vehicleSaleOrder);
 
     /**
+     * 分页查询可改配车辆销售订单信息
+     *
+     * @param vehicleSaleOrder 车辆销售订单信息
+     * @return 车辆销售订单信息列表
+     */
+    TableDataInfo listModelConfigChangeable(VehicleSaleOrderMpt vehicleSaleOrder);
+
+    /**
+     * 分页查询可配车车辆销售订单信息
+     *
+     * @param vehicleSaleOrder 车辆销售订单信息
+     * @return 车辆销售订单信息列表
+     */
+    TableDataInfo listAssignable(VehicleSaleOrderMpt vehicleSaleOrder);
+
+    /**
      * 分配交付人员
      *
      * @param request    分配交付人员请求

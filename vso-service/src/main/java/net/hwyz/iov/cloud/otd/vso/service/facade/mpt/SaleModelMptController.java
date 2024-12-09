@@ -42,7 +42,7 @@ public class SaleModelMptController extends BaseController implements SaleModelM
      * @param saleModel 销售车型信息
      * @return 销售车型信息列表
      */
-    @RequiresPermissions("vehicle:product:saleModel:list")
+    @RequiresPermissions("completeVehicle:product:saleModel:list")
     @Override
     @GetMapping(value = "/list")
     public TableDataInfo list(SaleModelMpt saleModel) {
@@ -61,7 +61,7 @@ public class SaleModelMptController extends BaseController implements SaleModelM
      * @param saleModel 销售车型信息
      */
     @Log(title = "销售车型管理", businessType = BusinessType.EXPORT)
-    @RequiresPermissions("vehicle:product:saleModel:export")
+    @RequiresPermissions("completeVehicle:product:saleModel:export")
     @Override
     @PostMapping("/export")
     public void export(HttpServletResponse response, SaleModelMpt saleModel) {
@@ -74,7 +74,7 @@ public class SaleModelMptController extends BaseController implements SaleModelM
      * @param saleModelId 销售车型ID
      * @return 销售车型信息
      */
-    @RequiresPermissions("vehicle:product:saleModel:query")
+    @RequiresPermissions("completeVehicle:product:saleModel:query")
     @Override
     @GetMapping(value = "/{saleModelId}")
     public AjaxResult getInfo(@PathVariable Long saleModelId) {
@@ -89,7 +89,7 @@ public class SaleModelMptController extends BaseController implements SaleModelM
      * @param saleModelId 销售车型ID
      * @return 销售车型配置信息列表
      */
-    @RequiresPermissions("vehicle:product:saleModel:query")
+    @RequiresPermissions("completeVehicle:product:saleModel:query")
     @Override
     @GetMapping(value = "/{saleModelId}/config")
     public TableDataInfo listConfigBySaleCode(@PathVariable Long saleModelId) {
@@ -106,7 +106,7 @@ public class SaleModelMptController extends BaseController implements SaleModelM
      * @param saleModelConfigId 销售车型配置ID
      * @return 销售车型配置信息
      */
-    @RequiresPermissions("vehicle:product:saleModel:query")
+    @RequiresPermissions("completeVehicle:product:saleModel:query")
     @Override
     @GetMapping(value = "/{saleModelId}/config/{saleModelConfigId}")
     public AjaxResult getConfig(@PathVariable Long saleModelId, @PathVariable Long saleModelConfigId) {
@@ -122,7 +122,7 @@ public class SaleModelMptController extends BaseController implements SaleModelM
      * @return 结果
      */
     @Log(title = "销售车型管理", businessType = BusinessType.INSERT)
-    @RequiresPermissions("vehicle:product:saleModel:add")
+    @RequiresPermissions("completeVehicle:product:saleModel:add")
     @Override
     @PostMapping
     public AjaxResult add(@Validated @RequestBody SaleModelMpt saleModel) {
@@ -143,7 +143,7 @@ public class SaleModelMptController extends BaseController implements SaleModelM
      * @return 结果
      */
     @Log(title = "销售车型管理", businessType = BusinessType.UPDATE)
-    @RequiresPermissions("vehicle:product:saleModel:edit")
+    @RequiresPermissions("completeVehicle:product:saleModel:edit")
     @Override
     @PostMapping("/{saleModelId}/config")
     public AjaxResult addConfig(@PathVariable Long saleModelId, @Validated @RequestBody SaleModelConfigMpt saleModelConfig) {
@@ -160,7 +160,7 @@ public class SaleModelMptController extends BaseController implements SaleModelM
      * @return 结果
      */
     @Log(title = "销售车型管理", businessType = BusinessType.UPDATE)
-    @RequiresPermissions("vehicle:product:saleModel:edit")
+    @RequiresPermissions("completeVehicle:product:saleModel:edit")
     @Override
     @PutMapping
     public AjaxResult edit(@Validated @RequestBody SaleModelMpt saleModel) {
@@ -181,7 +181,7 @@ public class SaleModelMptController extends BaseController implements SaleModelM
      * @return 结果
      */
     @Log(title = "销售车型管理", businessType = BusinessType.UPDATE)
-    @RequiresPermissions("vehicle:product:saleModel:edit")
+    @RequiresPermissions("completeVehicle:product:saleModel:edit")
     @Override
     @PutMapping("/{saleModelId}/config")
     public AjaxResult editConfig(@PathVariable Long saleModelId, @Validated @RequestBody SaleModelConfigMpt saleModelConfig) {
@@ -198,7 +198,7 @@ public class SaleModelMptController extends BaseController implements SaleModelM
      * @return 结果
      */
     @Log(title = "销售车型管理", businessType = BusinessType.UPDATE)
-    @RequiresPermissions("vehicle:product:saleModel:edit")
+    @RequiresPermissions("completeVehicle:product:saleModel:edit")
     @Override
     @PutMapping("/images")
     public AjaxResult editImages(@Validated @RequestBody SaleModelMpt saleModel) {
@@ -218,7 +218,7 @@ public class SaleModelMptController extends BaseController implements SaleModelM
      * @return 结果
      */
     @Log(title = "销售车型管理", businessType = BusinessType.DELETE)
-    @RequiresPermissions("vehicle:product:saleModel:remove")
+    @RequiresPermissions("completeVehicle:product:saleModel:remove")
     @Override
     @DeleteMapping("/{saleModelIds}")
     public AjaxResult remove(@PathVariable Long[] saleModelIds) {
@@ -234,7 +234,7 @@ public class SaleModelMptController extends BaseController implements SaleModelM
      * @return 结果
      */
     @Log(title = "销售车型管理", businessType = BusinessType.UPDATE)
-    @RequiresPermissions("vehicle:product:saleModel:edit")
+    @RequiresPermissions("completeVehicle:product:saleModel:edit")
     @Override
     @DeleteMapping("/{saleModelId}/config/{saleModelConfigIds}")
     public AjaxResult remove(@PathVariable Long saleModelId, @PathVariable Long[] saleModelConfigIds) {

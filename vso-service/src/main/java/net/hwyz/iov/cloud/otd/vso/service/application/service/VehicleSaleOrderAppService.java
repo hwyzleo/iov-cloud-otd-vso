@@ -13,6 +13,7 @@ import net.hwyz.iov.cloud.otd.vso.api.contract.request.*;
 import net.hwyz.iov.cloud.otd.vso.api.contract.response.OrderPaymentResponse;
 import net.hwyz.iov.cloud.otd.vso.api.contract.response.OrderResponse;
 import net.hwyz.iov.cloud.otd.vso.api.contract.response.WishlistResponse;
+import net.hwyz.iov.cloud.otd.vso.service.domain.contract.enums.OrderState;
 import net.hwyz.iov.cloud.otd.vso.service.domain.factory.OrderFactory;
 import net.hwyz.iov.cloud.otd.vso.service.domain.order.model.OrderDo;
 import net.hwyz.iov.cloud.otd.vso.service.domain.order.model.OrderModelConfigDo;
@@ -51,16 +52,22 @@ public class VehicleSaleOrderAppService {
     /**
      * 查询车辆销售订单信息
      *
-     * @param orderNum   订单号
-     * @param orderState 订单状态
-     * @param beginTime  开始时间
-     * @param endTime    结束时间
+     * @param orderNum        订单号
+     * @param orderState      订单状态
+     * @param orderStateRange 订单状态范围
+     * @param beginTime       开始时间
+     * @param endTime         结束时间
      * @return 销售车型列表
      */
-    public List<OrderPo> search(String orderNum, Integer orderState, Date beginTime, Date endTime) {
+    public List<OrderPo> search(String orderNum, Integer orderState, List<OrderState> orderStateRange, Date beginTime,
+                                Date endTime) {
         Map<String, Object> map = new HashMap<>();
         map.put("orderNum", orderNum);
         map.put("orderState", orderState);
+        if (orderStateRange != null && !orderStateRange.isEmpty()) {
+            List<Integer> list = orderStateRange.stream().map(state -> state.value).toList();
+            map.put("orderStateRange", list);
+        }
         map.put("beginTime", beginTime);
         map.put("endTime", endTime);
         return orderDao.selectPoByMap(map);

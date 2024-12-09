@@ -1,5 +1,6 @@
 package net.hwyz.iov.cloud.otd.vso.service.facade.mpt;
 
+import cn.hutool.core.collection.ListUtil;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -14,10 +15,12 @@ import net.hwyz.iov.cloud.otd.vso.api.contract.request.AssignDeliveryPersonReque
 import net.hwyz.iov.cloud.otd.vso.api.contract.request.AssignVehicleRequest;
 import net.hwyz.iov.cloud.otd.vso.api.feign.mpt.VehicleSaleOrderMptApi;
 import net.hwyz.iov.cloud.otd.vso.service.application.service.VehicleSaleOrderAppService;
+import net.hwyz.iov.cloud.otd.vso.service.domain.contract.enums.OrderState;
 import net.hwyz.iov.cloud.otd.vso.service.facade.assembler.VehicleSaleOrderMptAssembler;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository.po.OrderPo;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -39,14 +42,56 @@ public class VehicleSaleOrderMptController extends BaseController implements Veh
      * @param vehicleSaleOrder 车辆销售订单信息
      * @return 车辆销售订单信息列表
      */
-    @RequiresPermissions("otd:vehicleSaleOrder:list")
+    @RequiresPermissions("completeVehicle:order:operation:list")
     @Override
     @GetMapping(value = "/list")
     public TableDataInfo list(VehicleSaleOrderMpt vehicleSaleOrder) {
         logger.info("管理后台用户[{}]分页查询车辆销售订单信息", SecurityUtils.getUsername());
         startPage();
         List<OrderPo> orderPoList = vehicleSaleOrderAppService.search(vehicleSaleOrder.getOrderNum(),
-                vehicleSaleOrder.getOrderState(), getBeginTime(vehicleSaleOrder), getEndTime(vehicleSaleOrder));
+                vehicleSaleOrder.getOrderState(), null, getBeginTime(vehicleSaleOrder), getEndTime(vehicleSaleOrder));
+        List<VehicleSaleOrderMpt> vehicleSaleOrderMptList = VehicleSaleOrderMptAssembler.INSTANCE.fromPoList(orderPoList);
+        return getDataTable(orderPoList, vehicleSaleOrderMptList);
+    }
+
+    /**
+     * 分页查询可改配车辆销售订单信息
+     *
+     * @param vehicleSaleOrder 车辆销售订单信息
+     * @return 车辆销售订单信息列表
+     */
+    @RequiresPermissions("completeVehicle:order:changeModel:list")
+    @Override
+    @GetMapping(value = "/listModelConfigChangeable")
+    public TableDataInfo listModelConfigChangeable(VehicleSaleOrderMpt vehicleSaleOrder) {
+        logger.info("管理后台用户[{}]分页查询可改配车辆销售订单信息", SecurityUtils.getUsername());
+        List<OrderState> orderStateRange = new ArrayList<>();
+        orderStateRange.add(OrderState.EARNEST_MONEY_PAID);
+        orderStateRange.add(OrderState.DOWN_PAYMENT_PAID);
+        orderStateRange.add(OrderState.ARRANGE_PRODUCTION);
+        startPage();
+        List<OrderPo> orderPoList = vehicleSaleOrderAppService.search(vehicleSaleOrder.getOrderNum(),
+                vehicleSaleOrder.getOrderState(), orderStateRange, getBeginTime(vehicleSaleOrder), getEndTime(vehicleSaleOrder));
+        List<VehicleSaleOrderMpt> vehicleSaleOrderMptList = VehicleSaleOrderMptAssembler.INSTANCE.fromPoList(orderPoList);
+        return getDataTable(orderPoList, vehicleSaleOrderMptList);
+    }
+
+    /**
+     * 分页查询可配车车辆销售订单信息
+     *
+     * @param vehicleSaleOrder 车辆销售订单信息
+     * @return 车辆销售订单信息列表
+     */
+    @RequiresPermissions("completeVehicle:order:assignVehicle:list")
+    @Override
+    @GetMapping(value = "/listAssignable")
+    public TableDataInfo listAssignable(VehicleSaleOrderMpt vehicleSaleOrder) {
+        logger.info("管理后台用户[{}]分页查询可配车车辆销售订单信息", SecurityUtils.getUsername());
+        List<OrderState> orderStateRange = new ArrayList<>();
+        orderStateRange.add(OrderState.ARRANGE_PRODUCTION);
+        startPage();
+        List<OrderPo> orderPoList = vehicleSaleOrderAppService.search(vehicleSaleOrder.getOrderNum(),
+                vehicleSaleOrder.getOrderState(), orderStateRange, getBeginTime(vehicleSaleOrder), getEndTime(vehicleSaleOrder));
         List<VehicleSaleOrderMpt> vehicleSaleOrderMptList = VehicleSaleOrderMptAssembler.INSTANCE.fromPoList(orderPoList);
         return getDataTable(orderPoList, vehicleSaleOrderMptList);
     }
