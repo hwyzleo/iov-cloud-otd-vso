@@ -51,7 +51,7 @@ public class SaleModelMptController extends BaseController implements SaleModelM
         List<SaleModelPo> saleModelPoList = saleModelAppService.search(saleModel.getSaleCode(), saleModel.getModelName(),
                 getBeginTime(saleModel), getEndTime(saleModel));
         List<SaleModelMpt> saleModelMptList = SaleModelMptAssembler.INSTANCE.fromPoList(saleModelPoList);
-        return getDataTable(saleModelMptList);
+        return getDataTable(saleModelPoList, saleModelMptList);
     }
 
     /**

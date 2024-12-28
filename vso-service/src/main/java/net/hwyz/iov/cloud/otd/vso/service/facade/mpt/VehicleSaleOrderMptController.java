@@ -115,8 +115,8 @@ public class VehicleSaleOrderMptController extends BaseController implements Veh
      */
     @Override
     @PostMapping("/order/action/assignVehicle")
-    public void assignVehicle(@RequestBody @Valid AssignVehicleRequest request, @RequestHeader(required = false) MptAccount mptAccount) {
-        logger.info("管理后台用户[{}]分配车辆", ParamHelper.getMptAccountInfo(mptAccount));
+    public void assignVehicle(@RequestBody @Valid AssignVehicleRequest request) {
+        logger.info("管理后台用户[{}]分配车辆[{}]到订单[{}]", SecurityUtils.getUsername(), request.getVin(), request.getOrderNum());
         vehicleSaleOrderAppService.assignVehicle(request.getOrderNum(), request);
     }
 

@@ -28,7 +28,11 @@ import net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository.po.OrderPo;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository.po.SaleModelConfigPo;
 import net.hwyz.iov.cloud.tsp.account.api.contract.Account;
 import net.hwyz.iov.cloud.tsp.account.api.feign.service.ExAccountService;
+import net.hwyz.iov.cloud.tsp.vmd.api.contract.VehicleOrderExService;
+import net.hwyz.iov.cloud.tsp.vmd.api.feign.service.ExVehicleService;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
 
@@ -45,6 +49,7 @@ public class VehicleSaleOrderAppService {
     private final OrderDao orderDao;
     private final OrderFactory orderFactory;
     private final ExAccountService accountService;
+    private final ExVehicleService vehicleService;
     private final OrderRepository orderRepository;
     private final OrderModelConfigDao orderModelConfigDao;
     private final SaleModelAppService saleModelAppService;
@@ -385,6 +390,7 @@ public class VehicleSaleOrderAppService {
      * @param orderNum 订单编号
      * @param request  分配车辆请求
      */
+    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
     public void assignVehicle(String orderNum, AssignVehicleRequest request) {
         OrderDo orderDo = orderRepository.get(orderNum);
         if (orderDo == null) {
@@ -392,6 +398,11 @@ public class VehicleSaleOrderAppService {
         }
         orderDo.saveDeliveryVehicle(request.getVin());
         orderRepository.save(orderDo);
+        vehicleService.bindOrder(request.getVin(),
+                VehicleOrderExService.builder()
+                        .vin(request.getVin())
+                        .orderNum(request.getOrderNum())
+                        .build());
     }
 
     /**

@@ -49,8 +49,7 @@ public interface VehicleSaleOrderMptApi {
      * 分配车辆
      *
      * @param request    分配车辆请求
-     * @param mptAccount 管理后台用户
      */
-    void assignVehicle(AssignVehicleRequest request, MptAccount mptAccount);
+    void assignVehicle(AssignVehicleRequest request);
 
 }
