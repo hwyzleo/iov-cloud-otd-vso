@@ -6,13 +6,16 @@ import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import net.hwyz.iov.cloud.framework.common.enums.ClientType;
 import net.hwyz.iov.cloud.framework.common.enums.Symbol;
+import net.hwyz.iov.cloud.framework.security.util.SecurityUtils;
 import net.hwyz.iov.cloud.otd.vso.api.contract.Order;
 import net.hwyz.iov.cloud.otd.vso.api.contract.enums.SaleModelConfigType;
 import net.hwyz.iov.cloud.otd.vso.api.contract.request.*;
 import net.hwyz.iov.cloud.otd.vso.api.contract.response.OrderPaymentResponse;
 import net.hwyz.iov.cloud.otd.vso.api.contract.response.OrderResponse;
 import net.hwyz.iov.cloud.otd.vso.api.contract.response.WishlistResponse;
+import net.hwyz.iov.cloud.otd.vso.service.domain.contract.enums.OrderOperate;
 import net.hwyz.iov.cloud.otd.vso.service.domain.contract.enums.OrderState;
 import net.hwyz.iov.cloud.otd.vso.service.domain.factory.OrderFactory;
 import net.hwyz.iov.cloud.otd.vso.service.domain.order.model.OrderDo;
@@ -22,7 +25,9 @@ import net.hwyz.iov.cloud.otd.vso.service.infrastructure.exception.AccountNotExi
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.exception.OrderNotExistException;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.exception.SaleModelConfigTypeCodeNotExistException;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository.dao.OrderDao;
+import net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository.dao.OrderLogDao;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository.dao.OrderModelConfigDao;
+import net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository.po.OrderLogPo;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository.po.OrderModelConfigPo;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository.po.OrderPo;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository.po.SaleModelConfigPo;
@@ -47,6 +52,7 @@ import java.util.*;
 public class VehicleSaleOrderAppService {
 
     private final OrderDao orderDao;
+    private final OrderLogDao orderLogDao;
     private final OrderFactory orderFactory;
     private final ExAccountService accountService;
     private final ExVehicleService vehicleService;
@@ -193,6 +199,7 @@ public class VehicleSaleOrderAppService {
      * @param request   意向金下单请求
      * @return 订单编号
      */
+    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
     public String earnestMoneyOrder(String accountId, EarnestMoneyOrderRequest request) {
         OrderDo orderDo = null;
         if (StrUtil.isNotBlank(request.getOrderNum())) {
@@ -213,6 +220,7 @@ public class VehicleSaleOrderAppService {
         orderDo.saveModelConfig(modelConfigCode, getOrderModelConfigMap(request.getSaleCode(), request.getSaleModelConfigType()));
         orderDo.saveLicenseCity(request.getLicenseCityCode());
         orderRepository.save(orderDo);
+        recordOrderLog(orderDo.getOrderNum(), ClientType.MP, accountId, OrderOperate.ORDER_CREATE, "新增订单：" + orderDo.getOrderNum());
         return orderDo.getOrderNum();
     }
 
@@ -223,6 +231,7 @@ public class VehicleSaleOrderAppService {
      * @param request   定金下单请求
      * @return 订单编号
      */
+    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
     public String downPaymentOrder(String accountId, DownPaymentOrderRequest request) {
         OrderDo orderDo = null;
         if (StrUtil.isNotBlank(request.getOrderNum())) {
@@ -248,6 +257,7 @@ public class VehicleSaleOrderAppService {
         orderDo.saveDealership(request.getDealership());
         orderDo.saveDeliveryCenter(request.getDeliveryCenter());
         orderRepository.save(orderDo);
+        recordOrderLog(orderDo.getOrderNum(), ClientType.MP, accountId, OrderOperate.ORDER_CREATE, "新增订单：" + orderDo.getOrderNum());
         return orderDo.getOrderNum();
     }
 
@@ -291,6 +301,7 @@ public class VehicleSaleOrderAppService {
      * @param accountId 账号ID
      * @param orderNum  订单编号
      */
+    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
     public void cancel(String accountId, String orderNum) {
         OrderDo orderDo = orderRepository.get(accountId, orderNum);
         if (orderDo == null) {
@@ -298,6 +309,7 @@ public class VehicleSaleOrderAppService {
         }
         orderDo.cancel();
         orderRepository.save(orderDo);
+        recordOrderLog(orderDo.getOrderNum(), ClientType.MP, accountId, OrderOperate.ORDER_CANCEL);
     }
 
     /**
@@ -306,6 +318,7 @@ public class VehicleSaleOrderAppService {
      * @param accountId 账号ID
      * @param request   支付订单请求
      */
+    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
     public OrderPaymentResponse pay(String accountId, OrderPaymentRequest request) {
         OrderDo orderDo = orderRepository.get(accountId, request.getOrderNum());
         if (orderDo == null) {
@@ -314,6 +327,7 @@ public class VehicleSaleOrderAppService {
         // TODO 调用外部商户
         orderDo.pay(request.getPaymentAmount());
         orderRepository.save(orderDo);
+        recordOrderLog(orderDo.getOrderNum(), ClientType.MP, accountId, OrderOperate.ORDER_PAY);
         return OrderPaymentResponse.builder()
                 .orderNum(orderDo.getOrderNum())
                 .paymentMerchant("TEST")
@@ -330,6 +344,7 @@ public class VehicleSaleOrderAppService {
      * @param accountId 账号ID
      * @param orderNum  订单编号
      */
+    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
     public void requestRefund(String accountId, String orderNum) {
         OrderDo orderDo = orderRepository.get(accountId, orderNum);
         if (orderDo == null) {
@@ -337,6 +352,7 @@ public class VehicleSaleOrderAppService {
         }
         orderDo.requestRefund();
         orderRepository.save(orderDo);
+        recordOrderLog(orderDo.getOrderNum(), ClientType.MP, accountId, OrderOperate.APPLY_REFUND);
     }
 
     /**
@@ -345,6 +361,7 @@ public class VehicleSaleOrderAppService {
      * @param accountId 账号ID
      * @param orderNum  订单编号
      */
+    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
     public void earnestMoneyToDownPayment(String accountId, String orderNum) {
         OrderDo orderDo = orderRepository.get(accountId, orderNum);
         if (orderDo == null) {
@@ -352,6 +369,7 @@ public class VehicleSaleOrderAppService {
         }
         orderDo.earnestMoneyToDownPayment();
         orderRepository.save(orderDo);
+        recordOrderLog(orderDo.getOrderNum(), ClientType.MP, accountId, OrderOperate.EARNEST_MONEY_TO_DOWN_PAYMENT);
     }
 
     /**
@@ -360,6 +378,7 @@ public class VehicleSaleOrderAppService {
      * @param accountId 账号ID
      * @param orderNum  订单编号
      */
+    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
     public void lock(String accountId, String orderNum) {
         OrderDo orderDo = orderRepository.get(accountId, orderNum);
         if (orderDo == null) {
@@ -367,6 +386,7 @@ public class VehicleSaleOrderAppService {
         }
         orderDo.lock();
         orderRepository.save(orderDo);
+        recordOrderLog(orderDo.getOrderNum(), ClientType.MP, accountId, OrderOperate.ORDER_LOCK);
     }
 
     /**
@@ -375,6 +395,7 @@ public class VehicleSaleOrderAppService {
      * @param orderNum 订单编号
      * @param request  分配交付人员请求
      */
+    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
     public void assignDeliveryPerson(String orderNum, AssignDeliveryPersonRequest request) {
         OrderDo orderDo = orderRepository.get(orderNum);
         if (orderDo == null) {
@@ -382,6 +403,7 @@ public class VehicleSaleOrderAppService {
         }
         orderDo.saveDeliveryPerson(request.getDeliveryPersonId(), request.getDeliveryPersonName());
         orderRepository.save(orderDo);
+        recordOrderLog(orderDo.getOrderNum(), ClientType.MPT, OrderOperate.ASSIGN_DELIVERY_PERSON, "分配交付人员：" + request.getDeliveryPersonName());
     }
 
     /**
@@ -403,6 +425,7 @@ public class VehicleSaleOrderAppService {
                         .vin(request.getVin())
                         .orderNum(request.getOrderNum())
                         .build());
+        recordOrderLog(orderDo.getOrderNum(), ClientType.MPT, OrderOperate.ASSIGN_VEHICLE, "分配车辆：" + request.getVin());
     }
 
     /**
@@ -410,6 +433,7 @@ public class VehicleSaleOrderAppService {
      *
      * @param orderNum 订单编号
      */
+    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
     public void prepareTransport(String orderNum) {
         OrderDo orderDo = orderRepository.get(orderNum);
         if (orderDo == null) {
@@ -417,6 +441,7 @@ public class VehicleSaleOrderAppService {
         }
         orderDo.prepareTransport();
         orderRepository.save(orderDo);
+        recordOrderLog(orderDo.getOrderNum(), ClientType.MPT, OrderOperate.PREPARE_TRANSPORT);
     }
 
     /**
@@ -424,6 +449,7 @@ public class VehicleSaleOrderAppService {
      *
      * @param orderNum 订单编号
      */
+    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
     public void transporting(String orderNum) {
         OrderDo orderDo = orderRepository.get(orderNum);
         if (orderDo == null) {
@@ -431,6 +457,7 @@ public class VehicleSaleOrderAppService {
         }
         orderDo.transporting();
         orderRepository.save(orderDo);
+        recordOrderLog(orderDo.getOrderNum(), ClientType.MPT, OrderOperate.TRANSPORTING);
     }
 
     /**
@@ -438,6 +465,7 @@ public class VehicleSaleOrderAppService {
      *
      * @param orderNum 订单编号
      */
+    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
     public void prepareDelivery(String orderNum) {
         OrderDo orderDo = orderRepository.get(orderNum);
         if (orderDo == null) {
@@ -445,6 +473,7 @@ public class VehicleSaleOrderAppService {
         }
         orderDo.prepareDelivery();
         orderRepository.save(orderDo);
+        recordOrderLog(orderDo.getOrderNum(), ClientType.MPT, OrderOperate.PREPARE_DELIVERY);
     }
 
     /**
@@ -452,6 +481,7 @@ public class VehicleSaleOrderAppService {
      *
      * @param orderNum 订单编号
      */
+    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
     public void delivered(String orderNum) {
         OrderDo orderDo = orderRepository.get(orderNum);
         if (orderDo == null) {
@@ -459,6 +489,7 @@ public class VehicleSaleOrderAppService {
         }
         orderDo.delivered();
         orderRepository.save(orderDo);
+        recordOrderLog(orderDo.getOrderNum(), ClientType.MPT, OrderOperate.DELIVERED);
     }
 
     /**
@@ -466,6 +497,7 @@ public class VehicleSaleOrderAppService {
      *
      * @param orderNum 订单编号
      */
+    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
     public void activate(String orderNum) {
         OrderDo orderDo = orderRepository.get(orderNum);
         if (orderDo == null) {
@@ -473,6 +505,7 @@ public class VehicleSaleOrderAppService {
         }
         orderDo.activate();
         orderRepository.save(orderDo);
+        recordOrderLog(orderDo.getOrderNum(), ClientType.MPT, OrderOperate.VEHICLE_ACTIVATE);
     }
 
     /**
@@ -554,6 +587,83 @@ public class VehicleSaleOrderAppService {
             }
         }
         return false;
+    }
+
+    /**
+     * 记录订单日志
+     *
+     * @param orderNum     订单号
+     * @param clientType   客户端类型
+     * @param orderOperate 操作类型
+     */
+    private void recordOrderLog(String orderNum, ClientType clientType, OrderOperate orderOperate) {
+        recordOrderLog(orderNum, clientType, null, null, orderOperate, null);
+    }
+
+    /**
+     * 记录订单日志
+     *
+     * @param orderNum     订单号
+     * @param clientType   客户端类型
+     * @param orderOperate 操作类型
+     * @param operateDesc  操作描述
+     */
+    private void recordOrderLog(String orderNum, ClientType clientType, OrderOperate orderOperate, String operateDesc) {
+        recordOrderLog(orderNum, clientType, null, null, orderOperate, operateDesc);
+    }
+
+    /**
+     * 记录订单日志
+     *
+     * @param orderNum     订单号
+     * @param clientType   客户端类型
+     * @param accountId    账号ID
+     * @param orderOperate 操作类型
+     */
+    private void recordOrderLog(String orderNum, ClientType clientType, String accountId, OrderOperate orderOperate) {
+        recordOrderLog(orderNum, clientType, accountId, null, orderOperate, null);
+    }
+
+    /**
+     * 记录订单日志
+     *
+     * @param orderNum     订单号
+     * @param clientType   客户端类型
+     * @param accountId    账号ID
+     * @param orderOperate 操作类型
+     * @param operateDesc  操作描述
+     */
+    private void recordOrderLog(String orderNum, ClientType clientType, String accountId, OrderOperate orderOperate,
+                                String operateDesc) {
+        recordOrderLog(orderNum, clientType, accountId, null, orderOperate, operateDesc);
+    }
+
+    /**
+     * 记录订单日志
+     *
+     * @param orderNum     订单号
+     * @param clientType   客户端类型
+     * @param accountId    账号ID
+     * @param operator     操作者
+     * @param orderOperate 操作类型
+     * @param operateDesc  操作描述
+     */
+    private void recordOrderLog(String orderNum, ClientType clientType, String accountId, String operator,
+                                OrderOperate orderOperate, String operateDesc) {
+        if (clientType == ClientType.MPT) {
+            accountId = SecurityUtils.getUserId().toString();
+            operator = SecurityUtils.getUsername();
+        }
+        OrderLogPo orderLogPo = OrderLogPo.builder()
+                .orderNum(orderNum)
+                .operateClient(clientType.name())
+                .accountId(accountId)
+                .operator(operator)
+                .operateType(orderOperate.name())
+                .operateDesc(operateDesc)
+                .operateTime(new Date())
+                .build();
+        orderLogDao.insertPo(orderLogPo);
     }
 
 }

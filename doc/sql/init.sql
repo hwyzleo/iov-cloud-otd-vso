@@ -163,6 +163,29 @@ CREATE TABLE `db_vso`.`tb_order`
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4 COMMENT ='车辆销售订单';
 
+DROP TABLE IF EXISTS `db_vso`.`tb_order_log`;
+CREATE TABLE `db_vso`.`tb_order_log`
+(
+    `id`             BIGINT       NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `order_num`      VARCHAR(50)  NOT NULL COMMENT '订单编码',
+    `operate_client` VARCHAR(255) NOT NULL COMMENT '操作终端',
+    `account_id`     VARCHAR(64)  NOT NULL COMMENT '操作者ID',
+    `operator`       VARCHAR(255)          DEFAULT NULL COMMENT '操作者',
+    `operate_type`   VARCHAR(255) NOT NULL COMMENT '操作类型',
+    `operate_desc`   VARCHAR(2000)         DEFAULT NULL COMMENT '操作描述',
+    `operate_time`   TIMESTAMP    NOT NULL COMMENT '操作时间',
+    `description`    VARCHAR(255)          DEFAULT NULL COMMENT '备注',
+    `create_time`    TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `create_by`      BIGINT                DEFAULT NULL COMMENT '创建者',
+    `modify_time`    TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '修改时间',
+    `modify_by`      BIGINT                DEFAULT NULL COMMENT '修改者',
+    `row_version`    INT                   DEFAULT NULL COMMENT '记录版本',
+    `row_valid`      TINYINT               DEFAULT NULL COMMENT '是否有效',
+    PRIMARY KEY (`id`),
+    KEY `idx_order_num` (`order_num`) USING BTREE
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4 COMMENT ='车辆销售订单日志';
+
 DROP TABLE IF EXISTS `db_vso`.`tb_order_model_config`;
 CREATE TABLE `db_vso`.`tb_order_model_config`
 (
