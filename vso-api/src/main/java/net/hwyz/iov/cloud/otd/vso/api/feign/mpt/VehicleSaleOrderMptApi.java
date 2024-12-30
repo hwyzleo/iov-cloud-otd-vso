@@ -30,6 +30,14 @@ public interface VehicleSaleOrderMptApi {
     TableDataInfo listModelConfigChangeable(VehicleSaleOrderMpt vehicleSaleOrder);
 
     /**
+     * 分页查询没有交付人员的车辆销售订单信息
+     *
+     * @param vehicleSaleOrder 车辆销售订单信息
+     * @return 车辆销售订单信息列表
+     */
+    TableDataInfo listWithoutDeliveryPerson(VehicleSaleOrderMpt vehicleSaleOrder);
+
+    /**
      * 分页查询可配车车辆销售订单信息
      *
      * @param vehicleSaleOrder 车辆销售订单信息
@@ -48,7 +56,7 @@ public interface VehicleSaleOrderMptApi {
     /**
      * 分配车辆
      *
-     * @param request    分配车辆请求
+     * @param request 分配车辆请求
      */
     void assignVehicle(AssignVehicleRequest request);
 

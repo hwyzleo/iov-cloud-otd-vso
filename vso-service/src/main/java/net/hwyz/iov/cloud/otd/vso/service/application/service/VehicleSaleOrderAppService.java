@@ -63,15 +63,16 @@ public class VehicleSaleOrderAppService {
     /**
      * 查询车辆销售订单信息
      *
-     * @param orderNum        订单号
-     * @param orderState      订单状态
-     * @param orderStateRange 订单状态范围
-     * @param beginTime       开始时间
-     * @param endTime         结束时间
+     * @param orderNum          订单号
+     * @param orderState        订单状态
+     * @param orderStateRange   订单状态范围
+     * @param hasDeliveryPerson 是否有交付人员
+     * @param beginTime         开始时间
+     * @param endTime           结束时间
      * @return 销售车型列表
      */
-    public List<OrderPo> search(String orderNum, Integer orderState, List<OrderState> orderStateRange, Date beginTime,
-                                Date endTime) {
+    public List<OrderPo> search(String orderNum, Integer orderState, List<OrderState> orderStateRange, Boolean hasDeliveryPerson,
+                                Date beginTime, Date endTime) {
         Map<String, Object> map = new HashMap<>();
         map.put("orderNum", orderNum);
         map.put("orderState", orderState);
@@ -79,6 +80,7 @@ public class VehicleSaleOrderAppService {
             List<Integer> list = orderStateRange.stream().map(state -> state.value).toList();
             map.put("orderStateRange", list);
         }
+        map.put("hasDeliveryPerson", hasDeliveryPerson);
         map.put("beginTime", beginTime);
         map.put("endTime", endTime);
         return orderDao.selectPoByMap(map);

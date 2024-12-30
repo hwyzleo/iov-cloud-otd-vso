@@ -49,7 +49,8 @@ public class VehicleSaleOrderMptController extends BaseController implements Veh
         logger.info("管理后台用户[{}]分页查询车辆销售订单信息", SecurityUtils.getUsername());
         startPage();
         List<OrderPo> orderPoList = vehicleSaleOrderAppService.search(vehicleSaleOrder.getOrderNum(),
-                vehicleSaleOrder.getOrderState(), null, getBeginTime(vehicleSaleOrder), getEndTime(vehicleSaleOrder));
+                vehicleSaleOrder.getOrderState(), null, null, getBeginTime(vehicleSaleOrder),
+                getEndTime(vehicleSaleOrder));
         List<VehicleSaleOrderMpt> vehicleSaleOrderMptList = VehicleSaleOrderMptAssembler.INSTANCE.fromPoList(orderPoList);
         return getDataTable(orderPoList, vehicleSaleOrderMptList);
     }
@@ -71,7 +72,27 @@ public class VehicleSaleOrderMptController extends BaseController implements Veh
         orderStateRange.add(OrderState.ARRANGE_PRODUCTION);
         startPage();
         List<OrderPo> orderPoList = vehicleSaleOrderAppService.search(vehicleSaleOrder.getOrderNum(),
-                vehicleSaleOrder.getOrderState(), orderStateRange, getBeginTime(vehicleSaleOrder), getEndTime(vehicleSaleOrder));
+                vehicleSaleOrder.getOrderState(), orderStateRange, null, getBeginTime(vehicleSaleOrder),
+                getEndTime(vehicleSaleOrder));
+        List<VehicleSaleOrderMpt> vehicleSaleOrderMptList = VehicleSaleOrderMptAssembler.INSTANCE.fromPoList(orderPoList);
+        return getDataTable(orderPoList, vehicleSaleOrderMptList);
+    }
+
+    /**
+     * 分页查询没有交付人员的车辆销售订单信息
+     *
+     * @param vehicleSaleOrder 车辆销售订单信息
+     * @return 车辆销售订单信息列表
+     */
+    @RequiresPermissions("completeVehicle:order:assignDeliveryPerson:list")
+    @Override
+    @GetMapping(value = "/listWithoutDeliveryPerson")
+    public TableDataInfo listWithoutDeliveryPerson(VehicleSaleOrderMpt vehicleSaleOrder) {
+        logger.info("管理后台用户[{}]分页查询没有交付人员的车辆销售订单信息", SecurityUtils.getUsername());
+        startPage();
+        List<OrderPo> orderPoList = vehicleSaleOrderAppService.search(vehicleSaleOrder.getOrderNum(),
+                vehicleSaleOrder.getOrderState(), null, false, getBeginTime(vehicleSaleOrder),
+                getEndTime(vehicleSaleOrder));
         List<VehicleSaleOrderMpt> vehicleSaleOrderMptList = VehicleSaleOrderMptAssembler.INSTANCE.fromPoList(orderPoList);
         return getDataTable(orderPoList, vehicleSaleOrderMptList);
     }
@@ -91,7 +112,8 @@ public class VehicleSaleOrderMptController extends BaseController implements Veh
         orderStateRange.add(OrderState.ARRANGE_PRODUCTION);
         startPage();
         List<OrderPo> orderPoList = vehicleSaleOrderAppService.search(vehicleSaleOrder.getOrderNum(),
-                vehicleSaleOrder.getOrderState(), orderStateRange, getBeginTime(vehicleSaleOrder), getEndTime(vehicleSaleOrder));
+                vehicleSaleOrder.getOrderState(), orderStateRange, null, getBeginTime(vehicleSaleOrder),
+                getEndTime(vehicleSaleOrder));
         List<VehicleSaleOrderMpt> vehicleSaleOrderMptList = VehicleSaleOrderMptAssembler.INSTANCE.fromPoList(orderPoList);
         return getDataTable(orderPoList, vehicleSaleOrderMptList);
     }
@@ -102,7 +124,7 @@ public class VehicleSaleOrderMptController extends BaseController implements Veh
      * @param request 分配交付人员请求
      */
     @Override
-    @PostMapping("/order/action/assignDeliveryPerson")
+    @PostMapping("/action/assignDeliveryPerson")
     public void assignDeliveryPerson(@RequestBody @Valid AssignDeliveryPersonRequest request, @RequestHeader(required = false) MptAccount mptAccount) {
         logger.info("管理后台用户[{}]分配交付人员", ParamHelper.getMptAccountInfo(mptAccount));
         vehicleSaleOrderAppService.assignDeliveryPerson(request.getOrderNum(), request);
@@ -114,7 +136,7 @@ public class VehicleSaleOrderMptController extends BaseController implements Veh
      * @param request 分配车辆请求
      */
     @Override
-    @PostMapping("/order/action/assignVehicle")
+    @PostMapping("/action/assignVehicle")
     public void assignVehicle(@RequestBody @Valid AssignVehicleRequest request) {
         logger.info("管理后台用户[{}]分配车辆[{}]到订单[{}]", SecurityUtils.getUsername(), request.getVin(), request.getOrderNum());
         vehicleSaleOrderAppService.assignVehicle(request.getOrderNum(), request);

@@ -502,6 +502,14 @@
                 #{state}
             </foreach>
         </if>
+        <if test="hasDeliveryPerson != null">
+            <if test="hasDeliveryPerson == true">
+                AND t.delivery_person_id IS NOT NULL
+            </if>
+            <if test="hasDeliveryPerson == false">
+                AND t.delivery_person_id IS NULL
+            </if>
+        </if>
         <if test="beginTime != null">
             and date_format(t.order_state_time,'%Y%m%d') &gt;= date_format(#{beginTime},'%Y%m%d')
         </if>
