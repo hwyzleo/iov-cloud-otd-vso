@@ -69,8 +69,17 @@
 
     <!-- 通用查询结果列 -->
     <sql id="baseColumnList">
-        id, order_num, order_state, order_state_time, order_time, cancel_time, benefits_id, agreement_id, contract_num, contract_time, sale_code, model_config_code, model_config_lock, pay_state, earnest_money_time, earnest_money_amount, down_payment_time, down_payment_amount, lock_time, assign_time, revoke_time, reassign_time, final_payment_time, order_type, order_person_id, order_person_type, order_person_name, order_person_phone, order_person_id_type, order_person_id_num, recommender_id, contact_person_name, contact_person_phone, sales_person_id, sales_person_name, sales_person_phone, sales_person_order, sales_channel, purchase_plan, financing_plan_id, delivery_vin, delivery_city, delivery_method, delivery_person_id, delivery_person_name, delivery_remark, reception_person_id, reception_person_name, invoicing_time, estimated_delivery_time, actual_delivery_time, license_city, dealership, delivery_center,
-        description, create_time, create_by, modify_time, modify_by, row_version, row_valid
+        t.id, t.order_num, t.order_state, t.order_state_time, t.order_time, t.cancel_time, t.benefits_id, t.agreement_id,
+            t.contract_num, t.contract_time, t.sale_code, t.model_config_code, t.model_config_lock, t.pay_state,
+            t.earnest_money_time, t.earnest_money_amount, t.down_payment_time, t.down_payment_amount, t.lock_time,
+            t.assign_time, t.revoke_time, t.reassign_time, t.final_payment_time, t.order_type, t.order_person_id,
+            t.order_person_type, t.order_person_name, t.order_person_phone, t.order_person_id_type, t.order_person_id_num,
+            t.recommender_id, t.contact_person_name, t.contact_person_phone, t.sales_person_id, t.sales_person_name,
+            t.sales_person_phone, t.sales_person_order, t.sales_channel, t.purchase_plan, t.financing_plan_id,
+            t.delivery_vin, t.delivery_city, t.delivery_method, t.delivery_person_id, t.delivery_person_name,
+            t.delivery_remark, t.reception_person_id, t.reception_person_name, t.invoicing_time, t.estimated_delivery_time,
+            t.actual_delivery_time, t.license_city, t.dealership, t.delivery_center,
+        t.description, t.create_time, t.create_by, t.modify_time, t.modify_by, t.row_version, t.row_valid
     </sql>
 
     <!-- 插入 -->
@@ -525,5 +534,16 @@
         FROM tb_order t
         WHERE t.row_valid = 1
         <!-- 添加自定义条件 -->
+        <if test="deliveryPersonId != null and deliveryPersonId != ''">
+            AND t.delivery_person_id = #{deliveryPersonId}
+        </if>
+        <if test="delivered != null">
+            <if test="delivered == true">
+                AND t.actual_delivery_time IS NOT NULL
+            </if>
+            <if test="delivered == false">
+                AND t.actual_delivery_time IS NULL
+            </if>
+        </if>
     </select>
 </mapper>

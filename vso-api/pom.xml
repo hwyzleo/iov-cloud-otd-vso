@@ -15,6 +15,7 @@
     <version>0.0.1-SNAPSHOT</version>
 
     <properties>
+        <org.version>0.0.1-SNAPSHOT</org.version>
     </properties>
 
     <dependencies>
@@ -23,6 +24,12 @@
             <groupId>jakarta.servlet</groupId>
             <artifactId>jakarta.servlet-api</artifactId>
             <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>net.hwyz.iov.cloud.dms</groupId>
+            <artifactId>org-api</artifactId>
+            <version>${org.version}</version>
         </dependency>
     </dependencies>
 

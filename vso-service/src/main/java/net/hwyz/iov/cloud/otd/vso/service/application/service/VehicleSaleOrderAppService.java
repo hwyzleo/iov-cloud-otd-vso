@@ -125,6 +125,20 @@ public class VehicleSaleOrderAppService {
     }
 
     /**
+     * 统计车辆销售订单数量
+     *
+     * @param deliveryPersonId 交付人员ID
+     * @param delivered        是否交付
+     * @return 统计数量
+     */
+    public Integer count(String deliveryPersonId, Boolean delivered) {
+        Map<String, Object> map = new HashMap<>();
+        map.put("deliveryPersonId", deliveryPersonId);
+        map.put("delivered", delivered);
+        return orderDao.countPoByMap(map);
+    }
+
+    /**
      * 创建用户心愿单
      *
      * @param accountId 账号ID

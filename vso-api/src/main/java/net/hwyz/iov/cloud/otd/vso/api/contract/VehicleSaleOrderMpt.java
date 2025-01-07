@@ -99,6 +99,11 @@ public class VehicleSaleOrderMpt extends BaseRequest {
     private String deliveryCenter;
 
     /**
+     * 交付中心名称
+     */
+    private String deliveryCenterName;
+
+    /**
      * 创建时间
      */
     private Date createTime;

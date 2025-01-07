@@ -18,6 +18,7 @@
         <account.version>0.0.1-SNAPSHOT</account.version>
         <vmd.version>0.0.1-SNAPSHOT</vmd.version>
         <vso.version>0.0.1-SNAPSHOT</vso.version>
+        <org.version>0.0.1-SNAPSHOT</org.version>
     </properties>
 
     <dependencies>
@@ -37,6 +38,12 @@
             <groupId>net.hwyz.iov.cloud.tsp</groupId>
             <artifactId>account-api</artifactId>
             <version>${account.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>net.hwyz.iov.cloud.dms</groupId>
+            <artifactId>org-api</artifactId>
+            <version>${org.version}</version>
         </dependency>
 
         <!-- 框架: 异常 -->
