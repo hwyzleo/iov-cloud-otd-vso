@@ -26,6 +26,8 @@ public enum OrderState {
     ARRANGE_PRODUCTION(400),
     /** 已分配车辆 **/
     ALLOCATION_VEHICLE(450),
+    /** 发运申请 **/
+    APPLY_TRANSPORT(470),
     /** 待运输 **/
     PREPARE_TRANSPORT(500),
     /** 已发车，运输中 **/

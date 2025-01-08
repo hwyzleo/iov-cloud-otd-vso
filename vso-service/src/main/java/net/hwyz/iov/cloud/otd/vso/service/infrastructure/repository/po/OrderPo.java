@@ -162,6 +162,12 @@ public class OrderPo extends BasePo {
     private Date reassignTime;
 
     /**
+     * 发运申请时间
+     */
+    @TableField("transport_apply_time")
+    private Date transportApplyTime;
+
+    /**
      * 尾款支付时间
      */
     @TableField("final_payment_time")
@@ -286,6 +292,18 @@ public class OrderPo extends BasePo {
      */
     @TableField("delivery_method")
     private String deliveryMethod;
+
+    /**
+     * 发运申请人员ID
+     */
+    @TableField("transport_apply_person_id")
+    private String transportApplyPersonId;
+
+    /**
+     * 发运申请人员姓名
+     */
+    @TableField("transport_apply_person_name")
+    private String transportApplyPersonName;
 
     /**
      * 交付人员ID

@@ -3,7 +3,9 @@ package net.hwyz.iov.cloud.otd.vso.api.feign.mpt;
 import net.hwyz.iov.cloud.framework.common.bean.MptAccount;
 import net.hwyz.iov.cloud.framework.common.web.page.TableDataInfo;
 import net.hwyz.iov.cloud.otd.vso.api.contract.DeliveryCenterStaffMpt;
+import net.hwyz.iov.cloud.otd.vso.api.contract.TransportOrderMpt;
 import net.hwyz.iov.cloud.otd.vso.api.contract.VehicleSaleOrderMpt;
+import net.hwyz.iov.cloud.otd.vso.api.contract.request.ApplyTransportRequest;
 import net.hwyz.iov.cloud.otd.vso.api.contract.request.AssignDeliveryPersonRequest;
 import net.hwyz.iov.cloud.otd.vso.api.contract.request.AssignVehicleRequest;
 
@@ -23,6 +25,14 @@ public interface VehicleSaleOrderMptApi {
     TableDataInfo list(VehicleSaleOrderMpt vehicleSaleOrder);
 
     /**
+     * 分页查询可改配车辆销售订单信息
+     *
+     * @param vehicleSaleOrder 车辆销售订单信息
+     * @return 车辆销售订单信息列表
+     */
+    TableDataInfo listModelConfigChangeable(VehicleSaleOrderMpt vehicleSaleOrder);
+
+    /**
      * 分页查询没有交付人员的车辆销售订单信息
      *
      * @param vehicleSaleOrder 车辆销售订单信息
@@ -39,20 +49,20 @@ public interface VehicleSaleOrderMptApi {
     TableDataInfo listDeliveryCenterStaff(DeliveryCenterStaffMpt deliveryCenterStaff);
 
     /**
-     * 分页查询可改配车辆销售订单信息
-     *
-     * @param vehicleSaleOrder 车辆销售订单信息
-     * @return 车辆销售订单信息列表
-     */
-    TableDataInfo listModelConfigChangeable(VehicleSaleOrderMpt vehicleSaleOrder);
-
-    /**
      * 分页查询可配车车辆销售订单信息
      *
      * @param vehicleSaleOrder 车辆销售订单信息
      * @return 车辆销售订单信息列表
      */
     TableDataInfo listAssignable(VehicleSaleOrderMpt vehicleSaleOrder);
+
+    /**
+     * 分页查询运输相关车辆销售订单信息
+     *
+     * @param transportOrder 车辆销售订单信息
+     * @return 车辆销售订单信息列表
+     */
+    TableDataInfo listTransport(TransportOrderMpt transportOrder);
 
     /**
      * 分配交付人员
@@ -68,5 +78,12 @@ public interface VehicleSaleOrderMptApi {
      * @param request 分配车辆请求
      */
     void assignVehicle(AssignVehicleRequest request);
+
+    /**
+     * 申请发运
+     *
+     * @param request 申请发运请求
+     */
+    void applyTransport(ApplyTransportRequest request);
 
 }

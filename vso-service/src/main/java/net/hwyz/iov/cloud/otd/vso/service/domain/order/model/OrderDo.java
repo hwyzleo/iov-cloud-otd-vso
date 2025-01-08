@@ -70,6 +70,10 @@ public class OrderDo extends BaseDo<Long> implements DomainObj<OrderDo> {
      */
     private Date lockTime;
     /**
+     * 发运申请时间
+     */
+    private Date transportApplyTime;
+    /**
      * 下单人员ID
      */
     private String orderPersonId;
@@ -125,6 +129,14 @@ public class OrderDo extends BaseDo<Long> implements DomainObj<OrderDo> {
      * 交付中心
      */
     private String deliveryCenter;
+    /**
+     * 发运申请人员ID
+     */
+    private String transportApplyPersonId;
+    /**
+     * 发运申请人员姓名
+     */
+    private String transportApplyPersonName;
     /**
      * 交付人员ID
      */
@@ -481,6 +493,23 @@ public class OrderDo extends BaseDo<Long> implements DomainObj<OrderDo> {
             this.orderStateTime = new Date();
             stateChange();
         }
+    }
+
+    /**
+     * 申请发运车辆
+     *
+     * @param transportApplyPersonId   发运申请用户ID
+     * @param transportApplyPersonName 发运申请用户姓名
+     */
+    public void applyTransportVehicle(String transportApplyPersonId, String transportApplyPersonName) {
+        if (this.orderState != OrderState.ALLOCATION_VEHICLE) {
+            throw new OrderStateNotAllowedException(this.orderNum, this.orderState, "APPLY_TRANSPORT");
+        }
+        this.orderState = OrderState.APPLY_TRANSPORT;
+        this.transportApplyTime = new Date();
+        this.transportApplyPersonId = transportApplyPersonId;
+        this.transportApplyPersonName = transportApplyPersonName;
+        stateChange();
     }
 
     /**

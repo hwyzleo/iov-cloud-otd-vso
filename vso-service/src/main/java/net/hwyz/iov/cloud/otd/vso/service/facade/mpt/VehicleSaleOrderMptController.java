@@ -13,17 +13,21 @@ import net.hwyz.iov.cloud.framework.common.bean.Page;
 import net.hwyz.iov.cloud.framework.common.util.Convert;
 import net.hwyz.iov.cloud.framework.common.util.ParamHelper;
 import net.hwyz.iov.cloud.framework.common.util.ServletUtil;
+import net.hwyz.iov.cloud.framework.common.util.StrUtil;
 import net.hwyz.iov.cloud.framework.common.web.controller.BaseController;
 import net.hwyz.iov.cloud.framework.common.web.page.TableDataInfo;
 import net.hwyz.iov.cloud.framework.security.annotation.RequiresPermissions;
 import net.hwyz.iov.cloud.framework.security.util.SecurityUtils;
 import net.hwyz.iov.cloud.otd.vso.api.contract.DeliveryCenterStaffMpt;
+import net.hwyz.iov.cloud.otd.vso.api.contract.TransportOrderMpt;
 import net.hwyz.iov.cloud.otd.vso.api.contract.VehicleSaleOrderMpt;
+import net.hwyz.iov.cloud.otd.vso.api.contract.request.ApplyTransportRequest;
 import net.hwyz.iov.cloud.otd.vso.api.contract.request.AssignDeliveryPersonRequest;
 import net.hwyz.iov.cloud.otd.vso.api.contract.request.AssignVehicleRequest;
 import net.hwyz.iov.cloud.otd.vso.api.feign.mpt.VehicleSaleOrderMptApi;
 import net.hwyz.iov.cloud.otd.vso.service.application.service.VehicleSaleOrderAppService;
 import net.hwyz.iov.cloud.otd.vso.service.domain.contract.enums.OrderState;
+import net.hwyz.iov.cloud.otd.vso.service.facade.assembler.TransportOrderMptAssembler;
 import net.hwyz.iov.cloud.otd.vso.service.facade.assembler.VehicleSaleOrderMptAssembler;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository.po.OrderPo;
 import org.springframework.web.bind.annotation.*;
@@ -60,6 +64,29 @@ public class VehicleSaleOrderMptController extends BaseController implements Veh
         startPage();
         List<OrderPo> orderPoList = vehicleSaleOrderAppService.search(vehicleSaleOrder.getOrderNum(),
                 vehicleSaleOrder.getOrderState(), null, null, getBeginTime(vehicleSaleOrder),
+                getEndTime(vehicleSaleOrder));
+        List<VehicleSaleOrderMpt> vehicleSaleOrderMptList = VehicleSaleOrderMptAssembler.INSTANCE.fromPoList(orderPoList);
+        return getDataTable(orderPoList, vehicleSaleOrderMptList);
+    }
+
+    /**
+     * 分页查询可改配车辆销售订单信息
+     *
+     * @param vehicleSaleOrder 车辆销售订单信息
+     * @return 车辆销售订单信息列表
+     */
+    @RequiresPermissions("completeVehicle:order:changeModel:list")
+    @Override
+    @GetMapping(value = "/listModelConfigChangeable")
+    public TableDataInfo listModelConfigChangeable(VehicleSaleOrderMpt vehicleSaleOrder) {
+        logger.info("管理后台用户[{}]分页查询可改配车辆销售订单信息", SecurityUtils.getUsername());
+        List<OrderState> orderStateRange = new ArrayList<>();
+        orderStateRange.add(OrderState.EARNEST_MONEY_PAID);
+        orderStateRange.add(OrderState.DOWN_PAYMENT_PAID);
+        orderStateRange.add(OrderState.ARRANGE_PRODUCTION);
+        startPage();
+        List<OrderPo> orderPoList = vehicleSaleOrderAppService.search(vehicleSaleOrder.getOrderNum(),
+                vehicleSaleOrder.getOrderState(), orderStateRange, null, getBeginTime(vehicleSaleOrder),
                 getEndTime(vehicleSaleOrder));
         List<VehicleSaleOrderMpt> vehicleSaleOrderMptList = VehicleSaleOrderMptAssembler.INSTANCE.fromPoList(orderPoList);
         return getDataTable(orderPoList, vehicleSaleOrderMptList);
@@ -117,29 +144,6 @@ public class VehicleSaleOrderMptController extends BaseController implements Veh
     }
 
     /**
-     * 分页查询可改配车辆销售订单信息
-     *
-     * @param vehicleSaleOrder 车辆销售订单信息
-     * @return 车辆销售订单信息列表
-     */
-    @RequiresPermissions("completeVehicle:order:changeModel:list")
-    @Override
-    @GetMapping(value = "/listModelConfigChangeable")
-    public TableDataInfo listModelConfigChangeable(VehicleSaleOrderMpt vehicleSaleOrder) {
-        logger.info("管理后台用户[{}]分页查询可改配车辆销售订单信息", SecurityUtils.getUsername());
-        List<OrderState> orderStateRange = new ArrayList<>();
-        orderStateRange.add(OrderState.EARNEST_MONEY_PAID);
-        orderStateRange.add(OrderState.DOWN_PAYMENT_PAID);
-        orderStateRange.add(OrderState.ARRANGE_PRODUCTION);
-        startPage();
-        List<OrderPo> orderPoList = vehicleSaleOrderAppService.search(vehicleSaleOrder.getOrderNum(),
-                vehicleSaleOrder.getOrderState(), orderStateRange, null, getBeginTime(vehicleSaleOrder),
-                getEndTime(vehicleSaleOrder));
-        List<VehicleSaleOrderMpt> vehicleSaleOrderMptList = VehicleSaleOrderMptAssembler.INSTANCE.fromPoList(orderPoList);
-        return getDataTable(orderPoList, vehicleSaleOrderMptList);
-    }
-
-    /**
      * 分页查询可配车车辆销售订单信息
      *
      * @param vehicleSaleOrder 车辆销售订单信息
@@ -158,6 +162,37 @@ public class VehicleSaleOrderMptController extends BaseController implements Veh
                 getEndTime(vehicleSaleOrder));
         List<VehicleSaleOrderMpt> vehicleSaleOrderMptList = VehicleSaleOrderMptAssembler.INSTANCE.fromPoList(orderPoList);
         return getDataTable(orderPoList, vehicleSaleOrderMptList);
+    }
+
+    /**
+     * 分页查询运输相关车辆销售订单信息
+     *
+     * @param transportOrder 车辆销售订单信息
+     * @return 车辆销售订单信息列表
+     */
+    @RequiresPermissions("completeVehicle:order:transport:list")
+    @Override
+    @GetMapping(value = "/listTransport")
+    public TableDataInfo listTransport(TransportOrderMpt transportOrder) {
+        logger.info("管理后台用户[{}]分页查询运输相关车辆销售订单信息", SecurityUtils.getUsername());
+        List<OrderState> orderStateRange = new ArrayList<>();
+        orderStateRange.add(OrderState.ALLOCATION_VEHICLE);
+        orderStateRange.add(OrderState.APPLY_TRANSPORT);
+        orderStateRange.add(OrderState.PREPARE_TRANSPORT);
+        startPage();
+        List<OrderPo> orderPoList = vehicleSaleOrderAppService.search(transportOrder.getOrderNum(),
+                transportOrder.getOrderState(), orderStateRange, null, getBeginTime(transportOrder),
+                getEndTime(transportOrder));
+        List<TransportOrderMpt> transportOrderMptList = TransportOrderMptAssembler.INSTANCE.fromPoList(orderPoList);
+        for (TransportOrderMpt transportOrderMpt : transportOrderMptList) {
+            if (StrUtil.isNotBlank(transportOrderMpt.getDeliveryCenter())) {
+                DealershipExService dealership = exDealershipService.getByCode(transportOrderMpt.getDeliveryCenter());
+                if (ObjUtil.isNotNull(dealership)) {
+                    transportOrderMpt.setDeliveryCenterName(dealership.getName());
+                }
+            }
+        }
+        return getDataTable(orderPoList, transportOrderMptList);
     }
 
     /**
@@ -184,4 +219,15 @@ public class VehicleSaleOrderMptController extends BaseController implements Veh
         vehicleSaleOrderAppService.assignVehicle(request.getOrderNum(), request);
     }
 
+    /**
+     * 申请发运
+     *
+     * @param request 申请发运请求
+     */
+    @Override
+    @PostMapping("/action/applyTransport")
+    public void applyTransport(ApplyTransportRequest request) {
+        logger.info("管理后台用户[{}]申请发运订单[{}]", SecurityUtils.getUsername(), request.getOrderNum());
+        vehicleSaleOrderAppService.applyTransport(request.getOrderNum(), SecurityUtils.getUserId().toString(), SecurityUtils.getUsername());
+    }
 }

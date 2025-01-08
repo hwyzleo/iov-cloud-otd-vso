@@ -26,6 +26,8 @@ public enum OrderOperate {
     ASSIGN_DELIVERY_PERSON,
     /** 分配车辆 **/
     ASSIGN_VEHICLE,
+    /** 申请发运 **/
+    APPLY_TRANSPORT,
     /** 准备运输 **/
     PREPARE_TRANSPORT,
     /** 运输中 **/

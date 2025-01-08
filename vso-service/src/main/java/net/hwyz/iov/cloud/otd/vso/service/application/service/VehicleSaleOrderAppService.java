@@ -445,6 +445,25 @@ public class VehicleSaleOrderAppService {
     }
 
     /**
+     * 申请发运
+     *
+     * @param orderNum                 订单编号
+     * @param transportApplyPersonId   发运申请人员ID
+     * @param transportApplyPersonName 发运申请人员姓名
+     */
+    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
+    public void applyTransport(String orderNum, String transportApplyPersonId, String transportApplyPersonName) {
+        OrderDo orderDo = orderRepository.get(orderNum);
+        if (orderDo == null) {
+            throw new OrderNotExistException(orderNum);
+        }
+        orderDo.applyTransportVehicle(transportApplyPersonId, transportApplyPersonName);
+        orderRepository.save(orderDo);
+        recordOrderLog(orderDo.getOrderNum(), ClientType.MPT, OrderOperate.APPLY_TRANSPORT, "员工[" +
+                transportApplyPersonName + "]申请发运车辆：" + orderDo.getDeliveryVin());
+    }
+
+    /**
      * 准备运输
      *
      * @param orderNum 订单编号
