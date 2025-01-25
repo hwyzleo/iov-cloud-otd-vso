@@ -430,15 +430,24 @@ public class SaleModelAppService {
      * @return 车型配置代码
      */
     public String getModelConfigCode(Map<String, String> saleModelConfigType) {
-        String modelCode = saleModelConfigType.get(SaleModelConfigType.MODEL.name());
+        String modelAndSeatCode = saleModelConfigType.get(SaleModelConfigType.MODEL.name());
+        // 此处为了兼容实际车型数据与销售车型数据分类的不同
+        String[] split = modelAndSeatCode.split("-");
+        String modelCode = split[0];
+        String seatCode = "XZ00";
+        if (split.length > 1) {
+            seatCode = split[1];
+        }
         String exteriorCode = saleModelConfigType.get(SaleModelConfigType.EXTERIOR.name());
         String interiorCode = saleModelConfigType.get(SaleModelConfigType.INTERIOR.name());
         String wheelCode = saleModelConfigType.get(SaleModelConfigType.WHEEL.name());
         String spareTireCode = saleModelConfigType.get(SaleModelConfigType.SPARE_TIRE.name());
         String adasCode = saleModelConfigType.get(SaleModelConfigType.ADAS.name());
-        String vehicleModeConfigCode = exVehicleModelConfigService.getVehicleModeConfigCode(modelCode, exteriorCode, interiorCode, wheelCode, spareTireCode, adasCode);
+        String vehicleModeConfigCode = exVehicleModelConfigService.getVehicleModeConfigCode(modelCode, exteriorCode,
+                interiorCode, wheelCode, spareTireCode, adasCode, seatCode);
         if (vehicleModeConfigCode == null) {
-            throw new ModelConfigCodeNotExistException(modelCode, exteriorCode, interiorCode, wheelCode, spareTireCode, adasCode);
+            throw new ModelConfigCodeNotExistException(modelCode, exteriorCode, interiorCode, wheelCode, spareTireCode,
+                    adasCode, seatCode);
         }
         return vehicleModeConfigCode;
     }
