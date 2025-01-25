@@ -1,6 +1,7 @@
 package net.hwyz.iov.cloud.otd.vso.api.feign.mpt;
 
 import net.hwyz.iov.cloud.framework.common.bean.MptAccount;
+import net.hwyz.iov.cloud.framework.common.web.domain.AjaxResult;
 import net.hwyz.iov.cloud.framework.common.web.page.TableDataInfo;
 import net.hwyz.iov.cloud.otd.vso.api.contract.DeliveryCenterStaffMpt;
 import net.hwyz.iov.cloud.otd.vso.api.contract.TransportOrderMpt;
@@ -85,5 +86,13 @@ public interface VehicleSaleOrderMptApi {
      * @param request 申请发运请求
      */
     void applyTransport(ApplyTransportRequest request);
+
+    /**
+     * 删除订单
+     *
+     * @param orderNum 订单号
+     * @return 结果
+     */
+    AjaxResult remove(String orderNum);
 
 }

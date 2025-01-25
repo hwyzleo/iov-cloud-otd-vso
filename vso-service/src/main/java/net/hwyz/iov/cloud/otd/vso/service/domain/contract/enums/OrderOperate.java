@@ -39,6 +39,8 @@ public enum OrderOperate {
     /** 车辆激活 **/
     VEHICLE_ACTIVATE,
     /** 订单取消 **/
-    ORDER_CANCEL;
+    ORDER_CANCEL,
+    /** 订单删除 **/
+    ORDER_DELETE;
 
 }

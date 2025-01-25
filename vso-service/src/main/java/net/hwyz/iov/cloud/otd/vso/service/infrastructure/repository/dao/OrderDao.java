@@ -16,6 +16,14 @@ import org.apache.ibatis.annotations.Mapper;
 public interface OrderDao extends BaseDao<OrderPo, Long> {
 
     /**
+     * 逻辑删除订单
+     *
+     * @param orderNum 订单编号
+     * @return 影响行数
+     */
+    int logicalDeletePoByOrderNum(String orderNum);
+
+    /**
      * 物理删除订单
      *
      * @param orderNum 订单编号

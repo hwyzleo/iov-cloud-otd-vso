@@ -8,6 +8,8 @@ import net.hwyz.iov.cloud.dms.org.api.contract.DealershipExService;
 import net.hwyz.iov.cloud.dms.org.api.contract.DealershipStaffExService;
 import net.hwyz.iov.cloud.dms.org.api.feign.service.ExDealershipService;
 import net.hwyz.iov.cloud.dms.org.api.feign.service.ExDealershipStaffService;
+import net.hwyz.iov.cloud.framework.audit.annotation.Log;
+import net.hwyz.iov.cloud.framework.audit.enums.BusinessType;
 import net.hwyz.iov.cloud.framework.common.bean.MptAccount;
 import net.hwyz.iov.cloud.framework.common.bean.Page;
 import net.hwyz.iov.cloud.framework.common.util.Convert;
@@ -15,6 +17,7 @@ import net.hwyz.iov.cloud.framework.common.util.ParamHelper;
 import net.hwyz.iov.cloud.framework.common.util.ServletUtil;
 import net.hwyz.iov.cloud.framework.common.util.StrUtil;
 import net.hwyz.iov.cloud.framework.common.web.controller.BaseController;
+import net.hwyz.iov.cloud.framework.common.web.domain.AjaxResult;
 import net.hwyz.iov.cloud.framework.common.web.page.TableDataInfo;
 import net.hwyz.iov.cloud.framework.security.annotation.RequiresPermissions;
 import net.hwyz.iov.cloud.framework.security.util.SecurityUtils;
@@ -226,8 +229,23 @@ public class VehicleSaleOrderMptController extends BaseController implements Veh
      */
     @Override
     @PostMapping("/action/applyTransport")
-    public void applyTransport(ApplyTransportRequest request) {
+    public void applyTransport(@RequestBody @Valid ApplyTransportRequest request) {
         logger.info("管理后台用户[{}]申请发运订单[{}]", SecurityUtils.getUsername(), request.getOrderNum());
         vehicleSaleOrderAppService.applyTransport(request.getOrderNum(), SecurityUtils.getUserId().toString(), SecurityUtils.getUsername());
+    }
+
+    /**
+     * 删除订单
+     *
+     * @param orderNum 订单号
+     * @return 结果
+     */
+    @Log(title = "车辆销售订单管理", businessType = BusinessType.DELETE)
+    @RequiresPermissions("completeVehicle:order:info:remove")
+    @Override
+    @DeleteMapping("/{orderNum}")
+    public AjaxResult remove(@PathVariable String orderNum) {
+        logger.info("管理后台用户[{}]删除订单[{}]", SecurityUtils.getUsername(), orderNum);
+        return toAjax(vehicleSaleOrderAppService.remove(orderNum));
     }
 }

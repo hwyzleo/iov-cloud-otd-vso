@@ -378,6 +378,13 @@ public class OrderDo extends BaseDo<Long> implements DomainObj<OrderDo> {
     }
 
     /**
+     * 管理端删除
+     */
+    public void manageDelete() {
+        stateDelete();
+    }
+
+    /**
      * 取消订单
      */
     public void cancel() {

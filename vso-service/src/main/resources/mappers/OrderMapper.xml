@@ -304,6 +304,15 @@
         WHERE t.id = #{value}
     </update>
 
+    <!-- 逻辑删除订单 -->
+    <update id="logicalDeletePoByOrderNum" parameterType="string">
+        UPDATE tb_order t SET
+        t.row_version = t.row_version + 1,
+        t.modify_time = now(),
+        t.row_valid = 0
+        WHERE t.order_num = #{orderNum}
+    </update>
+
     <!-- 物理删除 -->
     <delete id="physicalDeletePo" parameterType="Long">
         DELETE FROM tb_order t

@@ -115,6 +115,8 @@ public class OrderRepositoryImpl extends AbstractRepository<String, OrderDo> imp
                 if (orderDo.getOrderState() == OrderState.WISHLIST) {
                     orderModelConfigDao.batchPhysicalDeletePoByOrderNum(orderDo.getOrderNum());
                     orderDao.physicalDeletePoByOrderNum(orderDo.getOrderNum());
+                } else {
+                    orderDao.logicalDeletePoByOrderNum(orderDo.getOrderNum());
                 }
             }
             default -> {

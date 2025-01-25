@@ -544,6 +544,23 @@ public class VehicleSaleOrderAppService {
     }
 
     /**
+     * 删除订单
+     *
+     * @param orderNum 订单号
+     */
+    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
+    public boolean remove(String orderNum) {
+        OrderDo orderDo = orderRepository.get(orderNum);
+        if (orderDo == null) {
+            throw new OrderNotExistException(orderNum);
+        }
+        orderDo.manageDelete();
+        boolean result = orderRepository.save(orderDo);
+        recordOrderLog(orderNum, ClientType.MPT, OrderOperate.ORDER_DELETE);
+        return result;
+    }
+
+    /**
      * 转换订单车型配置Map
      *
      * @param saleCode               销售编号
