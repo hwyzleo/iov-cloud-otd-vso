@@ -112,9 +112,11 @@ public class VehicleSaleOrderMptController extends BaseController implements Veh
                 getEndTime(vehicleSaleOrder));
         List<VehicleSaleOrderMpt> vehicleSaleOrderMptList = VehicleSaleOrderMptAssembler.INSTANCE.fromPoList(orderPoList);
         for (VehicleSaleOrderMpt vehicleSaleOrderMpt : vehicleSaleOrderMptList) {
-            DealershipExService dealership = exDealershipService.getByCode(vehicleSaleOrderMpt.getDeliveryCenter());
-            if (ObjUtil.isNotNull(dealership)) {
-                vehicleSaleOrderMpt.setDeliveryCenterName(dealership.getName());
+            if (StrUtil.isNotBlank(vehicleSaleOrderMpt.getDeliveryCenter())) {
+                DealershipExService dealership = exDealershipService.getByCode(vehicleSaleOrderMpt.getDeliveryCenter());
+                if (ObjUtil.isNotNull(dealership)) {
+                    vehicleSaleOrderMpt.setDeliveryCenterName(dealership.getName());
+                }
             }
         }
         return getDataTable(orderPoList, vehicleSaleOrderMptList);
