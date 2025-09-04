@@ -23,12 +23,4 @@ public interface SaleModelDao extends BaseDao<SaleModelPo, Long> {
      */
     SaleModelPo selectPoBySaleCode(String saleCode);
 
-    /**
-     * 批量物理删除销售车型信息
-     *
-     * @param ids 销售车型ID数组
-     * @return 影响行数
-     */
-    int batchPhysicalDeletePo(Long[] ids);
-
 }
