@@ -434,17 +434,23 @@ public class SaleModelAppService {
         // 此处为了兼容实际车型数据与销售车型数据分类的不同
         String[] split = modelAndSeatCode.split("-");
         String modelCode = split[0];
-        String seatCode = "XZ00";
+        String seatCode = "OT01";
         if (split.length > 1) {
             seatCode = split[1];
         }
         String exteriorCode = saleModelConfigType.get(SaleModelConfigType.EXTERIOR.name());
         String interiorCode = saleModelConfigType.get(SaleModelConfigType.INTERIOR.name());
-        String wheelCode = saleModelConfigType.get(SaleModelConfigType.WHEEL.name());
+        String wheelAndTireCode = saleModelConfigType.get(SaleModelConfigType.WHEEL.name());
+        String[] split2 = wheelAndTireCode.split("-");
+        String wheelCode = split2[0];
+        String tireCode = "FB01";
+        if (split2.length > 1) {
+            tireCode = split2[1];
+        }
         String spareTireCode = saleModelConfigType.get(SaleModelConfigType.SPARE_TIRE.name());
         String adasCode = saleModelConfigType.get(SaleModelConfigType.ADAS.name());
         String vehicleBuildConfigCode = exVehicleModelConfigService.getVehicleBuildConfigCode(modelCode, exteriorCode,
-                interiorCode, wheelCode, spareTireCode, adasCode, seatCode);
+                interiorCode, wheelCode, tireCode, spareTireCode, adasCode, seatCode);
         if (vehicleBuildConfigCode == null) {
             throw new BuildConfigCodeNotExistException(modelCode, exteriorCode, interiorCode, wheelCode, spareTireCode,
                     adasCode, seatCode);
