@@ -96,16 +96,16 @@ public class OrderPo extends BasePo {
     private String saleCode;
 
     /**
-     * 车型配置代码
+     * 生产配置代码
      */
-    @TableField("model_config_code")
-    private String modelConfigCode;
+    @TableField("build_config_code")
+    private String buildConfigCode;
 
     /**
-     * 车型配置是否锁定
+     * 生产配置是否锁定
      */
-    @TableField("model_config_lock")
-    private Boolean modelConfigLock;
+    @TableField("build_config_lock")
+    private Boolean buildConfigLock;
 
     /**
      * 支付状态：10-意向金已支付，15-意向金已退，20-定金已支付，25-定金已退，30-尾款已支付，35-尾款已退

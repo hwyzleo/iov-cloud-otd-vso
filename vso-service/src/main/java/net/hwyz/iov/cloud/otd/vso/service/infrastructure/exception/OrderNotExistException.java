@@ -10,10 +10,8 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class OrderNotExistException extends VsoBaseException {
 
-    private static final int ERROR_CODE = 401004;
-
     public OrderNotExistException(String orderNum) {
-        super(ERROR_CODE);
+        super(ERROR_CODE_ORDER_NOT_EXIST);
         logger.warn("车辆销售订单[{}]不存在", orderNum);
     }
 

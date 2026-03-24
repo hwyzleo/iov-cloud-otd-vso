@@ -16,7 +16,7 @@ import net.hwyz.iov.cloud.otd.vso.api.contract.enums.SaleModelConfigType;
 import net.hwyz.iov.cloud.otd.vso.service.domain.external.service.ExDictionaryService;
 import net.hwyz.iov.cloud.otd.vso.service.facade.assembler.PurchaseAgreementAssembler;
 import net.hwyz.iov.cloud.otd.vso.service.facade.assembler.PurchaseBenefitsAssembler;
-import net.hwyz.iov.cloud.otd.vso.service.infrastructure.exception.ModelConfigCodeNotExistException;
+import net.hwyz.iov.cloud.otd.vso.service.infrastructure.exception.BuildConfigCodeNotExistException;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.exception.SaleModelNotExistException;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository.dao.PurchaseAgreementDao;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository.dao.PurchaseBenefitsDao;
@@ -275,7 +275,7 @@ public class SaleModelAppService {
                 .earnestMoneyPrice(saleModelPo.getEarnestMoneyPrice())
                 .downPayment(saleModelPo.getDownPayment())
                 .downPaymentPrice(saleModelPo.getDownPaymentPrice())
-                .modelConfigCode(getModelConfigCode(saleModelConfigType))
+                .buildConfigCode(getBuildConfigCode(saleModelConfigType))
                 .saleModelImages(modelImages)
                 .modelName(modelName)
                 .saleModelDesc(modelDesc.toString())
@@ -424,12 +424,12 @@ public class SaleModelAppService {
     }
 
     /**
-     * 获取车型配置代码
+     * 获取生产配置代码
      *
      * @param saleModelConfigType 销售车型配置类型
-     * @return 车型配置代码
+     * @return 生产配置代码
      */
-    public String getModelConfigCode(Map<String, String> saleModelConfigType) {
+    public String getBuildConfigCode(Map<String, String> saleModelConfigType) {
         String modelAndSeatCode = saleModelConfigType.get(SaleModelConfigType.MODEL.name());
         // 此处为了兼容实际车型数据与销售车型数据分类的不同
         String[] split = modelAndSeatCode.split("-");
@@ -443,13 +443,13 @@ public class SaleModelAppService {
         String wheelCode = saleModelConfigType.get(SaleModelConfigType.WHEEL.name());
         String spareTireCode = saleModelConfigType.get(SaleModelConfigType.SPARE_TIRE.name());
         String adasCode = saleModelConfigType.get(SaleModelConfigType.ADAS.name());
-        String vehicleModeConfigCode = exVehicleModelConfigService.getVehicleModeConfigCode(modelCode, exteriorCode,
+        String vehicleBuildConfigCode = exVehicleModelConfigService.getVehicleBuildConfigCode(modelCode, exteriorCode,
                 interiorCode, wheelCode, spareTireCode, adasCode, seatCode);
-        if (vehicleModeConfigCode == null) {
-            throw new ModelConfigCodeNotExistException(modelCode, exteriorCode, interiorCode, wheelCode, spareTireCode,
+        if (vehicleBuildConfigCode == null) {
+            throw new BuildConfigCodeNotExistException(modelCode, exteriorCode, interiorCode, wheelCode, spareTireCode,
                     adasCode, seatCode);
         }
-        return vehicleModeConfigCode;
+        return vehicleBuildConfigCode;
     }
 
     /**

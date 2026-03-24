@@ -11,10 +11,8 @@ import net.hwyz.iov.cloud.otd.vso.service.domain.contract.enums.OrderState;
 @Slf4j
 public class OrderStateNotAllowedException extends VsoBaseException {
 
-    private static final int ERROR_CODE = 401006;
-
     public OrderStateNotAllowedException(String orderNum, OrderState orderState, String operation) {
-        super(ERROR_CODE);
+        super(ERROR_CODE_ORDER_STATE_NOT_ALLOWED);
         logger.warn("车辆销售订单[{}]当前状态[{}]不支持此操作[{}]", orderNum, orderState, operation);
     }
 

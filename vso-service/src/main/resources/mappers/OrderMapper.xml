@@ -22,8 +22,8 @@
         <result column="contract_num" property="contractNum" />
         <result column="contract_time" property="contractTime" />
         <result column="sale_code" property="saleCode" />
-        <result column="model_config_code" property="modelConfigCode" />
-        <result column="model_config_lock" property="modelConfigLock" />
+        <result column="build_config_code" property="buildConfigCode" />
+        <result column="build_config_lock" property="buildConfigLock" />
         <result column="pay_state" property="payState" />
         <result column="earnest_money_time" property="earnestMoneyTime" />
         <result column="earnest_money_amount" property="earnestMoneyAmount" />
@@ -73,7 +73,7 @@
     <!-- 通用查询结果列 -->
     <sql id="baseColumnList">
         t.id, t.order_num, t.order_state, t.order_state_time, t.order_time, t.cancel_time, t.benefits_id, t.agreement_id,
-            t.contract_num, t.contract_time, t.sale_code, t.model_config_code, t.model_config_lock, t.pay_state,
+            t.contract_num, t.contract_time, t.sale_code, t.build_config_code, t.build_config_lock, t.pay_state,
             t.earnest_money_time, t.earnest_money_amount, t.down_payment_time, t.down_payment_amount, t.lock_time,
             t.assign_time, t.revoke_time, t.reassign_time, t.transport_apply_time, t.final_payment_time, t.order_type,
             t.order_person_id, t.order_person_type, t.order_person_name, t.order_person_phone, t.order_person_id_type,
@@ -89,11 +89,11 @@
     <!-- 插入 -->
     <insert id="insertPo" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO tb_order (
-            id, order_num, order_state, order_state_time, order_time, cancel_time, benefits_id, agreement_id, contract_num, contract_time, sale_code, model_config_code, model_config_lock, pay_state, earnest_money_time, earnest_money_amount, down_payment_time, down_payment_amount, lock_time, assign_time, revoke_time, reassign_time, transport_apply_time, final_payment_time, order_type, order_person_id, order_person_type, order_person_name, order_person_phone, order_person_id_type, order_person_id_num, recommender_id, contact_person_name, contact_person_phone, sales_person_id, sales_person_name, sales_person_phone, sales_person_order, sales_channel, purchase_plan, financing_plan_id, delivery_vin, delivery_city, delivery_method, transport_apply_person_id, transport_apply_person_name, delivery_person_id, delivery_person_name, delivery_remark, reception_person_id, reception_person_name, invoicing_time, estimated_delivery_time, actual_delivery_time, license_city, dealership, delivery_center,
+            id, order_num, order_state, order_state_time, order_time, cancel_time, benefits_id, agreement_id, contract_num, contract_time, sale_code, build_config_code, build_config_lock, pay_state, earnest_money_time, earnest_money_amount, down_payment_time, down_payment_amount, lock_time, assign_time, revoke_time, reassign_time, transport_apply_time, final_payment_time, order_type, order_person_id, order_person_type, order_person_name, order_person_phone, order_person_id_type, order_person_id_num, recommender_id, contact_person_name, contact_person_phone, sales_person_id, sales_person_name, sales_person_phone, sales_person_order, sales_channel, purchase_plan, financing_plan_id, delivery_vin, delivery_city, delivery_method, transport_apply_person_id, transport_apply_person_name, delivery_person_id, delivery_person_name, delivery_remark, reception_person_id, reception_person_name, invoicing_time, estimated_delivery_time, actual_delivery_time, license_city, dealership, delivery_center,
             description, create_time, create_by, modify_time, modify_by, row_version, row_valid
         )
         VALUES (
-            #{id}, #{orderNum}, #{orderState}, #{orderStateTime}, #{orderTime}, #{cancelTime}, #{benefitsId}, #{agreementId}, #{contractNum}, #{contractTime}, #{saleCode}, #{modelConfigCode}, #{modelConfigLock}, #{payState}, #{earnestMoneyTime}, #{earnestMoneyAmount}, #{downPaymentTime}, #{downPaymentAmount}, #{lockTime}, #{assignTime}, #{revokeTime}, #{reassignTime}, #{transportApplyTime}, #{finalPaymentTime}, #{orderType}, #{orderPersonId}, #{orderPersonType}, #{orderPersonName}, #{orderPersonPhone}, #{orderPersonIdType}, #{orderPersonIdNum}, #{recommenderId}, #{contactPersonName}, #{contactPersonPhone}, #{salesPersonId}, #{salesPersonName}, #{salesPersonPhone}, #{salesPersonOrder}, #{salesChannel}, #{purchasePlan}, #{financingPlanId}, #{deliveryVin}, #{deliveryCity}, #{deliveryMethod}, #{transportApplyPersonId}, #{transportApplyPersonName}, #{deliveryPersonId}, #{deliveryPersonName}, #{deliveryRemark}, #{receptionPersonId}, #{receptionPersonName}, #{invoicingTime}, #{estimatedDeliveryTime}, #{actualDeliveryTime}, #{licenseCity}, #{dealership}, #{deliveryCenter},
+            #{id}, #{orderNum}, #{orderState}, #{orderStateTime}, #{orderTime}, #{cancelTime}, #{benefitsId}, #{agreementId}, #{contractNum}, #{contractTime}, #{saleCode}, #{buildConfigCode}, #{buildConfigLock}, #{payState}, #{earnestMoneyTime}, #{earnestMoneyAmount}, #{downPaymentTime}, #{downPaymentAmount}, #{lockTime}, #{assignTime}, #{revokeTime}, #{reassignTime}, #{transportApplyTime}, #{finalPaymentTime}, #{orderType}, #{orderPersonId}, #{orderPersonType}, #{orderPersonName}, #{orderPersonPhone}, #{orderPersonIdType}, #{orderPersonIdNum}, #{recommenderId}, #{contactPersonName}, #{contactPersonPhone}, #{salesPersonId}, #{salesPersonName}, #{salesPersonPhone}, #{salesPersonOrder}, #{salesChannel}, #{purchasePlan}, #{financingPlanId}, #{deliveryVin}, #{deliveryCity}, #{deliveryMethod}, #{transportApplyPersonId}, #{transportApplyPersonName}, #{deliveryPersonId}, #{deliveryPersonName}, #{deliveryRemark}, #{receptionPersonId}, #{receptionPersonName}, #{invoicingTime}, #{estimatedDeliveryTime}, #{actualDeliveryTime}, #{licenseCity}, #{dealership}, #{deliveryCenter},
             #{description}, now(), #{createBy}, now(), #{modifyBy}, 1, 1
         )
     </insert>
@@ -101,13 +101,13 @@
     <!-- 批量插入 -->
     <insert id="batchInsertPo" useGeneratedKeys="true" keyProperty="id" parameterType="java.util.List">
         INSERT INTO tb_order (
-            id, order_num, order_state, order_state_time, order_time, cancel_time, benefits_id, agreement_id, contract_num, contract_time, sale_code, model_config_code, model_config_lock, pay_state, earnest_money_time, earnest_money_amount, down_payment_time, down_payment_amount, lock_time, assign_time, revoke_time, reassign_time, transport_apply_time, final_payment_time, order_type, order_person_id, order_person_type, order_person_name, order_person_phone, order_person_id_type, order_person_id_num, recommender_id, contact_person_name, contact_person_phone, sales_person_id, sales_person_name, sales_person_phone, sales_person_order, sales_channel, purchase_plan, financing_plan_id, delivery_vin, delivery_city, delivery_method, transport_apply_person_id, transport_apply_person_name, delivery_person_id, delivery_person_name, delivery_remark, reception_person_id, reception_person_name, invoicing_time, estimated_delivery_time, actual_delivery_time, license_city, dealership, delivery_center,
+            id, order_num, order_state, order_state_time, order_time, cancel_time, benefits_id, agreement_id, contract_num, contract_time, sale_code, build_config_code, build_config_lock, pay_state, earnest_money_time, earnest_money_amount, down_payment_time, down_payment_amount, lock_time, assign_time, revoke_time, reassign_time, transport_apply_time, final_payment_time, order_type, order_person_id, order_person_type, order_person_name, order_person_phone, order_person_id_type, order_person_id_num, recommender_id, contact_person_name, contact_person_phone, sales_person_id, sales_person_name, sales_person_phone, sales_person_order, sales_channel, purchase_plan, financing_plan_id, delivery_vin, delivery_city, delivery_method, transport_apply_person_id, transport_apply_person_name, delivery_person_id, delivery_person_name, delivery_remark, reception_person_id, reception_person_name, invoicing_time, estimated_delivery_time, actual_delivery_time, license_city, dealership, delivery_center,
             description, create_time, create_by, modify_time, modify_by, row_version, row_valid
         )
         VALUES
         <foreach collection="list" item="item" index="index" separator=",">
         (
-            #{item.id}, #{item.orderNum}, #{item.orderState}, #{item.orderStateTime}, #{item.orderTime}, #{item.cancelTime}, #{item.benefitsId}, #{item.agreementId}, #{item.contractNum}, #{item.contractTime}, #{item.saleCode}, #{item.modelConfigCode}, #{item.modelConfigLock}, #{item.payState}, #{item.earnestMoneyTime}, #{item.earnestMoneyAmount}, #{item.downPaymentTime}, #{item.downPaymentAmount}, #{item.lockTime}, #{item.assignTime}, #{item.revokeTime}, #{item.reassignTime}, #{item.transportApplyTime}, #{item.finalPaymentTime}, #{item.orderType}, #{item.orderPersonId}, #{item.orderPersonType}, #{item.orderPersonName}, #{item.orderPersonPhone}, #{item.orderPersonIdType}, #{item.orderPersonIdNum}, #{item.recommenderId}, #{item.contactPersonName}, #{item.contactPersonPhone}, #{item.salesPersonId}, #{item.salesPersonName}, #{item.salesPersonPhone}, #{item.salesPersonOrder}, #{item.salesChannel}, #{item.purchasePlan}, #{item.financingPlanId}, #{item.deliveryVin}, #{item.deliveryCity}, #{item.deliveryMethod}, #{item.transportApplyPersonId}, #{item.transportApplyPersonName}, #{item.deliveryPersonId}, #{item.deliveryPersonName}, #{item.deliveryRemark}, #{item.receptionPersonId}, #{item.receptionPersonName}, #{item.invoicingTime}, #{item.estimatedDeliveryTime}, #{item.actualDeliveryTime}, #{item.licenseCity}, #{item.dealership}, #{item.deliveryCenter},
+            #{item.id}, #{item.orderNum}, #{item.orderState}, #{item.orderStateTime}, #{item.orderTime}, #{item.cancelTime}, #{item.benefitsId}, #{item.agreementId}, #{item.contractNum}, #{item.contractTime}, #{item.saleCode}, #{item.buildConfigCode}, #{item.buildConfigLock}, #{item.payState}, #{item.earnestMoneyTime}, #{item.earnestMoneyAmount}, #{item.downPaymentTime}, #{item.downPaymentAmount}, #{item.lockTime}, #{item.assignTime}, #{item.revokeTime}, #{item.reassignTime}, #{item.transportApplyTime}, #{item.finalPaymentTime}, #{item.orderType}, #{item.orderPersonId}, #{item.orderPersonType}, #{item.orderPersonName}, #{item.orderPersonPhone}, #{item.orderPersonIdType}, #{item.orderPersonIdNum}, #{item.recommenderId}, #{item.contactPersonName}, #{item.contactPersonPhone}, #{item.salesPersonId}, #{item.salesPersonName}, #{item.salesPersonPhone}, #{item.salesPersonOrder}, #{item.salesChannel}, #{item.purchasePlan}, #{item.financingPlanId}, #{item.deliveryVin}, #{item.deliveryCity}, #{item.deliveryMethod}, #{item.transportApplyPersonId}, #{item.transportApplyPersonName}, #{item.deliveryPersonId}, #{item.deliveryPersonName}, #{item.deliveryRemark}, #{item.receptionPersonId}, #{item.receptionPersonName}, #{item.invoicingTime}, #{item.estimatedDeliveryTime}, #{item.actualDeliveryTime}, #{item.licenseCity}, #{item.dealership}, #{item.deliveryCenter},
             #{item.description}, now(), #{item.createBy}, now(), #{item.modifyBy}, 1, 1
         )
         </foreach>
@@ -146,11 +146,11 @@
         <if test="saleCode != null and saleCode != ''">
             t.sale_code = #{saleCode},
         </if>
-        <if test="modelConfigCode != null and modelConfigCode != ''">
-            t.model_config_code = #{modelConfigCode},
+        <if test="buildConfigCode != null and buildConfigCode != ''">
+            t.build_config_code = #{buildConfigCode},
         </if>
-        <if test="modelConfigLock != null">
-            t.model_config_lock = #{modelConfigLock},
+        <if test="buildConfigLock != null">
+            t.build_config_lock = #{buildConfigLock},
         </if>
         <if test="payState != null">
             t.pay_state = #{payState},
@@ -371,11 +371,11 @@
         <if test="saleCode != null and saleCode != ''">
             AND t.sale_code = #{saleCode}
         </if>
-        <if test="modelConfigCode != null and modelConfigCode != ''">
-            AND t.model_config_code = #{modelConfigCode}
+        <if test="buildConfigCode != null and buildConfigCode != ''">
+            AND t.build_config_code = #{buildConfigCode}
         </if>
-        <if test="modelConfigLock != null">
-            AND t.model_config_lock = #{modelConfigLock}
+        <if test="buildConfigLock != null">
+            AND t.build_config_lock = #{buildConfigLock}
         </if>
         <if test="payState != null">
             AND t.pay_state = #{payState}

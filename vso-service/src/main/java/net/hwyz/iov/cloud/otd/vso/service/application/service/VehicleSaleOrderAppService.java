@@ -112,7 +112,7 @@ public class VehicleSaleOrderAppService {
                 if (!orderModelConfigPoList.isEmpty()) {
                     displayName = orderModelConfigPoList.get(0).getTypeName();
                 } else {
-                    displayName = orderPo.getModelConfigCode();
+                    displayName = orderPo.getBuildConfigCode();
                 }
             }
             list.add(Order.builder()
@@ -151,9 +151,9 @@ public class VehicleSaleOrderAppService {
         if (ObjUtil.isNull(accountInfo)) {
             throw new AccountNotExistException(accountId);
         }
-        String modelConfigCode = saleModelAppService.getModelConfigCode(request.getSaleModelConfigType());
+        String buildConfigCode = saleModelAppService.getBuildConfigCode(request.getSaleModelConfigType());
         OrderDo orderDo = orderFactory.buildFromWishlist(accountId, accountInfo.getMobile(), saleCode);
-        orderDo.saveModelConfig(modelConfigCode, getOrderModelConfigMap(saleCode, request.getSaleModelConfigType()));
+        orderDo.saveBuildConfig(buildConfigCode, getOrderModelConfigMap(saleCode, request.getSaleModelConfigType()));
         orderRepository.save(orderDo);
         return orderDo.getOrderNum();
     }
@@ -166,8 +166,8 @@ public class VehicleSaleOrderAppService {
      */
     public void modifyUserWishlist(String accountId, SelectedSaleModelRequest request) {
         OrderDo orderDo = orderRepository.get(accountId, request.getOrderNum());
-        String modelConfigCode = saleModelAppService.getModelConfigCode(request.getSaleModelConfigType());
-        orderDo.saveModelConfig(modelConfigCode, getOrderModelConfigMap(request.getSaleCode(), request.getSaleModelConfigType()));
+        String buildConfigCode = saleModelAppService.getBuildConfigCode(request.getSaleModelConfigType());
+        orderDo.saveBuildConfig(buildConfigCode, getOrderModelConfigMap(request.getSaleCode(), request.getSaleModelConfigType()));
         orderRepository.save(orderDo);
     }
 
@@ -232,8 +232,8 @@ public class VehicleSaleOrderAppService {
             }
             orderDo = orderFactory.buildFromEarnestMoney(accountId, accountInfo.getMobile(), request.getSaleCode());
         }
-        String modelConfigCode = saleModelAppService.getModelConfigCode(request.getSaleModelConfigType());
-        orderDo.saveModelConfig(modelConfigCode, getOrderModelConfigMap(request.getSaleCode(), request.getSaleModelConfigType()));
+        String buildConfigCode = saleModelAppService.getBuildConfigCode(request.getSaleModelConfigType());
+        orderDo.saveBuildConfig(buildConfigCode, getOrderModelConfigMap(request.getSaleCode(), request.getSaleModelConfigType()));
         orderDo.saveLicenseCity(request.getLicenseCityCode());
         orderRepository.save(orderDo);
         recordOrderLog(orderDo.getOrderNum(), ClientType.MP, accountId, OrderOperate.ORDER_CREATE, "新增订单：" + orderDo.getOrderNum());
@@ -264,8 +264,8 @@ public class VehicleSaleOrderAppService {
             }
             orderDo = orderFactory.buildFromDownPayment(accountId, accountInfo.getMobile(), request.getSaleCode());
         }
-        String modelConfigCode = saleModelAppService.getModelConfigCode(request.getSaleModelConfigType());
-        orderDo.saveModelConfig(modelConfigCode, getOrderModelConfigMap(request.getSaleCode(), request.getSaleModelConfigType()));
+        String buildConfigCode = saleModelAppService.getBuildConfigCode(request.getSaleModelConfigType());
+        orderDo.saveBuildConfig(buildConfigCode, getOrderModelConfigMap(request.getSaleCode(), request.getSaleModelConfigType()));
         orderDo.saveOrderPerson(accountId, request.getOrderPersonType(), request.getOrderPersonName(),
                 request.getOrderPersonIdType(), request.getOrderPersonIdNum());
         orderDo.savePurchasePlan(request.getPurchasePlan());

@@ -106,13 +106,13 @@ public class OrderDo extends BaseDo<Long> implements DomainObj<OrderDo> {
      */
     private String saleCode;
     /**
-     * 车型配置代码
+     * 生产配置代码
      */
-    private String modelConfigCode;
+    private String buildConfigCode;
     /**
-     * 车型配置是否锁定
+     * 生产配置是否锁定
      */
-    private Boolean modelConfigLock;
+    private Boolean buildConfigLock;
     /**
      * 订单车型配置类型Map
      */
@@ -165,7 +165,7 @@ public class OrderDo extends BaseDo<Long> implements DomainObj<OrderDo> {
         if (this.orderState != OrderState.WISHLIST) {
             this.orderTime = now;
         }
-        this.modelConfigLock = false;
+        this.buildConfigLock = false;
         this.orderPersonId = orderPersonId;
         this.orderPersonPhone = orderPersonPhone;
         this.saleCode = saleCode;
@@ -195,16 +195,16 @@ public class OrderDo extends BaseDo<Long> implements DomainObj<OrderDo> {
     }
 
     /**
-     * 保存车型配置
+     * 保存生产配置
      *
-     * @param modelConfigCode 车型配置代码
+     * @param buildConfigCode 生产配置代码
      */
-    public void saveModelConfig(String modelConfigCode, Map<SaleModelConfigType, OrderModelConfigDo> modelConfigMap) {
-        if (modelConfigLock) {
+    public void saveBuildConfig(String buildConfigCode, Map<SaleModelConfigType, OrderModelConfigDo> modelConfigMap) {
+        if (buildConfigLock) {
             throw new SaleModelConfigHasLockedException(orderNum);
         }
-        if (this.modelConfigCode == null || !this.modelConfigCode.equals(modelConfigCode)) {
-            this.modelConfigCode = modelConfigCode;
+        if (this.buildConfigCode == null || !this.buildConfigCode.equals(buildConfigCode)) {
+            this.buildConfigCode = buildConfigCode;
             this.modelConfigMap = modelConfigMap;
             stateChange();
         }
@@ -460,7 +460,7 @@ public class OrderDo extends BaseDo<Long> implements DomainObj<OrderDo> {
         if (this.orderState != OrderState.DOWN_PAYMENT_PAID) {
             throw new OrderStateNotAllowedException(this.orderNum, this.orderState, "LOCK");
         }
-        this.modelConfigLock = true;
+        this.buildConfigLock = true;
         this.orderState = OrderState.ARRANGE_PRODUCTION;
         Date now = new Date();
         this.orderStateTime = now;

@@ -62,8 +62,8 @@ public class OrderRepositoryImpl extends AbstractRepository<String, OrderDo> imp
                 .dealership(orderPo.getDealership())
                 .deliveryCenter(orderPo.getDeliveryCenter())
                 .saleCode(orderPo.getSaleCode())
-                .modelConfigCode(orderPo.getModelConfigCode())
-                .modelConfigLock(orderPo.getModelConfigLock())
+                .buildConfigCode(orderPo.getBuildConfigCode())
+                .buildConfigLock(orderPo.getBuildConfigLock())
                 .modelConfigMap(modelConfigMap)
                 .build();
         orderDo.stateLoad();
@@ -100,7 +100,7 @@ public class OrderRepositoryImpl extends AbstractRepository<String, OrderDo> imp
             }
             case CHANGED -> {
                 orderDao.updatePo(OrderPoAssembler.INSTANCE.fromDo(orderDo));
-                if (!orderDo.getModelConfigLock()) {
+                if (!orderDo.getBuildConfigLock()) {
                     orderModelConfigDao.batchPhysicalDeletePoByOrderNum(orderDo.getOrderNum());
                     List<OrderModelConfigPo> orderModelConfigPoList = new ArrayList<>();
                     orderDo.getModelConfigMap().values().forEach(orderModelConfigDo -> {

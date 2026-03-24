@@ -10,10 +10,8 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class AccountNotExistException extends VsoBaseException {
 
-    private static final int ERROR_CODE = 401007;
-
     public AccountNotExistException(String accountId) {
-        super(ERROR_CODE);
+        super(ERROR_CODE_ACCOUNT_NOT_EXIST);
         logger.warn("账号[{}]不存在", accountId);
     }
 

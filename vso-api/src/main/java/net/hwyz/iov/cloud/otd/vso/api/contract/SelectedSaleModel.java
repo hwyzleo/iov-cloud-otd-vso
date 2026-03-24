@@ -23,9 +23,9 @@ import java.util.Map;
 public class SelectedSaleModel extends SaleModelMp {
 
     /**
-     * 车型配置代码
+     * 生产配置代码
      */
-    private String modelConfigCode;
+    private String buildConfigCode;
 
     /**
      * 销售车型图片集
