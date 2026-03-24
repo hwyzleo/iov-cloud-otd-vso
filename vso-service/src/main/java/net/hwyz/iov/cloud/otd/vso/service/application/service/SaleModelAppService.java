@@ -452,8 +452,8 @@ public class SaleModelAppService {
         String vehicleBuildConfigCode = exVehicleModelConfigService.getVehicleBuildConfigCode(modelCode, exteriorCode,
                 interiorCode, wheelCode, tireCode, spareTireCode, adasCode, seatCode);
         if (vehicleBuildConfigCode == null) {
-            throw new BuildConfigCodeNotExistException(modelCode, exteriorCode, interiorCode, wheelCode, spareTireCode,
-                    adasCode, seatCode);
+            throw new BuildConfigCodeNotExistException(modelCode, exteriorCode, interiorCode, wheelCode, tireCode,
+                    spareTireCode, adasCode, seatCode);
         }
         return vehicleBuildConfigCode;
     }
