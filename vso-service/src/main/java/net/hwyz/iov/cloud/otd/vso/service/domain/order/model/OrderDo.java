@@ -421,6 +421,12 @@ public class OrderDo extends BaseDo<Long> implements DomainObj<OrderDo> {
                 this.payState = PayState.DOWN_PAYMENT_PAID;
                 stateChange();
             }
+            case PREPARE_DELIVER -> {
+                this.orderState = OrderState.FINAL_PAYMENT_PAID;
+                this.orderStateTime = new Date();
+                this.payState = PayState.FINAL_PAYMENT_PAID;
+                stateChange();
+            }
             default -> throw new OrderStateNotAllowedException(this.orderNum, this.orderState, "PAY");
         }
     }
