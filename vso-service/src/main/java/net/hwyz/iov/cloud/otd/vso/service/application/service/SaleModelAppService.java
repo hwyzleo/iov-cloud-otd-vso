@@ -13,7 +13,6 @@ import net.hwyz.iov.cloud.otd.vso.api.contract.PurchaseAgreement;
 import net.hwyz.iov.cloud.otd.vso.api.contract.PurchaseBenefits;
 import net.hwyz.iov.cloud.otd.vso.api.contract.SelectedSaleModel;
 import net.hwyz.iov.cloud.otd.vso.api.contract.enums.SaleModelConfigType;
-import net.hwyz.iov.cloud.otd.vso.service.domain.external.service.ExDictionaryService;
 import net.hwyz.iov.cloud.otd.vso.service.facade.assembler.PurchaseAgreementAssembler;
 import net.hwyz.iov.cloud.otd.vso.service.facade.assembler.PurchaseBenefitsAssembler;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.exception.BuildConfigCodeNotExistException;
@@ -26,6 +25,7 @@ import net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository.po.PurchaseA
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository.po.PurchaseBenefitsPo;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository.po.SaleModelConfigPo;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository.po.SaleModelPo;
+import net.hwyz.iov.cloud.tsp.dictionary.api.feign.service.ExDictionaryService;
 import net.hwyz.iov.cloud.tsp.vmd.api.feign.service.ExVehicleModelConfigService;
 import org.springframework.stereotype.Service;
 
