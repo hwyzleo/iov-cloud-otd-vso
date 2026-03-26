@@ -87,6 +87,16 @@ public class VehicleSaleOrderAppService {
     }
 
     /**
+     * 获取订单信息
+     *
+     * @param orderId 订单ID
+     * @return 订单信息
+     */
+    public OrderPo getOrderById(Long orderId) {
+        return orderDao.selectPoById(orderId);
+    }
+
+    /**
      * 获取订单列表
      *
      * @param type      订单类型

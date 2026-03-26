@@ -73,6 +73,20 @@ public class VehicleSaleOrderMptController extends BaseController implements Veh
     }
 
     /**
+     * 根据车辆销售订单ID获取车辆销售订单信息
+     *
+     * @param vehicleSaleOrderId 销售车型ID
+     * @return 车辆销售订单信息
+     */
+    @RequiresPermissions("completeVehicle:order:info:query")
+    @Override
+    @GetMapping(value = "/{vehicleSaleOrderId}")
+    public AjaxResult getInfo(@PathVariable Long vehicleSaleOrderId) {
+        logger.info("管理后台用户[{}]根据车辆销售订单ID[{}]获取车辆销售订单信息", SecurityUtils.getUsername(), vehicleSaleOrderId);
+        return success(VehicleSaleOrderMptAssembler.INSTANCE.fromPo(vehicleSaleOrderAppService.getOrderById(vehicleSaleOrderId)));
+    }
+
+    /**
      * 分页查询可改配车辆销售订单信息
      *
      * @param vehicleSaleOrder 车辆销售订单信息

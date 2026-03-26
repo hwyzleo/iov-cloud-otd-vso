@@ -26,6 +26,14 @@ public interface VehicleSaleOrderMptApi {
     TableDataInfo list(VehicleSaleOrderMpt vehicleSaleOrder);
 
     /**
+     * 根据车辆销售订单ID获取车辆销售订单信息
+     *
+     * @param vehicleSaleOrderId 销售车型ID
+     * @return 车辆销售订单信息
+     */
+    AjaxResult getInfo(Long vehicleSaleOrderId);
+
+    /**
      * 分页查询可改配车辆销售订单信息
      *
      * @param vehicleSaleOrder 车辆销售订单信息
