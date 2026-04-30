@@ -1,0 +1,10 @@
+package net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd;
+
+import lombok.Builder;
+import lombok.Data;
+
+@Data
+@Builder
+public class PrepareTransportCmd {
+    private String orderNum;
+}

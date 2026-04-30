@@ -3,17 +3,18 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <packaging>pom</packaging>
-
-    <modules>
-        <module>vso-api</module>
-        <module>vso-service</module>
-    </modules>
 
     <groupId>net.hwyz.iov.cloud.otd</groupId>
-    <artifactId>vso</artifactId>
+    <artifactId>otd-vso</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <description>车辆销售订单</description>
-    <name>vso</name>
+    <packaging>pom</packaging>
+
+    <name>otd-vso</name>
+    <description>Vehicle Sales Order - 车辆销售订单系统</description>
+
+    <modules>
+        <module>otd-vso-api</module>
+        <module>otd-vso-service</module>
+    </modules>
 
 </project>

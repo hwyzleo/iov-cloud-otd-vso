@@ -1,0 +1,123 @@
+package net.hwyz.iov.cloud.otd.vso.service.adapter.web.controller.open;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import net.hwyz.iov.cloud.framework.common.bean.ApiResponse;
+import net.hwyz.iov.cloud.framework.web.controller.BaseController;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.Map;
+
+/**
+ * 开放回调接口（外部系统回调）
+ *
+ * @author VSO Team
+ */
+@Slf4j
+@RestController
+@RequestMapping("/api/open/callback/v1")
+@RequiredArgsConstructor
+public class OpenCallbackController extends BaseController {
+
+    /**
+     * 支付回调
+     */
+    @PostMapping("/payment")
+    public ApiResponse<Void> paymentCallback(@RequestBody Map<String, Object> payload,
+                                             @RequestHeader(value = "X-Signature", required = false) String signature) {
+        log.info("支付回调：payload={}", payload);
+
+        try {
+            // TODO: 1. 验证签名
+            // TODO: 2. 幂等处理
+            // TODO: 3. 更新支付状态
+            // TODO: 4. 推进订单状态
+
+            return ApiResponse.ok();
+        } catch (Exception e) {
+            log.error("支付回调异常", e);
+            return ApiResponse.fail("回调处理失败");
+        }
+    }
+
+    /**
+     * 电子签回调
+     */
+    @PostMapping("/contract")
+    public ApiResponse<Void> contractCallback(@RequestBody Map<String, Object> payload,
+                                              @RequestHeader(value = "X-Signature", required = false) String signature) {
+        log.info("电子签回调：payload={}", payload);
+
+        try {
+            // TODO: 1. 验证签名
+            // TODO: 2. 幂等处理
+            // TODO: 3. 更新合同状态
+
+            return ApiResponse.ok();
+        } catch (Exception e) {
+            log.error("电子签回调异常", e);
+            return ApiResponse.fail("回调处理失败");
+        }
+    }
+
+    /**
+     * 金融回调
+     */
+    @PostMapping("/finance")
+    public ApiResponse<Void> financeCallback(@RequestBody Map<String, Object> payload,
+                                             @RequestHeader(value = "X-Signature", required = false) String signature) {
+        log.info("金融回调：payload={}", payload);
+
+        try {
+            // TODO: 1. 验证签名
+            // TODO: 2. 幂等处理
+            // TODO: 3. 更新金融状态
+
+            return ApiResponse.ok();
+        } catch (Exception e) {
+            log.error("金融回调异常", e);
+            return ApiResponse.fail("回调处理失败");
+        }
+    }
+
+    /**
+     * 补贴回调
+     */
+    @PostMapping("/subsidy")
+    public ApiResponse<Void> subsidyCallback(@RequestBody Map<String, Object> payload,
+                                             @RequestHeader(value = "X-Signature", required = false) String signature) {
+        log.info("补贴回调：payload={}", payload);
+
+        try {
+            // TODO: 1. 验证签名
+            // TODO: 2. 幂等处理
+            // TODO: 3. 更新补贴状态
+
+            return ApiResponse.ok();
+        } catch (Exception e) {
+            log.error("补贴回调异常", e);
+            return ApiResponse.fail("回调处理失败");
+        }
+    }
+
+    /**
+     * 发票回调
+     */
+    @PostMapping("/invoice")
+    public ApiResponse<Void> invoiceCallback(@RequestBody Map<String, Object> payload,
+                                             @RequestHeader(value = "X-Signature", required = false) String signature) {
+        log.info("发票回调：payload={}", payload);
+
+        try {
+            // TODO: 1. 验证签名
+            // TODO: 2. 幂等处理
+            // TODO: 3. 更新发票状态
+
+            return ApiResponse.ok();
+        } catch (Exception e) {
+            log.error("发票回调异常", e);
+            return ApiResponse.fail("回调处理失败");
+        }
+    }
+
+}

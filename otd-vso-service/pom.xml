@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>net.hwyz.iov.cloud.parent</groupId>
+        <artifactId>service</artifactId>
+        <version>0.0.1-SNAPSHOT</version>
+        <relativePath/>
+    </parent>
+
+    <groupId>net.hwyz.iov.cloud.otd</groupId>
+    <artifactId>otd-vso-service</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+
+    <properties>
+        <account.version>0.0.1-SNAPSHOT</account.version>
+        <vmd.version>0.0.1-SNAPSHOT</vmd.version>
+        <vso.version>0.0.1-SNAPSHOT</vso.version>
+        <org.version>0.0.1-SNAPSHOT</org.version>
+        <dictionary.version>0.0.1-SNAPSHOT</dictionary.version>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>net.hwyz.iov.cloud.otd</groupId>
+            <artifactId>otd-vso-api</artifactId>
+            <version>${vso.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>net.hwyz.iov.cloud.tsp</groupId>
+            <artifactId>vmd-api</artifactId>
+            <version>${vmd.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>net.hwyz.iov.cloud.tsp</groupId>
+            <artifactId>account-api</artifactId>
+            <version>${account.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>net.hwyz.iov.cloud.tsp</groupId>
+            <artifactId>dictionary-api</artifactId>
+            <version>${dictionary.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>net.hwyz.iov.cloud.dms</groupId>
+            <artifactId>org-api</artifactId>
+            <version>${org.version}</version>
+        </dependency>
+
+        <!-- 框架: WEB -->
+        <dependency>
+            <groupId>net.hwyz.iov.cloud.framework</groupId>
+            <artifactId>framework-web-starter</artifactId>
+        </dependency>
+
+        <!-- 框架: MySQL -->
+        <dependency>
+            <groupId>net.hwyz.iov.cloud.framework</groupId>
+            <artifactId>framework-mysql-starter</artifactId>
+        </dependency>
+
+        <!-- 框架: 安全 -->
+        <dependency>
+            <groupId>net.hwyz.iov.cloud.framework</groupId>
+            <artifactId>framework-security-starter</artifactId>
+        </dependency>
+
+        <!-- 框架: 审计 -->
+        <dependency>
+            <groupId>net.hwyz.iov.cloud.framework</groupId>
+            <artifactId>framework-audit-starter</artifactId>
+        </dependency>
+
+        <!-- 数据库迁移：Flyway -->
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-mysql</artifactId>
+        </dependency>
+    </dependencies>
+
+</project>

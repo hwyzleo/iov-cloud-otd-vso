@@ -1,0 +1,25 @@
+package net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd;
+
+import lombok.Builder;
+import lombok.Data;
+import net.hwyz.iov.cloud.otd.vso.api.enums.SaleModelConfigType;
+import net.hwyz.iov.cloud.otd.vso.service.domain.model.OrderModelConfig;
+
+import java.util.Map;
+
+/**
+ * 修改愿望单命令
+ *
+ * @author VSO Team
+ */
+@Data
+@Builder
+public class ModifyWishlistCmd {
+
+    private String accountId;
+    private String orderNum;
+    private String saleCode;
+    private String buildConfigCode;
+    private Map<SaleModelConfigType, OrderModelConfig> modelConfigMap;
+
+}

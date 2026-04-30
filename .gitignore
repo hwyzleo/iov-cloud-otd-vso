@@ -68,3 +68,6 @@ target/
 ### mybatisplus ###
 **/templates/*.ftl
 MybatisPlusGenerator.java
+
+spec/
+AGENTS.md
