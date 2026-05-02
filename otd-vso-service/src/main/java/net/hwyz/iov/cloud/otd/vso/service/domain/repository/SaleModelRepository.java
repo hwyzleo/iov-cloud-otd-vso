@@ -1,5 +1,6 @@
 package net.hwyz.iov.cloud.otd.vso.service.domain.repository;
 
+import net.hwyz.iov.cloud.otd.vso.service.application.dto.query.SaleModelQuery;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.SaleModelPo;
 
 import java.util.List;
@@ -16,7 +17,7 @@ public interface SaleModelRepository {
 
     List<SaleModelPo> findAll();
 
-    List<SaleModelPo> findByCondition(String saleCode, String modelName, java.time.Instant beginTime, java.time.Instant endTime);
+    List<SaleModelPo> findByCondition(SaleModelQuery query);
 
     boolean existsBySaleCodeExcludeId(String saleCode, Long excludeId);
 

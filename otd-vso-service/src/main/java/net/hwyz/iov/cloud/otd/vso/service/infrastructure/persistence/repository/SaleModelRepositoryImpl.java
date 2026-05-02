@@ -3,6 +3,7 @@ package net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.repository
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import lombok.RequiredArgsConstructor;
+import net.hwyz.iov.cloud.otd.vso.service.application.dto.query.SaleModelQuery;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.SaleModelRepository;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.mapper.SaleModelMapper;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.SaleModelPo;
@@ -33,19 +34,19 @@ public class SaleModelRepositoryImpl implements SaleModelRepository {
     }
 
     @Override
-    public List<SaleModelPo> findByCondition(String saleCode, String modelName, Instant beginTime, Instant endTime) {
+    public List<SaleModelPo> findByCondition(SaleModelQuery query) {
         Map<String, Object> params = new HashMap<>();
-        if (saleCode != null && !saleCode.isEmpty()) {
-            params.put("saleCode", saleCode);
+        if (query.getSaleCode() != null && !query.getSaleCode().isEmpty()) {
+            params.put("saleCode", query.getSaleCode());
         }
-        if (modelName != null && !modelName.isEmpty()) {
-            params.put("modelName", "%" + modelName + "%");
+        if (query.getModelName() != null && !query.getModelName().isEmpty()) {
+            params.put("modelName", "%" + query.getModelName() + "%");
         }
-        if (beginTime != null) {
-            params.put("beginTime", beginTime);
+        if (query.getBeginTime() != null) {
+            params.put("beginTime", query.getBeginTime());
         }
-        if (endTime != null) {
-            params.put("endTime", endTime);
+        if (query.getEndTime() != null) {
+            params.put("endTime", query.getEndTime());
         }
         return mapper.selectPoByMap(params);
     }

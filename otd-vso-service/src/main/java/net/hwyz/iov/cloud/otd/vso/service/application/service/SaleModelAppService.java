@@ -7,6 +7,7 @@ import net.hwyz.iov.cloud.framework.common.enums.Symbol;
 import net.hwyz.iov.cloud.framework.web.util.PageUtil;
 import net.hwyz.iov.cloud.otd.vso.service.application.assembler.SaleModelPoAssembler;
 import net.hwyz.iov.cloud.otd.vso.service.application.assembler.SaleModelResultAssembler;
+import net.hwyz.iov.cloud.otd.vso.service.application.dto.query.SaleModelQuery;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.SaleModelConfigResult;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.SaleModelResult;
 import net.hwyz.iov.cloud.otd.vso.service.adapter.web.vo.LicenseArea;
@@ -49,8 +50,8 @@ public class SaleModelAppService {
     private final PurchaseBenefitsMapper purchaseBenefitsMapper;
     private final PurchaseAgreementMapper purchaseAgreementMapper;
 
-    public List<SaleModelResult> search(String saleCode, String modelName, Instant beginTime, Instant endTime) {
-        List<SaleModelPo> poList = saleModelRepository.findByCondition(saleCode, modelName, beginTime, endTime);
+    public List<SaleModelResult> search(SaleModelQuery query) {
+        List<SaleModelPo> poList = saleModelRepository.findByCondition(query);
         return PageUtil.convert(poList, SaleModelResultAssembler.INSTANCE::toResult);
     }
 
@@ -172,7 +173,9 @@ public class SaleModelAppService {
     public SelectedSaleModelResult getSelectedSaleModel(String saleCode, String modelCode, String exteriorCode,
                                                    String interiorCode, String wheelCode, String spareTireCode,
                                                    String adasCode) {
-        List<SaleModelPo> list = saleModelRepository.findByCondition(saleCode, null, null, null);
+        List<SaleModelPo> list = saleModelRepository.findByCondition(SaleModelQuery.builder()
+                .saleCode(saleCode)
+                .build());
         if (list.isEmpty()) throw new SaleModelNotExistException(saleCode);
         SaleModelPo model = list.get(0);
 
