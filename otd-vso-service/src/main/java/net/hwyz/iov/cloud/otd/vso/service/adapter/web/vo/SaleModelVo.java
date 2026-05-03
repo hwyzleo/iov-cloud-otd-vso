@@ -18,6 +18,8 @@ public class SaleModelVo {
 
     private String modelName;
 
+    private String parameters;
+
     private List<String> images;
 
     private Boolean earnestMoney;

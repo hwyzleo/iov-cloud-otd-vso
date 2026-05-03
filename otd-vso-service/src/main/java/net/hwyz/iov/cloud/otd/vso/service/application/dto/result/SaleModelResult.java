@@ -23,6 +23,7 @@ public class SaleModelResult {
     private Long id;
     private String saleCode;
     private String modelName;
+    private String parameters;
     private List<String> images;
     private Boolean earnestMoney;
     private BigDecimal earnestMoneyPrice;
