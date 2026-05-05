@@ -30,8 +30,8 @@
         </dependency>
 
         <dependency>
-            <groupId>net.hwyz.iov.cloud.tsp</groupId>
-            <artifactId>vmd-api</artifactId>
+            <groupId>net.hwyz.iov.cloud.edd</groupId>
+            <artifactId>edd-vmd-api</artifactId>
             <version>${vmd.version}</version>
         </dependency>
 

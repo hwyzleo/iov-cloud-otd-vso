@@ -19,6 +19,7 @@ import net.hwyz.iov.cloud.otd.vso.service.application.service.SaleModelAppServic
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.List;
 
 @Slf4j
@@ -76,22 +77,16 @@ public class MptSaleModelController extends BaseController {
         return ApiResponse.ok(SaleModelConfigVoAssembler.INSTANCE.toVoList(resultList));
     }
 
-    @PostMapping("/{saleModelId}/config")
-    public ApiResponse<Long> createConfig(@PathVariable Long saleModelId,
-                                          @RequestBody SaleModelConfigDto dto) {
-        return ApiResponse.ok(saleModelAppService.createSaleModelConfig(saleModelId, dto, SecurityUtils.getUserId().toString()));
+    @GetMapping("/{saleModelId}/config/{configId}")
+    public ApiResponse<SaleModelConfigVo> getConfig(@PathVariable Long saleModelId, @PathVariable Long configId) {
+        SaleModelConfigResult result = saleModelAppService.getSaleModelConfigById(saleModelId, configId);
+        return ApiResponse.ok(SaleModelConfigVoAssembler.INSTANCE.toVo(result));
     }
 
     @PutMapping("/{saleModelId}/config")
     public ApiResponse<Void> updateConfig(@PathVariable Long saleModelId,
                                           @RequestBody SaleModelConfigDto dto) {
         saleModelAppService.modifySaleModelConfig(saleModelId, dto, SecurityContextHolder.getUserId());
-        return ApiResponse.ok();
-    }
-
-    @DeleteMapping("/{saleModelId}/config")
-    public ApiResponse<Void> deleteConfigs(@PathVariable Long saleModelId, @RequestParam Long[] ids) {
-        saleModelAppService.deleteSaleModelConfigByIds(saleModelId, ids);
         return ApiResponse.ok();
     }
 
@@ -111,5 +106,44 @@ public class MptSaleModelController extends BaseController {
     @GetMapping("/{saleCode}/config/map")
     public ApiResponse<java.util.Map<String, SaleModelConfigMpt>> getConfigMap(@PathVariable String saleCode) {
         return ApiResponse.ok(SaleModelConfigMptAssembler.INSTANCE.toVoMap(saleModelAppService.getSaleModelConfigMap(saleCode)));
+    }
+
+    @GetMapping("/{saleModelId}/buildConfig")
+    public ApiResponse<List<SaleModelBuildConfigVo>> listBuildConfigs(@PathVariable Long saleModelId) {
+        return ApiResponse.ok(saleModelAppService.getBuildConfigList(saleModelId));
+    }
+
+    @GetMapping("/{saleModelId}/featureCodeRanges")
+    public ApiResponse<List<FeatureCodeRangeVo>> getFeatureCodeRanges(@PathVariable Long saleModelId) {
+        return ApiResponse.ok(saleModelAppService.getAggregatedFeatureCodeRanges(saleModelId));
+    }
+
+    @PostMapping("/{saleModelId}/buildConfig")
+    public ApiResponse<Long> createBuildConfig(@PathVariable Long saleModelId,
+                                                @RequestBody SaleModelBuildConfigDto dto) {
+        return ApiResponse.ok(saleModelAppService.createBuildConfig(saleModelId, dto, SecurityUtils.getUserId().toString()));
+    }
+
+    @PutMapping("/{saleModelId}/buildConfig")
+    public ApiResponse<Void> updateBuildConfig(@PathVariable Long saleModelId,
+                                                @RequestBody SaleModelBuildConfigDto dto) {
+        saleModelAppService.updateBuildConfig(saleModelId, dto, SecurityContextHolder.getUserId());
+        return ApiResponse.ok();
+    }
+
+    @DeleteMapping("/{saleModelId}/buildConfig")
+    public ApiResponse<Void> deleteBuildConfigs(@PathVariable Long saleModelId, @RequestParam String ids) {
+        Long[] idArray = Arrays.stream(ids.split(","))
+                .map(Long::parseLong)
+                .toArray(Long[]::new);
+        saleModelAppService.deleteBuildConfig(saleModelId, idArray);
+        return ApiResponse.ok();
+    }
+
+    @PostMapping("/{saleModelId}/syncConfigs")
+    public ApiResponse<Void> syncConfigs(@PathVariable Long saleModelId) {
+        SaleModelResult model = saleModelAppService.getSaleModelById(saleModelId);
+        saleModelAppService.syncSaleModelConfigFromBuildConfigs(model.getSaleCode(), SecurityContextHolder.getUserId());
+        return ApiResponse.ok();
     }
 }

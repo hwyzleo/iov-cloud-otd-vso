@@ -50,7 +50,7 @@ public interface SaleModelPoAssembler {
     @Mapping(target = "description", ignore = true)
     @Mapping(target = "rowVersion", ignore = true)
     @Mapping(target = "rowValid", ignore = true)
-    @Mapping(target = "typeImage", expression = "java(dto.getTypeImage() != null ? String.join(\",\", dto.getTypeImage()) : null)")
+    @Mapping(target = "typeImage", expression = "java(dto.getTypeImage() != null ? cn.hutool.json.JSONUtil.toJsonStr(dto.getTypeImage()) : null)")
     SaleModelConfigPo toConfigDo(SaleModelConfigDto dto);
 
 }

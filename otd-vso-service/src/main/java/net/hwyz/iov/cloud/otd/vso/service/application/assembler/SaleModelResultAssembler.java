@@ -6,6 +6,7 @@ import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.SaleModelResult
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.SaleModelConfigPo;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.SaleModelPo;
 import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
 import org.mapstruct.factory.Mappers;
 
 import java.util.List;
@@ -24,6 +25,7 @@ public interface SaleModelResultAssembler {
 
     List<SaleModelResult> toResultList(List<SaleModelPo> poList);
 
+    @Mapping(target = "typeImage", source = "typeImage")
     SaleModelConfigResult toConfigResult(SaleModelConfigPo po);
 
     List<SaleModelConfigResult> toConfigResultList(List<SaleModelConfigPo> poList);

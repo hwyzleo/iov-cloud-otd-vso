@@ -14,16 +14,20 @@ public enum SaleModelConfigType {
 
     /** 车型 **/
     MODEL,
-    /** 备胎 **/
-    SPARE_TIRE,
     /** 外观 **/
     EXTERIOR,
-    /** 车轮 **/
-    WHEEL,
     /** 内饰 **/
     INTERIOR,
+    /** 车轮 **/
+    WHEEL,
+    /** 轮胎 **/
+    TIRE,
+    /** 备胎 **/
+    SPARE_TIRE,
     /** 智驾 **/
-    ADAS;
+    ADAS,
+    /** 座椅 **/
+    SEAT;
     public static SaleModelConfigType valOf(String val) {
         return Arrays.stream(SaleModelConfigType.values())
                 .filter(saleModelConfigType -> saleModelConfigType.name().equals(val))

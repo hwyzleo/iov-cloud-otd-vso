@@ -4,26 +4,25 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
-import java.math.BigDecimal;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 import net.hwyz.iov.cloud.framework.mysql.po.BasePo;
 
 /**
  * <p>
- * 销售车型 数据对象
+ * 销售车型生产配置关联 数据对象
  * </p>
  *
  * @author hwyz_leo
- * @since 2024-10-18
+ * @since 2026-05-05
  */
 @Getter
 @Setter
 @SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
-@TableName("tb_sale_model")
-public class SaleModelPo extends BasePo {
+@TableName("tb_sale_model_build_config")
+public class SaleModelBuildConfigPo extends BasePo {
 
     private static final long serialVersionUID = 1L;
 
@@ -34,52 +33,16 @@ public class SaleModelPo extends BasePo {
     private Long id;
 
     /**
- * 销售代码
+     * 销售代码
      */
     @TableField("sale_code")
     private String saleCode;
 
     /**
-     * 销售车型名称
+     * 生产配置代码
      */
-    @TableField("model_name")
-    private String modelName;
-
-    /**
-     * 销售车型相关参数
-     */
-    @TableField("parameters")
-    private String parameters;
-
-    /**
-     * 销售车型图片集
-     */
-    @TableField("images")
-    private String images;
-
-    /**
-     * 是否允许意向金
-     */
-    @TableField("earnest_money")
-    private Boolean earnestMoney;
-
-    /**
-     * 意向金价格
-     */
-    @TableField("earnest_money_price")
-    private BigDecimal earnestMoneyPrice;
-
-    /**
-     * 是否允许定金
-     */
-    @TableField("down_payment")
-    private Boolean downPayment;
-
-    /**
-     * 定金价格
-     */
-    @TableField("down_payment_price")
-    private BigDecimal downPaymentPrice;
+    @TableField("build_config_code")
+    private String buildConfigCode;
 
     /**
      * 是否启用

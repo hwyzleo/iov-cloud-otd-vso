@@ -3,33 +3,35 @@ package net.hwyz.iov.cloud.otd.vso.service.application.service;
 import cn.hutool.core.util.StrUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import net.hwyz.iov.cloud.edd.vmd.api.vo.response.VmdBuildConfigFeatureCodeResponse;
+import net.hwyz.iov.cloud.edd.vmd.api.vo.response.VmdBuildConfigResponse;
 import net.hwyz.iov.cloud.framework.common.enums.Symbol;
+import net.hwyz.iov.cloud.framework.web.context.SecurityContextHolder;
 import net.hwyz.iov.cloud.framework.web.util.PageUtil;
 import net.hwyz.iov.cloud.otd.vso.service.application.assembler.SaleModelPoAssembler;
 import net.hwyz.iov.cloud.otd.vso.service.application.assembler.SaleModelResultAssembler;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.query.SaleModelQuery;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.SaleModelConfigResult;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.SaleModelResult;
-import net.hwyz.iov.cloud.otd.vso.service.adapter.web.vo.LicenseArea;
-import net.hwyz.iov.cloud.otd.vso.service.adapter.web.vo.PurchaseAgreement;
-import net.hwyz.iov.cloud.otd.vso.service.adapter.web.vo.PurchaseBenefits;
+import net.hwyz.iov.cloud.otd.vso.service.adapter.web.vo.*;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.SelectedSaleModelResult;
 import net.hwyz.iov.cloud.otd.vso.api.enums.SaleModelConfigType;
 import net.hwyz.iov.cloud.otd.vso.service.common.exception.BuildConfigCodeNotExistException;
+import net.hwyz.iov.cloud.otd.vso.service.domain.repository.SaleModelBuildConfigRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.SaleModelConfigRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.SaleModelRepository;
-import net.hwyz.iov.cloud.otd.vso.service.adapter.web.vo.SaleModelConfigDto;
-import net.hwyz.iov.cloud.otd.vso.service.adapter.web.vo.SaleModelCreateDto;
-import net.hwyz.iov.cloud.otd.vso.service.adapter.web.vo.SaleModelUpdateDto;
 import net.hwyz.iov.cloud.otd.vso.service.common.exception.SaleModelNotExistException;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.mapper.PurchaseAgreementMapper;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.mapper.PurchaseBenefitsMapper;
+import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.SaleModelBuildConfigPo;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.SaleModelConfigPo;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.SaleModelPo;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.PurchaseAgreementPo;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.PurchaseBenefitsPo;
+
+import java.util.Arrays;
 import net.hwyz.iov.cloud.tsp.dictionary.api.feign.service.ExDictionaryService;
-import net.hwyz.iov.cloud.tsp.vmd.api.feign.service.ExVehicleModelConfigService;
+import net.hwyz.iov.cloud.edd.vmd.api.service.VmdVehicleModelConfigService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -45,8 +47,9 @@ public class SaleModelAppService {
 
     private final SaleModelRepository saleModelRepository;
     private final SaleModelConfigRepository saleModelConfigRepository;
+    private final SaleModelBuildConfigRepository saleModelBuildConfigRepository;
     private final ExDictionaryService exDictionaryService;
-    private final ExVehicleModelConfigService exVehicleModelConfigService;
+    private final VmdVehicleModelConfigService vmdVehicleModelConfigService;
     private final PurchaseBenefitsMapper purchaseBenefitsMapper;
     private final PurchaseAgreementMapper purchaseAgreementMapper;
 
@@ -305,7 +308,7 @@ public class SaleModelAppService {
         String wheelCode = split2[0];
         String tireCode = split2.length > 1 ? split2[1] : "FB01";
 
-        String code = exVehicleModelConfigService.getVehicleBuildConfigCode(
+        String code = vmdVehicleModelConfigService.getVehicleBuildConfigCode(
                 modelCode,
                 configType.get(SaleModelConfigType.EXTERIOR.name()),
                 configType.get(SaleModelConfigType.INTERIOR.name()),
@@ -337,5 +340,232 @@ public class SaleModelAppService {
                     .cityCode(c.get("code").toString())
                     .displayName(c.get("name").toString()).build()));
         return list;
+    }
+
+public List<SaleModelBuildConfigVo> getBuildConfigList(Long saleModelId) {
+        SaleModelResult model = getSaleModelById(saleModelId);
+        List<SaleModelBuildConfigPo> poList = saleModelBuildConfigRepository.findBySaleCode(model.getSaleCode());
+        return poList.stream().map(po -> {
+            SaleModelBuildConfigVo vo = new SaleModelBuildConfigVo();
+            vo.setId(po.getId());
+            vo.setSaleCode(po.getSaleCode());
+            vo.setBuildConfigCode(po.getBuildConfigCode());
+            vo.setEnable(po.getEnable());
+            vo.setSort(po.getSort());
+
+            VmdBuildConfigResponse buildConfig = vmdVehicleModelConfigService.getBuildConfigByCode(po.getBuildConfigCode());
+            if (buildConfig != null) {
+                vo.setBuildConfigName(buildConfig.getName());
+            }
+            return vo;
+        }).collect(Collectors.toList());
+    }
+
+    public List<FeatureCodeRangeVo> getAggregatedFeatureCodeRanges(Long saleModelId) {
+        SaleModelResult model = getSaleModelById(saleModelId);
+        List<SaleModelBuildConfigPo> poList = saleModelBuildConfigRepository.findBySaleCode(model.getSaleCode());
+
+        Map<String, FeatureCodeRangeVo> aggregatedRanges = new LinkedHashMap<>();
+
+        for (SaleModelBuildConfigPo po : poList) {
+            VmdBuildConfigResponse buildConfig = vmdVehicleModelConfigService.getBuildConfigByCode(po.getBuildConfigCode());
+            if (buildConfig != null && buildConfig.getFeatureCodes() != null) {
+                for (VmdBuildConfigFeatureCodeResponse fc : buildConfig.getFeatureCodes()) {
+                    String familyCode = fc.getFamilyCode();
+
+                    FeatureCodeRangeVo range = aggregatedRanges.computeIfAbsent(familyCode, k -> {
+                        FeatureCodeRangeVo newRange = new FeatureCodeRangeVo();
+                        newRange.setFamilyCode(familyCode);
+                        newRange.setFamilyName(fc.getFamilyName());
+                        newRange.setFeatureCode(new String[]{});
+                        newRange.setFeatureName(new String[]{});
+                        return newRange;
+                    });
+
+                    if (fc.getFeatureCode() != null && fc.getFeatureCode().length > 0) {
+                        List<String> existingCodes = new ArrayList<>(Arrays.asList(range.getFeatureCode()));
+                        List<String> existingNames = new ArrayList<>(Arrays.asList(range.getFeatureName()));
+
+                        for (int i = 0; i < fc.getFeatureCode().length; i++) {
+                            String code = fc.getFeatureCode()[i];
+                            if (!existingCodes.contains(code)) {
+                                existingCodes.add(code);
+                                existingNames.add(fc.getFeatureName()[i]);
+                            }
+                        }
+
+                        range.setFeatureCode(existingCodes.toArray(new String[0]));
+                        range.setFeatureName(existingNames.toArray(new String[0]));
+                    }
+                }
+            }
+        }
+
+        return new ArrayList<>(aggregatedRanges.values());
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public Long createBuildConfig(Long saleModelId, SaleModelBuildConfigDto dto, String userId) {
+        SaleModelResult model = getSaleModelById(saleModelId);
+        if (saleModelBuildConfigRepository.findBySaleCodeAndBuildConfigCode(model.getSaleCode(), dto.getBuildConfigCode()).isPresent()) {
+            throw new IllegalArgumentException("该生产配置已关联：" + dto.getBuildConfigCode());
+        }
+        SaleModelBuildConfigPo po = SaleModelBuildConfigPo.builder()
+                .saleCode(model.getSaleCode())
+                .buildConfigCode(dto.getBuildConfigCode())
+                .enable(dto.getEnable() != null ? dto.getEnable() : true)
+                .sort(dto.getSort() != null ? dto.getSort() : 0)
+                .rowValid(true)
+                .rowVersion(0)
+                .createBy(userId)
+                .modifyBy(userId)
+                .build();
+        saleModelBuildConfigRepository.insert(po);
+        
+        // 自动生成或更新SaleModelConfig
+        syncSaleModelConfigFromBuildConfigs(model.getSaleCode(), userId);
+        
+        return po.getId();
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public void updateBuildConfig(Long saleModelId, SaleModelBuildConfigDto dto, String userId) {
+        SaleModelBuildConfigPo po = saleModelBuildConfigRepository.findById(dto.getId())
+                .orElseThrow(() -> new IllegalArgumentException("关联配置不存在"));
+        po.setEnable(dto.getEnable());
+        po.setSort(dto.getSort());
+        po.setModifyBy(userId);
+        saleModelBuildConfigRepository.update(po);
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public void deleteBuildConfig(Long saleModelId, Long[] ids) {
+        SaleModelResult model = getSaleModelById(saleModelId);
+        saleModelBuildConfigRepository.physicalDeleteByIds(ids);
+        
+        // 重新同步SaleModelConfig
+        syncSaleModelConfigFromBuildConfigs(model.getSaleCode(), SecurityContextHolder.getUserId());
+    }
+    
+    @Transactional(rollbackFor = Exception.class)
+    public void syncSaleModelConfigFromBuildConfigs(String saleCode, String userId) {
+        log.info("开始同步销售车型配置，saleCode: {}", saleCode);
+        List<SaleModelBuildConfigPo> buildConfigs = saleModelBuildConfigRepository.findBySaleCode(saleCode);
+        log.info("找到 {} 个生产配置关联", buildConfigs.size());
+        
+        // 获取现有的配置
+        List<SaleModelConfigPo> existingConfigs = saleModelConfigRepository.findBySaleCode(saleCode);
+        Map<String, SaleModelConfigPo> existingMap = existingConfigs.stream()
+                .collect(Collectors.toMap(c -> c.getType() + "_" + c.getTypeCode(), c -> c));
+        
+        // 聚合所有特征值
+        Map<String, Set<String>> featureValueMap = new LinkedHashMap<>();
+        Map<String, String> featureNameMap = new HashMap<>();
+        Map<String, String> featureValueNameMap = new HashMap<>();  // 特征值代码到名称的映射
+        
+        for (SaleModelBuildConfigPo bc : buildConfigs) {
+            log.info("处理生产配置关联: buildConfigCode={}, enable={}", bc.getBuildConfigCode(), bc.getEnable());
+            if (!bc.getEnable()) continue;
+            
+            VmdBuildConfigResponse buildConfig = vmdVehicleModelConfigService.getBuildConfigByCode(bc.getBuildConfigCode());
+            log.info("VMD返回数据: buildConfig={}, featureCodes={}", 
+                    buildConfig != null ? "存在" : "null",
+                    buildConfig != null && buildConfig.getFeatureCodes() != null ? buildConfig.getFeatureCodes().size() : "null");
+            
+            if (buildConfig != null && buildConfig.getFeatureCodes() != null) {
+                for (VmdBuildConfigFeatureCodeResponse fc : buildConfig.getFeatureCodes()) {
+                    String familyCode = fc.getFamilyCode();
+                    String familyName = fc.getFamilyName();
+                    log.info("特征族: familyCode={}, familyName={}", familyCode, familyName);
+                    
+                    featureValueMap.computeIfAbsent(familyCode, k -> new LinkedHashSet<>());
+                    featureNameMap.put(familyCode, familyName);
+                    
+                    if (fc.getFeatureCode() != null && fc.getFeatureName() != null) {
+                        for (int i = 0; i < fc.getFeatureCode().length; i++) {
+                            String code = fc.getFeatureCode()[i];
+                            String name = i < fc.getFeatureName().length ? fc.getFeatureName()[i] : null;
+                            
+                            featureValueMap.get(familyCode).add(code);
+                            // 存储特征值名称，如果没有名称则使用代码
+                            featureValueNameMap.put(familyCode + "_" + code, name != null && !name.isEmpty() ? name : code);
+                            log.info("添加特征值: familyCode={}, featureCode={}, featureName={}", familyCode, code, name);
+                        }
+                    } else if (fc.getFeatureCode() != null) {
+                        for (String code : fc.getFeatureCode()) {
+                            featureValueMap.get(familyCode).add(code);
+                            featureValueNameMap.put(familyCode + "_" + code, code);
+                            log.info("添加特征值(无名称): familyCode={}, featureCode={}", familyCode, code);
+                        }
+                    }
+                }
+            }
+        }
+        
+        log.info("聚合后的特征族数量: {}, 特征值详情: {}", featureValueMap.size(), featureValueMap);
+        
+        Set<String> toDelete = new HashSet<>(existingMap.keySet());
+        
+        for (Map.Entry<String, Set<String>> entry : featureValueMap.entrySet()) {
+            String familyCode = entry.getKey();
+            String familyName = featureNameMap.get(familyCode);
+            Set<String> featureCodes = entry.getValue();
+            
+            log.info("处理特征族: familyCode={}, familyName={}, 特征值数量={}", familyCode, familyName, featureCodes.size());
+            
+            for (String featureCode : featureCodes) {
+                String key = familyCode + "_" + featureCode;
+                toDelete.remove(key);
+                
+                // 获取特征值名称，如果没有则使用代码
+                String featureValueName = featureValueNameMap.getOrDefault(key, featureCode);
+                String typeName = familyName + "-" + featureValueName;
+                
+                SaleModelConfigPo existing = existingMap.get(key);
+                if (existing == null) {
+                    SaleModelConfigPo newConfig = SaleModelConfigPo.builder()
+                            .saleCode(saleCode)
+                            .type(familyCode)
+                            .typeCode(featureCode)
+                            .typeName(typeName)
+                            .typePrice(BigDecimal.ZERO)
+                            .typeImage(null)
+                            .typeDesc("")
+                            .typeParam("")
+                            .enable(true)
+                            .sort(0)
+                            .rowValid(true)
+                            .rowVersion(0)
+                            .createBy(userId)
+                            .modifyBy(userId)
+                            .build();
+                    saleModelConfigRepository.insert(newConfig);
+                    log.info("新增配置项: saleCode={}, type={}, typeCode={}, typeName={}", saleCode, familyCode, featureCode, typeName);
+                } else {
+                    // 如果已存在但被禁用，重新启用并更新名称
+                    if (!existing.getEnable()) {
+                        existing.setEnable(true);
+                        existing.setTypeName(typeName);
+                        existing.setModifyBy(userId);
+                        saleModelConfigRepository.update(existing);
+                        log.info("重新启用配置项: saleCode={}, type={}, typeCode={}, typeName={}", saleCode, familyCode, featureCode, typeName);
+                    } else {
+                        log.info("配置项已存在且启用: saleCode={}, type={}, typeCode={}", saleCode, familyCode, featureCode);
+                    }
+                }
+            }
+        }
+        
+        log.info("待清理的配置项数量: {}", toDelete.size());
+        for (String key : toDelete) {
+            SaleModelConfigPo config = existingMap.get(key);
+            if (config != null) {
+                // 物理删除不再可选的配置项（历史遗留数据）
+                saleModelConfigRepository.physicalDeleteBySaleCodeAndIds(saleCode, new Long[]{config.getId()});
+                log.info("物理删除配置项: saleCode={}, type={}, typeCode={}", saleCode, config.getType(), config.getTypeCode());
+            }
+        }
+        
+        log.info("同步完成，新增 {} 个，删除 {} 个", featureValueMap.values().stream().mapToInt(Set::size).sum(), toDelete.size());
     }
 }
