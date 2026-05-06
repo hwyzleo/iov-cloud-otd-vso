@@ -6,19 +6,13 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import net.hwyz.iov.cloud.otd.vso.api.enums.SaleModelConfigType;
-import net.hwyz.iov.cloud.otd.vso.service.domain.model.OrderState;
-import net.hwyz.iov.cloud.otd.vso.service.domain.model.PayState;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.shared.*;
 import net.hwyz.iov.cloud.otd.vso.service.common.exception.OrderIllegalDeleteException;
-import net.hwyz.iov.cloud.otd.vso.service.common.exception.OrderNotExistException;
 import net.hwyz.iov.cloud.otd.vso.service.common.exception.OrderStateNotAllowedException;
 import net.hwyz.iov.cloud.otd.vso.service.common.exception.SaleModelConfigHasLockedException;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * 订单聚合根
@@ -84,7 +78,7 @@ public class Order {
     private String saleCode;
     private String buildConfigCode;
     private Boolean buildConfigLock;
-    private Map<SaleModelConfigType, OrderModelConfig> modelConfigMap;
+    private Map<String, OrderModelConfig> modelConfigMap;
     private String licenseCity;
     private String dealership;
     private String deliveryCenter;
@@ -170,7 +164,7 @@ public class Order {
         this.orderTime = now;
     }
 
-    public void saveBuildConfig(String buildConfigCode, Map<SaleModelConfigType, OrderModelConfig> modelConfigMap) {
+    public void saveBuildConfig(String buildConfigCode, Map<String, OrderModelConfig> modelConfigMap) {
         if (Boolean.TRUE.equals(buildConfigLock)) {
             throw new SaleModelConfigHasLockedException(orderNum);
         }

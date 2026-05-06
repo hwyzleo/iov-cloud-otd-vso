@@ -5,7 +5,6 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import net.hwyz.iov.cloud.otd.vso.api.enums.SaleModelConfigType;
 
 import java.math.BigDecimal;
 
@@ -27,7 +26,7 @@ public class OrderModelConfig {
     /**
      * 销售车型配置类型
      */
-    private SaleModelConfigType type;
+    private String type;
     /**
      * 销售车型配置类型代码
      */

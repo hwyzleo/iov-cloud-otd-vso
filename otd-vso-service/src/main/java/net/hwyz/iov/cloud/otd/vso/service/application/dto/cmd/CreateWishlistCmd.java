@@ -2,7 +2,6 @@ package net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd;
 
 import lombok.Builder;
 import lombok.Data;
-import net.hwyz.iov.cloud.otd.vso.api.enums.SaleModelConfigType;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.OrderModelConfig;
 
 import java.util.Map;
@@ -20,7 +19,7 @@ public class CreateWishlistCmd {
     private String mobile;
     private String saleCode;
     private String buildConfigCode;
-    private Map<SaleModelConfigType, OrderModelConfig> modelConfigMap;
+    private Map<String, OrderModelConfig> modelConfigMap;
     private String licenseCityCode;
 
 }

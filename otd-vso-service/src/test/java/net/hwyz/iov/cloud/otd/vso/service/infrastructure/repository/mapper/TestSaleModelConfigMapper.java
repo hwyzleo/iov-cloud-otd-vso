@@ -1,6 +1,5 @@
 package net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository.mapper;
 
-import net.hwyz.iov.cloud.otd.vso.api.enums.SaleModelConfigType;
 import net.hwyz.iov.cloud.otd.vso.service.BaseTest;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.mapper.SaleModelConfigMapper;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.SaleModelConfigPo;
@@ -27,7 +26,7 @@ public class TestSaleModelConfigMapper extends BaseTest {
     public void testInsertPo() throws Exception {
         SaleModelConfigPo saleModelConfigPo = SaleModelConfigPo.builder()
                 .saleCode("H01")
-                .type(SaleModelConfigType.ADAS.name())
+                .type("XZ")
                 .typeCode("XZ02")
                 .typeName("高阶智驾")
                 .typePrice(BigDecimal.valueOf(20000))
