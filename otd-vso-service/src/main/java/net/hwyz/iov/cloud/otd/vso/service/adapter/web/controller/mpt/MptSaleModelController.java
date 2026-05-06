@@ -72,9 +72,9 @@ public class MptSaleModelController extends BaseController {
     }
 
     @GetMapping("/{saleModelId}/config")
-    public ApiResponse<List<SaleModelConfigVo>> listConfigs(@PathVariable Long saleModelId) {
-        List<SaleModelConfigResult> resultList = saleModelAppService.getSaleModelConfigList(saleModelId);
-        return ApiResponse.ok(SaleModelConfigVoAssembler.INSTANCE.toVoList(resultList));
+    public ApiResponse<List<SaleModelConfigFamilyVo>> listConfigs(@PathVariable Long saleModelId) {
+        List<SaleModelConfigFamilyVo> resultList = saleModelAppService.getSaleModelConfigFamilyList(saleModelId);
+        return ApiResponse.ok(resultList);
     }
 
     @GetMapping("/{saleModelId}/config/{configId}")
@@ -88,19 +88,6 @@ public class MptSaleModelController extends BaseController {
                                           @RequestBody SaleModelConfigDto dto) {
         saleModelAppService.modifySaleModelConfig(saleModelId, dto, SecurityContextHolder.getUserId());
         return ApiResponse.ok();
-    }
-
-    @GetMapping("/{saleCode}/selected")
-    public ApiResponse<SaleModelVo> getSelectedSaleModel(
-            @PathVariable String saleCode,
-            @RequestParam(required = false) String modelCode,
-            @RequestParam(required = false) String exteriorCode,
-            @RequestParam(required = false) String interiorCode,
-            @RequestParam(required = false) String wheelCode,
-            @RequestParam(required = false) String spareTireCode,
-            @RequestParam(required = false) String adasCode) {
-        return ApiResponse.ok(SaleModelVoAssembler.INSTANCE.toVo(saleModelAppService.getSelectedSaleModel(
-                saleCode, modelCode, exteriorCode, interiorCode, wheelCode, spareTireCode, adasCode)));
     }
 
     @GetMapping("/{saleCode}/config/map")

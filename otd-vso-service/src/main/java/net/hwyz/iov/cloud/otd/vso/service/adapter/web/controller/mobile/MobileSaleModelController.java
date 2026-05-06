@@ -74,26 +74,33 @@ public class MobileSaleModelController extends BaseController {
     }
 
     /**
-     * 获取已选择的销售车型及配置
+     * 获取销售车型可选特征值范围（动态配置模式）
      *
      * @param saleCode      销售代码
-     * @param modelCode     车型代码
-     * @param exteriorCode  外饰代码
-     * @param interiorCode  内饰代码
-     * @param wheelCode     车轮代码
-     * @param spareTireCode 备胎代码
-     * @param adasCode      智驾代码
+     * @param clientAccount 终端用户
+     * @return 特征值范围列表
+     */
+    @GetMapping("/{saleCode}/featureCodeRanges")
+    public ApiResponse<List<FeatureCodeRangeVo>> getFeatureCodeRanges(@PathVariable("saleCode") String saleCode,
+                                                                      @RequestHeader ClientAccount clientAccount) {
+        log.info("手机客户端[{}]获取销售代码[{}]可选特征值范围", ParamHelper.getClientAccountInfo(clientAccount), saleCode);
+        SaleModelResult model = saleModelAppService.getSaleModelByCode(saleCode);
+        return ApiResponse.ok(saleModelAppService.getAggregatedFeatureCodeRanges(model.getId()));
+    }
+
+    /**
+     * 根据选择的特征值获取销售车型信息（动态配置模式）
+     *
+     * @param requestVo     包含saleCode和选择的特征值Map
      * @param clientAccount 终端用户
      * @return 已选择的销售车型及配置
      */
-    @GetMapping("/selectedSaleModel")
-    public ApiResponse<SelectedSaleModel> getSelectedSaleModel(@RequestParam String saleCode, @RequestParam String modelCode,
-                                                               @RequestParam String exteriorCode, @RequestParam String interiorCode,
-                                                               @RequestParam String wheelCode, @RequestParam String spareTireCode,
-                                                               @RequestParam String adasCode, @RequestHeader ClientAccount clientAccount) {
-        log.info("手机客户端[{}]获取已选择的销售车型及配置", ParamHelper.getClientAccountInfo(clientAccount));
-        return ApiResponse.ok(SelectedSaleModelAssembler.INSTANCE.toVo(saleModelAppService.getSelectedSaleModel(saleCode, modelCode, exteriorCode, interiorCode,
-                wheelCode, spareTireCode, adasCode)));
+    @PostMapping("/selectedSaleModel")
+    public ApiResponse<SelectedSaleModel> getSelectedSaleModel(@RequestBody SelectedSaleModelRequestVo requestVo,
+                                                               @RequestHeader ClientAccount clientAccount) {
+        log.info("手机客户端[{}]根据特征值获取销售车型信息", ParamHelper.getClientAccountInfo(clientAccount));
+        return ApiResponse.ok(SelectedSaleModelAssembler.INSTANCE.toVo(
+                saleModelAppService.getSelectedSaleModelByFeatureCodes(requestVo.getSaleCode(), requestVo.getSaleModelConfigType())));
     }
 
     /**

@@ -1,6 +1,9 @@
 package net.hwyz.iov.cloud.otd.vso.service.adapter.web.vo;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -10,6 +13,9 @@ import java.util.List;
  * 管理后台销售车型配置视图对象。
  */
 @Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class SaleModelConfigVo {
 
     private Long id;

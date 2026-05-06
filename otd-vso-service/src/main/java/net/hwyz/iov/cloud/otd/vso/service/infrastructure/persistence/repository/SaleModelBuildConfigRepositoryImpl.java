@@ -34,6 +34,15 @@ public class SaleModelBuildConfigRepositoryImpl implements SaleModelBuildConfigR
     public Optional<SaleModelBuildConfigPo> findBySaleCodeAndBuildConfigCode(String saleCode, String buildConfigCode) {
         LambdaQueryWrapper<SaleModelBuildConfigPo> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(SaleModelBuildConfigPo::getSaleCode, saleCode)
+                .eq(SaleModelBuildConfigPo::getBuildConfigCode, buildConfigCode)
+                .eq(SaleModelBuildConfigPo::getRowValid, true);
+        return Optional.ofNullable(mapper.selectOne(wrapper));
+    }
+
+    @Override
+    public Optional<SaleModelBuildConfigPo> findBySaleCodeAndBuildConfigCodeIncludeDeleted(String saleCode, String buildConfigCode) {
+        LambdaQueryWrapper<SaleModelBuildConfigPo> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(SaleModelBuildConfigPo::getSaleCode, saleCode)
                 .eq(SaleModelBuildConfigPo::getBuildConfigCode, buildConfigCode);
         return Optional.ofNullable(mapper.selectOne(wrapper));
     }
@@ -50,7 +59,12 @@ public class SaleModelBuildConfigRepositoryImpl implements SaleModelBuildConfigR
 
     @Override
     public int physicalDeleteByIds(Long[] ids) {
-        return mapper.deleteBatchIds(Arrays.asList(ids));
+        return mapper.physicalDeleteByIds(Arrays.asList(ids));
+    }
+
+    @Override
+    public int physicalDeleteBySaleCodeAndBuildConfigCode(String saleCode, String buildConfigCode) {
+        return mapper.physicalDeleteBySaleCodeAndBuildConfigCode(saleCode, buildConfigCode);
     }
 
     @Override

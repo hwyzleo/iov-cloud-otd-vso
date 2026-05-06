@@ -16,11 +16,15 @@ public interface SaleModelBuildConfigRepository {
 
     Optional<SaleModelBuildConfigPo> findBySaleCodeAndBuildConfigCode(String saleCode, String buildConfigCode);
 
+    Optional<SaleModelBuildConfigPo> findBySaleCodeAndBuildConfigCodeIncludeDeleted(String saleCode, String buildConfigCode);
+
     int insert(SaleModelBuildConfigPo entity);
 
     int update(SaleModelBuildConfigPo entity);
 
     int physicalDeleteByIds(Long[] ids);
+
+    int physicalDeleteBySaleCodeAndBuildConfigCode(String saleCode, String buildConfigCode);
 
     int physicalDeleteBySaleCode(String saleCode);
 }
