@@ -450,6 +450,27 @@ public class SaleModelAppService {
                         FeatureCodeRangeVo newRange = new FeatureCodeRangeVo();
                         newRange.setFamilyCode(familyCode);
                         newRange.setFamilyName(familyName);
+                        
+                        String familyKey = familyCode + "_";
+                        SaleModelConfigPo familyConfig = configMap.get(familyKey);
+                        if (familyConfig != null) {
+                            newRange.setFamilyPrice(familyConfig.getTypePrice());
+                            newRange.setFamilyImage(familyConfig.getTypeImage() != null ?
+                                    cn.hutool.json.JSONUtil.toList(familyConfig.getTypeImage(), String.class) :
+                                    new ArrayList<>());
+                            newRange.setFamilyDesc(familyConfig.getTypeDesc());
+                            newRange.setFamilyParam(familyConfig.getTypeParam());
+                            newRange.setEnable(familyConfig.getEnable());
+                            newRange.setSort(familyConfig.getSort());
+                        } else {
+                            newRange.setFamilyPrice(BigDecimal.ZERO);
+                            newRange.setFamilyImage(new ArrayList<>());
+                            newRange.setFamilyDesc("");
+                            newRange.setFamilyParam("");
+                            newRange.setEnable(true);
+                            newRange.setSort(0);
+                        }
+                        
                         newRange.setFeatureDetails(new ArrayList<>());
                         return newRange;
                     });

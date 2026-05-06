@@ -5,6 +5,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 /**
@@ -27,6 +28,36 @@ public class FeatureCodeRangeVo {
      * 特征族名称
      */
     private String familyName;
+
+    /**
+     * 特征族价格
+     */
+    private BigDecimal familyPrice;
+
+    /**
+     * 特征族图片列表
+     */
+    private List<String> familyImage;
+
+    /**
+     * 特征族描述
+     */
+    private String familyDesc;
+
+    /**
+     * 特征族参数
+     */
+    private String familyParam;
+
+    /**
+     * 是否启用
+     */
+    private Boolean enable;
+
+    /**
+     * 排序
+     */
+    private Integer sort;
 
     /**
      * 特征值详细信息列表（包含价格、图片、描述等完整信息）
