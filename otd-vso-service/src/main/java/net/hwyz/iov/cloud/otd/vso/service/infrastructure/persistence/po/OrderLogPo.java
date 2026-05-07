@@ -37,8 +37,8 @@ public class OrderLogPo extends BasePo {
     /**
      * 订单编码
      */
-    @TableField("order_num")
-    private String orderNum;
+    @TableField("order_no")
+    private String orderNo;
 
     /**
      * 操作终端

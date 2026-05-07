@@ -18,21 +18,18 @@ public interface OrderDtoAssembler {
 
     OrderDtoAssembler INSTANCE = Mappers.getMapper(OrderDtoAssembler.class);
 
-    @Mapping(target = "orderNum", source = "orderNo")
     @Mapping(target = "orderState", expression = "java(order.getOrderState() != null ? order.getOrderState().getValue() : null)")
     @Mapping(target = "displayName", expression = "java(order.getDeliveryVin() != null ? order.getDeliveryVin() : order.getBuildConfigCode())")
     OrderListResult toOrderListResult(Order order);
 
     List<OrderListResult> toOrderListResultList(List<Order> orders);
 
-    @Mapping(target = "orderNum", source = "orderNo")
     @Mapping(target = "orderState", expression = "java(order.getOrderState() != null ? order.getOrderState().getValue() : null)")
     @Mapping(target = "licenseCityCode", source = "licenseCity")
     @Mapping(target = "dealershipCode", source = "dealership")
     @Mapping(target = "deliveryCenterCode", source = "deliveryCenter")
     OrderDetailResult toOrderDetailResult(Order order);
 
-    @Mapping(target = "orderNum", source = "orderNo")
     WishlistDetailResult toWishlistDetailResult(Order order);
 
 }

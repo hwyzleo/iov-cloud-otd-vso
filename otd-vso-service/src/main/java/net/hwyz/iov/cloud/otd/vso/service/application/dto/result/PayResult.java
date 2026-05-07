@@ -8,7 +8,7 @@ import java.math.BigDecimal;
 @Data
 @Builder
 public class PayResult {
-    private String orderNum;
+    private String orderNo;
     private String paymentMerchant;
     private String paymentReference;
     private BigDecimal paymentAmount;

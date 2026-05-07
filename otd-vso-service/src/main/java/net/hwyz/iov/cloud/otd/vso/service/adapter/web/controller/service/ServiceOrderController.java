@@ -37,7 +37,7 @@ public class ServiceOrderController extends BaseController implements VsoOrderSe
      */
     @PostMapping("/order/action/prepareTransport")
     public void prepareTransport(@RequestBody @Valid PrepareTransportVo vo) {
-        log.info("外部服务触发订单[{}]准备运输", vo.getOrderNum());
+        log.info("外部服务触发订单[{}]准备运输", vo.getOrderNo());
         PrepareTransportCmd cmd = PrepareTransportVoAssembler.INSTANCE.toCmd(vo);
         vehicleSaleOrderAppService.prepareTransport(cmd);
     }
@@ -49,7 +49,7 @@ public class ServiceOrderController extends BaseController implements VsoOrderSe
      */
     @PostMapping("/order/action/transporting")
     public void transporting(@RequestBody @Valid TransportingVo vo) {
-        log.info("外部服务触发订单[{}]运输中", vo.getOrderNum());
+        log.info("外部服务触发订单[{}]运输中", vo.getOrderNo());
         TransportingCmd cmd = TransportingVoAssembler.INSTANCE.toCmd(vo);
         vehicleSaleOrderAppService.transporting(cmd);
     }
@@ -61,7 +61,7 @@ public class ServiceOrderController extends BaseController implements VsoOrderSe
      */
     @PostMapping("/order/action/prepareDelivery")
     public void prepareDelivery(@RequestBody @Valid PrepareDeliveryVo vo) {
-        log.info("外部服务触发订单[{}]待交付", vo.getOrderNum());
+        log.info("外部服务触发订单[{}]待交付", vo.getOrderNo());
         PrepareDeliveryCmd cmd = PrepareDeliveryVoAssembler.INSTANCE.toCmd(vo);
         vehicleSaleOrderAppService.prepareDelivery(cmd);
     }
@@ -73,7 +73,7 @@ public class ServiceOrderController extends BaseController implements VsoOrderSe
      */
     @PostMapping("/order/action/delivered")
     public void delivered(@RequestBody @Valid DeliveredVo vo) {
-        log.info("外部服务触发订单[{}]已交付", vo.getOrderNum());
+        log.info("外部服务触发订单[{}]已交付", vo.getOrderNo());
         DeliveredCmd cmd = DeliveredVoAssembler.INSTANCE.toCmd(vo);
         vehicleSaleOrderAppService.delivered(cmd);
     }
@@ -85,7 +85,7 @@ public class ServiceOrderController extends BaseController implements VsoOrderSe
      */
     @PostMapping("/order/action/activate")
     public void activate(@RequestBody @Valid ActivateVo vo) {
-        log.info("外部服务触发订单[{}]已激活", vo.getOrderNum());
+        log.info("外部服务触发订单[{}]已激活", vo.getOrderNo());
         ActivateCmd cmd = ActivateVoAssembler.INSTANCE.toCmd(vo);
         vehicleSaleOrderAppService.activate(cmd);
     }
@@ -98,7 +98,7 @@ public class ServiceOrderController extends BaseController implements VsoOrderSe
 
     @Override
     public OrderDetailResponse getByOrderNo(String orderNo) {
-        OrderDetailResult result = vehicleSaleOrderAppService.getByOrderNum(orderNo);
+        OrderDetailResult result = vehicleSaleOrderAppService.getByOrderNo(orderNo);
         return OrderDetailResponseAssembler.INSTANCE.toVo(result);
     }
 

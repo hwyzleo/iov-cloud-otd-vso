@@ -19,12 +19,12 @@ public interface VehicleSaleOrderMptAssembler {
 
     VehicleSaleOrderMptAssembler INSTANCE = Mappers.getMapper(VehicleSaleOrderMptAssembler.class);
 
-    @Mapping(target = "orderNum", source = "orderNo")
+    @Mapping(target = "orderNo", source = "orderNo")
     VehicleSaleOrderMpt toVo(OrderListResult result);
 
     List<VehicleSaleOrderMpt> toVoList(List<OrderListResult> result);
 
-    @Mapping(target = "orderNum", source = "orderNo")
+    @Mapping(target = "orderNo", source = "orderNo")
     VehicleSaleOrderMpt toVo(OrderDetailResult result);
 
 }

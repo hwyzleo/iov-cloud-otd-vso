@@ -12,7 +12,7 @@
         <result column="modify_by" property="modifyBy" />
         <result column="row_version" property="rowVersion" />
         <result column="row_valid" property="rowValid" />
-        <result column="order_num" property="orderNum" />
+        <result column="order_no" property="orderNo" />
         <result column="operate_client" property="operateClient" />
         <result column="account_id" property="accountId" />
         <result column="operator" property="operator" />
@@ -23,18 +23,18 @@
 
     <!-- 通用查询结果列 -->
     <sql id="baseColumnList">
-        id, order_num, operate_client, account_id, operator, operate_type, operate_desc, operate_time, 
+        id, order_no, operate_client, account_id, operator, operate_type, operate_desc, operate_time, 
         description, create_time, create_by, modify_time, modify_by, row_version, row_valid
     </sql>
 
     <!-- 插入 -->
     <insert id="insertPo" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO vso_order_log (
-            id, order_num, operate_client, account_id, operator, operate_type, operate_desc, operate_time, 
+            id, order_no, operate_client, account_id, operator, operate_type, operate_desc, operate_time, 
             description, create_time, create_by, modify_time, modify_by, row_version, row_valid
         )
         VALUES (
-            #{id}, #{orderNum}, #{operateClient}, #{accountId}, #{operator}, #{operateType}, #{operateDesc}, #{operateTime}, 
+            #{id}, #{orderNo}, #{operateClient}, #{accountId}, #{operator}, #{operateType}, #{operateDesc}, #{operateTime}, 
             #{description}, now(), #{createBy}, now(), #{modifyBy}, 1, 1
         )
     </insert>
@@ -42,13 +42,13 @@
     <!-- 批量插入 -->
     <insert id="batchInsertPo" useGeneratedKeys="true" keyProperty="id" parameterType="java.util.List">
         INSERT INTO vso_order_log (
-            id, order_num, operate_client, account_id, operator, operate_type, operate_desc, operate_time, 
+            id, order_no, operate_client, account_id, operator, operate_type, operate_desc, operate_time, 
             description, create_time, create_by, modify_time, modify_by, row_version, row_valid
         )
         VALUES
         <foreach collection="list" item="item" index="index" separator=",">
         (
-            #{item.id}, #{item.orderNum}, #{item.operateClient}, #{item.accountId}, #{item.operator}, #{item.operateType}, #{item.operateDesc}, #{item.operateTime}, 
+            #{item.id}, #{item.orderNo}, #{item.operateClient}, #{item.accountId}, #{item.operator}, #{item.operateType}, #{item.operateDesc}, #{item.operateTime}, 
             #{item.description}, now(), #{item.createBy}, now(), #{item.modifyBy}, 1, 1
         )
         </foreach>
@@ -57,8 +57,8 @@
     <!-- 更新 -->
     <update id="updatePo" parameterType="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.OrderLogPo">
         UPDATE vso_order_log t SET
-        <if test="orderNum != null and orderNum != ''">
-            t.order_num = #{orderNum},
+        <if test="orderNo != null and orderNo != ''">
+            t.order_no = #{orderNo},
         </if>
         <if test="operateClient != null and operateClient != ''">
             t.operate_client = #{operateClient},
@@ -120,8 +120,8 @@
         <if test="id != null">
             AND t.id = #{id}
         </if>
-        <if test="orderNum != null and orderNum != ''">
-            AND t.order_num = #{orderNum}
+        <if test="orderNo != null and orderNo != ''">
+            AND t.order_no = #{orderNo}
         </if>
         <if test="operateClient != null and operateClient != ''">
             AND t.operate_client = #{operateClient}

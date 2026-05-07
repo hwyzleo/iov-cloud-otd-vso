@@ -12,7 +12,7 @@ import java.util.List;
 public class WishlistResponseVo {
 
     private String saleCode;
-    private String orderNum;
+    private String orderNo;
     private String saleModelConfigType;
     private String saleModelConfigName;
     private BigDecimal saleModelConfigPrice;

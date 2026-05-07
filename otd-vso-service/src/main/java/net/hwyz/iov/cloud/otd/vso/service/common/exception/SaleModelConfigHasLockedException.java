@@ -10,9 +10,9 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class SaleModelConfigHasLockedException extends VsoBaseException {
 
-    public SaleModelConfigHasLockedException(String orderNum) {
+    public SaleModelConfigHasLockedException(String orderNo) {
         super(ERROR_CODE_SALE_MODEL_CONFIG_HAS_LOCKED);
-        log.warn("订单[{}]销售车型配置已锁定", orderNum);
+        log.warn("订单[{}]销售车型配置已锁定", orderNo);
     }
 
 }

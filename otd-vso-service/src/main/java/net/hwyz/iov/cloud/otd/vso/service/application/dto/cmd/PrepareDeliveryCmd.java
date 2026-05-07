@@ -6,5 +6,5 @@ import lombok.Data;
 @Data
 @Builder
 public class PrepareDeliveryCmd {
-    private String orderNum;
+    private String orderNo;
 }

@@ -25,7 +25,7 @@ public class OrderPaymentRequest {
      * 订单号
      */
     @NotBlank(message = "订单号不能为空")
-    private String orderNum;
+    private String orderNo;
     /**
      * 订单支付阶段
      */

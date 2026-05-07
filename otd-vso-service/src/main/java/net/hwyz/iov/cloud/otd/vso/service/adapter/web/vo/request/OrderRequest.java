@@ -12,6 +12,6 @@ import lombok.*;
 @AllArgsConstructor
 public class OrderRequest {
 
-    private String orderNum;
+    private String orderNo;
 
 }

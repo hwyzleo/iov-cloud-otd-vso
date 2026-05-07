@@ -12,6 +12,6 @@ import lombok.Data;
 @Builder
 public class ApplyTransportCmd {
 
-    private String orderNum;
+    private String orderNo;
 
 }

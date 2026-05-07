@@ -13,7 +13,7 @@ import lombok.*;
 public class WishlistResponse {
 
     private String saleCode;
-    private String orderNum;
+    private String orderNo;
     private String saleModelConfigType;
     private String saleModelConfigName;
     private java.math.BigDecimal saleModelConfigPrice;

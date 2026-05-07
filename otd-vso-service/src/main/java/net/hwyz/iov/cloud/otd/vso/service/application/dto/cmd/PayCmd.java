@@ -13,7 +13,7 @@ import lombok.Data;
 public class PayCmd {
 
     private String accountId;
-    private String orderNum;
+    private String orderNo;
     private java.math.BigDecimal paymentAmount;
 
 }

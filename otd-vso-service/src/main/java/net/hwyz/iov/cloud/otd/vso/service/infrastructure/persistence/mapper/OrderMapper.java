@@ -43,7 +43,7 @@ public interface OrderMapper extends BaseDao<OrderPo, Long> {
      * @param orderNo 订单号
      * @return 影响行数
      */
-    int logicalDeletePoByOrderNum(@Param("orderNo") String orderNo);
+    int logicalDeletePoByOrderNo(@Param("orderNo") String orderNo);
 
     /**
      * 物理删除订单
@@ -51,7 +51,7 @@ public interface OrderMapper extends BaseDao<OrderPo, Long> {
      * @param orderNo 订单号
      * @return 影响行数
      */
-    int physicalDeletePoByOrderNum(@Param("orderNo") String orderNo);
+    int physicalDeletePoByOrderNo(@Param("orderNo") String orderNo);
 
     /**
      * 根据 Map 对象获取对应数据列表

@@ -19,7 +19,7 @@ public class AssignVehicleRequest {
     /**
      * 订单号
      */
-    private String orderNum;
+    private String orderNo;
     /**
      * 车架号
      */

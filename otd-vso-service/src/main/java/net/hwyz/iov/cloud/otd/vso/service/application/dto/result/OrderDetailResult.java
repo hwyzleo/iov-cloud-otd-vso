@@ -29,11 +29,6 @@ public class OrderDetailResult {
     private String orderNo;
 
     /**
-     * 订单号
-     */
-    private String orderNum;
-
-    /**
      * 销售代码
      */
     private String saleCode;

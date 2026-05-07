@@ -70,7 +70,7 @@ public class MptOrderController extends BaseController {
     public ApiResponse<PageResult<VehicleSaleOrderMpt>> list(VehicleSaleOrderMpt vehicleSaleOrder) {
         log.info("管理后台用户[{}]分页查询车辆销售订单信息", SecurityUtils.getUsername());
         List<OrderListResult> result = vehicleSaleOrderAppService.search(OrderQuery.builder()
-                .orderNum(vehicleSaleOrder.getOrderNum())
+                .orderNo(vehicleSaleOrder.getOrderNo())
                 .orderState(vehicleSaleOrder.getOrderState())
                 .beginTime(getBeginTime(vehicleSaleOrder))
                 .endTime(getEndTime(vehicleSaleOrder))
@@ -107,7 +107,7 @@ public class MptOrderController extends BaseController {
         orderStateRange.add(OrderState.DOWN_PAYMENT_PAID.getValue());
         orderStateRange.add(OrderState.ARRANGE_PRODUCTION.getValue());
         List<OrderListResult> result = vehicleSaleOrderAppService.search(OrderQuery.builder()
-                .orderNum(vehicleSaleOrder.getOrderNum())
+                .orderNo(vehicleSaleOrder.getOrderNo())
                 .orderState(vehicleSaleOrder.getOrderState())
                 .orderStateRange(orderStateRange)
                 .beginTime(getBeginTime(vehicleSaleOrder))
@@ -127,7 +127,7 @@ public class MptOrderController extends BaseController {
     public ApiResponse<PageResult<VehicleSaleOrderMpt>> listWithoutDeliveryPerson(VehicleSaleOrderMpt vehicleSaleOrder) {
         log.info("管理后台用户[{}]分页查询没有交付人员的车辆销售订单信息", SecurityUtils.getUsername());
         List<OrderListResult> result = vehicleSaleOrderAppService.search(OrderQuery.builder()
-                .orderNum(vehicleSaleOrder.getOrderNum())
+                .orderNo(vehicleSaleOrder.getOrderNo())
                 .orderState(vehicleSaleOrder.getOrderState())
                 .hasDeliveryPerson(false)
                 .beginTime(getBeginTime(vehicleSaleOrder))
@@ -173,7 +173,7 @@ public class MptOrderController extends BaseController {
         List<Integer> orderStateRange = new ArrayList<>();
         orderStateRange.add(OrderState.ARRANGE_PRODUCTION.getValue());
         List<OrderListResult> result = vehicleSaleOrderAppService.search(OrderQuery.builder()
-                .orderNum(vehicleSaleOrder.getOrderNum())
+                .orderNo(vehicleSaleOrder.getOrderNo())
                 .orderState(vehicleSaleOrder.getOrderState())
                 .orderStateRange(orderStateRange)
                 .beginTime(getBeginTime(vehicleSaleOrder))
@@ -197,7 +197,7 @@ public class MptOrderController extends BaseController {
         orderStateRange.add(OrderState.APPLY_TRANSPORT.getValue());
         orderStateRange.add(OrderState.PREPARE_TRANSPORT.getValue());
         List<OrderListResult> result = vehicleSaleOrderAppService.search(OrderQuery.builder()
-                .orderNum(transportOrder.getOrderNum())
+                .orderNo(transportOrder.getOrderNo())
                 .orderState(transportOrder.getOrderState())
                 .orderStateRange(orderStateRange)
                 .beginTime(getBeginTime(transportOrder))
@@ -224,7 +224,7 @@ public class MptOrderController extends BaseController {
     public ApiResponse<Void> assignDeliveryPerson(@RequestBody @Valid AssignDeliveryPersonRequest request, @RequestHeader(required = false) MptAccount mptAccount) {
         log.info("管理后台用户[{}]分配交付人员", ParamHelper.getMptAccountInfo(mptAccount));
         vehicleSaleOrderAppService.assignDeliveryPerson(AssignDeliveryPersonCmd.builder()
-                .orderNum(request.getOrderNum())
+                .orderNo(request.getOrderNo())
                 .deliveryPersonId(request.getDeliveryPersonId())
                 .deliveryPersonName(request.getDeliveryPersonName())
                 .build());
@@ -238,9 +238,9 @@ public class MptOrderController extends BaseController {
      */
     @PostMapping("/action/assignVehicle")
     public ApiResponse<Void> assignVehicle(@RequestBody @Valid AssignVehicleRequest request) {
-        log.info("管理后台用户[{}]分配车辆[{}]到订单[{}]", SecurityUtils.getUsername(), request.getVin(), request.getOrderNum());
+        log.info("管理后台用户[{}]分配车辆[{}]到订单[{}]", SecurityUtils.getUsername(), request.getVin(), request.getOrderNo());
         vehicleSaleOrderAppService.assignVehicle(AssignVehicleCmd.builder()
-                .orderNum(request.getOrderNum())
+                .orderNo(request.getOrderNo())
                 .vin(request.getVin())
                 .build());
         return ApiResponse.ok();
@@ -253,19 +253,19 @@ public class MptOrderController extends BaseController {
      */
     @PostMapping("/action/applyTransport")
     public ApiResponse<Void> applyTransport(@RequestBody @Valid ApplyTransportRequest request) {
-        log.info("管理后台用户[{}]申请发运订单[{}]", SecurityUtils.getUsername(), request.getOrderNum());
+        log.info("管理后台用户[{}]申请发运订单[{}]", SecurityUtils.getUsername(), request.getOrderNo());
         vehicleSaleOrderAppService.applyTransport(ApplyTransportCmd.builder()
-                .orderNum(request.getOrderNum())
+                .orderNo(request.getOrderNo())
                 .build());
         return ApiResponse.ok();
     }
 
     @Log(title = "车辆销售订单管理", businessType = BusinessType.DELETE)
     @RequiresPermissions("completeVehicle:order:info:remove")
-    @DeleteMapping("/{orderNum}")
-    public ApiResponse<Integer> remove(@PathVariable String orderNum) {
-        log.info("管理后台用户[{}]删除订单[{}]", SecurityUtils.getUsername(), orderNum);
-        return ApiResponse.ok(vehicleSaleOrderAppService.remove(orderNum) ? 1 : 0);
+    @DeleteMapping("/{orderNo}")
+    public ApiResponse<Integer> remove(@PathVariable String orderNo) {
+        log.info("管理后台用户[{}]删除订单[{}]", SecurityUtils.getUsername(), orderNo);
+        return ApiResponse.ok(vehicleSaleOrderAppService.remove(orderNo) ? 1 : 0);
     }
 
     /**

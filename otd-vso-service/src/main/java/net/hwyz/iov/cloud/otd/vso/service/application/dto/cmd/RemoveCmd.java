@@ -12,6 +12,6 @@ import lombok.Data;
 @Builder
 public class RemoveCmd {
 
-    private String orderNum;
+    private String orderNo;
 
 }

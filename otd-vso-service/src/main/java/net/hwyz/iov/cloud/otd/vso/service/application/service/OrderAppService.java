@@ -228,7 +228,7 @@ public class OrderAppService {
                 ? query.getOrderStateRange().stream().map(OrderState::fromValue).collect(Collectors.toList())
                 : null;
         List<Order> orderList = orderRepository.search(
-                query.getOrderNum(),
+                query.getOrderNo(),
                 query.getOrderState() != null ? OrderState.fromValue(query.getOrderState()) : null,
                 orderStateList,
                 query.getHasDeliveryPerson(),
@@ -241,13 +241,13 @@ public class OrderAppService {
     /**
      * 按订单号获取详情
      */
-    public OrderDetailResult getByOrderNum(String orderNum) {
-        if (orderNum == null || orderNum.isEmpty()) {
-            throw new OrderNotExistException(orderNum);
+    public OrderDetailResult getByOrderNo(String orderNo) {
+        if (orderNo == null || orderNo.isEmpty()) {
+            throw new OrderNotExistException(orderNo);
         }
-        Optional<Order> orderOpt = orderRepository.findByOrderNum(orderNum);
+        Optional<Order> orderOpt = orderRepository.findByOrderNo(orderNo);
         if (orderOpt.isEmpty()) {
-            throw new OrderNotExistException(orderNum);
+            throw new OrderNotExistException(orderNo);
         }
         return OrderDtoAssembler.INSTANCE.toOrderDetailResult(orderOpt.get());
     }
@@ -275,8 +275,8 @@ public class OrderAppService {
      */
     @Transactional(rollbackFor = Exception.class)
     public void assignDeliveryPerson(AssignDeliveryPersonCmd cmd) {
-        log.info("分派交付人员：orderId={}, deliveryPersonId={}", cmd.getOrderNum(), cmd.getDeliveryPersonId());
-        Order order = orderDomainService.loadOrder(cmd.getOrderNum());
+        log.info("分派交付人员：orderId={}, deliveryPersonId={}", cmd.getOrderNo(), cmd.getDeliveryPersonId());
+        Order order = orderDomainService.loadOrder(cmd.getOrderNo());
         order.saveDeliveryPerson(cmd.getDeliveryPersonId(), cmd.getDeliveryPersonName());
         orderRepository.save(order);
     }
@@ -286,8 +286,8 @@ public class OrderAppService {
      */
     @Transactional(rollbackFor = Exception.class)
     public void assignVehicle(AssignVehicleCmd cmd) {
-        log.info("分派车辆：orderId={}, vin={}", cmd.getOrderNum(), cmd.getVin());
-        Order order = orderDomainService.loadOrder(cmd.getOrderNum());
+        log.info("分派车辆：orderId={}, vin={}", cmd.getOrderNo(), cmd.getVin());
+        Order order = orderDomainService.loadOrder(cmd.getOrderNo());
         order.saveDeliveryVehicle(cmd.getVin());
         orderRepository.save(order);
     }
@@ -297,8 +297,8 @@ public class OrderAppService {
      */
     @Transactional(rollbackFor = Exception.class)
     public void applyTransport(ApplyTransportCmd cmd) {
-        log.info("申请运输：orderId={}", cmd.getOrderNum());
-        Order order = orderDomainService.loadOrder(cmd.getOrderNum());
+        log.info("申请运输：orderId={}", cmd.getOrderNo());
+        Order order = orderDomainService.loadOrder(cmd.getOrderNo());
 //        order.applyTransportVehicle(cmd.getOperatorId(), cmd.getOperatorName());
         orderRepository.save(order);
     }
@@ -334,24 +334,24 @@ public class OrderAppService {
     }
 
     public void modifyUserWishlist(ModifyWishlistCmd cmd) {
-        Order order = findOrderById(cmd.getAccountId(), cmd.getOrderNum());
+        Order order = findOrderById(cmd.getAccountId(), cmd.getOrderNo());
         order.saveBuildConfig(cmd.getBuildConfigCode(), cmd.getModelConfigMap());
         orderRepository.save(order);
     }
 
     public void deleteUserWishlist(DeleteWishlistCmd cmd) {
-        Order order = findOrderById(cmd.getAccountId(), cmd.getOrderNum());
+        Order order = findOrderById(cmd.getAccountId(), cmd.getOrderNo());
         order.markDelete();
         orderRepository.save(order);
     }
 
-    public WishlistDetailResult getUserWishlist(String accountId, String orderNum) {
-        Order order = findOrderById(accountId, orderNum);
+    public WishlistDetailResult getUserWishlist(String accountId, String orderNo) {
+        Order order = findOrderById(accountId, orderNo);
         return OrderDtoAssembler.INSTANCE.toWishlistDetailResult(order);
     }
 
     public String earnestMoneyOrder(EarnestMoneyCmd cmd) {
-        Order order = createOrFindOrder(cmd.getAccountId(), cmd.getOrderNum());
+        Order order = createOrFindOrder(cmd.getAccountId(), cmd.getOrderNo());
         order.earnestMoneyOrder();
         order.saveBuildConfig(cmd.getBuildConfigCode(), cmd.getModelConfigMap());
         order.saveLicenseCity(cmd.getLicenseCityCode());
@@ -360,7 +360,7 @@ public class OrderAppService {
     }
 
     public String downPaymentOrder(DownPaymentCmd cmd) {
-        Order order = createOrFindOrder(cmd.getAccountId(), cmd.getOrderNum());
+        Order order = createOrFindOrder(cmd.getAccountId(), cmd.getOrderNo());
         order.downPaymentOrder();
         order.saveBuildConfig(cmd.getBuildConfigCode(), cmd.getModelConfigMap());
         order.saveOrderPerson(cmd.getAccountId(), cmd.getOrderPersonType(), cmd.getOrderPersonName(),
@@ -373,23 +373,23 @@ public class OrderAppService {
         return order.getOrderNo();
     }
 
-    public OrderDetailResult getUserOrder(String accountId, String orderNum) {
-        Order order = findOrderById(accountId, orderNum);
+    public OrderDetailResult getUserOrder(String accountId, String orderNo) {
+        Order order = findOrderById(accountId, orderNo);
         return OrderDtoAssembler.INSTANCE.toOrderDetailResult(order);
     }
 
     public void cancel(CancelCmd cmd) {
-        Order order = findOrderById(cmd.getAccountId(), cmd.getOrderNum());
+        Order order = findOrderById(cmd.getAccountId(), cmd.getOrderNo());
         order.cancel();
         orderRepository.save(order);
     }
 
     public PayResult pay(PayCmd cmd) {
-        Order order = findOrderById(cmd.getAccountId(), cmd.getOrderNum());
+        Order order = findOrderById(cmd.getAccountId(), cmd.getOrderNo());
         order.pay(cmd.getPaymentAmount());
         orderRepository.save(order);
         return PayResult.builder()
-                .orderNum(order.getOrderNo())
+                .orderNo(order.getOrderNo())
 //                .paymentMerchant(cmd.getPaymentMerchant())
 //                .paymentReference(cmd.getPaymentReference())
                 .paymentAmount(cmd.getPaymentAmount())
@@ -397,78 +397,78 @@ public class OrderAppService {
     }
 
     public void requestRefund(RequestRefundCmd cmd) {
-        Order order = findOrderById(cmd.getAccountId(), cmd.getOrderNum());
+        Order order = findOrderById(cmd.getAccountId(), cmd.getOrderNo());
         order.requestRefund();
         orderRepository.save(order);
     }
 
     public void earnestMoneyToDownPayment(EarnestToDownCmd cmd) {
-        Order order = findOrderById(cmd.getAccountId(), cmd.getOrderNum());
+        Order order = findOrderById(cmd.getAccountId(), cmd.getOrderNo());
         order.earnestMoneyToDownPayment();
         orderRepository.save(order);
     }
 
     public void lock(LockCmd cmd) {
-        Order order = findOrderById(cmd.getAccountId(), cmd.getOrderNum());
+        Order order = findOrderById(cmd.getAccountId(), cmd.getOrderNo());
         order.lock();
         orderRepository.save(order);
     }
 
     public void prepareTransport(PrepareTransportCmd cmd) {
-        Order order = findOrderByOrderNum(cmd.getOrderNum());
+        Order order = findOrderByOrderNo(cmd.getOrderNo());
         order.prepareTransport();
         orderRepository.save(order);
     }
 
     public void transporting(TransportingCmd cmd) {
-        Order order = findOrderByOrderNum(cmd.getOrderNum());
+        Order order = findOrderByOrderNo(cmd.getOrderNo());
         order.transporting();
         orderRepository.save(order);
     }
 
     public void prepareDelivery(PrepareDeliveryCmd cmd) {
-        Order order = findOrderByOrderNum(cmd.getOrderNum());
+        Order order = findOrderByOrderNo(cmd.getOrderNo());
         order.prepareDelivery();
         orderRepository.save(order);
     }
 
     public void delivered(DeliveredCmd cmd) {
-        Order order = findOrderByOrderNum(cmd.getOrderNum());
+        Order order = findOrderByOrderNo(cmd.getOrderNo());
         order.delivered();
         orderRepository.save(order);
     }
 
     public void activate(ActivateCmd cmd) {
-        Order order = findOrderByOrderNum(cmd.getOrderNum());
+        Order order = findOrderByOrderNo(cmd.getOrderNo());
         order.activate();
         orderRepository.save(order);
     }
 
-    public boolean remove(String orderNum) {
-        Order order = findOrderByOrderNum(orderNum);
+    public boolean remove(String orderNo) {
+        Order order = findOrderByOrderNo(orderNo);
         order.manageDelete();
         orderRepository.save(order);
         return true;
     }
 
-    private Order findOrderById(String accountId, String orderNum) {
-        Optional<Order> orderOpt = orderRepository.findByOrderNumAndAccountId(orderNum, accountId);
+    private Order findOrderById(String accountId, String orderNo) {
+        Optional<Order> orderOpt = orderRepository.findByOrderNoAndAccountId(orderNo, accountId);
         if (orderOpt.isEmpty()) {
-            throw new OrderNotExistException(orderNum);
+            throw new OrderNotExistException(orderNo);
         }
         return orderOpt.get();
     }
 
-    private Order findOrderByOrderNum(String orderNum) {
-        Optional<Order> orderOpt = orderRepository.findByOrderNum(orderNum);
+    private Order findOrderByOrderNo(String orderNo) {
+        Optional<Order> orderOpt = orderRepository.findByOrderNo(orderNo);
         if (orderOpt.isEmpty()) {
-            throw new OrderNotExistException(orderNum);
+            throw new OrderNotExistException(orderNo);
         }
         return orderOpt.get();
     }
 
-    private Order createOrFindOrder(String accountId, String orderNum) {
-        Optional<Order> orderOpt = orderRepository.findByOrderNumAndAccountId(orderNum, accountId);
+    private Order createOrFindOrder(String accountId, String orderNo) {
+        Optional<Order> orderOpt = orderRepository.findByOrderNoAndAccountId(orderNo, accountId);
         if (orderOpt.isPresent()) {
             return orderOpt.get();
         }

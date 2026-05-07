@@ -19,7 +19,7 @@ public class Order {
     /**
      * 订单号
      */
-    private String orderNum;
+    private String orderNo;
 
     /**
      * 订单状态

@@ -60,16 +60,16 @@ public class OrderRepositoryImpl implements OrderRepository {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void deleteByOrderNo(String orderNo) {
-        orderMapper.logicalDeletePoByOrderNum(orderNo);
+        orderMapper.logicalDeletePoByOrderNo(orderNo);
     }
 
     @Override
-    public List<Order> search(String orderNum, OrderState orderState, List<OrderState> orderStateRange,
+    public List<Order> search(String orderNo, OrderState orderState, List<OrderState> orderStateRange,
                                 Boolean hasDeliveryPerson, Date beginTime, Date endTime) {
         java.util.Map<String, Object> params = new java.util.HashMap<>();
         
-        if (orderNum != null && !orderNum.isEmpty()) {
-            params.put("orderNum", orderNum);
+        if (orderNo != null && !orderNo.isEmpty()) {
+            params.put("orderNo", orderNo);
         }
         
         if (orderState != null) {
@@ -113,8 +113,8 @@ public class OrderRepositoryImpl implements OrderRepository {
     }
 
     @Override
-    public Optional<Order> findByOrderNumAndAccountId(String orderNum, String accountId) {
-        return Optional.ofNullable(orderMapper.selectByOrderNoAndAccountId(orderNum, accountId))
+    public Optional<Order> findByOrderNoAndAccountId(String orderNo, String accountId) {
+        return Optional.ofNullable(orderMapper.selectByOrderNoAndAccountId(orderNo, accountId))
                 .map(OrderPoConverter.INSTANCE::toDomain);
     }
 
@@ -122,12 +122,6 @@ public class OrderRepositoryImpl implements OrderRepository {
     public List<Order> findByAccountId(String accountId, String type) {
         // TODO: 需要通过 vso_order_party 表关联查询
         throw new UnsupportedOperationException("待通过 vso_order_party 表关联查询实现");
-    }
-
-    @Override
-    public Optional<Order> findByOrderNum(String orderNum) {
-        return Optional.ofNullable(orderMapper.selectByOrderNo(orderNum))
-                .map(OrderPoConverter.INSTANCE::toDomain);
     }
 
 }

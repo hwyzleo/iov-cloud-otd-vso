@@ -12,7 +12,7 @@ import lombok.Data;
 @Builder
 public class AssignVehicleCmd {
 
-    private String orderNum;
+    private String orderNo;
     private String vin;
 
 }

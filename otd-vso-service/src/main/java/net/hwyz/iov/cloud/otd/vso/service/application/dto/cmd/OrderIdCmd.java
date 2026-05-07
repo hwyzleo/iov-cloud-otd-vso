@@ -12,6 +12,6 @@ import lombok.Data;
 @Builder
 public class OrderIdCmd {
 
-    private String orderNum;
+    private String orderNo;
 
 }

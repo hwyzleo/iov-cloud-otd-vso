@@ -13,6 +13,6 @@ import lombok.Data;
 public class AccountIdQuery {
 
     private String accountId;
-    private String orderNum;
+    private String orderNo;
 
 }

@@ -12,7 +12,7 @@ import java.util.List;
 @AllArgsConstructor
 public class OrderResponseVo {
 
-    private String orderNum;
+    private String orderNo;
     private Integer orderState;
     private Date orderTime;
     private Integer orderPersonType;

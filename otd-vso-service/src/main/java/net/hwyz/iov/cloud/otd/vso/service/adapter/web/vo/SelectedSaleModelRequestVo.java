@@ -23,7 +23,7 @@ public class SelectedSaleModelRequestVo {
     /**
      * 订单号（可选）
      */
-    private String orderNum;
+    private String orderNo;
 
     /**
      * 销售车型配置类型（特征值选择）

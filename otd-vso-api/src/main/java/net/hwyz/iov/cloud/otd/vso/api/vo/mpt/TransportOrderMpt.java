@@ -24,7 +24,7 @@ public class TransportOrderMpt implements Serializable {
     /**
      * 订单号
      */
-    private String orderNum;
+    private String orderNo;
 
     /**
      * 销售代码

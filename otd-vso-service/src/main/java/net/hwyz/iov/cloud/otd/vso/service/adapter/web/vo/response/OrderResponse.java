@@ -12,7 +12,7 @@ import lombok.*;
 @AllArgsConstructor
 public class OrderResponse {
 
-    private String orderNum;
+    private String orderNo;
     private Integer orderState;
     private java.util.Date orderTime;
     private Integer orderPersonType;

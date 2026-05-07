@@ -29,7 +29,7 @@ public class SelectedSaleModelRequest {
     /**
      * 订单编号
      */
-    private String orderNum;
+    private String orderNo;
 
     /**
      * 销售车型配置类型

@@ -21,7 +21,7 @@ public class OrderPaymentResponse {
     /**
      * 订单号
      */
-    private String orderNum;
+    private String orderNo;
     /**
      * 支付商户
      */

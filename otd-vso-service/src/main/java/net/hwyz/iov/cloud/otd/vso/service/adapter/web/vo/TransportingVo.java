@@ -16,6 +16,6 @@ public class TransportingVo {
     /**
      * 订单号
      */
-    private String orderNum;
+    private String orderNo;
 
 }

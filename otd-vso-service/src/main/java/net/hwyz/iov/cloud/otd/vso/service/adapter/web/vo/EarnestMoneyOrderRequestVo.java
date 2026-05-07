@@ -11,7 +11,7 @@ import java.util.Map;
 public class EarnestMoneyOrderRequestVo {
 
     private String saleCode;
-    private String orderNum;
+    private String orderNo;
     private Map<String, String> saleModelConfigType;
     private String licenseCityCode;
 

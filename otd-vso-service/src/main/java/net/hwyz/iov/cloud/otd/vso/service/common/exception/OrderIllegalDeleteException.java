@@ -10,9 +10,9 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class OrderIllegalDeleteException extends VsoBaseException {
 
-    public OrderIllegalDeleteException(String orderNum) {
+    public OrderIllegalDeleteException(String orderNo) {
         super(ERROR_CODE_ORDER_ILLEGAL_DELETE);
-        log.warn("车辆销售订单[{}]非法删除", orderNum);
+        log.warn("车辆销售订单[{}]非法删除", orderNo);
     }
 
 }

@@ -12,7 +12,7 @@ import lombok.Data;
 @Builder
 public class AssignDeliveryPersonCmd {
 
-    private String orderNum;
+    private String orderNo;
     private String deliveryPersonId;
     private String deliveryPersonName;
 

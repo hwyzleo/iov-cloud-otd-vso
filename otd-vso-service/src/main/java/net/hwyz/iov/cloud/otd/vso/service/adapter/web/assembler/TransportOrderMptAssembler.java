@@ -18,7 +18,7 @@ public interface TransportOrderMptAssembler {
 
     TransportOrderMptAssembler INSTANCE = Mappers.getMapper(TransportOrderMptAssembler.class);
 
-    @Mapping(target = "orderNum", source = "orderNo")
+    @Mapping(target = "orderNo", source = "orderNo")
     TransportOrderMpt toVo(OrderListResult result);
 
     List<TransportOrderMpt> toVoList(List<OrderListResult> result);

@@ -16,7 +16,7 @@ import java.util.Map;
 public class ModifyWishlistCmd {
 
     private String accountId;
-    private String orderNum;
+    private String orderNo;
     private String saleCode;
     private String buildConfigCode;
     private Map<String, OrderModelConfig> modelConfigMap;

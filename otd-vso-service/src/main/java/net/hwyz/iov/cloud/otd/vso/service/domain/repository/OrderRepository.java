@@ -56,7 +56,7 @@ public interface OrderRepository {
     /**
      * 查询订单列表（用于分页查询）
      *
-     * @param orderNum          订单号
+     * @param orderNo          订单号
      * @param orderState        订单状态
      * @param orderStateRange   订单状态范围
      * @param hasDeliveryPerson 是否有交付人员
@@ -64,7 +64,7 @@ public interface OrderRepository {
      * @param endTime           结束时间
      * @return 订单列表
      */
-    List<Order> search(String orderNum, OrderState orderState, List<OrderState> orderStateRange,
+    List<Order> search(String orderNo, OrderState orderState, List<OrderState> orderStateRange,
                         Boolean hasDeliveryPerson, Date beginTime, Date endTime);
 
     /**
@@ -80,13 +80,11 @@ public interface OrderRepository {
      * 根据订单号和账号ID查询订单
      *
      * @param accountId 账号ID
-     * @param orderNum  订单号
+     * @param orderNo  订单号
      * @return 订单
      */
-    Optional<Order> findByOrderNumAndAccountId(String orderNum, String accountId);
+    Optional<Order> findByOrderNoAndAccountId(String orderNo, String accountId);
 
     List<Order> findByAccountId(String accountId, String type);
-
-    Optional<Order> findByOrderNum(String orderNum);
 
 }

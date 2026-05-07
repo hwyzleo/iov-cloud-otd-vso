@@ -14,7 +14,7 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 public class PaymentResponse {
 
-    private String orderNum;
+    private String orderNo;
     private String paymentMerchant;
     private String paymentReference;
     private BigDecimal paymentAmount;

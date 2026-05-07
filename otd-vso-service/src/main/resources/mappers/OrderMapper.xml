@@ -183,7 +183,7 @@
     </update>
 
     <!-- 逻辑删除订单 -->
-    <update id="logicalDeletePoByOrderNum" parameterType="string">
+    <update id="logicalDeletePoByOrderNo" parameterType="string">
         UPDATE vso_order t SET
         t.row_version = t.row_version + 1,
         t.modify_time = now(),
@@ -198,7 +198,7 @@
     </delete>
 
     <!-- 物理删除订单 -->
-    <delete id="physicalDeletePoByOrderNum" parameterType="string">
+    <delete id="physicalDeletePoByOrderNo" parameterType="string">
         DELETE FROM vso_order t
         WHERE t.order_no = #{orderNo}
     </delete>

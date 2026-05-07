@@ -93,7 +93,7 @@ public class Order {
 
     public Order(String id, String orderType, String orderSource) {
         this.id = id;
-        generateOrderNum();
+        generateOrderNo();
         this.orderType = orderType;
         this.orderSource = orderSource;
         this.orderState = OrderState.WISHLIST;
@@ -104,7 +104,7 @@ public class Order {
      * 初始化
      */
     public void init(String orderPersonId, String orderPersonPhone, String saleCode, OrderState orderState) {
-        generateOrderNum();
+        generateOrderNo();
         this.orderState = orderState;
         Date now = new Date();
         this.orderStateTime = now;
@@ -120,7 +120,7 @@ public class Order {
     /**
      * 生成订单编码
      */
-    private void generateOrderNum() {
+    private void generateOrderNo() {
         this.orderNo = IdUtil.nanoId(15);
     }
 

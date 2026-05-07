@@ -98,7 +98,7 @@ DROP TABLE IF EXISTS `db_vso`.`tb_order`;
 CREATE TABLE `db_vso`.`tb_order`
 (
     `id`                          BIGINT      NOT NULL AUTO_INCREMENT COMMENT '主键',
-    `order_num`                   VARCHAR(50) NOT NULL COMMENT '订单编码',
+    `order_no`                   VARCHAR(50) NOT NULL COMMENT '订单编码',
     `order_state`                 INT         NOT NULL COMMENT '订单状态',
     `order_state_time`            TIMESTAMP   NOT NULL COMMENT '订单状态时间',
     `order_time`                  TIMESTAMP            DEFAULT NULL COMMENT '下单时间',
@@ -162,7 +162,7 @@ CREATE TABLE `db_vso`.`tb_order`
     `row_version`                 INT                  DEFAULT NULL COMMENT '记录版本',
     `row_valid`                   TINYINT              DEFAULT NULL COMMENT '是否有效',
     PRIMARY KEY (`id`),
-    UNIQUE KEY (`order_num`)
+    UNIQUE KEY (`order_no`)
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4 COMMENT ='车辆销售订单';
 
@@ -170,7 +170,7 @@ DROP TABLE IF EXISTS `db_vso`.`tb_order_log`;
 CREATE TABLE `db_vso`.`tb_order_log`
 (
     `id`             BIGINT       NOT NULL AUTO_INCREMENT COMMENT '主键',
-    `order_num`      VARCHAR(50)  NOT NULL COMMENT '订单编码',
+    `order_no`      VARCHAR(50)  NOT NULL COMMENT '订单编码',
     `operate_client` VARCHAR(255) NOT NULL COMMENT '操作终端',
     `account_id`     VARCHAR(64)  NOT NULL COMMENT '操作者ID',
     `operator`       VARCHAR(255)          DEFAULT NULL COMMENT '操作者',
@@ -185,7 +185,7 @@ CREATE TABLE `db_vso`.`tb_order_log`
     `row_version`    INT                   DEFAULT NULL COMMENT '记录版本',
     `row_valid`      TINYINT               DEFAULT NULL COMMENT '是否有效',
     PRIMARY KEY (`id`),
-    KEY `idx_order_num` (`order_num`) USING BTREE
+    KEY `idx_order_no` (`order_no`) USING BTREE
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4 COMMENT ='车辆销售订单日志';
 
@@ -193,7 +193,7 @@ DROP TABLE IF EXISTS `db_vso`.`tb_order_model_config`;
 CREATE TABLE `db_vso`.`tb_order_model_config`
 (
     `id`          BIGINT      NOT NULL AUTO_INCREMENT COMMENT '主键',
-    `order_num`   VARCHAR(50) NOT NULL COMMENT '订单编码',
+    `order_no`   VARCHAR(50) NOT NULL COMMENT '订单编码',
     `type`        VARCHAR(50) NOT NULL COMMENT '销售车型配置类型',
     `type_code`   VARCHAR(50) NOT NULL COMMENT '销售车型配置类型代码',
     `type_name`   VARCHAR(255)         DEFAULT NULL COMMENT '销售车型配置类型名称',
@@ -206,7 +206,7 @@ CREATE TABLE `db_vso`.`tb_order_model_config`
     `row_version` INT                  DEFAULT NULL COMMENT '记录版本',
     `row_valid`   TINYINT              DEFAULT NULL COMMENT '是否有效',
     PRIMARY KEY (`id`),
-    KEY `idx_order_num` (`order_num`) USING BTREE
+    KEY `idx_order_no` (`order_no`) USING BTREE
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4 COMMENT ='订单车型配置';
 
@@ -214,7 +214,7 @@ DROP TABLE IF EXISTS `db_vso`.`tb_order_payment`;
 CREATE TABLE `db_vso`.`tb_order_payment`
 (
     `id`                  BIGINT         NOT NULL AUTO_INCREMENT COMMENT '主键',
-    `order_num`           VARCHAR(50)    NOT NULL COMMENT '订单编码',
+    `order_no`           VARCHAR(50)    NOT NULL COMMENT '订单编码',
     `order_payment_phase` SMALLINT       NOT NULL COMMENT '订单支付阶段：1-意向金，2-定金，3-尾款',
     `payment_merchant`    VARCHAR(50)    NOT NULL COMMENT '支付商户',
     `payment_order`       VARCHAR(50)    NOT NULL COMMENT '支付内部订单号',
@@ -231,6 +231,6 @@ CREATE TABLE `db_vso`.`tb_order_payment`
     `row_version`         INT                     DEFAULT NULL COMMENT '记录版本',
     `row_valid`           TINYINT                 DEFAULT NULL COMMENT '是否有效',
     PRIMARY KEY (`id`),
-    KEY `idx_order_num` (`order_num`) USING BTREE
+    KEY `idx_order_no` (`order_no`) USING BTREE
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4 COMMENT ='订单支付记录';

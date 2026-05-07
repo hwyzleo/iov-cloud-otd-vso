@@ -12,7 +12,7 @@ import lombok.Data;
 @Builder
 public class OrderQuery {
 
-    private String orderNum;
+    private String orderNo;
     private Integer orderState;
     private java.util.List<Integer> orderStateRange;
     private Boolean hasDeliveryPerson;

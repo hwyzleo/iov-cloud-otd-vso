@@ -39,13 +39,13 @@ public class MobileOrderController extends BaseController {
     public ApiResponse<String> createWishlist(@RequestBody @Valid SelectedSaleModelRequestVo request) {
         log.info("手机客户端[{}]新建心愿单", ParamHelper.getClientAccountInfo());
         CreateWishlistCmd cmd = SelectedSaleModelRequestVoAssembler.INSTANCE.toCreateWishlistCmd(SecurityContextHolder.getUserId(), request);
-        String orderNum = vehicleSaleOrderAppService.createUserWishlist(cmd);
-        return ApiResponse.ok(orderNum);
+        String orderNo = vehicleSaleOrderAppService.createUserWishlist(cmd);
+        return ApiResponse.ok(orderNo);
     }
 
     @PostMapping("/wishlist/action/modify")
     public ApiResponse<Void> modifyWishlist(@RequestBody @Valid SelectedSaleModelRequestVo request) {
-        log.info("手机客户端[{}]修改心愿单[{}]", ParamHelper.getClientAccountInfo(), request.getOrderNum());
+        log.info("手机客户端[{}]修改心愿单[{}]", ParamHelper.getClientAccountInfo(), request.getOrderNo());
         ModifyWishlistCmd cmd = SelectedSaleModelRequestVoAssembler.INSTANCE.toModifyWishlistCmd(SecurityContextHolder.getUserId(), request);
         vehicleSaleOrderAppService.modifyUserWishlist(cmd);
         return ApiResponse.ok();
@@ -59,10 +59,10 @@ public class MobileOrderController extends BaseController {
         return ApiResponse.ok();
     }
 
-    @GetMapping("/wishlist/{orderNum}")
-    public ApiResponse<WishlistResponseVo> getWishlist(@PathVariable String orderNum) {
-        log.info("手机客户端[{}]获取心愿单[{}]详情", ParamHelper.getClientAccountInfo(), orderNum);
-        WishlistDetailResult result = vehicleSaleOrderAppService.getUserWishlist(SecurityContextHolder.getUserId(), orderNum);
+    @GetMapping("/wishlist/{orderNo}")
+    public ApiResponse<WishlistResponseVo> getWishlist(@PathVariable String orderNo) {
+        log.info("手机客户端[{}]获取心愿单[{}]详情", ParamHelper.getClientAccountInfo(), orderNo);
+        WishlistDetailResult result = vehicleSaleOrderAppService.getUserWishlist(SecurityContextHolder.getUserId(), orderNo);
         WishlistResponseVo vo = WishlistResponseVoAssembler.INSTANCE.toVo(result);
         return ApiResponse.ok(vo);
     }
@@ -71,22 +71,22 @@ public class MobileOrderController extends BaseController {
     public ApiResponse<String> earnestMoneyOrder(@RequestBody @Valid EarnestMoneyOrderRequestVo request) {
         log.info("手机客户端[{}]意向金下订单", ParamHelper.getClientAccountInfo());
         EarnestMoneyCmd cmd = EarnestMoneyOrderRequestVoAssembler.INSTANCE.toCmd(SecurityContextHolder.getUserId(), request);
-        String orderNum = vehicleSaleOrderAppService.earnestMoneyOrder(cmd);
-        return ApiResponse.ok(orderNum);
+        String orderNo = vehicleSaleOrderAppService.earnestMoneyOrder(cmd);
+        return ApiResponse.ok(orderNo);
     }
 
     @PostMapping("/action/downPaymentOrder")
     public ApiResponse<String> downPaymentOrder(@RequestBody @Valid DownPaymentOrderRequestVo request) {
         log.info("手机客户端[{}]定金下订单", ParamHelper.getClientAccountInfo());
         DownPaymentCmd cmd = DownPaymentOrderRequestVoAssembler.INSTANCE.toCmd(SecurityContextHolder.getUserId(), request);
-        String orderNum = vehicleSaleOrderAppService.downPaymentOrder(cmd);
-        return ApiResponse.ok(orderNum);
+        String orderNo = vehicleSaleOrderAppService.downPaymentOrder(cmd);
+        return ApiResponse.ok(orderNo);
     }
 
-    @GetMapping("/order/{orderNum}")
-    public ApiResponse<OrderResponseVo> getOrder(@PathVariable String orderNum) {
-        log.info("手机客户端[{}]获取订单[{}]详情", ParamHelper.getClientAccountInfo(), orderNum);
-        OrderDetailResult result = vehicleSaleOrderAppService.getUserOrder(SecurityContextHolder.getUserId(), orderNum);
+    @GetMapping("/order/{orderNo}")
+    public ApiResponse<OrderResponseVo> getOrder(@PathVariable String orderNo) {
+        log.info("手机客户端[{}]获取订单[{}]详情", ParamHelper.getClientAccountInfo(), orderNo);
+        OrderDetailResult result = vehicleSaleOrderAppService.getUserOrder(SecurityContextHolder.getUserId(), orderNo);
         OrderResponseVo vo = OrderResponseVoAssembler.INSTANCE.toVo(result);
         return ApiResponse.ok(vo);
     }
@@ -101,7 +101,7 @@ public class MobileOrderController extends BaseController {
 
     @PostMapping("/order/action/pay")
     public ApiResponse<OrderPaymentResponseVo> pay(@RequestBody @Valid OrderPaymentRequestVo request) {
-        log.info("手机客户端[{}]支付订单[{}]", ParamHelper.getClientAccountInfo(), request.getOrderNum());
+        log.info("手机客户端[{}]支付订单[{}]", ParamHelper.getClientAccountInfo(), request.getOrderNo());
         PayCmd cmd = OrderPaymentRequestVoAssembler.INSTANCE.toCmd(SecurityContextHolder.getUserId(), request);
         PayResult result = vehicleSaleOrderAppService.pay(cmd);
         OrderPaymentResponseVo vo = OrderPaymentResponseVoAssembler.INSTANCE.toVo(result);

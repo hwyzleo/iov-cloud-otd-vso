@@ -11,9 +11,9 @@ import net.hwyz.iov.cloud.otd.vso.service.domain.model.OrderState;
 @Slf4j
 public class OrderStateNotAllowedException extends VsoBaseException {
 
-    public OrderStateNotAllowedException(String orderNum, OrderState orderState, String operation) {
+    public OrderStateNotAllowedException(String orderNo, OrderState orderState, String operation) {
         super(ERROR_CODE_ORDER_STATE_NOT_ALLOWED);
-        log.warn("车辆销售订单[{}]当前状态[{}]不支持此操作[{}]", orderNum, orderState, operation);
+        log.warn("车辆销售订单[{}]当前状态[{}]不支持此操作[{}]", orderNo, orderState, operation);
     }
 
 }

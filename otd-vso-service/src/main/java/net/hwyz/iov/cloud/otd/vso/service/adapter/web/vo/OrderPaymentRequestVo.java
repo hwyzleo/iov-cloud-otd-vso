@@ -10,7 +10,7 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 public class OrderPaymentRequestVo {
 
-    private String orderNum;
+    private String orderNo;
     private Integer orderPaymentPhase;
     private BigDecimal paymentAmount;
 
