@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.mapper.SaleModelBaseModelMapper">
+
+    <resultMap id="baseResultMap" type="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.SaleModelBaseModelPo">
+        <id column="id" property="id" />
+        <result column="description" property="description" />
+        <result column="create_time" property="createTime" />
+        <result column="create_by" property="createBy" />
+        <result column="modify_time" property="modifyTime" />
+        <result column="modify_by" property="modifyBy" />
+        <result column="row_version" property="rowVersion" />
+        <result column="row_valid" property="rowValid" />
+        <result column="sale_code" property="saleCode" />
+        <result column="base_model_code" property="baseModelCode" />
+        <result column="base_model_name" property="baseModelName" />
+        <result column="base_model_image" property="baseModelImage" />
+        <result column="base_model_price" property="baseModelPrice" />
+        <result column="base_model_desc" property="baseModelDesc" />
+        <result column="base_model_param" property="baseModelParam" />
+        <result column="enable" property="enable" />
+        <result column="sort" property="sort" />
+    </resultMap>
+
+    <sql id="baseColumnList">
+        id, sale_code, base_model_code, base_model_name, base_model_image, base_model_price, base_model_desc, base_model_param, enable, sort,
+        description, create_time, create_by, modify_time, modify_by, row_version, row_valid
+    </sql>
+
+    <insert id="insertPo" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO vso_sale_model_base_model (
+            id, sale_code, base_model_code, base_model_name, base_model_image, base_model_price, base_model_desc, base_model_param, enable, sort,
+            description, create_time, create_by, modify_time, modify_by, row_version, row_valid
+        )
+        VALUES (
+            #{id}, #{saleCode}, #{baseModelCode}, #{baseModelName}, #{baseModelImage}, #{baseModelPrice}, #{baseModelDesc}, #{baseModelParam}, #{enable}, #{sort},
+            #{description}, now(), #{createBy}, now(), #{modifyBy}, #{rowVersion}, #{rowValid}
+        )
+    </insert>
+
+    <update id="updatePo" parameterType="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.SaleModelBaseModelPo">
+        UPDATE vso_sale_model_base_model t SET
+        <if test="baseModelName != null">
+            t.base_model_name = #{baseModelName},
+        </if>
+        <if test="baseModelImage != null">
+            t.base_model_image = #{baseModelImage},
+        </if>
+        <if test="baseModelPrice != null">
+            t.base_model_price = #{baseModelPrice},
+        </if>
+        <if test="baseModelDesc != null">
+            t.base_model_desc = #{baseModelDesc},
+        </if>
+        <if test="baseModelParam != null">
+            t.base_model_param = #{baseModelParam},
+        </if>
+        <if test="enable != null">
+            t.enable = #{enable},
+        </if>
+        <if test="sort != null">
+            t.sort = #{sort},
+        </if>
+        <if test="modifyBy != null">
+            t.modify_by = #{modifyBy},
+        </if>
+        t.row_version = t.row_version + 1,
+        t.modify_time = now()
+        WHERE t.id = #{id}
+    </update>
+
+    <select id="selectPoById" parameterType="Long" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_sale_model_base_model t
+        WHERE t.id = #{value}
+        AND t.row_valid = 1
+    </select>
+
+    <select id="selectPoBySaleCode" parameterType="string" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_sale_model_base_model t
+        WHERE t.sale_code = #{saleCode}
+        AND t.row_valid = 1
+        ORDER BY t.sort ASC, t.id ASC
+    </select>
+
+    <select id="selectPoBySaleCodeAndBaseModelCode" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_sale_model_base_model t
+        WHERE t.sale_code = #{saleCode}
+        AND t.base_model_code = #{baseModelCode}
+        AND t.row_valid = 1
+    </select>
+
+    <delete id="physicalDeleteByIds">
+        DELETE FROM vso_sale_model_base_model
+        WHERE id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+    <delete id="physicalDeleteBySaleCodeAndBaseModelCode">
+        DELETE FROM vso_sale_model_base_model
+        WHERE sale_code = #{saleCode}
+        AND base_model_code = #{baseModelCode}
+    </delete>
+
+</mapper>

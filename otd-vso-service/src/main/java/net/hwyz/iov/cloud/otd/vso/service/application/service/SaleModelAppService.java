@@ -17,6 +17,7 @@ import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.SaleModelConfig
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.SaleModelResult;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.SelectedSaleModelResult;
 import net.hwyz.iov.cloud.otd.vso.service.common.exception.SaleModelNotExistException;
+import net.hwyz.iov.cloud.otd.vso.service.domain.repository.SaleModelBaseModelRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.SaleModelBuildConfigRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.SaleModelConfigRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.SaleModelRepository;
@@ -38,6 +39,7 @@ public class SaleModelAppService {
     private final SaleModelRepository saleModelRepository;
     private final SaleModelConfigRepository saleModelConfigRepository;
     private final SaleModelBuildConfigRepository saleModelBuildConfigRepository;
+    private final SaleModelBaseModelRepository saleModelBaseModelRepository;
     private final ExDictionaryService exDictionaryService;
     private final VmdVehicleModelConfigService vmdVehicleModelConfigService;
     private final PurchaseBenefitsMapper purchaseBenefitsMapper;
@@ -283,10 +285,39 @@ public class SaleModelAppService {
         Map<String, String> configName = new LinkedHashMap<>();
         Map<String, BigDecimal> configPrice = new LinkedHashMap<>();
         BigDecimal totalPrice = BigDecimal.ZERO;
+        String baseModelCode = null;
+        String modelName = "";
 
+        // 处理基础车型选择
+        if (featureCodes.containsKey("BASE_MODEL")) {
+            baseModelCode = featureCodes.get("BASE_MODEL");
+            SaleModelBaseModelPo baseModelPo = saleModelBaseModelRepository.findBySaleCodeAndBaseModelCode(saleCode, baseModelCode)
+                    .orElse(null);
+            if (baseModelPo != null) {
+                modelName = baseModelPo.getBaseModelName();
+                configName.put("BASE_MODEL", baseModelPo.getBaseModelName());
+                configPrice.put("BASE_MODEL", baseModelPo.getBaseModelPrice() != null ? baseModelPo.getBaseModelPrice() : BigDecimal.ZERO);
+                totalPrice = totalPrice.add(baseModelPo.getBaseModelPrice() != null ? baseModelPo.getBaseModelPrice() : BigDecimal.ZERO);
+
+                if (StrUtil.isNotBlank(baseModelPo.getBaseModelName())) {
+                    desc.append(baseModelPo.getBaseModelName());
+                }
+
+                if (baseModelPo.getBaseModelImage() != null && !baseModelPo.getBaseModelImage().isEmpty()) {
+                    List<String> baseModelImages = cn.hutool.json.JSONUtil.toList(baseModelPo.getBaseModelImage(), String.class);
+                    if (!baseModelImages.isEmpty()) {
+                        images.add(baseModelImages.get(0));
+                    }
+                }
+            }
+        }
+
+        // 处理其他特征值选择
         for (Map.Entry<String, String> entry : featureCodes.entrySet()) {
             String familyCode = entry.getKey();
             String featureCode = entry.getValue();
+
+            if (familyCode.equals("BASE_MODEL")) continue;
 
             String key = familyCode + "_" + featureCode;
             SaleModelConfigResult config = configMap.get(key);
@@ -307,18 +338,21 @@ public class SaleModelAppService {
             }
         }
 
-        String buildConfigCode = matchBuildConfigCode(saleCode, featureCodes);
+        String buildConfigCode = matchBuildConfigCode(saleCode, featureCodes, baseModelCode);
 
         String benefitsIntro = "";
         PurchaseBenefits benefits = getPurchaseBenefits(saleCode);
         if (benefits != null) benefitsIntro = benefits.getIntro();
 
-        String modelName = "";
-        for (Map.Entry<String, String> entry : featureCodes.entrySet()) {
-            SaleModelConfigResult config = configMap.get(entry.getKey() + "_" + entry.getValue());
-            if (config != null && config.getTypeName() != null) {
-                modelName = config.getTypeName();
-                break;
+        if (modelName.isEmpty()) {
+            for (Map.Entry<String, String> entry : featureCodes.entrySet()) {
+                if (!entry.getKey().equals("BASE_MODEL")) {
+                    SaleModelConfigResult config = configMap.get(entry.getKey() + "_" + entry.getValue());
+                    if (config != null && config.getTypeName() != null) {
+                        modelName = config.getTypeName();
+                        break;
+                    }
+                }
             }
         }
 
@@ -345,9 +379,10 @@ public class SaleModelAppService {
      *
      * @param saleCode     销售代码
      * @param featureCodes 特征值选择
+     * @param baseModelCode 基础车型代码（可选）
      * @return 匹配的生产配置代码，如果没有匹配到返回null
      */
-    private String matchBuildConfigCode(String saleCode, Map<String, String> featureCodes) {
+    private String matchBuildConfigCode(String saleCode, Map<String, String> featureCodes, String baseModelCode) {
         List<SaleModelBuildConfigPo> buildConfigs = saleModelBuildConfigRepository.findBySaleCode(saleCode);
 
         for (SaleModelBuildConfigPo bc : buildConfigs) {
@@ -356,6 +391,14 @@ public class SaleModelAppService {
             VmdBuildConfigResponse buildConfig = vmdVehicleModelConfigService.getBuildConfigByCode(bc.getBuildConfigCode());
 
             if (buildConfig != null && buildConfig.getFeatureCodes() != null) {
+                // 如果指定了基础车型，先检查基础车型是否匹配
+                if (baseModelCode != null && !baseModelCode.isEmpty()) {
+                    if (buildConfig.getBaseModelCode() == null || 
+                        !buildConfig.getBaseModelCode().equals(baseModelCode)) {
+                        continue;
+                    }
+                }
+
                 boolean matched = checkFeatureCodesMatch(buildConfig.getFeatureCodes(), featureCodes);
                 if (matched) {
                     return bc.getBuildConfigCode();
@@ -426,6 +469,45 @@ public class SaleModelAppService {
         SaleModelResult model = getSaleModelById(saleModelId);
         String saleCode = model.getSaleCode();
 
+        List<FeatureCodeRangeVo> result = new ArrayList<>();
+
+        // 构建基础车型特征族作为第一个选择项
+        List<SaleModelBaseModelPo> baseModelList = saleModelBaseModelRepository.findBySaleCode(saleCode);
+        if (!baseModelList.isEmpty()) {
+            FeatureCodeRangeVo baseModelRange = new FeatureCodeRangeVo();
+            baseModelRange.setFamilyCode("BASE_MODEL");
+            baseModelRange.setFamilyName("车型");
+            baseModelRange.setFamilyPrice(BigDecimal.ZERO);
+            baseModelRange.setFamilyImage(new ArrayList<>());
+            baseModelRange.setFamilyDesc("");
+            baseModelRange.setFamilyParam("");
+            baseModelRange.setEnable(true);
+            baseModelRange.setSort(-1);
+
+            List<FeatureCodeDetailVo> baseModelDetails = new ArrayList<>();
+            for (SaleModelBaseModelPo po : baseModelList) {
+                if (po.getEnable()) {
+                    FeatureCodeDetailVo detailVo = FeatureCodeDetailVo.builder()
+                            .featureCode(po.getBaseModelCode())
+                            .featureName(po.getBaseModelName())
+                            .featurePrice(po.getBaseModelPrice() != null ? po.getBaseModelPrice() : BigDecimal.ZERO)
+                            .featureImage(po.getBaseModelImage() != null ?
+                                    cn.hutool.json.JSONUtil.toList(po.getBaseModelImage(), String.class) :
+                                    new ArrayList<>())
+                            .featureDesc(po.getBaseModelDesc() != null ? po.getBaseModelDesc() : "")
+                            .featureParam(po.getBaseModelParam() != null ? po.getBaseModelParam() : "")
+                            .enable(po.getEnable())
+                            .sort(po.getSort() != null ? po.getSort() : 0)
+                            .build();
+                    baseModelDetails.add(detailVo);
+                }
+            }
+            baseModelDetails.sort(Comparator.comparing(d -> d.getSort() != null ? d.getSort() : 0));
+            baseModelRange.setFeatureDetails(baseModelDetails);
+            result.add(baseModelRange);
+        }
+
+        // 构建其他特征族
         List<SaleModelBuildConfigPo> poList = saleModelBuildConfigRepository.findBySaleCode(saleCode);
         List<SaleModelConfigPo> configPoList = saleModelConfigRepository.findBySaleCode(saleCode);
 
@@ -502,13 +584,14 @@ public class SaleModelAppService {
             }
         }
 
-        List<FeatureCodeRangeVo> result = new ArrayList<>(aggregatedRanges.values());
-        result.sort(Comparator.comparing(r -> r.getSort() != null ? r.getSort() : 0));
-        for (FeatureCodeRangeVo range : result) {
+        List<FeatureCodeRangeVo> otherRanges = new ArrayList<>(aggregatedRanges.values());
+        otherRanges.sort(Comparator.comparing(r -> r.getSort() != null ? r.getSort() : 0));
+        for (FeatureCodeRangeVo range : otherRanges) {
             if (range.getFeatureDetails() != null) {
                 range.getFeatureDetails().sort(Comparator.comparing(d -> d.getSort() != null ? d.getSort() : 0));
             }
         }
+        result.addAll(otherRanges);
         return result;
     }
 
@@ -534,6 +617,9 @@ public class SaleModelAppService {
         // 自动生成或更新SaleModelConfig
         syncSaleModelConfigFromBuildConfigs(model.getSaleCode(), userId);
 
+        // 自动生成或更新SaleModelBaseModel
+        syncBaseModelFromBuildConfigs(model.getSaleCode(), userId);
+
         return po.getId();
     }
 
@@ -554,6 +640,9 @@ public class SaleModelAppService {
 
         // 重新同步SaleModelConfig
         syncSaleModelConfigFromBuildConfigs(model.getSaleCode(), SecurityContextHolder.getUserId());
+
+        // 重新同步SaleModelBaseModel
+        syncBaseModelFromBuildConfigs(model.getSaleCode(), SecurityContextHolder.getUserId());
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -737,5 +826,140 @@ public class SaleModelAppService {
 
         log.info("同步完成，特征族 {} 个，特征值 {} 个，删除 {} 个", featureValueMap.size(),
                 featureValueMap.values().stream().mapToInt(Set::size).sum(), toDelete.size());
+    }
+
+    public List<SaleModelBaseModelVo> getBaseModelList(Long saleModelId) {
+        SaleModelResult model = getSaleModelById(saleModelId);
+        List<SaleModelBaseModelPo> poList = saleModelBaseModelRepository.findBySaleCode(model.getSaleCode());
+        return poList.stream().map(po -> {
+            SaleModelBaseModelVo vo = SaleModelBaseModelVo.builder()
+                    .id(po.getId())
+                    .saleCode(po.getSaleCode())
+                    .baseModelCode(po.getBaseModelCode())
+                    .baseModelName(po.getBaseModelName())
+                    .baseModelImage(parseJsonToList(po.getBaseModelImage()))
+                    .baseModelPrice(po.getBaseModelPrice())
+                    .baseModelDesc(po.getBaseModelDesc())
+                    .baseModelParam(po.getBaseModelParam())
+                    .enable(po.getEnable())
+                    .sort(po.getSort())
+                    .createTime(po.getCreateTime() != null ? po.getCreateTime().toInstant() : null)
+                    .createBy(po.getCreateBy())
+                    .modifyTime(po.getModifyTime() != null ? po.getModifyTime().toInstant() : null)
+                    .modifyBy(po.getModifyBy())
+                    .build();
+            return vo;
+        }).collect(Collectors.toList());
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public void updateBaseModel(Long saleModelId, SaleModelBaseModelDto dto, String userId) {
+        SaleModelResult model = getSaleModelById(saleModelId);
+        SaleModelBaseModelPo po = saleModelBaseModelRepository.findById(dto.getId())
+                .orElseThrow(() -> new IllegalArgumentException("基础车型关联不存在"));
+        if (!po.getSaleCode().equals(model.getSaleCode())) {
+            throw new IllegalArgumentException("基础车型关联不属于该销售车型");
+        }
+        po.setBaseModelName(dto.getBaseModelName());
+        po.setBaseModelImage(dto.getBaseModelImage() != null ? cn.hutool.json.JSONUtil.toJsonStr(dto.getBaseModelImage()) : null);
+        po.setBaseModelPrice(dto.getBaseModelPrice());
+        po.setBaseModelDesc(dto.getBaseModelDesc());
+        po.setBaseModelParam(dto.getBaseModelParam());
+        po.setEnable(dto.getEnable());
+        po.setSort(dto.getSort());
+        po.setModifyBy(userId);
+        saleModelBaseModelRepository.update(po);
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public void syncBaseModelFromBuildConfigs(String saleCode, String userId) {
+        log.info("开始同步基础车型，saleCode: {}", saleCode);
+        List<SaleModelBuildConfigPo> buildConfigs = saleModelBuildConfigRepository.findBySaleCode(saleCode);
+        log.info("找到 {} 个生产配置关联", buildConfigs.size());
+
+        List<SaleModelBaseModelPo> existingBaseModels = saleModelBaseModelRepository.findBySaleCode(saleCode);
+        Map<String, SaleModelBaseModelPo> existingMap = existingBaseModels.stream()
+                .collect(Collectors.toMap(SaleModelBaseModelPo::getBaseModelCode, c -> c));
+
+        Map<String, String> baseModelNameMap = new HashMap<>();
+        Map<String, Integer> baseModelSortMap = new HashMap<>();
+        int sort = 0;
+
+        for (SaleModelBuildConfigPo bc : buildConfigs) {
+            log.info("处理生产配置关联: buildConfigCode={}, enable={}", bc.getBuildConfigCode(), bc.getEnable());
+            if (!bc.getEnable()) continue;
+
+            VmdBuildConfigResponse buildConfig = vmdVehicleModelConfigService.getBuildConfigByCode(bc.getBuildConfigCode());
+            if (buildConfig != null && buildConfig.getBaseModelCode() != null) {
+                String baseModelCode = buildConfig.getBaseModelCode();
+                baseModelNameMap.putIfAbsent(baseModelCode, buildConfig.getName());
+                baseModelSortMap.putIfAbsent(baseModelCode, sort++);
+                log.info("提取基础车型: baseModelCode={}, name={}", baseModelCode, buildConfig.getName());
+            }
+        }
+
+        log.info("聚合后的基础车型数量: {}", baseModelNameMap.size());
+
+        Set<String> toDelete = new HashSet<>(existingMap.keySet());
+        toDelete.removeAll(baseModelNameMap.keySet());
+
+        for (Map.Entry<String, String> entry : baseModelNameMap.entrySet()) {
+            String baseModelCode = entry.getKey();
+            String baseModelName = entry.getValue();
+            Integer baseModelSort = baseModelSortMap.get(baseModelCode);
+
+            toDelete.remove(baseModelCode);
+
+            SaleModelBaseModelPo existing = existingMap.get(baseModelCode);
+            if (existing == null) {
+                SaleModelBaseModelPo newPo = SaleModelBaseModelPo.builder()
+                        .saleCode(saleCode)
+                        .baseModelCode(baseModelCode)
+                        .baseModelName(baseModelName)
+                        .baseModelImage(null)
+                        .baseModelPrice(BigDecimal.ZERO)
+                        .baseModelDesc("")
+                        .baseModelParam("")
+                        .enable(true)
+                        .sort(baseModelSort)
+                        .rowValid(true)
+                        .rowVersion(0)
+                        .createBy(userId)
+                        .modifyBy(userId)
+                        .build();
+                saleModelBaseModelRepository.insert(newPo);
+                log.info("新增基础车型: saleCode={}, baseModelCode={}, baseModelName={}", saleCode, baseModelCode, baseModelName);
+            } else {
+                if (!existing.getEnable()) {
+                    existing.setEnable(true);
+                    if (existing.getBaseModelName() == null || existing.getBaseModelName().isEmpty()) {
+                        existing.setBaseModelName(baseModelName);
+                    }
+                    existing.setSort(baseModelSort);
+                    existing.setModifyBy(userId);
+                    saleModelBaseModelRepository.update(existing);
+                    log.info("重新启用基础车型: saleCode={}, baseModelCode={}, baseModelName={}", saleCode, baseModelCode, baseModelName);
+                } else {
+                    if (existing.getBaseModelName() == null || existing.getBaseModelName().isEmpty()) {
+                        existing.setBaseModelName(baseModelName);
+                    }
+                    existing.setSort(baseModelSort);
+                    existing.setModifyBy(userId);
+                    saleModelBaseModelRepository.update(existing);
+                    log.info("更新基础车型排序: saleCode={}, baseModelCode={}", saleCode, baseModelCode);
+                }
+            }
+        }
+
+        log.info("待清理的基础车型数量: {}", toDelete.size());
+        for (String baseModelCode : toDelete) {
+            SaleModelBaseModelPo po = existingMap.get(baseModelCode);
+            if (po != null) {
+                saleModelBaseModelRepository.physicalDeleteByIds(new Long[]{po.getId()});
+                log.info("物理删除基础车型: saleCode={}, baseModelCode={}", saleCode, baseModelCode);
+            }
+        }
+
+        log.info("同步完成，基础车型 {} 个，删除 {} 个", baseModelNameMap.size(), toDelete.size());
     }
 }

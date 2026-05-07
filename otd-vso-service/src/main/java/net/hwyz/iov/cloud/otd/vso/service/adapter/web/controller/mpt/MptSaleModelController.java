@@ -134,6 +134,25 @@ public class MptSaleModelController extends BaseController {
         return ApiResponse.ok();
     }
 
+    @GetMapping("/{saleModelId}/baseModel")
+    public ApiResponse<List<SaleModelBaseModelVo>> listBaseModels(@PathVariable Long saleModelId) {
+        return ApiResponse.ok(saleModelAppService.getBaseModelList(saleModelId));
+    }
+
+    @PutMapping("/{saleModelId}/baseModel")
+    public ApiResponse<Void> updateBaseModel(@PathVariable Long saleModelId,
+                                             @RequestBody SaleModelBaseModelDto dto) {
+        saleModelAppService.updateBaseModel(saleModelId, dto, SecurityContextHolder.getUserId());
+        return ApiResponse.ok();
+    }
+
+    @PostMapping("/{saleModelId}/syncBaseModels")
+    public ApiResponse<Void> syncBaseModels(@PathVariable Long saleModelId) {
+        SaleModelResult model = saleModelAppService.getSaleModelById(saleModelId);
+        saleModelAppService.syncBaseModelFromBuildConfigs(model.getSaleCode(), SecurityContextHolder.getUserId());
+        return ApiResponse.ok();
+    }
+
     @PutMapping("/{saleModelId}/config/sort")
     public ApiResponse<Void> updateConfigSort(@PathVariable Long saleModelId,
                                               @RequestBody SaleModelConfigSortDto dto) {
