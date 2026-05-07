@@ -24,13 +24,10 @@ public interface OrderPoConverter {
      * @return 领域对象
      */
     @Mappings({
-            @Mapping(target="orderState", expression = "java(net.hwyz.iov.cloud.otd.vso.service.domain.model.OrderState.valOf(orderPo.getOrderState()))"),
             @Mapping(target="orderNo", source = "orderNo"),
-            @Mapping(target="id", source = "orderId"),
-            @Mapping(target="modelConfigMap", ignore = true),
-            @Mapping(target="payState", ignore = true)
+            @Mapping(target="id", source = "orderId")
     })
-    @org.mapstruct.BeanMapping(ignoreUnmappedSourceProperties = {"orderNum", "payState", "earnestMoneyTime", "earnestMoneyAmount", "downPaymentTime", "downPaymentAmount", "transportApplyTime", "customerInfo", "organizationInfo", "vehicleInfo", "orderAmount", "orderPersonPhone", "buildConfigLock", "remark", "valid", "domainEvents"})
+    @org.mapstruct.BeanMapping(ignoreUnmappedSourceProperties = {"orderNum", "payState", "orderState", "orderStateTime", "orderTime", "saleCode", "buildConfigCode", "modelConfigType", "modelConfigName", "modelConfigPrice", "modelConfigMap", "modelConfigDesc", "totalPrice", "licenseCity", "dealership", "deliveryCenter", "deliveryVin", "orderPersonId", "orderPersonType", "orderPersonName", "orderPersonIdType", "orderPersonIdNum", "purchasePlan", "transportApplyPersonId", "transportApplyPersonName", "deliveryPersonId", "deliveryPersonName", "earnestMoneyTime", "earnestMoneyAmount", "downPaymentTime", "downPaymentAmount", "transportApplyTime", "customerInfo", "organizationInfo", "vehicleInfo", "orderAmount", "orderPersonPhone", "buildConfigLock", "remark", "valid", "domainEvents"})
     Order toDomain(OrderPo orderPo);
 
     /**
@@ -40,12 +37,10 @@ public interface OrderPoConverter {
      * @return 数据对象
      */
     @Mappings({
-            @Mapping(target="orderState", source = "orderState.value"),
             @Mapping(target="orderNo", source = "orderNo"),
-            @Mapping(target="orderId", source = "id"),
-            @Mapping(target="modelConfigMap", ignore = true)
+            @Mapping(target="orderId", source = "id")
     })
-    @org.mapstruct.BeanMapping(ignoreUnmappedSourceProperties = {"orderNum", "earnestMoneyTime", "earnestMoneyAmount", "downPaymentTime", "downPaymentAmount", "transportApplyTime", "customerInfo", "organizationInfo", "vehicleInfo", "orderAmount", "orderPersonPhone", "buildConfigLock", "remark", "valid", "domainEvents", "payState", "modelConfigMap", "sourceRemark", "customerType", "mainStatus", "endType", "previousMainStatus", "brandCode", "regionCode", "storeCode", "salesCode", "vehicleVin", "hasException", "currentVersionNo", "lockedFlag", "reopenFlag", "cancelReason", "closeReason", "voidReason", "createdAtBusiness", "auditSubmitTime", "auditPassTime", "deliveryFinishTime", "finishTime", "cancelTime", "closeTime", "createTime", "createBy", "modifyTime", "modifyBy", "rowVersion", "rowValid", "modelConfigType", "modelConfigName", "modelConfigPrice", "modelConfigDesc", "totalPrice"})
+    @org.mapstruct.BeanMapping(ignoreUnmappedSourceProperties = {"orderNum", "earnestMoneyTime", "earnestMoneyAmount", "downPaymentTime", "downPaymentAmount", "transportApplyTime", "customerInfo", "organizationInfo", "vehicleInfo", "orderAmount", "orderPersonPhone", "buildConfigLock", "remark", "valid", "domainEvents", "payState", "orderState", "orderStateTime", "orderTime", "saleCode", "buildConfigCode", "modelConfigType", "modelConfigName", "modelConfigPrice", "modelConfigMap", "modelConfigDesc", "totalPrice", "licenseCity", "dealership", "deliveryCenter", "deliveryVin", "orderPersonId", "orderPersonType", "orderPersonName", "orderPersonIdType", "orderPersonIdNum", "purchasePlan", "transportApplyPersonId", "transportApplyPersonName", "deliveryPersonId", "deliveryPersonName", "sourceRemark", "customerType", "mainStatus", "endType", "previousMainStatus", "brandCode", "regionCode", "storeCode", "salesCode", "vehicleVin", "hasException", "currentVersionNo", "lockedFlag", "reopenFlag", "cancelReason", "closeReason", "voidReason", "createdAtBusiness", "auditSubmitTime", "auditPassTime", "deliveryFinishTime", "finishTime", "cancelTime", "closeTime", "createTime", "createBy", "modifyTime", "modifyBy", "rowVersion", "rowValid"})
     OrderPo fromDomain(Order order);
 
 }

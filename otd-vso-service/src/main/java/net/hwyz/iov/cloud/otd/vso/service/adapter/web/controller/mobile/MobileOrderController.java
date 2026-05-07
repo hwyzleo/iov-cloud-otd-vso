@@ -4,11 +4,9 @@ import jakarta.validation.Valid;
 import lombok.*;
 import lombok.extern.slf4j.Slf4j;
 import net.hwyz.iov.cloud.framework.common.bean.ApiResponse;
-import net.hwyz.iov.cloud.framework.common.bean.PageResult;
 import net.hwyz.iov.cloud.framework.common.util.ParamHelper;
 import net.hwyz.iov.cloud.framework.web.context.SecurityContextHolder;
 import net.hwyz.iov.cloud.framework.web.controller.BaseController;
-import net.hwyz.iov.cloud.framework.web.util.PageUtil;
 import net.hwyz.iov.cloud.otd.vso.service.adapter.web.assembler.*;
 import net.hwyz.iov.cloud.otd.vso.service.adapter.web.vo.*;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.*;
@@ -28,13 +26,13 @@ public class MobileOrderController extends BaseController {
     private final OrderAppService vehicleSaleOrderAppService;
 
     @GetMapping("/order")
-    public ApiResponse<PageResult<OrderVo>> getOrderList(@RequestParam(required = false) String type) {
+    public ApiResponse<List<OrderVo>> getOrderList(@RequestParam(required = false) String type) {
         log.info("手机客户端[{}]获取[{}]订单列表", ParamHelper.getClientAccountInfo(), type);
         OrderQuery query = OrderQuery.builder()
                 .type(type)
                 .build();
         List<OrderListResult> result = vehicleSaleOrderAppService.search(query);
-        return ApiResponse.ok(getPageResult(PageUtil.convert(result, OrderVoAssembler.INSTANCE::toVo)));
+        return ApiResponse.ok(OrderVoAssembler.INSTANCE.toVoList(result));
     }
 
     @PostMapping("/wishlist/action/create")
@@ -55,7 +53,7 @@ public class MobileOrderController extends BaseController {
 
     @PostMapping("/wishlist/action/delete")
     public ApiResponse<Void> deleteWishlist(@RequestBody @Valid OrderVo order) {
-        log.info("手机客户端[{}]删除心愿单[{}]", ParamHelper.getClientAccountInfo(), order.getOrderNum());
+        log.info("手机客户端[{}]删除心愿单[{}]", ParamHelper.getClientAccountInfo(), order.getOrderNo());
         DeleteWishlistCmd cmd = OrderVoAssembler.INSTANCE.toDeleteWishlistCmd(SecurityContextHolder.getUserId(), order);
         vehicleSaleOrderAppService.deleteUserWishlist(cmd);
         return ApiResponse.ok();
@@ -95,7 +93,7 @@ public class MobileOrderController extends BaseController {
 
     @PostMapping("/order/action/cancel")
     public ApiResponse<Void> cancel(@RequestBody @Valid OrderVo order) {
-        log.info("手机客户端[{}]取消订单[{}]", ParamHelper.getClientAccountInfo(), order.getOrderNum());
+        log.info("手机客户端[{}]取消订单[{}]", ParamHelper.getClientAccountInfo(), order.getOrderNo());
         CancelCmd cmd = OrderVoAssembler.INSTANCE.toCancelCmd(SecurityContextHolder.getUserId(), order);
         vehicleSaleOrderAppService.cancel(cmd);
         return ApiResponse.ok();
@@ -112,7 +110,7 @@ public class MobileOrderController extends BaseController {
 
     @PostMapping("/order/action/requestRefund")
     public ApiResponse<Void> requestRefund(@RequestBody @Valid OrderVo order) {
-        log.info("手机客户端[{}]退款订单[{}]", ParamHelper.getClientAccountInfo(), order.getOrderNum());
+        log.info("手机客户端[{}]退款订单[{}]", ParamHelper.getClientAccountInfo(), order.getOrderNo());
         RequestRefundCmd cmd = OrderResponseVoAssembler.INSTANCE.toRequestRefundCmd(SecurityContextHolder.getUserId(), order);
         vehicleSaleOrderAppService.requestRefund(cmd);
         return ApiResponse.ok();
@@ -120,7 +118,7 @@ public class MobileOrderController extends BaseController {
 
     @PostMapping("/order/action/earnestMoneyToDownPayment")
     public ApiResponse<Void> earnestMoneyToDownPayment(@RequestBody @Valid OrderVo order) {
-        log.info("手机客户端[{}]订单[{}]意向金转定金", ParamHelper.getClientAccountInfo(), order.getOrderNum());
+        log.info("手机客户端[{}]订单[{}]意向金转定金", ParamHelper.getClientAccountInfo(), order.getOrderNo());
         EarnestToDownCmd cmd = OrderVoAssembler.INSTANCE.toEarnestToDownCmd(SecurityContextHolder.getUserId(), order);
         vehicleSaleOrderAppService.earnestMoneyToDownPayment(cmd);
         return ApiResponse.ok();
@@ -128,7 +126,7 @@ public class MobileOrderController extends BaseController {
 
     @PostMapping("/order/action/lock")
     public ApiResponse<Void> lock(@RequestBody @Valid OrderVo order) {
-        log.info("手机客户端[{}]锁定订单[{}]", ParamHelper.getClientAccountInfo(), order.getOrderNum());
+        log.info("手机客户端[{}]锁定订单[{}]", ParamHelper.getClientAccountInfo(), order.getOrderNo());
         LockCmd cmd = OrderVoAssembler.INSTANCE.toLockCmd(SecurityContextHolder.getUserId(), order);
         vehicleSaleOrderAppService.lock(cmd);
         return ApiResponse.ok();

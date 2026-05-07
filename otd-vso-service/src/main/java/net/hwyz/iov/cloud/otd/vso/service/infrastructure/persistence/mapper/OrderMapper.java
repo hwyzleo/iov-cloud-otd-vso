@@ -1,6 +1,5 @@
 package net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.mapper;
 
-import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import net.hwyz.iov.cloud.framework.mysql.dao.BaseDao;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.OrderPo;
 import org.apache.ibatis.annotations.Mapper;
@@ -41,18 +40,18 @@ public interface OrderMapper extends BaseDao<OrderPo, Long> {
     /**
      * 逻辑删除订单
      *
-     * @param orderNum 订单编号
+     * @param orderNo 订单号
      * @return 影响行数
      */
-    int logicalDeletePoByOrderNum(@Param("orderNum") String orderNum);
+    int logicalDeletePoByOrderNum(@Param("orderNo") String orderNo);
 
     /**
      * 物理删除订单
      *
-     * @param orderNum 订单编号
+     * @param orderNo 订单号
      * @return 影响行数
      */
-    int physicalDeletePoByOrderNum(@Param("orderNum") String orderNum);
+    int physicalDeletePoByOrderNum(@Param("orderNo") String orderNo);
 
     /**
      * 根据 Map 对象获取对应数据列表
@@ -60,7 +59,7 @@ public interface OrderMapper extends BaseDao<OrderPo, Long> {
      * @param params 查询参数
      * @return 订单 PO 列表
      */
-    java.util.List<net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.OrderPo> selectPoByMap(java.util.Map<String, Object> params);
+    java.util.List<OrderPo> selectPoByMap(java.util.Map<String, Object> params);
 
     /**
      * 根据 Map 对象统计记录数
@@ -76,7 +75,7 @@ public interface OrderMapper extends BaseDao<OrderPo, Long> {
      * @param orderPo 订单 PO
      * @return 影响行数
      */
-    int insertPo(net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.OrderPo orderPo);
+    int insertPo(OrderPo orderPo);
 
     /**
      * 更新订单
@@ -84,22 +83,14 @@ public interface OrderMapper extends BaseDao<OrderPo, Long> {
      * @param orderPo 订单 PO
      * @return 影响行数
      */
-    int updatePo(net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.OrderPo orderPo);
+    int updatePo(OrderPo orderPo);
+
     /**
-     * 根据订单号和账号ID查询订单
+     * 根据订单号查询订单
      *
      * @param orderNo   订单号
      * @param accountId 账号ID
      * @return 订单 PO
      */
     OrderPo selectByOrderNoAndAccountId(@Param("orderNo") String orderNo, @Param("accountId") String accountId);
-
-    /**
-     * 根据账号ID查询订单
-     *
-     * @param accountId 账号ID
-     * @param stateList 状态列表
-     * @return 订单 PO 列表
-     */
-    java.util.List<net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.OrderPo> selectByAccountId(@Param("accountId") String accountId, @Param("stateList") java.util.List<Integer> stateList);
 }

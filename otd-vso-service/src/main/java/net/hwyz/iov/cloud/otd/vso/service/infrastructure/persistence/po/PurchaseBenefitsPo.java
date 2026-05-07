@@ -22,7 +22,7 @@ import net.hwyz.iov.cloud.framework.mysql.po.BasePo;
 @SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
-@TableName("tb_purchase_benefits")
+@TableName("vso_purchase_benefits")
 public class PurchaseBenefitsPo extends BasePo {
 
     private static final long serialVersionUID = 1L;

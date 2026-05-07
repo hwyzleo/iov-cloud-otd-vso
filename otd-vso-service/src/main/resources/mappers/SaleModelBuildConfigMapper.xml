@@ -3,7 +3,7 @@
 <mapper namespace="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.mapper.SaleModelBuildConfigMapper">
 
     <delete id="physicalDeleteByIds">
-        DELETE FROM tb_sale_model_build_config
+        DELETE FROM vso_sale_model_build_config
         WHERE id IN
         <foreach collection="ids" item="id" open="(" separator="," close=")">
             #{id}
@@ -11,7 +11,7 @@
     </delete>
 
     <delete id="physicalDeleteBySaleCodeAndBuildConfigCode">
-        DELETE FROM tb_sale_model_build_config
+        DELETE FROM vso_sale_model_build_config
         WHERE sale_code = #{saleCode}
         AND build_config_code = #{buildConfigCode}
     </delete>

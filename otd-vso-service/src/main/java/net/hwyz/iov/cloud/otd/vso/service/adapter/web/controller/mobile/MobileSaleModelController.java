@@ -118,21 +118,6 @@ public class MobileSaleModelController extends BaseController {
     }
 
     /**
-     * 获取销售车型购车协议
-     *
-     * @param saleCode      销售代码
-     * @param type          协议类型
-     * @param clientAccount 终端用户
-     * @return 销售车型购车协议
-     */
-    @GetMapping("/purchaseAgreement")
-    public ApiResponse<PurchaseAgreement> getPurchaseAgreement(@RequestParam String saleCode, @RequestParam Integer type,
-                                                               @RequestHeader ClientAccount clientAccount) {
-        log.info("手机客户端[{}]获取销售代码[{}]销售车型购车协议[{}]", ParamHelper.getClientAccountInfo(clientAccount), saleCode, type);
-        return ApiResponse.ok(saleModelAppService.getPurchaseAgreement(saleCode, type));
-    }
-
-    /**
      * 获取上牌区域列表
      *
      * @param clientAccount 终端用户

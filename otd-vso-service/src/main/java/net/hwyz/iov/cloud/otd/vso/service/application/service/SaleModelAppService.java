@@ -20,7 +20,6 @@ import net.hwyz.iov.cloud.otd.vso.service.common.exception.SaleModelNotExistExce
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.SaleModelBuildConfigRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.SaleModelConfigRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.SaleModelRepository;
-import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.mapper.PurchaseAgreementMapper;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.mapper.PurchaseBenefitsMapper;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.*;
 import net.hwyz.iov.cloud.tsp.dictionary.api.feign.service.ExDictionaryService;
@@ -42,7 +41,6 @@ public class SaleModelAppService {
     private final ExDictionaryService exDictionaryService;
     private final VmdVehicleModelConfigService vmdVehicleModelConfigService;
     private final PurchaseBenefitsMapper purchaseBenefitsMapper;
-    private final PurchaseAgreementMapper purchaseAgreementMapper;
 
     public List<SaleModelResult> search(SaleModelQuery query) {
         List<SaleModelPo> poList = saleModelRepository.findByCondition(query);
@@ -247,12 +245,6 @@ public class SaleModelAppService {
     public PurchaseBenefits getPurchaseBenefits(String saleCode) {
         PurchaseBenefitsPo po = purchaseBenefitsMapper.selectCurrentPoBySaleCode(saleCode);
         return po == null ? null : PurchaseBenefits.builder().intro(po.getIntro()).build();
-    }
-
-    public PurchaseAgreement getPurchaseAgreement(String saleCode, Integer type) {
-        List<PurchaseAgreementPo> list = purchaseAgreementMapper.selectPoByExample(
-                PurchaseAgreementPo.builder().saleCode(saleCode).type(type).build());
-        return list.isEmpty() ? null : PurchaseAgreement.builder().detail(list.get(0).getDetail()).build();
     }
 
     public List<LicenseArea> getLicenseAreaList() {

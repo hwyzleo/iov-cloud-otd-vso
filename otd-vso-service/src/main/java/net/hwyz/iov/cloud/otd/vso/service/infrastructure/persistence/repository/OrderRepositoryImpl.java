@@ -120,16 +120,8 @@ public class OrderRepositoryImpl implements OrderRepository {
 
     @Override
     public List<Order> findByAccountId(String accountId, String type) {
-        java.util.List<Integer> stateList = null;
-        if ("valid".equals(type)) {
-            stateList = java.util.Arrays.stream(OrderState.values())
-                .filter(s -> s != OrderState.CANCEL && s != OrderState.REFUND_COMPLETE)
-                .map(OrderState::getValue)
-                .toList();
-        }
-        return orderMapper.selectByAccountId(accountId, stateList).stream()
-                .map(OrderPoConverter.INSTANCE::toDomain)
-                .collect(Collectors.toList());
+        // TODO: 需要通过 vso_order_party 表关联查询
+        throw new UnsupportedOperationException("待通过 vso_order_party 表关联查询实现");
     }
 
     @Override

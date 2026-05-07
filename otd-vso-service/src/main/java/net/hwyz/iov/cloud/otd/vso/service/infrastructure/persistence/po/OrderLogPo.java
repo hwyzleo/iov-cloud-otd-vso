@@ -23,7 +23,7 @@ import lombok.experimental.SuperBuilder;
 @SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
-@TableName("tb_order_log")
+@TableName("vso_order_log")
 public class OrderLogPo extends BasePo {
 
     private static final long serialVersionUID = 1L;

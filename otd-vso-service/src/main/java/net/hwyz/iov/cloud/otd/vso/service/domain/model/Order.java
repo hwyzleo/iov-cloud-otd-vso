@@ -28,9 +28,7 @@ public class Order {
 
     /** 主键 ID */
     private String id;
-    /** 订单编码 */
-    private String orderNum;
-    /** 订单号 (Legacy field from Order.java, might be same as orderNum) */
+    /** 订单号 */
     private String orderNo;
     /** 小订单号 */
     private String smallOrderNo;
@@ -123,8 +121,7 @@ public class Order {
      * 生成订单编码
      */
     private void generateOrderNum() {
-        this.orderNum = IdUtil.nanoId(15);
-        this.orderNo = this.orderNum;
+        this.orderNo = IdUtil.nanoId(15);
     }
 
     /**
@@ -166,7 +163,7 @@ public class Order {
 
     public void saveBuildConfig(String buildConfigCode, Map<String, OrderModelConfig> modelConfigMap) {
         if (Boolean.TRUE.equals(buildConfigLock)) {
-            throw new SaleModelConfigHasLockedException(orderNum);
+            throw new SaleModelConfigHasLockedException(orderNo);
         }
         this.buildConfigCode = buildConfigCode;
         this.modelConfigMap = modelConfigMap;
@@ -189,13 +186,13 @@ public class Order {
                 this.downPaymentAmount = payAmount;
                 this.payState = PayState.DOWN_PAYMENT_PAID;
             }
-            default -> throw new OrderStateNotAllowedException(this.orderNum, this.orderState, "PAY");
+            default -> throw new OrderStateNotAllowedException(this.orderNo, this.orderState, "PAY");
         }
     }
 
     public void lock() {
         if (this.orderState != OrderState.DOWN_PAYMENT_PAID) {
-            throw new OrderStateNotAllowedException(this.orderNum, this.orderState, "LOCK");
+            throw new OrderStateNotAllowedException(this.orderNo, this.orderState, "LOCK");
         }
         this.buildConfigLock = true;
         this.orderState = OrderState.ARRANGE_PRODUCTION;
@@ -216,7 +213,7 @@ public class Order {
 
     public boolean manageDelete() {
         if (this.orderState != OrderState.CANCEL) {
-            throw new OrderIllegalDeleteException(this.orderNum);
+            throw new OrderIllegalDeleteException(this.orderNo);
         }
         return true;
     }

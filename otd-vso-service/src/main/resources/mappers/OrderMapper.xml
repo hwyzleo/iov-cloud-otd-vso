@@ -5,287 +5,165 @@
     <!-- 通用查询映射结果 -->
     <resultMap id="baseResultMap" type="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.OrderPo">
         <id column="id" property="id" />
-        <result column="description" property="description" />
+        <result column="order_id" property="orderId" />
+        <result column="order_no" property="orderNo" />
+        <result column="small_order_no" property="smallOrderNo" />
+        <result column="order_type" property="orderType" />
+        <result column="order_source" property="orderSource" />
+        <result column="source_remark" property="sourceRemark" />
+        <result column="customer_type" property="customerType" />
+        <result column="main_status" property="mainStatus" />
+        <result column="end_type" property="endType" />
+        <result column="previous_main_status" property="previousMainStatus" />
+        <result column="brand_code" property="brandCode" />
+        <result column="region_code" property="regionCode" />
+        <result column="store_code" property="storeCode" />
+        <result column="sales_code" property="salesCode" />
+        <result column="vehicle_vin" property="vehicleVin" />
+        <result column="has_exception" property="hasException" />
+        <result column="current_version_no" property="currentVersionNo" />
+        <result column="locked_flag" property="lockedFlag" />
+        <result column="reopen_flag" property="reopenFlag" />
+        <result column="cancel_reason" property="cancelReason" />
+        <result column="close_reason" property="closeReason" />
+        <result column="void_reason" property="voidReason" />
+        <result column="created_at_business" property="createdAtBusiness" />
+        <result column="audit_submit_time" property="auditSubmitTime" />
+        <result column="audit_pass_time" property="auditPassTime" />
+        <result column="lock_time" property="lockTime" />
+        <result column="delivery_finish_time" property="deliveryFinishTime" />
+        <result column="finish_time" property="finishTime" />
+        <result column="cancel_time" property="cancelTime" />
+        <result column="close_time" property="closeTime" />
         <result column="create_time" property="createTime" />
         <result column="create_by" property="createBy" />
         <result column="modify_time" property="modifyTime" />
         <result column="modify_by" property="modifyBy" />
         <result column="row_version" property="rowVersion" />
         <result column="row_valid" property="rowValid" />
-        <result column="order_num" property="orderNum" />
-        <result column="order_state" property="orderState" />
-        <result column="order_state_time" property="orderStateTime" />
-        <result column="order_time" property="orderTime" />
-        <result column="cancel_time" property="cancelTime" />
-        <result column="benefits_id" property="benefitsId" />
-        <result column="agreement_id" property="agreementId" />
-        <result column="contract_num" property="contractNum" />
-        <result column="contract_time" property="contractTime" />
-        <result column="sale_code" property="saleCode" />
-        <result column="build_config_code" property="buildConfigCode" />
-        <result column="build_config_lock" property="buildConfigLock" />
-        <result column="pay_state" property="payState" />
-        <result column="earnest_money_time" property="earnestMoneyTime" />
-        <result column="earnest_money_amount" property="earnestMoneyAmount" />
-        <result column="down_payment_time" property="downPaymentTime" />
-        <result column="down_payment_amount" property="downPaymentAmount" />
-        <result column="lock_time" property="lockTime" />
-        <result column="assign_time" property="assignTime" />
-        <result column="revoke_time" property="revokeTime" />
-        <result column="reassign_time" property="reassignTime" />
-        <result column="transport_apply_time" property="transportApplyTime" />
-        <result column="final_payment_time" property="finalPaymentTime" />
-        <result column="order_type" property="orderType" />
-        <result column="order_person_id" property="orderPersonId" />
-        <result column="order_person_type" property="orderPersonType" />
-        <result column="order_person_name" property="orderPersonName" />
-        <result column="order_person_phone" property="orderPersonPhone" />
-        <result column="order_person_id_type" property="orderPersonIdType" />
-        <result column="order_person_id_num" property="orderPersonIdNum" />
-        <result column="recommender_id" property="recommenderId" />
-        <result column="contact_person_name" property="contactPersonName" />
-        <result column="contact_person_phone" property="contactPersonPhone" />
-        <result column="sales_person_id" property="salesPersonId" />
-        <result column="sales_person_name" property="salesPersonName" />
-        <result column="sales_person_phone" property="salesPersonPhone" />
-        <result column="sales_person_order" property="salesPersonOrder" />
-        <result column="sales_channel" property="salesChannel" />
-        <result column="purchase_plan" property="purchasePlan" />
-        <result column="financing_plan_id" property="financingPlanId" />
-        <result column="delivery_vin" property="deliveryVin" />
-        <result column="delivery_city" property="deliveryCity" />
-        <result column="delivery_method" property="deliveryMethod" />
-        <result column="transport_apply_person_id" property="transportApplyPersonId" />
-        <result column="transport_apply_person_name" property="transportApplyPersonName" />
-        <result column="delivery_person_id" property="deliveryPersonId" />
-        <result column="delivery_person_name" property="deliveryPersonName" />
-        <result column="delivery_remark" property="deliveryRemark" />
-        <result column="reception_person_id" property="receptionPersonId" />
-        <result column="reception_person_name" property="receptionPersonName" />
-        <result column="invoicing_time" property="invoicingTime" />
-        <result column="estimated_delivery_time" property="estimatedDeliveryTime" />
-        <result column="actual_delivery_time" property="actualDeliveryTime" />
-        <result column="license_city" property="licenseCity" />
-        <result column="dealership" property="dealership" />
-        <result column="delivery_center" property="deliveryCenter" />
     </resultMap>
 
     <!-- 通用查询结果列 -->
     <sql id="baseColumnList">
-        t.id, t.order_num, t.order_state, t.order_state_time, t.order_time, t.cancel_time, t.benefits_id, t.agreement_id,
-            t.contract_num, t.contract_time, t.sale_code, t.build_config_code, t.build_config_lock, t.pay_state,
-            t.earnest_money_time, t.earnest_money_amount, t.down_payment_time, t.down_payment_amount, t.lock_time,
-            t.assign_time, t.revoke_time, t.reassign_time, t.transport_apply_time, t.final_payment_time, t.order_type,
-            t.order_person_id, t.order_person_type, t.order_person_name, t.order_person_phone, t.order_person_id_type,
-            t.order_person_id_num, t.recommender_id, t.contact_person_name, t.contact_person_phone, t.sales_person_id,
-            t.sales_person_name, t.sales_person_phone, t.sales_person_order, t.sales_channel, t.purchase_plan,
-            t.financing_plan_id, t.delivery_vin, t.delivery_city, t.delivery_method, t.transport_apply_person_id,
-            t.transport_apply_person_name, t.delivery_person_id, t.delivery_person_name, t.delivery_remark, t.reception_person_id,
-            t.reception_person_name, t.invoicing_time, t.estimated_delivery_time, t.actual_delivery_time, t.license_city,
-            t.dealership, t.delivery_center,
-        t.description, t.create_time, t.create_by, t.modify_time, t.modify_by, t.row_version, t.row_valid
+        t.id, t.order_id, t.order_no, t.small_order_no, t.order_type, t.order_source, t.source_remark,
+        t.customer_type, t.main_status, t.end_type, t.previous_main_status, t.brand_code, t.region_code,
+        t.store_code, t.sales_code, t.vehicle_vin, t.has_exception, t.current_version_no, t.locked_flag,
+        t.reopen_flag, t.cancel_reason, t.close_reason, t.void_reason, t.created_at_business,
+        t.audit_submit_time, t.audit_pass_time, t.lock_time, t.delivery_finish_time, t.finish_time,
+        t.cancel_time, t.close_time, t.create_time, t.create_by, t.modify_time, t.modify_by,
+        t.row_version, t.row_valid
     </sql>
 
     <!-- 插入 -->
     <insert id="insertPo" useGeneratedKeys="true" keyProperty="id">
-        INSERT INTO tb_order (
-            id, order_num, order_state, order_state_time, order_time, cancel_time, benefits_id, agreement_id, contract_num, contract_time, sale_code, build_config_code, build_config_lock, pay_state, earnest_money_time, earnest_money_amount, down_payment_time, down_payment_amount, lock_time, assign_time, revoke_time, reassign_time, transport_apply_time, final_payment_time, order_type, order_person_id, order_person_type, order_person_name, order_person_phone, order_person_id_type, order_person_id_num, recommender_id, contact_person_name, contact_person_phone, sales_person_id, sales_person_name, sales_person_phone, sales_person_order, sales_channel, purchase_plan, financing_plan_id, delivery_vin, delivery_city, delivery_method, transport_apply_person_id, transport_apply_person_name, delivery_person_id, delivery_person_name, delivery_remark, reception_person_id, reception_person_name, invoicing_time, estimated_delivery_time, actual_delivery_time, license_city, dealership, delivery_center,
-            description, create_time, create_by, modify_time, modify_by, row_version, row_valid
+        INSERT INTO vso_order (
+            id, order_id, order_no, small_order_no, order_type, order_source, source_remark,
+            customer_type, main_status, end_type, previous_main_status, brand_code, region_code,
+            store_code, sales_code, vehicle_vin, has_exception, current_version_no, locked_flag,
+            reopen_flag, cancel_reason, close_reason, void_reason, created_at_business,
+            audit_submit_time, audit_pass_time, lock_time, delivery_finish_time, finish_time,
+            cancel_time, close_time, create_time, create_by, modify_time, modify_by,
+            row_version, row_valid
         )
         VALUES (
-            #{id}, #{orderNum}, #{orderState}, #{orderStateTime}, #{orderTime}, #{cancelTime}, #{benefitsId}, #{agreementId}, #{contractNum}, #{contractTime}, #{saleCode}, #{buildConfigCode}, #{buildConfigLock}, #{payState}, #{earnestMoneyTime}, #{earnestMoneyAmount}, #{downPaymentTime}, #{downPaymentAmount}, #{lockTime}, #{assignTime}, #{revokeTime}, #{reassignTime}, #{transportApplyTime}, #{finalPaymentTime}, #{orderType}, #{orderPersonId}, #{orderPersonType}, #{orderPersonName}, #{orderPersonPhone}, #{orderPersonIdType}, #{orderPersonIdNum}, #{recommenderId}, #{contactPersonName}, #{contactPersonPhone}, #{salesPersonId}, #{salesPersonName}, #{salesPersonPhone}, #{salesPersonOrder}, #{salesChannel}, #{purchasePlan}, #{financingPlanId}, #{deliveryVin}, #{deliveryCity}, #{deliveryMethod}, #{transportApplyPersonId}, #{transportApplyPersonName}, #{deliveryPersonId}, #{deliveryPersonName}, #{deliveryRemark}, #{receptionPersonId}, #{receptionPersonName}, #{invoicingTime}, #{estimatedDeliveryTime}, #{actualDeliveryTime}, #{licenseCity}, #{dealership}, #{deliveryCenter},
-            #{description}, now(), #{createBy}, now(), #{modifyBy}, 1, 1
+            #{id}, #{orderId}, #{orderNo}, #{smallOrderNo}, #{orderType}, #{orderSource}, #{sourceRemark},
+            #{customerType}, #{mainStatus}, #{endType}, #{previousMainStatus}, #{brandCode}, #{regionCode},
+            #{storeCode}, #{salesCode}, #{vehicleVin}, #{hasException}, #{currentVersionNo}, #{lockedFlag},
+            #{reopenFlag}, #{cancelReason}, #{closeReason}, #{voidReason}, #{createdAtBusiness},
+            #{auditSubmitTime}, #{auditPassTime}, #{lockTime}, #{deliveryFinishTime}, #{finishTime},
+            #{cancelTime}, #{closeTime}, now(), #{createBy}, now(), #{modifyBy}, 1, 1
         )
-    </insert>
-
-    <!-- 批量插入 -->
-    <insert id="batchInsertPo" useGeneratedKeys="true" keyProperty="id" parameterType="java.util.List">
-        INSERT INTO tb_order (
-            id, order_num, order_state, order_state_time, order_time, cancel_time, benefits_id, agreement_id, contract_num, contract_time, sale_code, build_config_code, build_config_lock, pay_state, earnest_money_time, earnest_money_amount, down_payment_time, down_payment_amount, lock_time, assign_time, revoke_time, reassign_time, transport_apply_time, final_payment_time, order_type, order_person_id, order_person_type, order_person_name, order_person_phone, order_person_id_type, order_person_id_num, recommender_id, contact_person_name, contact_person_phone, sales_person_id, sales_person_name, sales_person_phone, sales_person_order, sales_channel, purchase_plan, financing_plan_id, delivery_vin, delivery_city, delivery_method, transport_apply_person_id, transport_apply_person_name, delivery_person_id, delivery_person_name, delivery_remark, reception_person_id, reception_person_name, invoicing_time, estimated_delivery_time, actual_delivery_time, license_city, dealership, delivery_center,
-            description, create_time, create_by, modify_time, modify_by, row_version, row_valid
-        )
-        VALUES
-        <foreach collection="list" item="item" index="index" separator=",">
-        (
-            #{item.id}, #{item.orderNum}, #{item.orderState}, #{item.orderStateTime}, #{item.orderTime}, #{item.cancelTime}, #{item.benefitsId}, #{item.agreementId}, #{item.contractNum}, #{item.contractTime}, #{item.saleCode}, #{item.buildConfigCode}, #{item.buildConfigLock}, #{item.payState}, #{item.earnestMoneyTime}, #{item.earnestMoneyAmount}, #{item.downPaymentTime}, #{item.downPaymentAmount}, #{item.lockTime}, #{item.assignTime}, #{item.revokeTime}, #{item.reassignTime}, #{item.transportApplyTime}, #{item.finalPaymentTime}, #{item.orderType}, #{item.orderPersonId}, #{item.orderPersonType}, #{item.orderPersonName}, #{item.orderPersonPhone}, #{item.orderPersonIdType}, #{item.orderPersonIdNum}, #{item.recommenderId}, #{item.contactPersonName}, #{item.contactPersonPhone}, #{item.salesPersonId}, #{item.salesPersonName}, #{item.salesPersonPhone}, #{item.salesPersonOrder}, #{item.salesChannel}, #{item.purchasePlan}, #{item.financingPlanId}, #{item.deliveryVin}, #{item.deliveryCity}, #{item.deliveryMethod}, #{item.transportApplyPersonId}, #{item.transportApplyPersonName}, #{item.deliveryPersonId}, #{item.deliveryPersonName}, #{item.deliveryRemark}, #{item.receptionPersonId}, #{item.receptionPersonName}, #{item.invoicingTime}, #{item.estimatedDeliveryTime}, #{item.actualDeliveryTime}, #{item.licenseCity}, #{item.dealership}, #{item.deliveryCenter},
-            #{item.description}, now(), #{item.createBy}, now(), #{item.modifyBy}, 1, 1
-        )
-        </foreach>
     </insert>
 
     <!-- 更新 -->
     <update id="updatePo" parameterType="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.OrderPo">
-        UPDATE tb_order t SET
-        <if test="orderNum != null and orderNum != ''">
-            t.order_num = #{orderNum},
+        UPDATE vso_order t SET
+        <if test="orderNo != null and orderNo != ''">
+            t.order_no = #{orderNo},
         </if>
-        <if test="orderState != null">
-            t.order_state = #{orderState},
+        <if test="smallOrderNo != null and smallOrderNo != ''">
+            t.small_order_no = #{smallOrderNo},
         </if>
-        <if test="orderStateTime != null">
-            t.order_state_time = #{orderStateTime},
+        <if test="orderType != null and orderType != ''">
+            t.order_type = #{orderType},
         </if>
-        <if test="orderTime != null">
-            t.order_time = #{orderTime},
+        <if test="orderSource != null and orderSource != ''">
+            t.order_source = #{orderSource},
         </if>
-        <if test="cancelTime != null">
-            t.cancel_time = #{cancelTime},
+        <if test="sourceRemark != null and sourceRemark != ''">
+            t.source_remark = #{sourceRemark},
         </if>
-        <if test="benefitsId != null">
-            t.benefits_id = #{benefitsId},
+        <if test="customerType != null and customerType != ''">
+            t.customer_type = #{customerType},
         </if>
-        <if test="agreementId != null">
-            t.agreement_id = #{agreementId},
+        <if test="mainStatus != null and mainStatus != ''">
+            t.main_status = #{mainStatus},
         </if>
-        <if test="contractNum != null and contractNum != ''">
-            t.contract_num = #{contractNum},
+        <if test="endType != null and endType != ''">
+            t.end_type = #{endType},
         </if>
-        <if test="contractTime != null">
-            t.contract_time = #{contractTime},
+        <if test="previousMainStatus != null and previousMainStatus != ''">
+            t.previous_main_status = #{previousMainStatus},
         </if>
-        <if test="saleCode != null and saleCode != ''">
-            t.sale_code = #{saleCode},
+        <if test="brandCode != null and brandCode != ''">
+            t.brand_code = #{brandCode},
         </if>
-        <if test="buildConfigCode != null and buildConfigCode != ''">
-            t.build_config_code = #{buildConfigCode},
+        <if test="regionCode != null and regionCode != ''">
+            t.region_code = #{regionCode},
         </if>
-        <if test="buildConfigLock != null">
-            t.build_config_lock = #{buildConfigLock},
+        <if test="storeCode != null and storeCode != ''">
+            t.store_code = #{storeCode},
         </if>
-        <if test="payState != null">
-            t.pay_state = #{payState},
+        <if test="salesCode != null and salesCode != ''">
+            t.sales_code = #{salesCode},
         </if>
-        <if test="earnestMoneyTime != null">
-            t.earnest_money_time = #{earnestMoneyTime},
+        <if test="vehicleVin != null and vehicleVin != ''">
+            t.vehicle_vin = #{vehicleVin},
         </if>
-        <if test="earnestMoneyAmount != null">
-            t.earnest_money_amount = #{earnestMoneyAmount},
+        <if test="hasException != null">
+            t.has_exception = #{hasException},
         </if>
-        <if test="downPaymentTime != null">
-            t.down_payment_time = #{downPaymentTime},
+        <if test="currentVersionNo != null">
+            t.current_version_no = #{currentVersionNo},
         </if>
-        <if test="downPaymentAmount != null">
-            t.down_payment_amount = #{downPaymentAmount},
+        <if test="lockedFlag != null">
+            t.locked_flag = #{lockedFlag},
+        </if>
+        <if test="reopenFlag != null">
+            t.reopen_flag = #{reopenFlag},
+        </if>
+        <if test="cancelReason != null and cancelReason != ''">
+            t.cancel_reason = #{cancelReason},
+        </if>
+        <if test="closeReason != null and closeReason != ''">
+            t.close_reason = #{closeReason},
+        </if>
+        <if test="voidReason != null and voidReason != ''">
+            t.void_reason = #{voidReason},
+        </if>
+        <if test="createdAtBusiness != null">
+            t.created_at_business = #{createdAtBusiness},
+        </if>
+        <if test="auditSubmitTime != null">
+            t.audit_submit_time = #{auditSubmitTime},
+        </if>
+        <if test="auditPassTime != null">
+            t.audit_pass_time = #{auditPassTime},
         </if>
         <if test="lockTime != null">
             t.lock_time = #{lockTime},
         </if>
-        <if test="assignTime != null">
-            t.assign_time = #{assignTime},
+        <if test="deliveryFinishTime != null">
+            t.delivery_finish_time = #{deliveryFinishTime},
         </if>
-        <if test="revokeTime != null">
-            t.revoke_time = #{revokeTime},
+        <if test="finishTime != null">
+            t.finish_time = #{finishTime},
         </if>
-        <if test="reassignTime != null">
-            t.reassign_time = #{reassignTime},
+        <if test="cancelTime != null">
+            t.cancel_time = #{cancelTime},
         </if>
-        <if test="transportApplyTime != null">
-            t.transport_apply_time = #{transportApplyTime},
-        </if>
-        <if test="finalPaymentTime != null">
-            t.final_payment_time = #{finalPaymentTime},
-        </if>
-        <if test="orderType != null">
-            t.order_type = #{orderType},
-        </if>
-        <if test="orderPersonId != null and orderPersonId != ''">
-            t.order_person_id = #{orderPersonId},
-        </if>
-        <if test="orderPersonType != null and orderPersonType != ''">
-            t.order_person_type = #{orderPersonType},
-        </if>
-        <if test="orderPersonName != null and orderPersonName != ''">
-            t.order_person_name = #{orderPersonName},
-        </if>
-        <if test="orderPersonPhone != null and orderPersonPhone != ''">
-            t.order_person_phone = #{orderPersonPhone},
-        </if>
-        <if test="orderPersonIdType != null">
-            t.order_person_id_type = #{orderPersonIdType},
-        </if>
-        <if test="orderPersonIdNum != null and orderPersonIdNum != ''">
-            t.order_person_id_num = #{orderPersonIdNum},
-        </if>
-        <if test="recommenderId != null and recommenderId != ''">
-            t.recommender_id = #{recommenderId},
-        </if>
-        <if test="contactPersonName != null and contactPersonName != ''">
-            t.contact_person_name = #{contactPersonName},
-        </if>
-        <if test="contactPersonPhone != null and contactPersonPhone != ''">
-            t.contact_person_phone = #{contactPersonPhone},
-        </if>
-        <if test="salesPersonId != null and salesPersonId != ''">
-            t.sales_person_id = #{salesPersonId},
-        </if>
-        <if test="salesPersonName != null and salesPersonName != ''">
-            t.sales_person_name = #{salesPersonName},
-        </if>
-        <if test="salesPersonPhone != null and salesPersonPhone != ''">
-            t.sales_person_phone = #{salesPersonPhone},
-        </if>
-        <if test="salesPersonOrder != null">
-            t.sales_person_order = #{salesPersonOrder},
-        </if>
-        <if test="salesChannel != null and salesChannel != ''">
-            t.sales_channel = #{salesChannel},
-        </if>
-        <if test="purchasePlan != null">
-            t.purchase_plan = #{purchasePlan},
-        </if>
-        <if test="financingPlanId != null">
-            t.financing_plan_id = #{financingPlanId},
-        </if>
-        <if test="deliveryVin != null and deliveryVin != ''">
-            t.delivery_vin = #{deliveryVin},
-        </if>
-        <if test="deliveryCity != null and deliveryCity != ''">
-            t.delivery_city = #{deliveryCity},
-        </if>
-        <if test="deliveryMethod != null and deliveryMethod != ''">
-            t.delivery_method = #{deliveryMethod},
-        </if>
-        <if test="transportApplyPersonId != null and transportApplyPersonId != ''">
-            t.transport_apply_person_id = #{transportApplyPersonId},
-        </if>
-        <if test="transportApplyPersonName != null and transportApplyPersonName != ''">
-            t.transport_apply_person_name = #{transportApplyPersonName},
-        </if>
-        <if test="deliveryPersonId != null and deliveryPersonId != ''">
-            t.delivery_person_id = #{deliveryPersonId},
-        </if>
-        <if test="deliveryPersonName != null and deliveryPersonName != ''">
-            t.delivery_person_name = #{deliveryPersonName},
-        </if>
-        <if test="deliveryRemark != null and deliveryRemark != ''">
-            t.delivery_remark = #{deliveryRemark},
-        </if>
-        <if test="receptionPersonId != null and receptionPersonId != ''">
-            t.reception_person_id = #{receptionPersonId},
-        </if>
-        <if test="receptionPersonName != null and receptionPersonName != ''">
-            t.reception_person_name = #{receptionPersonName},
-        </if>
-        <if test="invoicingTime != null">
-            t.invoicing_time = #{invoicingTime},
-        </if>
-        <if test="estimatedDeliveryTime != null">
-            t.estimated_delivery_time = #{estimatedDeliveryTime},
-        </if>
-        <if test="actualDeliveryTime != null">
-            t.actual_delivery_time = #{actualDeliveryTime},
-        </if>
-        <if test="licenseCity != null and licenseCity != ''">
-            t.license_city = #{licenseCity},
-        </if>
-        <if test="dealership != null and dealership != ''">
-            t.dealership = #{dealership},
-        </if>
-        <if test="deliveryCenter != null and deliveryCenter != ''">
-            t.delivery_center = #{deliveryCenter},
-        </if>
-        <if test="description != null and description != ''">
-            t.description = #{description},
+        <if test="closeTime != null">
+            t.close_time = #{closeTime},
         </if>
         <if test="modifyBy != null">
             t.modify_by = #{modifyBy},
@@ -297,7 +175,7 @@
 
     <!-- 逻辑删除 -->
     <update id="logicalDeletePo" parameterType="Long">
-        UPDATE tb_order t SET
+        UPDATE vso_order t SET
         t.row_version = t.row_version + 1,
         t.modify_time = now(),
         t.row_valid = 0
@@ -306,29 +184,29 @@
 
     <!-- 逻辑删除订单 -->
     <update id="logicalDeletePoByOrderNum" parameterType="string">
-        UPDATE tb_order t SET
+        UPDATE vso_order t SET
         t.row_version = t.row_version + 1,
         t.modify_time = now(),
         t.row_valid = 0
-        WHERE t.order_num = #{orderNum}
+        WHERE t.order_no = #{orderNo}
     </update>
 
     <!-- 物理删除 -->
     <delete id="physicalDeletePo" parameterType="Long">
-        DELETE FROM tb_order t
+        DELETE FROM vso_order t
         WHERE t.id = #{value}
     </delete>
 
     <!-- 物理删除订单 -->
     <delete id="physicalDeletePoByOrderNum" parameterType="string">
-        DELETE FROM tb_order t
-        WHERE t.order_num = #{orderNum}
+        DELETE FROM vso_order t
+        WHERE t.order_no = #{orderNo}
     </delete>
 
     <!-- 根据主键获取对应数据 -->
     <select id="selectPoById" parameterType="Long" resultMap="baseResultMap">
         SELECT <include refid="baseColumnList"/>
-        FROM tb_order t
+        FROM vso_order t
         WHERE t.id = #{value}
         AND t.row_valid = 1
     </select>
@@ -336,172 +214,46 @@
     <!-- 根据数据对象获取对应数据列表 -->
     <select id="selectPoByExample" parameterType="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.OrderPo" resultMap="baseResultMap">
         SELECT <include refid="baseColumnList"/>
-        FROM tb_order t
+        FROM vso_order t
         WHERE t.row_valid = 1
         <if test="id != null">
             AND t.id = #{id}
         </if>
-        <if test="orderNum != null and orderNum != ''">
-            AND t.order_num = #{orderNum}
+        <if test="orderId != null and orderId != ''">
+            AND t.order_id = #{orderId}
         </if>
-        <if test="orderState != null">
-            AND t.order_state = #{orderState}
+        <if test="orderNo != null and orderNo != ''">
+            AND t.order_no = #{orderNo}
         </if>
-        <if test="orderStateTime != null">
-            AND t.order_state_time = #{orderStateTime}
+        <if test="smallOrderNo != null and smallOrderNo != ''">
+            AND t.small_order_no = #{smallOrderNo}
         </if>
-        <if test="orderTime != null">
-            AND t.order_time = #{orderTime}
-        </if>
-        <if test="cancelTime != null">
-            AND t.cancel_time = #{cancelTime}
-        </if>
-        <if test="benefitsId != null">
-            AND t.benefits_id = #{benefitsId}
-        </if>
-        <if test="agreementId != null">
-            AND t.agreement_id = #{agreementId}
-        </if>
-        <if test="contractNum != null and contractNum != ''">
-            AND t.contract_num = #{contractNum}
-        </if>
-        <if test="contractTime != null">
-            AND t.contract_time = #{contractTime}
-        </if>
-        <if test="saleCode != null and saleCode != ''">
-            AND t.sale_code = #{saleCode}
-        </if>
-        <if test="buildConfigCode != null and buildConfigCode != ''">
-            AND t.build_config_code = #{buildConfigCode}
-        </if>
-        <if test="buildConfigLock != null">
-            AND t.build_config_lock = #{buildConfigLock}
-        </if>
-        <if test="payState != null">
-            AND t.pay_state = #{payState}
-        </if>
-        <if test="downPaymentTime != null">
-            AND t.down_payment_time = #{downPaymentTime}
-        </if>
-        <if test="lockTime != null">
-            AND t.lock_time = #{lockTime}
-        </if>
-        <if test="assignTime != null">
-            AND t.assign_time = #{assignTime}
-        </if>
-        <if test="revokeTime != null">
-            AND t.revoke_time = #{revokeTime}
-        </if>
-        <if test="reassignTime != null">
-            AND t.reassign_time = #{reassignTime}
-        </if>
-        <if test="transportApplyTime != null">
-            AND t.transport_apply_time = #{transportApplyTime}
-        </if>
-        <if test="finalPaymentTime != null">
-            AND t.final_payment_time = #{finalPaymentTime}
-        </if>
-        <if test="orderType != null">
+        <if test="orderType != null and orderType != ''">
             AND t.order_type = #{orderType}
         </if>
-        <if test="orderPersonId != null and orderPersonId != ''">
-            AND t.order_person_id = #{orderPersonId}
+        <if test="orderSource != null and orderSource != ''">
+            AND t.order_source = #{orderSource}
         </if>
-        <if test="orderPersonType != null and orderPersonType != ''">
-            AND t.order_person_type = #{orderPersonType}
+        <if test="customerType != null and customerType != ''">
+            AND t.customer_type = #{customerType}
         </if>
-        <if test="orderPersonName != null and orderPersonName != ''">
-            AND t.order_person_name = #{orderPersonName}
+        <if test="mainStatus != null and mainStatus != ''">
+            AND t.main_status = #{mainStatus}
         </if>
-        <if test="orderPersonPhone != null and orderPersonPhone != ''">
-            AND t.order_person_phone = #{orderPersonPhone}
+        <if test="brandCode != null and brandCode != ''">
+            AND t.brand_code = #{brandCode}
         </if>
-        <if test="orderPersonIdType != null">
-            AND t.order_person_id_type = #{orderPersonIdType}
+        <if test="regionCode != null and regionCode != ''">
+            AND t.region_code = #{regionCode}
         </if>
-        <if test="orderPersonIdNum != null and orderPersonIdNum != ''">
-            AND t.order_person_id_num = #{orderPersonIdNum}
+        <if test="storeCode != null and storeCode != ''">
+            AND t.store_code = #{storeCode}
         </if>
-        <if test="recommenderId != null and recommenderId != ''">
-            AND t.recommender_id = #{recommenderId}
+        <if test="salesCode != null and salesCode != ''">
+            AND t.sales_code = #{salesCode}
         </if>
-        <if test="contactPersonName != null and contactPersonName != ''">
-            AND t.contact_person_name = #{contactPersonName}
-        </if>
-        <if test="contactPersonPhone != null and contactPersonPhone != ''">
-            AND t.contact_person_phone = #{contactPersonPhone}
-        </if>
-        <if test="salesPersonId != null and salesPersonId != ''">
-            AND t.sales_person_id = #{salesPersonId}
-        </if>
-        <if test="salesPersonName != null and salesPersonName != ''">
-            AND t.sales_person_name = #{salesPersonName}
-        </if>
-        <if test="salesPersonPhone != null and salesPersonPhone != ''">
-            AND t.sales_person_phone = #{salesPersonPhone}
-        </if>
-        <if test="salesPersonOrder != null">
-            AND t.sales_person_order = #{salesPersonOrder}
-        </if>
-        <if test="salesChannel != null and salesChannel != ''">
-            AND t.sales_channel = #{salesChannel}
-        </if>
-        <if test="purchasePlan != null">
-            AND t.purchase_plan = #{purchasePlan}
-        </if>
-        <if test="financingPlanId != null">
-            AND t.financing_plan_id = #{financingPlanId}
-        </if>
-        <if test="deliveryVin != null and deliveryVin != ''">
-            AND t.delivery_vin = #{deliveryVin}
-        </if>
-        <if test="deliveryCity != null and deliveryCity != ''">
-            AND t.delivery_city = #{deliveryCity}
-        </if>
-        <if test="deliveryMethod != null and deliveryMethod != ''">
-            AND t.delivery_method = #{deliveryMethod}
-        </if>
-        <if test="transportApplyPersonId != null and transportApplyPersonId != ''">
-            AND t.transport_apply_person_id = #{transportApplyPersonId}
-        </if>
-        <if test="transportApplyPersonName != null and transportApplyPersonName != ''">
-            AND t.transport_apply_person_name = #{transportApplyPersonName}
-        </if>
-        <if test="deliveryPersonId != null and deliveryPersonId != ''">
-            AND t.delivery_person_id = #{deliveryPersonId}
-        </if>
-        <if test="deliveryPersonName != null and deliveryPersonName != ''">
-            AND t.delivery_person_name = #{deliveryPersonName}
-        </if>
-        <if test="deliveryRemark != null and deliveryRemark != ''">
-            AND t.delivery_remark = #{deliveryRemark}
-        </if>
-        <if test="receptionPersonId != null and receptionPersonId != ''">
-            AND t.reception_person_id = #{receptionPersonId}
-        </if>
-        <if test="receptionPersonName != null and receptionPersonName != ''">
-            AND t.reception_person_name = #{receptionPersonName}
-        </if>
-        <if test="invoicingTime != null">
-            AND t.invoicing_time = #{invoicingTime}
-        </if>
-        <if test="estimatedDeliveryTime != null">
-            AND t.estimated_delivery_time = #{estimatedDeliveryTime}
-        </if>
-        <if test="actualDeliveryTime != null">
-            AND t.actual_delivery_time = #{actualDeliveryTime}
-        </if>
-        <if test="licenseCity != null and licenseCity != ''">
-            AND t.license_city = #{licenseCity}
-        </if>
-        <if test="dealership != null and dealership != ''">
-            AND t.dealership = #{dealership}
-        </if>
-        <if test="deliveryCenter != null and deliveryCenter != ''">
-            AND t.delivery_center = #{deliveryCenter}
-        </if>
-        <if test="description != null and description != ''">
-            AND t.description = #{description}
+        <if test="vehicleVin != null and vehicleVin != ''">
+            AND t.vehicle_vin = #{vehicleVin}
         </if>
         <if test="createTime != null">
             AND t.create_time = #{createTime}
@@ -524,37 +276,34 @@
     <!-- 根据Map对象获取对应数据列表 -->
     <select id="selectPoByMap" parameterType="java.util.Map" resultMap="baseResultMap">
         SELECT <include refid="baseColumnList"/>
-        FROM tb_order t
+        FROM vso_order t
         WHERE t.row_valid = 1
-        <!-- 添加自定义条件 -->
-        <if test="stateValid != null and stateValid = 1">
-            AND t.order_state &lt; 950
+        <if test="mainStatus != null and mainStatus != ''">
+            AND t.main_status = #{mainStatus}
         </if>
-        <if test="orderNum != null and orderNum != ''">
-            AND t.order_num = #{orderNum}
-        </if>
-        <if test="orderState != null">
-            AND t.order_state = #{orderState}
-        </if>
-        <if test="orderStateRange != null and orderStateRange.size() >0">
-            AND t.order_state IN
-            <foreach collection="orderStateRange" item="state" open="(" separator="," close=")">
-                #{state}
+        <if test="mainStatusRange != null and mainStatusRange.size() > 0">
+            AND t.main_status IN
+            <foreach collection="mainStatusRange" item="status" open="(" separator="," close=")">
+                #{status}
             </foreach>
         </if>
-        <if test="hasDeliveryPerson != null">
-            <if test="hasDeliveryPerson == true">
-                AND t.delivery_person_id IS NOT NULL
-            </if>
-            <if test="hasDeliveryPerson == false">
-                AND t.delivery_person_id IS NULL
-            </if>
+        <if test="orderNo != null and orderNo != ''">
+            AND t.order_no = #{orderNo}
+        </if>
+        <if test="smallOrderNo != null and smallOrderNo != ''">
+            AND t.small_order_no = #{smallOrderNo}
+        </if>
+        <if test="storeCode != null and storeCode != ''">
+            AND t.store_code = #{storeCode}
+        </if>
+        <if test="salesCode != null and salesCode != ''">
+            AND t.sales_code = #{salesCode}
         </if>
         <if test="beginTime != null">
-            and date_format(t.order_state_time,'%Y%m%d') &gt;= date_format(#{beginTime},'%Y%m%d')
+            AND t.created_at_business &gt;= #{beginTime}
         </if>
         <if test="endTime != null">
-            and date_format(t.order_state_time,'%Y%m%d') &lt;= date_format(#{endTime},'%Y%m%d')
+            AND t.created_at_business &lt;= #{endTime}
         </if>
         ORDER BY t.id DESC
     </select>
@@ -562,40 +311,39 @@
     <!-- 根据Map对象统计记录数 -->
     <select id="countPoByMap" parameterType="java.util.Map" resultType="int">
         SELECT COUNT(*)
-        FROM tb_order t
+        FROM vso_order t
         WHERE t.row_valid = 1
-        <!-- 添加自定义条件 -->
-        <if test="deliveryPersonId != null and deliveryPersonId != ''">
-            AND t.delivery_person_id = #{deliveryPersonId}
-        </if>
-        <if test="delivered != null">
-            <if test="delivered == true">
-                AND t.actual_delivery_time IS NOT NULL
-            </if>
-            <if test="delivered == false">
-                AND t.actual_delivery_time IS NULL
-            </if>
-        </if>
     </select>
+
+    <!-- 根据订单号和账户ID获取订单 -->
     <select id="selectByOrderNoAndAccountId" resultMap="baseResultMap">
         SELECT <include refid="baseColumnList"/>
-        FROM tb_order t
-        WHERE t.order_num = #{orderNo}
-        AND t.order_person_id = #{accountId}
+        FROM vso_order t
+        WHERE t.order_no = #{orderNo}
         AND t.row_valid = 1
     </select>
 
-    <select id="selectByAccountId" resultMap="baseResultMap">
+    <!-- 根据订单号获取订单 -->
+    <select id="selectByOrderNo" resultMap="baseResultMap">
         SELECT <include refid="baseColumnList"/>
-        FROM tb_order t
-        WHERE t.order_person_id = #{accountId}
+        FROM vso_order t
+        WHERE t.order_no = #{orderNo}
         AND t.row_valid = 1
-        <if test="stateList != null and stateList.size() > 0">
-            AND t.order_state IN
-            <foreach collection="stateList" item="state" open="(" separator="," close=")">
-                #{state}
-            </foreach>
-        </if>
-        ORDER BY t.id DESC
+    </select>
+
+    <!-- 根据小订单号获取订单 -->
+    <select id="selectBySmallOrderNo" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_order t
+        WHERE t.small_order_no = #{smallOrderNo}
+        AND t.row_valid = 1
+    </select>
+
+    <!-- 根据订单ID获取订单 -->
+    <select id="selectByOrderId" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_order t
+        WHERE t.order_id = #{orderId}
+        AND t.row_valid = 1
     </select>
 </mapper>

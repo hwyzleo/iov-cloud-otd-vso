@@ -22,7 +22,7 @@ import net.hwyz.iov.cloud.framework.mysql.po.BasePo;
 @SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
-@TableName("tb_sale_model_config")
+@TableName("vso_sale_model_config")
 public class SaleModelConfigPo extends BasePo {
 
     private static final long serialVersionUID = 1L;

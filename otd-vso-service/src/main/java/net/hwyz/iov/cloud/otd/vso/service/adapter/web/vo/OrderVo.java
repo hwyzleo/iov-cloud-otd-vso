@@ -8,7 +8,7 @@ import lombok.*;
 @AllArgsConstructor
 public class OrderVo {
 
-    private String orderNum;
+    private String orderNo;
     private Integer orderState;
     private String displayName;
 

@@ -23,11 +23,6 @@ public class OrderListResult {
     private String orderNo;
 
     /**
-     * 订单号
-     */
-    private String orderNum;
-
-    /**
      * 订单状态
      */
     private Integer orderState;

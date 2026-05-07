@@ -75,7 +75,7 @@ public class OrderAppService {
         log.info("小订单创建成功：orderId={}", order.getId());
         return OrderCreateResult.builder()
                 .orderId(order.getId())
-                .orderNo(order.getOrderNum())
+                .orderNo(order.getOrderNo())
                 .build();
     }
 
@@ -119,7 +119,7 @@ public class OrderAppService {
         log.info("正式订单创建成功：orderId={}", order.getId());
         return OrderCreateResult.builder()
                 .orderId(order.getId())
-                .orderNo(order.getOrderNum())
+                .orderNo(order.getOrderNo())
                 .build();
     }
 
@@ -330,7 +330,7 @@ public class OrderAppService {
         order.saveBuildConfig(cmd.getBuildConfigCode(), cmd.getModelConfigMap());
         order.saveLicenseCity(cmd.getLicenseCityCode());
         orderRepository.save(order);
-        return order.getOrderNum();
+        return order.getOrderNo();
     }
 
     public void modifyUserWishlist(ModifyWishlistCmd cmd) {
@@ -356,7 +356,7 @@ public class OrderAppService {
         order.saveBuildConfig(cmd.getBuildConfigCode(), cmd.getModelConfigMap());
         order.saveLicenseCity(cmd.getLicenseCityCode());
         orderRepository.save(order);
-        return order.getOrderNum();
+        return order.getOrderNo();
     }
 
     public String downPaymentOrder(DownPaymentCmd cmd) {
@@ -370,7 +370,7 @@ public class OrderAppService {
         order.saveDealership(cmd.getDealership());
         order.saveDeliveryCenter(cmd.getDeliveryCenter());
         orderRepository.save(order);
-        return order.getOrderNum();
+        return order.getOrderNo();
     }
 
     public OrderDetailResult getUserOrder(String accountId, String orderNum) {
@@ -389,7 +389,7 @@ public class OrderAppService {
         order.pay(cmd.getPaymentAmount());
         orderRepository.save(order);
         return PayResult.builder()
-                .orderNum(order.getOrderNum())
+                .orderNum(order.getOrderNo())
 //                .paymentMerchant(cmd.getPaymentMerchant())
 //                .paymentReference(cmd.getPaymentReference())
                 .paymentAmount(cmd.getPaymentAmount())
