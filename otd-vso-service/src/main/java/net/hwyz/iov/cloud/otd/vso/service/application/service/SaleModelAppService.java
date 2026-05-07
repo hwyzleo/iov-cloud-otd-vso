@@ -91,10 +91,12 @@ public class SaleModelAppService {
 
         Map<String, SaleModelConfigPo> familyMap = allConfigs.stream()
                 .filter(c -> StrUtil.isBlank(c.getTypeCode()))
+                .sorted(Comparator.comparing(c -> c.getSort() != null ? c.getSort() : 0))
                 .collect(Collectors.toMap(SaleModelConfigPo::getType, c -> c, (a, b) -> a, LinkedHashMap::new));
 
         Map<String, List<SaleModelConfigPo>> featureMap = allConfigs.stream()
                 .filter(c -> StrUtil.isNotBlank(c.getTypeCode()))
+                .sorted(Comparator.comparing(c -> c.getSort() != null ? c.getSort() : 0))
                 .collect(Collectors.groupingBy(SaleModelConfigPo::getType, LinkedHashMap::new, Collectors.toList()));
 
         List<SaleModelConfigFamilyVo> result = new ArrayList<>();
@@ -117,6 +119,7 @@ public class SaleModelAppService {
             List<SaleModelConfigVo> featureVoList = new ArrayList<>();
             List<SaleModelConfigPo> features = featureMap.get(familyCode);
             if (features != null) {
+                features.sort(Comparator.comparing(c -> c.getSort() != null ? c.getSort() : 0));
                 for (SaleModelConfigPo featurePo : features) {
                     SaleModelConfigVo featureVo = SaleModelConfigVo.builder()
                             .id(featurePo.getId())
@@ -499,7 +502,14 @@ public class SaleModelAppService {
             }
         }
 
-        return new ArrayList<>(aggregatedRanges.values());
+        List<FeatureCodeRangeVo> result = new ArrayList<>(aggregatedRanges.values());
+        result.sort(Comparator.comparing(r -> r.getSort() != null ? r.getSort() : 0));
+        for (FeatureCodeRangeVo range : result) {
+            if (range.getFeatureDetails() != null) {
+                range.getFeatureDetails().sort(Comparator.comparing(d -> d.getSort() != null ? d.getSort() : 0));
+            }
+        }
+        return result;
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -544,6 +554,36 @@ public class SaleModelAppService {
 
         // 重新同步SaleModelConfig
         syncSaleModelConfigFromBuildConfigs(model.getSaleCode(), SecurityContextHolder.getUserId());
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public void batchUpdateConfigSort(Long saleModelId, SaleModelConfigSortDto dto, String userId) {
+        SaleModelResult model = getSaleModelById(saleModelId);
+        String saleCode = model.getSaleCode();
+
+        if (dto.getFamilies() != null) {
+            for (SaleModelConfigSortDto.FamilySortItem familyItem : dto.getFamilies()) {
+                SaleModelConfigPo familyPo = saleModelConfigRepository.findById(familyItem.getFamilyId())
+                        .orElse(null);
+                if (familyPo != null && familyPo.getSaleCode().equals(saleCode)) {
+                    familyPo.setSort(familyItem.getSort());
+                    familyPo.setModifyBy(userId);
+                    saleModelConfigRepository.update(familyPo);
+
+                    if (familyItem.getFeatures() != null) {
+                        for (SaleModelConfigSortDto.FeatureSortItem featureItem : familyItem.getFeatures()) {
+                            SaleModelConfigPo featurePo = saleModelConfigRepository.findById(featureItem.getFeatureId())
+                                    .orElse(null);
+                            if (featurePo != null && featurePo.getSaleCode().equals(saleCode)) {
+                                featurePo.setSort(featureItem.getSort());
+                                featurePo.setModifyBy(userId);
+                                saleModelConfigRepository.update(featurePo);
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 
     @Transactional(rollbackFor = Exception.class)

@@ -133,4 +133,11 @@ public class MptSaleModelController extends BaseController {
         saleModelAppService.syncSaleModelConfigFromBuildConfigs(model.getSaleCode(), SecurityContextHolder.getUserId());
         return ApiResponse.ok();
     }
+
+    @PutMapping("/{saleModelId}/config/sort")
+    public ApiResponse<Void> updateConfigSort(@PathVariable Long saleModelId,
+                                              @RequestBody SaleModelConfigSortDto dto) {
+        saleModelAppService.batchUpdateConfigSort(saleModelId, dto, SecurityContextHolder.getUserId());
+        return ApiResponse.ok();
+    }
 }
