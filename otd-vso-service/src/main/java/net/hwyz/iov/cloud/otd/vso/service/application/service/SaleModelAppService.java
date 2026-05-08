@@ -446,9 +446,8 @@ public class SaleModelAppService {
         return true;
     }
 
-    public List<SaleModelBuildConfigVo> getBuildConfigPage(Long saleModelId) {
-        SaleModelResult model = getSaleModelById(saleModelId);
-        List<SaleModelBuildConfigPo> poList = saleModelBuildConfigRepository.findBySaleCode(model.getSaleCode());
+    public List<SaleModelBuildConfigVo> getBuildConfigPageBySaleCode(String saleCode) {
+        List<SaleModelBuildConfigPo> poList = saleModelBuildConfigRepository.findBySaleCode(saleCode);
         return poList.stream().map(po -> {
             SaleModelBuildConfigVo vo = new SaleModelBuildConfigVo();
             vo.setId(po.getId());

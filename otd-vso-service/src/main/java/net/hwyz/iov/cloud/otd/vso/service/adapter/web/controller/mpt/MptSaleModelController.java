@@ -97,8 +97,9 @@ public class MptSaleModelController extends BaseController {
 
     @GetMapping("/{saleModelId}/buildConfig")
     public ApiResponse<PageResult<SaleModelBuildConfigVo>> listBuildConfigs(@PathVariable Long saleModelId) {
+        SaleModelResult model = saleModelAppService.getSaleModelById(saleModelId);
         startPage();
-        List<SaleModelBuildConfigVo> result = saleModelAppService.getBuildConfigPage(saleModelId);
+        List<SaleModelBuildConfigVo> result = saleModelAppService.getBuildConfigPageBySaleCode(model.getSaleCode());
         return ApiResponse.ok(getPageResult(result));
     }
 
