@@ -106,4 +106,35 @@
         AND base_model_code = #{baseModelCode}
     </delete>
 
+    <select id="selectPoByMap" parameterType="java.util.Map" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_sale_model_base_model t
+        WHERE t.row_valid = 1
+        <if test="saleCode != null and saleCode != ''">
+            AND t.sale_code = #{saleCode}
+        </if>
+        <if test="baseModelCode != null and baseModelCode != ''">
+            AND t.base_model_code = #{baseModelCode}
+        </if>
+        <if test="enable != null">
+            AND t.enable = #{enable}
+        </if>
+        ORDER BY t.sort ASC, t.id ASC
+    </select>
+
+    <select id="countPoByMap" parameterType="java.util.Map" resultType="int">
+        SELECT COUNT(*)
+        FROM vso_sale_model_base_model t
+        WHERE t.row_valid = 1
+        <if test="saleCode != null and saleCode != ''">
+            AND t.sale_code = #{saleCode}
+        </if>
+        <if test="baseModelCode != null and baseModelCode != ''">
+            AND t.base_model_code = #{baseModelCode}
+        </if>
+        <if test="enable != null">
+            AND t.enable = #{enable}
+        </if>
+    </select>
+
 </mapper>

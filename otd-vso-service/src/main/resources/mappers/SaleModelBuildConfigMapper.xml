@@ -139,20 +139,20 @@
         SELECT <include refid="baseColumnList"/>
         FROM vso_sale_model_build_config t
         WHERE t.row_valid = 1
-        <if test="params.saleCode != null and params.saleCode != ''">
-            AND t.sale_code = #{params.saleCode}
+        <if test="saleCode != null and saleCode != ''">
+            AND t.sale_code = #{saleCode}
         </if>
-        <if test="params.buildConfigCode != null and params.buildConfigCode != ''">
-            AND t.build_config_code = #{params.buildConfigCode}
+        <if test="buildConfigCode != null and buildConfigCode != ''">
+            AND t.build_config_code = #{buildConfigCode}
         </if>
-        <if test="params.enable != null">
-            AND t.enable = #{params.enable}
+        <if test="enable != null">
+            AND t.enable = #{enable}
         </if>
-        <if test="params.beginTime != null">
-            and date_format(t.create_time,'%Y%m%d') &gt;= date_format(#{params.beginTime},'%Y%m%d')
+        <if test="beginTime != null">
+            and date_format(t.create_time,'%Y%m%d') &gt;= date_format(#{beginTime},'%Y%m%d')
         </if>
-        <if test="params.endTime != null">
-            and date_format(t.create_time,'%Y%m%d') &lt;= date_format(#{params.endTime},'%Y%m%d')
+        <if test="endTime != null">
+            and date_format(t.create_time,'%Y%m%d') &lt;= date_format(#{endTime},'%Y%m%d')
         </if>
         ORDER BY t.sort ASC, t.id DESC
     </select>
@@ -161,14 +161,14 @@
         SELECT COUNT(*)
         FROM vso_sale_model_build_config t
         WHERE t.row_valid = 1
-        <if test="params.saleCode != null and params.saleCode != ''">
-            AND t.sale_code = #{params.saleCode}
+        <if test="saleCode != null and saleCode != ''">
+            AND t.sale_code = #{saleCode}
         </if>
-        <if test="params.buildConfigCode != null and params.buildConfigCode != ''">
-            AND t.build_config_code = #{params.buildConfigCode}
+        <if test="buildConfigCode != null and buildConfigCode != ''">
+            AND t.build_config_code = #{buildConfigCode}
         </if>
-        <if test="params.enable != null">
-            AND t.enable = #{params.enable}
+        <if test="enable != null">
+            AND t.enable = #{enable}
         </if>
     </select>
 

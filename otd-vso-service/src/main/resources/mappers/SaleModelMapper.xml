@@ -197,18 +197,17 @@
         SELECT <include refid="baseColumnList"/>
         FROM vso_sale_model t
         WHERE t.row_valid = 1
-        <!-- 添加自定义条件 -->
-        <if test="params.saleCode != null and params.saleCode != ''">
-            AND t.sale_code = #{params.saleCode}
+        <if test="saleCode != null and saleCode != ''">
+            AND t.sale_code = #{saleCode}
         </if>
-        <if test="params.modelName != null and params.modelName != ''">
-            AND t.model_name LIKE #{params.modelName}
+        <if test="modelName != null and modelName != ''">
+            AND t.model_name LIKE #{modelName}
         </if>
-        <if test="params.beginTime != null">
-            and date_format(t.create_time,'%Y%m%d') &gt;= date_format(#{params.beginTime},'%Y%m%d')
+        <if test="beginTime != null">
+            and date_format(t.create_time,'%Y%m%d') &gt;= date_format(#{beginTime},'%Y%m%d')
         </if>
-        <if test="params.endTime != null">
-            and date_format(t.create_time,'%Y%m%d') &lt;= date_format(#{params.endTime},'%Y%m%d')
+        <if test="endTime != null">
+            and date_format(t.create_time,'%Y%m%d') &lt;= date_format(#{endTime},'%Y%m%d')
         </if>
         ORDER BY t.sort ASC, t.id DESC
     </select>
@@ -226,6 +225,11 @@
         SELECT COUNT(*)
         FROM vso_sale_model t
         WHERE t.row_valid = 1
-        <!-- 添加自定义条件 -->
+        <if test="saleCode != null and saleCode != ''">
+            AND t.sale_code = #{saleCode}
+        </if>
+        <if test="modelName != null and modelName != ''">
+            AND t.model_name LIKE #{modelName}
+        </if>
     </select>
 </mapper>
