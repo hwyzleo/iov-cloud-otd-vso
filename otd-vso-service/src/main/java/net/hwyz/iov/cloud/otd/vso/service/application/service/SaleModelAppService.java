@@ -448,7 +448,7 @@ public class SaleModelAppService {
 
     public List<SaleModelBuildConfigVo> getBuildConfigPageBySaleCode(String saleCode) {
         List<SaleModelBuildConfigPo> poList = saleModelBuildConfigRepository.findBySaleCode(saleCode);
-        return poList.stream().map(po -> {
+        return PageUtil.convert(poList, po -> {
             SaleModelBuildConfigVo vo = new SaleModelBuildConfigVo();
             vo.setId(po.getId());
             vo.setSaleCode(po.getSaleCode());
@@ -461,7 +461,7 @@ public class SaleModelAppService {
                 vo.setBuildConfigName(buildConfig.getName());
             }
             return vo;
-        }).collect(Collectors.toList());
+        });
     }
 
     public List<FeatureCodeRangeVo> getAggregatedFeatureCodeRanges(Long saleModelId) {
