@@ -2,12 +2,9 @@ package net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd;
 
 import lombok.Builder;
 import lombok.Data;
-import net.hwyz.iov.cloud.otd.vso.service.domain.model.OrderModelConfig;
-
-import java.util.Map;
 
 /**
- * 修改愿望单命令
+ * 修改心愿单命令
  *
  * @author VSO Team
  */
@@ -16,9 +13,7 @@ import java.util.Map;
 public class ModifyWishlistCmd {
 
     private String accountId;
-    private String orderNo;
-    private String saleCode;
+    private String wishlistId;
     private String buildConfigCode;
-    private Map<String, OrderModelConfig> modelConfigMap;
 
 }

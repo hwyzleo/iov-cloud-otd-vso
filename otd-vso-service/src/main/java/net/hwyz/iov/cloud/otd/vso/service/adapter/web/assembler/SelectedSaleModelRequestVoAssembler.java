@@ -18,6 +18,7 @@ public interface SelectedSaleModelRequestVoAssembler {
     SelectedSaleModelRequestVoAssembler INSTANCE = Mappers.getMapper(SelectedSaleModelRequestVoAssembler.class);
 
     @Mapping(target = "accountId", source = "accountId")
+    @Mapping(target = "buildConfigCode", constant = "")
     CreateWishlistCmd toCreateWishlistCmd(String accountId, SelectedSaleModelRequestVo vo);
 
     @Mapping(target = "accountId", source = "accountId")

@@ -1,0 +1,21 @@
+CREATE TABLE `vso_wishlist` (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键',
+  `wishlist_id` varchar(64) NOT NULL COMMENT '心愿单业务ID',
+  `user_id` varchar(64) NOT NULL COMMENT '用户ID',
+  `sale_code` varchar(50) NOT NULL COMMENT '销售代码',
+  `build_config_code` varchar(64) DEFAULT NULL COMMENT '生产配置编码',
+  `wishlist_name` varchar(128) DEFAULT NULL COMMENT '心愿单名称',
+  `status` varchar(32) NOT NULL DEFAULT 'active' COMMENT '状态：active-有效，deleted-已删除',
+  `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `create_by` varchar(64) DEFAULT '' COMMENT '创建者',
+  `modify_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '修改时间',
+  `modify_by` varchar(64) DEFAULT '' COMMENT '修改者',
+  `row_version` int DEFAULT '0' COMMENT '行版本',
+  `row_valid` tinyint(1) DEFAULT '1' COMMENT '行有效',
+  `description` varchar(500) DEFAULT '' COMMENT '描述',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_wishlist_id` (`wishlist_id`),
+  KEY `idx_user_id` (`user_id`),
+  KEY `idx_sale_code` (`sale_code`),
+  KEY `idx_user_status` (`user_id`, `status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='心愿单表';

@@ -325,31 +325,6 @@ public class OrderAppService {
 
     // --- 以下为兼容旧接口的方法 ---
 
-    public String createUserWishlist(CreateWishlistCmd cmd) {
-        Order order = Order.fromWishlist(cmd.getAccountId(), cmd.getMobile(), cmd.getSaleCode());
-        order.saveBuildConfig(cmd.getBuildConfigCode(), cmd.getModelConfigMap());
-        order.saveLicenseCity(cmd.getLicenseCityCode());
-        orderRepository.save(order);
-        return order.getOrderNo();
-    }
-
-    public void modifyUserWishlist(ModifyWishlistCmd cmd) {
-        Order order = findOrderById(cmd.getAccountId(), cmd.getOrderNo());
-        order.saveBuildConfig(cmd.getBuildConfigCode(), cmd.getModelConfigMap());
-        orderRepository.save(order);
-    }
-
-    public void deleteUserWishlist(DeleteWishlistCmd cmd) {
-        Order order = findOrderById(cmd.getAccountId(), cmd.getOrderNo());
-        order.markDelete();
-        orderRepository.save(order);
-    }
-
-    public WishlistDetailResult getUserWishlist(String accountId, String orderNo) {
-        Order order = findOrderById(accountId, orderNo);
-        return OrderDtoAssembler.INSTANCE.toWishlistDetailResult(order);
-    }
-
     public String earnestMoneyOrder(EarnestMoneyCmd cmd) {
         Order order = createOrFindOrder(cmd.getAccountId(), cmd.getOrderNo());
         order.earnestMoneyOrder();
@@ -472,7 +447,7 @@ public class OrderAppService {
         if (orderOpt.isPresent()) {
             return orderOpt.get();
         }
-        return Order.fromWishlist(accountId, null, null);
+        return Order.fromWishlist(accountId, null);
     }
 
 }

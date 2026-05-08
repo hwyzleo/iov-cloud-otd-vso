@@ -35,38 +35,6 @@ public class MobileOrderController extends BaseController {
         return ApiResponse.ok(OrderVoAssembler.INSTANCE.toVoList(result));
     }
 
-    @PostMapping("/wishlist/action/create")
-    public ApiResponse<String> createWishlist(@RequestBody @Valid SelectedSaleModelRequestVo request) {
-        log.info("手机客户端[{}]新建心愿单", ParamHelper.getClientAccountInfo());
-        CreateWishlistCmd cmd = SelectedSaleModelRequestVoAssembler.INSTANCE.toCreateWishlistCmd(SecurityContextHolder.getUserId(), request);
-        String orderNo = vehicleSaleOrderAppService.createUserWishlist(cmd);
-        return ApiResponse.ok(orderNo);
-    }
-
-    @PostMapping("/wishlist/action/modify")
-    public ApiResponse<Void> modifyWishlist(@RequestBody @Valid SelectedSaleModelRequestVo request) {
-        log.info("手机客户端[{}]修改心愿单[{}]", ParamHelper.getClientAccountInfo(), request.getOrderNo());
-        ModifyWishlistCmd cmd = SelectedSaleModelRequestVoAssembler.INSTANCE.toModifyWishlistCmd(SecurityContextHolder.getUserId(), request);
-        vehicleSaleOrderAppService.modifyUserWishlist(cmd);
-        return ApiResponse.ok();
-    }
-
-    @PostMapping("/wishlist/action/delete")
-    public ApiResponse<Void> deleteWishlist(@RequestBody @Valid OrderVo order) {
-        log.info("手机客户端[{}]删除心愿单[{}]", ParamHelper.getClientAccountInfo(), order.getOrderNo());
-        DeleteWishlistCmd cmd = OrderVoAssembler.INSTANCE.toDeleteWishlistCmd(SecurityContextHolder.getUserId(), order);
-        vehicleSaleOrderAppService.deleteUserWishlist(cmd);
-        return ApiResponse.ok();
-    }
-
-    @GetMapping("/wishlist/{orderNo}")
-    public ApiResponse<WishlistResponseVo> getWishlist(@PathVariable String orderNo) {
-        log.info("手机客户端[{}]获取心愿单[{}]详情", ParamHelper.getClientAccountInfo(), orderNo);
-        WishlistDetailResult result = vehicleSaleOrderAppService.getUserWishlist(SecurityContextHolder.getUserId(), orderNo);
-        WishlistResponseVo vo = WishlistResponseVoAssembler.INSTANCE.toVo(result);
-        return ApiResponse.ok(vo);
-    }
-
     @PostMapping("/action/earnestMoneyOrder")
     public ApiResponse<String> earnestMoneyOrder(@RequestBody @Valid EarnestMoneyOrderRequestVo request) {
         log.info("手机客户端[{}]意向金下订单", ParamHelper.getClientAccountInfo());

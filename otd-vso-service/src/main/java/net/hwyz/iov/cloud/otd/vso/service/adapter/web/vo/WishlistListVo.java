@@ -1,18 +1,18 @@
-package net.hwyz.iov.cloud.otd.vso.service.application.dto.result;
+package net.hwyz.iov.cloud.otd.vso.service.adapter.web.vo;
 
-import lombok.Builder;
-import lombok.Data;
+import lombok.*;
 
 import java.util.Date;
 
 /**
- * 心愿单详情结果
+ * 心愿单列表 Vo
  *
  * @author VSO Team
  */
 @Data
-@Builder
-public class WishlistDetailResult {
+@NoArgsConstructor
+@AllArgsConstructor
+public class WishlistListVo {
 
     private String wishlistId;
     private String saleCode;

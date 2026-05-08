@@ -1,5 +1,6 @@
 package net.hwyz.iov.cloud.otd.vso.service.adapter.web.assembler;
 
+import net.hwyz.iov.cloud.otd.vso.service.adapter.web.vo.DeleteWishlistRequestVo;
 import net.hwyz.iov.cloud.otd.vso.service.adapter.web.vo.OrderVo;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.CancelCmd;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.DeleteWishlistCmd;
@@ -27,7 +28,7 @@ public interface OrderVoAssembler {
     List<OrderVo> toVoList(List<OrderListResult> result);
 
     @Mapping(target = "accountId", source = "accountId")
-    DeleteWishlistCmd toDeleteWishlistCmd(String accountId, OrderVo vo);
+    DeleteWishlistCmd toDeleteWishlistCmd(String accountId, DeleteWishlistRequestVo vo);
 
     @Mapping(target = "accountId", source = "accountId")
     CancelCmd toCancelCmd(String accountId, OrderVo vo);

@@ -6,13 +6,13 @@ import lombok.Data;
 import java.util.Date;
 
 /**
- * 心愿单详情结果
+ * 心愿单列表结果
  *
  * @author VSO Team
  */
 @Data
 @Builder
-public class WishlistDetailResult {
+public class WishlistListResult {
 
     private String wishlistId;
     private String saleCode;

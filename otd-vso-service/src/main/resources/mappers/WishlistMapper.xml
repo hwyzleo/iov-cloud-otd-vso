@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.mapper.WishlistMapper">
+
+    <resultMap id="baseResultMap" type="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.WishlistPo">
+        <id column="id" property="id" />
+        <result column="wishlist_id" property="wishlistId" />
+        <result column="user_id" property="userId" />
+        <result column="sale_code" property="saleCode" />
+        <result column="build_config_code" property="buildConfigCode" />
+        <result column="wishlist_name" property="wishlistName" />
+        <result column="status" property="status" />
+        <result column="create_time" property="createTime" />
+        <result column="create_by" property="createBy" />
+        <result column="modify_time" property="modifyTime" />
+        <result column="modify_by" property="modifyBy" />
+        <result column="row_version" property="rowVersion" />
+        <result column="row_valid" property="rowValid" />
+        <result column="description" property="description" />
+    </resultMap>
+
+    <sql id="baseColumnList">
+        id, wishlist_id, user_id, sale_code, build_config_code, wishlist_name, status,
+        description, create_time, create_by, modify_time, modify_by, row_version, row_valid
+    </sql>
+
+    <insert id="insertPo" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO vso_wishlist (
+            id, wishlist_id, user_id, sale_code, build_config_code, wishlist_name, status,
+            description, create_time, create_by, modify_time, modify_by, row_version, row_valid
+        )
+        VALUES (
+            #{id}, #{wishlistId}, #{userId}, #{saleCode}, #{buildConfigCode}, #{wishlistName}, #{status},
+            #{description}, now(), #{createBy}, now(), #{modifyBy}, #{rowVersion}, #{rowValid}
+        )
+    </insert>
+
+    <update id="updatePo" parameterType="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.WishlistPo">
+        UPDATE vso_wishlist t SET
+        <if test="saleCode != null">
+            t.sale_code = #{saleCode},
+        </if>
+        <if test="buildConfigCode != null">
+            t.build_config_code = #{buildConfigCode},
+        </if>
+        <if test="wishlistName != null">
+            t.wishlist_name = #{wishlistName},
+        </if>
+        <if test="status != null">
+            t.status = #{status},
+        </if>
+        <if test="modifyBy != null">
+            t.modify_by = #{modifyBy},
+        </if>
+        t.row_version = t.row_version + 1,
+        t.modify_time = now()
+        WHERE t.id = #{id}
+    </update>
+
+    <select id="selectPoById" parameterType="Long" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_wishlist t
+        WHERE t.id = #{value}
+        AND t.row_valid = 1
+    </select>
+
+    <select id="selectByWishlistId" parameterType="string" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_wishlist t
+        WHERE t.wishlist_id = #{wishlistId}
+        AND t.row_valid = 1
+    </select>
+
+    <select id="selectByWishlistIdAndUserId" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_wishlist t
+        WHERE t.wishlist_id = #{wishlistId}
+        AND t.user_id = #{userId}
+        AND t.row_valid = 1
+    </select>
+
+    <select id="selectByUserId" parameterType="string" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_wishlist t
+        WHERE t.user_id = #{userId}
+        AND t.status = 'active'
+        AND t.row_valid = 1
+        ORDER BY t.modify_time DESC
+    </select>
+
+    <select id="selectPoByMap" parameterType="java.util.Map" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_wishlist t
+        WHERE t.row_valid = 1
+        <if test="userId != null and userId != ''">
+            AND t.user_id = #{userId}
+        </if>
+        <if test="saleCode != null and saleCode != ''">
+            AND t.sale_code = #{saleCode}
+        </if>
+        <if test="status != null and status != ''">
+            AND t.status = #{status}
+        </if>
+        ORDER BY t.modify_time DESC
+    </select>
+
+    <select id="countPoByMap" parameterType="java.util.Map" resultType="int">
+        SELECT COUNT(*)
+        FROM vso_wishlist t
+        WHERE t.row_valid = 1
+        <if test="userId != null and userId != ''">
+            AND t.user_id = #{userId}
+        </if>
+        <if test="saleCode != null and saleCode != ''">
+            AND t.sale_code = #{saleCode}
+        </if>
+        <if test="status != null and status != ''">
+            AND t.status = #{status}
+        </if>
+    </select>
+
+</mapper>

@@ -352,10 +352,9 @@ public class Order {
         this.orderStateTime = new Date();
     }
 
-    public static Order fromWishlist(String accountId, String mobile, String saleCode) {
+    public static Order fromWishlist(String accountId, String saleCode) {
         Order order = new Order();
         order.orderPersonId = accountId;
-        order.orderPersonPhone = mobile;
         order.saleCode = saleCode;
         order.orderState = OrderState.WISHLIST;
         return order;
