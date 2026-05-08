@@ -531,6 +531,7 @@ public class SaleModelAppService {
                         String familyKey = familyCode + "_";
                         SaleModelConfigPo familyConfig = configMap.get(familyKey);
                         if (familyConfig != null) {
+                            newRange.setFamilyName(familyConfig.getTypeName() != null ? familyConfig.getTypeName() : familyName);
                             newRange.setFamilyPrice(familyConfig.getTypePrice());
                             newRange.setFamilyImage(familyConfig.getTypeImage() != null ?
                                     cn.hutool.json.JSONUtil.toList(familyConfig.getTypeImage(), String.class) :
