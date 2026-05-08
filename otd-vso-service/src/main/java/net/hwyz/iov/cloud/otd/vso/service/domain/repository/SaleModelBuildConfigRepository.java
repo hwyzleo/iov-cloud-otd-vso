@@ -27,4 +27,6 @@ public interface SaleModelBuildConfigRepository {
     int physicalDeleteBySaleCodeAndBuildConfigCode(String saleCode, String buildConfigCode);
 
     int physicalDeleteBySaleCode(String saleCode);
+
+    int countBySaleCode(String saleCode);
 }

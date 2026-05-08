@@ -73,4 +73,11 @@ public class SaleModelBuildConfigRepositoryImpl implements SaleModelBuildConfigR
         wrapper.eq(SaleModelBuildConfigPo::getSaleCode, saleCode);
         return mapper.delete(wrapper);
     }
+
+    @Override
+    public int countBySaleCode(String saleCode) {
+        LambdaQueryWrapper<SaleModelBuildConfigPo> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(SaleModelBuildConfigPo::getSaleCode, saleCode);
+        return Math.toIntExact(mapper.selectCount(wrapper));
+    }
 }
