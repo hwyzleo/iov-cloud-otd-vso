@@ -596,6 +596,48 @@ public class SaleModelAppService {
     }
 
     @Transactional(rollbackFor = Exception.class)
+    public List<Long> batchCreateBuildConfig(Long saleModelId, SaleModelBuildConfigDto dto, String userId) {
+        SaleModelResult model = getSaleModelById(saleModelId);
+        List<Long> ids = new ArrayList<>();
+        
+        List<String> buildConfigCodes = dto.getBuildConfigCodes();
+        if (buildConfigCodes == null || buildConfigCodes.isEmpty()) {
+            if (dto.getBuildConfigCode() != null && !dto.getBuildConfigCode().isEmpty()) {
+                buildConfigCodes = new ArrayList<>();
+                buildConfigCodes.add(dto.getBuildConfigCode());
+            } else {
+                return ids;
+            }
+        }
+        
+        for (String buildConfigCode : buildConfigCodes) {
+            if (saleModelBuildConfigRepository.findBySaleCodeAndBuildConfigCode(model.getSaleCode(), buildConfigCode).isPresent()) {
+                log.info("生产配置已存在关联关系，跳过: saleCode={}, buildConfigCode={}", model.getSaleCode(), buildConfigCode);
+                continue;
+            }
+            SaleModelBuildConfigPo po = SaleModelBuildConfigPo.builder()
+                    .saleCode(model.getSaleCode())
+                    .buildConfigCode(buildConfigCode)
+                    .enable(dto.getEnable() != null ? dto.getEnable() : true)
+                    .sort(dto.getSort() != null ? dto.getSort() : 0)
+                    .rowValid(true)
+                    .rowVersion(0)
+                    .createBy(userId)
+                    .modifyBy(userId)
+                    .build();
+            saleModelBuildConfigRepository.insert(po);
+            ids.add(po.getId());
+        }
+
+        if (!ids.isEmpty()) {
+            syncSaleModelConfigFromBuildConfigs(model.getSaleCode(), userId);
+            syncBaseModelFromBuildConfigs(model.getSaleCode(), userId);
+        }
+
+        return ids;
+    }
+
+    @Transactional(rollbackFor = Exception.class)
     public Long createBuildConfig(Long saleModelId, SaleModelBuildConfigDto dto, String userId) {
         SaleModelResult model = getSaleModelById(saleModelId);
         if (saleModelBuildConfigRepository.findBySaleCodeAndBuildConfigCode(model.getSaleCode(), dto.getBuildConfigCode()).isPresent()) {

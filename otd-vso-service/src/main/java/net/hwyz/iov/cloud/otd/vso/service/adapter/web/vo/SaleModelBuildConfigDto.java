@@ -2,6 +2,8 @@ package net.hwyz.iov.cloud.otd.vso.service.adapter.web.vo;
 
 import lombok.Data;
 
+import java.util.List;
+
 /**
  * 销售车型生产配置关联 DTO。
  */
@@ -13,6 +15,8 @@ public class SaleModelBuildConfigDto {
     private String saleCode;
 
     private String buildConfigCode;
+
+    private List<String> buildConfigCodes;
 
     private Boolean enable;
 

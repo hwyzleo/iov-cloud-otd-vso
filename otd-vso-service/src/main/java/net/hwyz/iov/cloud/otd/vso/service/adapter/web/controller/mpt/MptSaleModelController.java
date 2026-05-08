@@ -105,10 +105,10 @@ public class MptSaleModelController extends BaseController {
         return ApiResponse.ok(saleModelAppService.getAggregatedFeatureCodeRanges(saleModelId));
     }
 
-    @PostMapping("/{saleModelId}/buildConfig")
-    public ApiResponse<Long> createBuildConfig(@PathVariable Long saleModelId,
-                                                @RequestBody SaleModelBuildConfigDto dto) {
-        return ApiResponse.ok(saleModelAppService.createBuildConfig(saleModelId, dto, SecurityUtils.getUserId().toString()));
+@PostMapping("/{saleModelId}/buildConfig")
+    public ApiResponse<List<Long>> createBuildConfig(@PathVariable Long saleModelId,
+                                                 @RequestBody SaleModelBuildConfigDto dto) {
+        return ApiResponse.ok(saleModelAppService.batchCreateBuildConfig(saleModelId, dto, SecurityUtils.getUserId().toString()));
     }
 
     @PutMapping("/{saleModelId}/buildConfig")
