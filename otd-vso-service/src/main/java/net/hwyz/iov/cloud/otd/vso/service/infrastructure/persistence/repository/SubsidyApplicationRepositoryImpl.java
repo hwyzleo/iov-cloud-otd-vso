@@ -1,6 +1,5 @@
 package net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.repository;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import lombok.RequiredArgsConstructor;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.SubsidyApplicationRepository;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.mapper.SubsidyApplicationMapper;
@@ -8,11 +7,10 @@ import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.SubsidyA
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 
-/**
- * 补贴申请仓储实现
- */
 @Repository
 @RequiredArgsConstructor
 public class SubsidyApplicationRepositoryImpl implements SubsidyApplicationRepository {
@@ -23,29 +21,29 @@ public class SubsidyApplicationRepositoryImpl implements SubsidyApplicationRepos
     @Transactional(rollbackFor = Exception.class)
     public SubsidyApplicationPo save(SubsidyApplicationPo subsidyApplicationPo) {
         if (subsidyApplicationPo.getId() == null) {
-            subsidyApplicationMapper.insert(subsidyApplicationPo);
+            subsidyApplicationMapper.insertPo(subsidyApplicationPo);
         } else {
-            subsidyApplicationMapper.updateById(subsidyApplicationPo);
+            subsidyApplicationMapper.updatePo(subsidyApplicationPo);
         }
         return subsidyApplicationPo;
     }
 
     @Override
     public Optional<SubsidyApplicationPo> findByOrderId(String orderId) {
-        LambdaQueryWrapper<SubsidyApplicationPo> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(SubsidyApplicationPo::getOrderId, orderId)
-               .eq(SubsidyApplicationPo::getRowValid, 1)
-               .orderByDesc(SubsidyApplicationPo::getApplyTime);
-        return Optional.ofNullable(subsidyApplicationMapper.selectOne(wrapper));
+        Map<String, Object> params = new HashMap<>();
+        params.put("orderId", orderId);
+        params.put("rowValid", 1);
+        params.put("orderBy", "applyTime DESC");
+        return subsidyApplicationMapper.selectPoByMap(params).stream().findFirst();
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void delete(String subsidyApplicationId) {
-        SubsidyApplicationPo subsidyApplicationPo = subsidyApplicationMapper.selectById(subsidyApplicationId);
+        SubsidyApplicationPo subsidyApplicationPo = subsidyApplicationMapper.selectPoById(Long.valueOf(subsidyApplicationId));
         if (subsidyApplicationPo != null) {
             subsidyApplicationPo.setRowValid(0);
-            subsidyApplicationMapper.updateById(subsidyApplicationPo);
+            subsidyApplicationMapper.updatePo(subsidyApplicationPo);
         }
     }
 

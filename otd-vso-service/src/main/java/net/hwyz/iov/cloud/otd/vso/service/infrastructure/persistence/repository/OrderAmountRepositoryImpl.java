@@ -1,6 +1,5 @@
 package net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.repository;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import lombok.RequiredArgsConstructor;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.OrderAmountRepository;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.mapper.OrderAmountMapper;
@@ -8,13 +7,10 @@ import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.OrderAmo
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 
-/**
- * 订单金额仓储实现
- *
- * @author VSO Team
- */
 @Repository
 @RequiredArgsConstructor
 public class OrderAmountRepositoryImpl implements OrderAmountRepository {
@@ -25,28 +21,31 @@ public class OrderAmountRepositoryImpl implements OrderAmountRepository {
     @Transactional(rollbackFor = Exception.class)
     public OrderAmountPo save(OrderAmountPo orderAmountPo) {
         if (orderAmountPo.getId() == null) {
-            orderAmountMapper.insert(orderAmountPo);
+            orderAmountMapper.insertPo(orderAmountPo);
         } else {
-            orderAmountMapper.updateById(orderAmountPo);
+            orderAmountMapper.updatePo(orderAmountPo);
         }
         return orderAmountPo;
     }
 
     @Override
     public Optional<OrderAmountPo> findByOrderId(String orderId) {
-        LambdaQueryWrapper<OrderAmountPo> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(OrderAmountPo::getOrderId, orderId)
-               .eq(OrderAmountPo::getRowValid, 1);
-        return Optional.ofNullable(orderAmountMapper.selectOne(wrapper));
+        Map<String, Object> params = new HashMap<>();
+        params.put("orderId", orderId);
+        params.put("rowValid", 1);
+        return orderAmountMapper.selectPoByMap(params).stream().findFirst();
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void delete(String orderId) {
-        OrderAmountPo orderAmountPo = orderAmountMapper.selectById(orderId);
+        Map<String, Object> params = new HashMap<>();
+        params.put("orderId", orderId);
+        params.put("rowValid", 1);
+        OrderAmountPo orderAmountPo = orderAmountMapper.selectPoByMap(params).stream().findFirst().orElse(null);
         if (orderAmountPo != null) {
             orderAmountPo.setRowValid(0);
-            orderAmountMapper.updateById(orderAmountPo);
+            orderAmountMapper.updatePo(orderAmountPo);
         }
     }
 

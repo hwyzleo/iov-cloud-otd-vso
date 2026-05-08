@@ -1,14 +1,16 @@
 package net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.repository;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import lombok.RequiredArgsConstructor;
+import net.hwyz.iov.cloud.framework.web.util.PageUtil;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.SaleModelBuildConfigRepository;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.mapper.SaleModelBuildConfigMapper;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.SaleModelBuildConfigPo;
 import org.springframework.stereotype.Repository;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Repository
@@ -19,42 +21,44 @@ public class SaleModelBuildConfigRepositoryImpl implements SaleModelBuildConfigR
 
     @Override
     public Optional<SaleModelBuildConfigPo> findById(Long id) {
-        return Optional.ofNullable(mapper.selectById(id));
+        return Optional.ofNullable(mapper.selectPoById(id));
     }
 
     @Override
     public List<SaleModelBuildConfigPo> findBySaleCode(String saleCode) {
-        LambdaQueryWrapper<SaleModelBuildConfigPo> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(SaleModelBuildConfigPo::getSaleCode, saleCode)
-                .orderByAsc(SaleModelBuildConfigPo::getSort);
-        return mapper.selectList(wrapper);
+        Map<String, Object> map = new HashMap<>();
+        map.put("saleCode", saleCode);
+        List<SaleModelBuildConfigPo> poList = mapper.selectPoByMap(map);
+        return PageUtil.convert(poList, po -> po);
     }
 
     @Override
     public Optional<SaleModelBuildConfigPo> findBySaleCodeAndBuildConfigCode(String saleCode, String buildConfigCode) {
-        LambdaQueryWrapper<SaleModelBuildConfigPo> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(SaleModelBuildConfigPo::getSaleCode, saleCode)
-                .eq(SaleModelBuildConfigPo::getBuildConfigCode, buildConfigCode)
-                .eq(SaleModelBuildConfigPo::getRowValid, true);
-        return Optional.ofNullable(mapper.selectOne(wrapper));
+        SaleModelBuildConfigPo example = new SaleModelBuildConfigPo();
+        example.setSaleCode(saleCode);
+        example.setBuildConfigCode(buildConfigCode);
+        example.setRowValid(true);
+        List<SaleModelBuildConfigPo> list = mapper.selectPoByExample(example);
+        return list.isEmpty() ? Optional.empty() : Optional.of(list.get(0));
     }
 
     @Override
     public Optional<SaleModelBuildConfigPo> findBySaleCodeAndBuildConfigCodeIncludeDeleted(String saleCode, String buildConfigCode) {
-        LambdaQueryWrapper<SaleModelBuildConfigPo> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(SaleModelBuildConfigPo::getSaleCode, saleCode)
-                .eq(SaleModelBuildConfigPo::getBuildConfigCode, buildConfigCode);
-        return Optional.ofNullable(mapper.selectOne(wrapper));
+        SaleModelBuildConfigPo example = new SaleModelBuildConfigPo();
+        example.setSaleCode(saleCode);
+        example.setBuildConfigCode(buildConfigCode);
+        List<SaleModelBuildConfigPo> list = mapper.selectPoByExample(example);
+        return list.isEmpty() ? Optional.empty() : Optional.of(list.get(0));
     }
 
     @Override
     public int insert(SaleModelBuildConfigPo entity) {
-        return mapper.insert(entity);
+        return mapper.insertPo(entity);
     }
 
     @Override
     public int update(SaleModelBuildConfigPo entity) {
-        return mapper.updateById(entity);
+        return mapper.updatePo(entity);
     }
 
     @Override
@@ -69,15 +73,13 @@ public class SaleModelBuildConfigRepositoryImpl implements SaleModelBuildConfigR
 
     @Override
     public int physicalDeleteBySaleCode(String saleCode) {
-        LambdaQueryWrapper<SaleModelBuildConfigPo> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(SaleModelBuildConfigPo::getSaleCode, saleCode);
-        return mapper.delete(wrapper);
+        return mapper.physicalDeleteBySaleCode(saleCode);
     }
 
     @Override
     public int countBySaleCode(String saleCode) {
-        LambdaQueryWrapper<SaleModelBuildConfigPo> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(SaleModelBuildConfigPo::getSaleCode, saleCode);
-        return Math.toIntExact(mapper.selectCount(wrapper));
+        Map<String, Object> map = new HashMap<>();
+        map.put("saleCode", saleCode);
+        return mapper.countPoByMap(map);
     }
 }

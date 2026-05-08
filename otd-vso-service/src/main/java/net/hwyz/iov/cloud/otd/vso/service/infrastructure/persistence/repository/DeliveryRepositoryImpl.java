@@ -1,6 +1,5 @@
 package net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.repository;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import lombok.RequiredArgsConstructor;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.DeliveryRepository;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.mapper.DeliveryAppointmentMapper;
@@ -10,11 +9,10 @@ import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.Delivery
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 
-/**
- * 交付仓储实现
- */
 @Repository
 @RequiredArgsConstructor
 public class DeliveryRepositoryImpl implements DeliveryRepository {
@@ -26,38 +24,38 @@ public class DeliveryRepositoryImpl implements DeliveryRepository {
     @Transactional(rollbackFor = Exception.class)
     public DeliveryAppointmentPo saveAppointment(DeliveryAppointmentPo appointmentPo) {
         if (appointmentPo.getId() == null) {
-            deliveryAppointmentMapper.insert(appointmentPo);
+            deliveryAppointmentMapper.insertPo(appointmentPo);
         } else {
-            deliveryAppointmentMapper.updateById(appointmentPo);
+            deliveryAppointmentMapper.updatePo(appointmentPo);
         }
         return appointmentPo;
     }
 
     @Override
     public Optional<DeliveryAppointmentPo> findByAppointmentNo(String appointmentNo) {
-        LambdaQueryWrapper<DeliveryAppointmentPo> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(DeliveryAppointmentPo::getDeliveryAppointmentNo, appointmentNo)
-               .eq(DeliveryAppointmentPo::getRowValid, 1);
-        return Optional.ofNullable(deliveryAppointmentMapper.selectOne(wrapper));
+        Map<String, Object> params = new HashMap<>();
+        params.put("deliveryAppointmentNo", appointmentNo);
+        params.put("rowValid", 1);
+        return deliveryAppointmentMapper.selectPoByMap(params).stream().findFirst();
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public DeliveryRecordPo saveRecord(DeliveryRecordPo recordPo) {
         if (recordPo.getId() == null) {
-            deliveryRecordMapper.insert(recordPo);
+            deliveryRecordMapper.insertPo(recordPo);
         } else {
-            deliveryRecordMapper.updateById(recordPo);
+            deliveryRecordMapper.updatePo(recordPo);
         }
         return recordPo;
     }
 
     @Override
     public Optional<DeliveryRecordPo> findByOrderId(String orderId) {
-        LambdaQueryWrapper<DeliveryRecordPo> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(DeliveryRecordPo::getOrderId, orderId)
-               .eq(DeliveryRecordPo::getRowValid, 1);
-        return Optional.ofNullable(deliveryRecordMapper.selectOne(wrapper));
+        Map<String, Object> params = new HashMap<>();
+        params.put("orderId", orderId);
+        params.put("rowValid", 1);
+        return deliveryRecordMapper.selectPoByMap(params).stream().findFirst();
     }
 
 }

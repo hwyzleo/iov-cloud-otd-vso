@@ -1,6 +1,5 @@
 package net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.repository;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import lombok.RequiredArgsConstructor;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.OrderAssignmentRepository;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.mapper.OrderAssignmentMapper;
@@ -8,11 +7,10 @@ import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.OrderAss
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 
-/**
- * 订单归属仓储实现
- */
 @Repository
 @RequiredArgsConstructor
 public class OrderAssignmentRepositoryImpl implements OrderAssignmentRepository {
@@ -23,28 +21,28 @@ public class OrderAssignmentRepositoryImpl implements OrderAssignmentRepository 
     @Transactional(rollbackFor = Exception.class)
     public OrderAssignmentPo save(OrderAssignmentPo orderAssignmentPo) {
         if (orderAssignmentPo.getId() == null) {
-            orderAssignmentMapper.insert(orderAssignmentPo);
+            orderAssignmentMapper.insertPo(orderAssignmentPo);
         } else {
-            orderAssignmentMapper.updateById(orderAssignmentPo);
+            orderAssignmentMapper.updatePo(orderAssignmentPo);
         }
         return orderAssignmentPo;
     }
 
     @Override
     public Optional<OrderAssignmentPo> findByOrderId(String orderId) {
-        LambdaQueryWrapper<OrderAssignmentPo> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(OrderAssignmentPo::getOrderId, orderId)
-               .eq(OrderAssignmentPo::getRowValid, 1);
-        return Optional.ofNullable(orderAssignmentMapper.selectOne(wrapper));
+        Map<String, Object> params = new HashMap<>();
+        params.put("orderId", orderId);
+        params.put("rowValid", 1);
+        return orderAssignmentMapper.selectPoByMap(params).stream().findFirst();
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void delete(String assignmentId) {
-        OrderAssignmentPo orderAssignmentPo = orderAssignmentMapper.selectById(assignmentId);
+        OrderAssignmentPo orderAssignmentPo = orderAssignmentMapper.selectPoById(Long.valueOf(assignmentId));
         if (orderAssignmentPo != null) {
             orderAssignmentPo.setRowValid(0);
-            orderAssignmentMapper.updateById(orderAssignmentPo);
+            orderAssignmentMapper.updatePo(orderAssignmentPo);
         }
     }
 

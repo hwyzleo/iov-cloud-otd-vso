@@ -1,6 +1,5 @@
 package net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.repository;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import lombok.RequiredArgsConstructor;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.PaymentRepository;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.mapper.PaymentMapper;
@@ -8,11 +7,10 @@ import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.PaymentP
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 
-/**
- * 支付记录仓储实现
- */
 @Repository
 @RequiredArgsConstructor
 public class PaymentRepositoryImpl implements PaymentRepository {
@@ -23,37 +21,37 @@ public class PaymentRepositoryImpl implements PaymentRepository {
     @Transactional(rollbackFor = Exception.class)
     public PaymentPo save(PaymentPo paymentPo) {
         if (paymentPo.getId() == null) {
-            paymentMapper.insert(paymentPo);
+            paymentMapper.insertPo(paymentPo);
         } else {
-            paymentMapper.updateById(paymentPo);
+            paymentMapper.updatePo(paymentPo);
         }
         return paymentPo;
     }
 
     @Override
     public Optional<PaymentPo> findByPaymentNo(String paymentNo) {
-        LambdaQueryWrapper<PaymentPo> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(PaymentPo::getPaymentNo, paymentNo)
-               .eq(PaymentPo::getRowValid, 1);
-        return Optional.ofNullable(paymentMapper.selectOne(wrapper));
+        Map<String, Object> params = new HashMap<>();
+        params.put("paymentNo", paymentNo);
+        params.put("rowValid", 1);
+        return paymentMapper.selectPoByMap(params).stream().findFirst();
     }
 
     @Override
     public Optional<PaymentPo> findByOrderId(String orderId) {
-        LambdaQueryWrapper<PaymentPo> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(PaymentPo::getOrderId, orderId)
-               .eq(PaymentPo::getRowValid, 1)
-               .orderByDesc(PaymentPo::getPayTime);
-        return Optional.ofNullable(paymentMapper.selectOne(wrapper));
+        Map<String, Object> params = new HashMap<>();
+        params.put("orderId", orderId);
+        params.put("rowValid", 1);
+        params.put("orderBy", "payTime DESC");
+        return paymentMapper.selectPoByMap(params).stream().findFirst();
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void delete(String paymentId) {
-        PaymentPo paymentPo = paymentMapper.selectById(paymentId);
+        PaymentPo paymentPo = paymentMapper.selectPoById(Long.valueOf(paymentId));
         if (paymentPo != null) {
             paymentPo.setRowValid(0);
-            paymentMapper.updateById(paymentPo);
+            paymentMapper.updatePo(paymentPo);
         }
     }
 

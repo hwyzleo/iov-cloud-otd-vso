@@ -1,6 +1,5 @@
 package net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.repository;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import lombok.RequiredArgsConstructor;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.ApprovalRepository;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.mapper.ApprovalMapper;
@@ -8,11 +7,10 @@ import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.Approval
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 
-/**
- * 审批单仓储实现
- */
 @Repository
 @RequiredArgsConstructor
 public class ApprovalRepositoryImpl implements ApprovalRepository {
@@ -23,37 +21,37 @@ public class ApprovalRepositoryImpl implements ApprovalRepository {
     @Transactional(rollbackFor = Exception.class)
     public ApprovalPo save(ApprovalPo approvalPo) {
         if (approvalPo.getId() == null) {
-            approvalMapper.insert(approvalPo);
+            approvalMapper.insertPo(approvalPo);
         } else {
-            approvalMapper.updateById(approvalPo);
+            approvalMapper.updatePo(approvalPo);
         }
         return approvalPo;
     }
 
     @Override
     public Optional<ApprovalPo> findByApprovalNo(String approvalNo) {
-        LambdaQueryWrapper<ApprovalPo> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(ApprovalPo::getApprovalNo, approvalNo)
-               .eq(ApprovalPo::getRowValid, 1);
-        return Optional.ofNullable(approvalMapper.selectOne(wrapper));
+        Map<String, Object> params = new HashMap<>();
+        params.put("approvalNo", approvalNo);
+        params.put("rowValid", 1);
+        return approvalMapper.selectPoByMap(params).stream().findFirst();
     }
 
     @Override
     public Optional<ApprovalPo> findByOrderId(String orderId) {
-        LambdaQueryWrapper<ApprovalPo> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(ApprovalPo::getOrderId, orderId)
-               .eq(ApprovalPo::getRowValid, 1)
-               .orderByDesc(ApprovalPo::getSubmitTime);
-        return Optional.ofNullable(approvalMapper.selectOne(wrapper));
+        Map<String, Object> params = new HashMap<>();
+        params.put("orderId", orderId);
+        params.put("rowValid", 1);
+        params.put("orderBy", "submitTime DESC");
+        return approvalMapper.selectPoByMap(params).stream().findFirst();
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void delete(String approvalId) {
-        ApprovalPo approvalPo = approvalMapper.selectById(approvalId);
+        ApprovalPo approvalPo = approvalMapper.selectPoById(Long.valueOf(approvalId));
         if (approvalPo != null) {
             approvalPo.setRowValid(0);
-            approvalMapper.updateById(approvalPo);
+            approvalMapper.updatePo(approvalPo);
         }
     }
 

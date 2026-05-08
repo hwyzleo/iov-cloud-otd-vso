@@ -1,6 +1,5 @@
 package net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.repository;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import lombok.RequiredArgsConstructor;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.InvoiceRepository;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.mapper.InvoiceMapper;
@@ -8,11 +7,10 @@ import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.InvoiceP
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 
-/**
- * 发票仓储实现
- */
 @Repository
 @RequiredArgsConstructor
 public class InvoiceRepositoryImpl implements InvoiceRepository {
@@ -23,28 +21,28 @@ public class InvoiceRepositoryImpl implements InvoiceRepository {
     @Transactional(rollbackFor = Exception.class)
     public InvoicePo save(InvoicePo invoicePo) {
         if (invoicePo.getId() == null) {
-            invoiceMapper.insert(invoicePo);
+            invoiceMapper.insertPo(invoicePo);
         } else {
-            invoiceMapper.updateById(invoicePo);
+            invoiceMapper.updatePo(invoicePo);
         }
         return invoicePo;
     }
 
     @Override
     public Optional<InvoicePo> findByOrderId(String orderId) {
-        LambdaQueryWrapper<InvoicePo> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(InvoicePo::getOrderId, orderId)
-               .eq(InvoicePo::getRowValid, 1);
-        return Optional.ofNullable(invoiceMapper.selectOne(wrapper));
+        Map<String, Object> params = new HashMap<>();
+        params.put("orderId", orderId);
+        params.put("rowValid", 1);
+        return invoiceMapper.selectPoByMap(params).stream().findFirst();
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void delete(String invoiceId) {
-        InvoicePo invoicePo = invoiceMapper.selectById(invoiceId);
+        InvoicePo invoicePo = invoiceMapper.selectPoById(Long.valueOf(invoiceId));
         if (invoicePo != null) {
             invoicePo.setRowValid(0);
-            invoiceMapper.updateById(invoicePo);
+            invoiceMapper.updatePo(invoicePo);
         }
     }
 

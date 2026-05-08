@@ -1,6 +1,5 @@
 package net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.repository;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import lombok.RequiredArgsConstructor;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.ExceptionOrderRepository;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.mapper.ExceptionOrderMapper;
@@ -8,11 +7,10 @@ import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.Exceptio
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 
-/**
- * 异常单仓储实现
- */
 @Repository
 @RequiredArgsConstructor
 public class ExceptionOrderRepositoryImpl implements ExceptionOrderRepository {
@@ -23,37 +21,37 @@ public class ExceptionOrderRepositoryImpl implements ExceptionOrderRepository {
     @Transactional(rollbackFor = Exception.class)
     public ExceptionOrderPo save(ExceptionOrderPo exceptionOrderPo) {
         if (exceptionOrderPo.getId() == null) {
-            exceptionOrderMapper.insert(exceptionOrderPo);
+            exceptionOrderMapper.insertPo(exceptionOrderPo);
         } else {
-            exceptionOrderMapper.updateById(exceptionOrderPo);
+            exceptionOrderMapper.updatePo(exceptionOrderPo);
         }
         return exceptionOrderPo;
     }
 
     @Override
     public Optional<ExceptionOrderPo> findByExceptionNo(String exceptionNo) {
-        LambdaQueryWrapper<ExceptionOrderPo> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(ExceptionOrderPo::getExceptionNo, exceptionNo)
-               .eq(ExceptionOrderPo::getRowValid, 1);
-        return Optional.ofNullable(exceptionOrderMapper.selectOne(wrapper));
+        Map<String, Object> params = new HashMap<>();
+        params.put("exceptionNo", exceptionNo);
+        params.put("rowValid", 1);
+        return exceptionOrderMapper.selectPoByMap(params).stream().findFirst();
     }
 
     @Override
     public Optional<ExceptionOrderPo> findByOrderId(String orderId) {
-        LambdaQueryWrapper<ExceptionOrderPo> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(ExceptionOrderPo::getOrderId, orderId)
-               .eq(ExceptionOrderPo::getRowValid, 1)
-               .orderByDesc(ExceptionOrderPo::getDiscoverTime);
-        return Optional.ofNullable(exceptionOrderMapper.selectOne(wrapper));
+        Map<String, Object> params = new HashMap<>();
+        params.put("orderId", orderId);
+        params.put("rowValid", 1);
+        params.put("orderBy", "discoverTime DESC");
+        return exceptionOrderMapper.selectPoByMap(params).stream().findFirst();
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void delete(String exceptionOrderId) {
-        ExceptionOrderPo exceptionOrderPo = exceptionOrderMapper.selectById(exceptionOrderId);
+        ExceptionOrderPo exceptionOrderPo = exceptionOrderMapper.selectPoById(Long.valueOf(exceptionOrderId));
         if (exceptionOrderPo != null) {
             exceptionOrderPo.setRowValid(0);
-            exceptionOrderMapper.updateById(exceptionOrderPo);
+            exceptionOrderMapper.updatePo(exceptionOrderPo);
         }
     }
 

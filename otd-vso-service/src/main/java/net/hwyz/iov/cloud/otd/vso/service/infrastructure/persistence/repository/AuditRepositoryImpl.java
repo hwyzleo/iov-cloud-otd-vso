@@ -1,6 +1,5 @@
 package net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.repository;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import lombok.RequiredArgsConstructor;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.AuditRepository;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.mapper.CallbackLogMapper;
@@ -14,12 +13,11 @@ import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.OrderLoc
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
-/**
- * 审计与版本仓储实现
- */
 @Repository
 @RequiredArgsConstructor
 public class AuditRepositoryImpl implements AuditRepository {
@@ -33,81 +31,81 @@ public class AuditRepositoryImpl implements AuditRepository {
     @Transactional(rollbackFor = Exception.class)
     public CallbackLogPo saveCallbackLog(CallbackLogPo callbackLogPo) {
         if (callbackLogPo.getId() == null) {
-            callbackLogMapper.insert(callbackLogPo);
+            callbackLogMapper.insertPo(callbackLogPo);
         } else {
-            callbackLogMapper.updateById(callbackLogPo);
+            callbackLogMapper.updatePo(callbackLogPo);
         }
         return callbackLogPo;
     }
 
     @Override
     public Optional<CallbackLogPo> findByIdempotentKey(String idempotentKey) {
-        LambdaQueryWrapper<CallbackLogPo> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(CallbackLogPo::getIdempotentKey, idempotentKey)
-               .eq(CallbackLogPo::getRowValid, 1)
-               .orderByDesc(CallbackLogPo::getProcessTime);
-        return Optional.ofNullable(callbackLogMapper.selectOne(wrapper));
+        Map<String, Object> params = new HashMap<>();
+        params.put("idempotentKey", idempotentKey);
+        params.put("rowValid", 1);
+        params.put("orderBy", "processTime DESC");
+        return callbackLogMapper.selectPoByMap(params).stream().findFirst();
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public OrderVersionPo saveVersion(OrderVersionPo versionPo) {
         if (versionPo.getId() == null) {
-            orderVersionMapper.insert(versionPo);
+            orderVersionMapper.insertPo(versionPo);
         } else {
-            orderVersionMapper.updateById(versionPo);
+            orderVersionMapper.updatePo(versionPo);
         }
         return versionPo;
     }
 
     @Override
     public List<OrderVersionPo> findVersionsByOrderId(String orderId) {
-        LambdaQueryWrapper<OrderVersionPo> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(OrderVersionPo::getOrderId, orderId)
-               .eq(OrderVersionPo::getRowValid, 1)
-               .orderByAsc(OrderVersionPo::getVersionNo);
-        return orderVersionMapper.selectList(wrapper);
+        Map<String, Object> params = new HashMap<>();
+        params.put("orderId", orderId);
+        params.put("rowValid", 1);
+        params.put("orderBy", "versionNo ASC");
+        return orderVersionMapper.selectPoByMap(params);
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public OrderTimelinePo saveTimeline(OrderTimelinePo timelinePo) {
         if (timelinePo.getId() == null) {
-            orderTimelineMapper.insert(timelinePo);
+            orderTimelineMapper.insertPo(timelinePo);
         } else {
-            orderTimelineMapper.updateById(timelinePo);
+            orderTimelineMapper.updatePo(timelinePo);
         }
         return timelinePo;
     }
 
     @Override
     public List<OrderTimelinePo> findTimelinesByOrderId(String orderId) {
-        LambdaQueryWrapper<OrderTimelinePo> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(OrderTimelinePo::getOrderId, orderId)
-               .eq(OrderTimelinePo::getRowValid, 1)
-               .orderByDesc(OrderTimelinePo::getEventTime);
-        return orderTimelineMapper.selectList(wrapper);
+        Map<String, Object> params = new HashMap<>();
+        params.put("orderId", orderId);
+        params.put("rowValid", 1);
+        params.put("orderBy", "eventTime DESC");
+        return orderTimelineMapper.selectPoByMap(params);
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public OrderLockPo saveLock(OrderLockPo lockPo) {
         if (lockPo.getId() == null) {
-            orderLockMapper.insert(lockPo);
+            orderLockMapper.insertPo(lockPo);
         } else {
-            orderLockMapper.updateById(lockPo);
+            orderLockMapper.updatePo(lockPo);
         }
         return lockPo;
     }
 
     @Override
     public Optional<OrderLockPo> findByOrderIdAndScene(String orderId, String lockScene) {
-        LambdaQueryWrapper<OrderLockPo> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(OrderLockPo::getOrderId, orderId)
-               .eq(OrderLockPo::getLockScene, lockScene)
-               .eq(OrderLockPo::getRowValid, 1)
-               .orderByDesc(OrderLockPo::getLockStartTime);
-        return Optional.ofNullable(orderLockMapper.selectOne(wrapper));
+        Map<String, Object> params = new HashMap<>();
+        params.put("orderId", orderId);
+        params.put("lockScene", lockScene);
+        params.put("rowValid", 1);
+        params.put("orderBy", "lockStartTime DESC");
+        return orderLockMapper.selectPoByMap(params).stream().findFirst();
     }
 
 }

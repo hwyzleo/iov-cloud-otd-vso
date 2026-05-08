@@ -1,6 +1,5 @@
 package net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.repository;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import lombok.RequiredArgsConstructor;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.FinanceApplicationRepository;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.mapper.FinanceApplicationMapper;
@@ -8,11 +7,10 @@ import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.FinanceA
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 
-/**
- * 金融申请仓储实现
- */
 @Repository
 @RequiredArgsConstructor
 public class FinanceApplicationRepositoryImpl implements FinanceApplicationRepository {
@@ -23,29 +21,29 @@ public class FinanceApplicationRepositoryImpl implements FinanceApplicationRepos
     @Transactional(rollbackFor = Exception.class)
     public FinanceApplicationPo save(FinanceApplicationPo financeApplicationPo) {
         if (financeApplicationPo.getId() == null) {
-            financeApplicationMapper.insert(financeApplicationPo);
+            financeApplicationMapper.insertPo(financeApplicationPo);
         } else {
-            financeApplicationMapper.updateById(financeApplicationPo);
+            financeApplicationMapper.updatePo(financeApplicationPo);
         }
         return financeApplicationPo;
     }
 
     @Override
     public Optional<FinanceApplicationPo> findByOrderId(String orderId) {
-        LambdaQueryWrapper<FinanceApplicationPo> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(FinanceApplicationPo::getOrderId, orderId)
-               .eq(FinanceApplicationPo::getRowValid, 1)
-               .orderByDesc(FinanceApplicationPo::getApplyTime);
-        return Optional.ofNullable(financeApplicationMapper.selectOne(wrapper));
+        Map<String, Object> params = new HashMap<>();
+        params.put("orderId", orderId);
+        params.put("rowValid", 1);
+        params.put("orderBy", "applyTime DESC");
+        return financeApplicationMapper.selectPoByMap(params).stream().findFirst();
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void delete(String financeApplicationId) {
-        FinanceApplicationPo financeApplicationPo = financeApplicationMapper.selectById(financeApplicationId);
+        FinanceApplicationPo financeApplicationPo = financeApplicationMapper.selectPoById(Long.valueOf(financeApplicationId));
         if (financeApplicationPo != null) {
             financeApplicationPo.setRowValid(0);
-            financeApplicationMapper.updateById(financeApplicationPo);
+            financeApplicationMapper.updatePo(financeApplicationPo);
         }
     }
 

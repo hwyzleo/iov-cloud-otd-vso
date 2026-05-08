@@ -2,6 +2,176 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.mapper.SaleModelBuildConfigMapper">
 
+    <resultMap id="baseResultMap" type="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.SaleModelBuildConfigPo">
+        <id column="id" property="id"/>
+        <result column="sale_code" property="saleCode"/>
+        <result column="build_config_code" property="buildConfigCode"/>
+        <result column="enable" property="enable"/>
+        <result column="sort" property="sort"/>
+        <result column="description" property="description"/>
+        <result column="create_time" property="createTime"/>
+        <result column="create_by" property="createBy"/>
+        <result column="modify_time" property="modifyTime"/>
+        <result column="modify_by" property="modifyBy"/>
+        <result column="row_version" property="rowVersion"/>
+        <result column="row_valid" property="rowValid"/>
+    </resultMap>
+
+    <sql id="baseColumnList">
+        id, sale_code, build_config_code, enable, sort, description, create_time, create_by, modify_time, modify_by, row_version, row_valid
+    </sql>
+
+    <insert id="insertPo" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO vso_sale_model_build_config (
+            sale_code, build_config_code, enable, sort, description, create_time, create_by, modify_time, modify_by, row_version, row_valid
+        )
+        VALUES (
+            #{saleCode}, #{buildConfigCode}, #{enable}, #{sort}, #{description}, now(), #{createBy}, now(), #{modifyBy}, 1, 1
+        )
+    </insert>
+
+    <insert id="batchInsertPo" useGeneratedKeys="true" keyProperty="id" parameterType="java.util.List">
+        INSERT INTO vso_sale_model_build_config (
+            sale_code, build_config_code, enable, sort, description, create_time, create_by, modify_time, modify_by, row_version, row_valid
+        )
+        VALUES
+        <foreach collection="list" item="item" index="index" separator=",">
+            (
+                #{item.saleCode}, #{item.buildConfigCode}, #{item.enable}, #{item.sort}, #{item.description}, now(), #{item.createBy}, now(), #{item.modifyBy}, 1, 1
+            )
+        </foreach>
+    </insert>
+
+    <update id="updatePo" parameterType="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.SaleModelBuildConfigPo">
+        UPDATE vso_sale_model_build_config t SET
+        <if test="saleCode != null and saleCode != ''">
+            t.sale_code = #{saleCode},
+        </if>
+        <if test="buildConfigCode != null and buildConfigCode != ''">
+            t.build_config_code = #{buildConfigCode},
+        </if>
+        <if test="enable != null">
+            t.enable = #{enable},
+        </if>
+        <if test="sort != null">
+            t.sort = #{sort},
+        </if>
+        <if test="description != null and description != ''">
+            t.description = #{description},
+        </if>
+        <if test="modifyBy != null">
+            t.modify_by = #{modifyBy},
+        </if>
+        t.row_version = t.row_version + 1,
+        t.modify_time = now()
+        WHERE t.id = #{id}
+    </update>
+
+    <update id="logicalDeletePo" parameterType="Long">
+        UPDATE vso_sale_model_build_config t SET
+        t.row_version = t.row_version + 1,
+        t.modify_time = now(),
+        t.row_valid = 0
+        WHERE t.id = #{value}
+    </update>
+
+    <delete id="physicalDeletePo" parameterType="Long">
+        DELETE FROM vso_sale_model_build_config
+        WHERE id = #{value}
+    </delete>
+
+    <delete id="batchPhysicalDeletePo" parameterType="Long">
+        DELETE FROM vso_sale_model_build_config
+        WHERE id IN
+        <foreach collection="array" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+    <select id="selectPoById" parameterType="Long" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_sale_model_build_config t
+        WHERE t.id = #{value}
+        AND t.row_valid = 1
+    </select>
+
+    <select id="selectPoByExample" parameterType="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.SaleModelBuildConfigPo" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_sale_model_build_config t
+        WHERE t.row_valid = 1
+        <if test="id != null">
+            AND t.id = #{id}
+        </if>
+        <if test="saleCode != null and saleCode != ''">
+            AND t.sale_code = #{saleCode}
+        </if>
+        <if test="buildConfigCode != null and buildConfigCode != ''">
+            AND t.build_config_code = #{buildConfigCode}
+        </if>
+        <if test="enable != null">
+            AND t.enable = #{enable}
+        </if>
+        <if test="sort != null">
+            AND t.sort = #{sort}
+        </if>
+        <if test="description != null and description != ''">
+            AND t.description = #{description}
+        </if>
+        <if test="createTime != null">
+            AND t.create_time = #{createTime}
+        </if>
+        <if test="createBy != null">
+            AND t.create_by = #{createBy}
+        </if>
+        <if test="modifyTime != null">
+            AND t.modify_time = #{modifyTime}
+        </if>
+        <if test="modifyBy != null">
+            AND t.modify_by = #{modifyBy}
+        </if>
+        <if test="rowVersion != null">
+            AND t.row_version = #{rowVersion}
+        </if>
+        ORDER BY t.sort ASC, t.id DESC
+    </select>
+
+    <select id="selectPoByMap" parameterType="java.util.Map" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_sale_model_build_config t
+        WHERE t.row_valid = 1
+        <if test="params.saleCode != null and params.saleCode != ''">
+            AND t.sale_code = #{params.saleCode}
+        </if>
+        <if test="params.buildConfigCode != null and params.buildConfigCode != ''">
+            AND t.build_config_code = #{params.buildConfigCode}
+        </if>
+        <if test="params.enable != null">
+            AND t.enable = #{params.enable}
+        </if>
+        <if test="params.beginTime != null">
+            and date_format(t.create_time,'%Y%m%d') &gt;= date_format(#{params.beginTime},'%Y%m%d')
+        </if>
+        <if test="params.endTime != null">
+            and date_format(t.create_time,'%Y%m%d') &lt;= date_format(#{params.endTime},'%Y%m%d')
+        </if>
+        ORDER BY t.sort ASC, t.id DESC
+    </select>
+
+    <select id="countPoByMap" parameterType="java.util.Map" resultType="int">
+        SELECT COUNT(*)
+        FROM vso_sale_model_build_config t
+        WHERE t.row_valid = 1
+        <if test="params.saleCode != null and params.saleCode != ''">
+            AND t.sale_code = #{params.saleCode}
+        </if>
+        <if test="params.buildConfigCode != null and params.buildConfigCode != ''">
+            AND t.build_config_code = #{params.buildConfigCode}
+        </if>
+        <if test="params.enable != null">
+            AND t.enable = #{params.enable}
+        </if>
+    </select>
+
     <delete id="physicalDeleteByIds">
         DELETE FROM vso_sale_model_build_config
         WHERE id IN
@@ -14,6 +184,11 @@
         DELETE FROM vso_sale_model_build_config
         WHERE sale_code = #{saleCode}
         AND build_config_code = #{buildConfigCode}
+    </delete>
+
+    <delete id="physicalDeleteBySaleCode">
+        DELETE FROM vso_sale_model_build_config
+        WHERE sale_code = #{saleCode}
     </delete>
 
 </mapper>
