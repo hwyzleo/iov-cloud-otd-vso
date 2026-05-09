@@ -5,13 +5,13 @@ import lombok.extern.slf4j.Slf4j;
 import net.hwyz.iov.cloud.edd.vmd.api.service.VmdVehicleModelConfigService;
 import net.hwyz.iov.cloud.edd.vmd.api.vo.response.VmdBuildConfigFeatureCodeResponse;
 import net.hwyz.iov.cloud.edd.vmd.api.vo.response.VmdBuildConfigResponse;
-import net.hwyz.iov.cloud.otd.vso.service.adapter.web.assembler.WishlistDtoAssembler;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.CreateWishlistCmd;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.DeleteWishlistCmd;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.ModifyWishlistCmd;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.SelectedSaleModelResult;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.WishlistDetailResult;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.WishlistListResult;
+import net.hwyz.iov.cloud.otd.vso.service.common.exception.BuildConfigNotMatchedException;
 import net.hwyz.iov.cloud.otd.vso.service.common.exception.WishlistNotExistException;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.Wishlist;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.WishlistRepository;
@@ -39,17 +39,15 @@ public class WishlistAppService {
 
     @Transactional(rollbackFor = Exception.class)
     public String createWishlist(CreateWishlistCmd cmd) {
-        log.info("创建心愿单：accountId={}, saleCode={}, featureConfig={}", 
+        log.info("创建心愿单：accountId={}, saleCode={}, featureConfig={}",
                 cmd.getAccountId(), cmd.getSaleCode(), cmd.getFeatureConfig());
-        
-        SelectedSaleModelResult selectedModel = saleModelAppService.getSelectedSaleModelByFeatureCodes(
-                cmd.getSaleCode(), cmd.getFeatureConfig());
-        
-        String buildConfigCode = selectedModel.getBuildConfigCode();
+
+        String buildConfigCode = vmdVehicleModelConfigService.getVehicleBuildConfigCode(cmd.getFeatureConfig());
+
         if (buildConfigCode == null || buildConfigCode.isEmpty()) {
-            throw new IllegalArgumentException("无法匹配到有效的生产配置");
+            throw new BuildConfigNotMatchedException(cmd.getSaleCode());
         }
-        
+
         Wishlist wishlist = Wishlist.create(cmd.getAccountId(), cmd.getSaleCode(), buildConfigCode);
         wishlistRepository.save(wishlist);
         log.info("心愿单创建成功：wishlistId={}, buildConfigCode={}", wishlist.getId(), buildConfigCode);
@@ -58,19 +56,17 @@ public class WishlistAppService {
 
     @Transactional(rollbackFor = Exception.class)
     public void modifyWishlist(ModifyWishlistCmd cmd) {
-        log.info("修改心愿单：wishlistId={}, accountId={}, featureConfig={}", 
+        log.info("修改心愿单：wishlistId={}, accountId={}, featureConfig={}",
                 cmd.getWishlistId(), cmd.getAccountId(), cmd.getFeatureConfig());
-        
+
         Wishlist wishlist = findWishlistById(cmd.getAccountId(), cmd.getWishlistId());
-        
-        SelectedSaleModelResult selectedModel = saleModelAppService.getSelectedSaleModelByFeatureCodes(
-                wishlist.getSaleCode(), cmd.getFeatureConfig());
-        
-        String buildConfigCode = selectedModel.getBuildConfigCode();
+
+        String buildConfigCode = vmdVehicleModelConfigService.getVehicleBuildConfigCode(cmd.getFeatureConfig());
+
         if (buildConfigCode == null || buildConfigCode.isEmpty()) {
-            throw new IllegalArgumentException("无法匹配到有效的生产配置");
+            throw new BuildConfigNotMatchedException(wishlist.getSaleCode());
         }
-        
+
         wishlist.modify(buildConfigCode);
         wishlistRepository.save(wishlist);
         log.info("心愿单修改成功：wishlistId={}, buildConfigCode={}", wishlist.getId(), buildConfigCode);
@@ -103,12 +99,12 @@ public class WishlistAppService {
         return wishlistRepository.findByWishlistIdAndUserId(wishlistId, accountId)
                 .orElseThrow(() -> new WishlistNotExistException(wishlistId));
     }
-    
+
     private WishlistListResult toWishlistListResult(Wishlist wishlist) {
         Map<String, String> featureCodes = parseBuildConfigToFeatureCodes(wishlist.getBuildConfigCode());
         SelectedSaleModelResult selectedModel = saleModelAppService.getSelectedSaleModelByFeatureCodes(
                 wishlist.getSaleCode(), featureCodes);
-        
+
         return WishlistListResult.builder()
                 .wishlistId(wishlist.getId())
                 .saleCode(wishlist.getSaleCode())
@@ -122,12 +118,12 @@ public class WishlistAppService {
                 .isValid(checkBuildConfigValid(wishlist.getBuildConfigCode()))
                 .build();
     }
-    
+
     private WishlistDetailResult toWishlistDetailResult(Wishlist wishlist) {
         Map<String, String> featureCodes = parseBuildConfigToFeatureCodes(wishlist.getBuildConfigCode());
         SelectedSaleModelResult selectedModel = saleModelAppService.getSelectedSaleModelByFeatureCodes(
                 wishlist.getSaleCode(), featureCodes);
-        
+
         return WishlistDetailResult.builder()
                 .wishlistId(wishlist.getId())
                 .saleCode(wishlist.getSaleCode())
@@ -143,13 +139,13 @@ public class WishlistAppService {
                 .isValid(checkBuildConfigValid(wishlist.getBuildConfigCode()))
                 .build();
     }
-    
+
     private Map<String, String> parseBuildConfigToFeatureCodes(String buildConfigCode) {
         Map<String, String> featureCodes = new HashMap<>();
-        
+
         try {
             VmdBuildConfigResponse buildConfig = vmdVehicleModelConfigService.getBuildConfigByCode(buildConfigCode);
-            
+
             if (buildConfig != null && buildConfig.getFeatureCodes() != null) {
                 for (VmdBuildConfigFeatureCodeResponse fc : buildConfig.getFeatureCodes()) {
                     String familyCode = fc.getFamilyCode();
@@ -157,7 +153,7 @@ public class WishlistAppService {
                         featureCodes.put(familyCode, fc.getFeatureCode()[0]);
                     }
                 }
-                
+
                 if (buildConfig.getBaseModelCode() != null && !buildConfig.getBaseModelCode().isEmpty()) {
                     featureCodes.put("BASE_MODEL", buildConfig.getBaseModelCode());
                 }
@@ -165,10 +161,10 @@ public class WishlistAppService {
         } catch (Exception e) {
             log.warn("解析生产配置失败: buildConfigCode={}", buildConfigCode, e);
         }
-        
+
         return featureCodes;
     }
-    
+
     private boolean checkBuildConfigValid(String buildConfigCode) {
         try {
             VmdBuildConfigResponse buildConfig = vmdVehicleModelConfigService.getBuildConfigByCode(buildConfigCode);

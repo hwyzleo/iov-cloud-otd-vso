@@ -20,6 +20,7 @@ public class VsoBaseException extends BaseException {
     protected static final int ERROR_CODE_ACCOUNT_NOT_EXIST = 301007;
     protected static final int ERROR_CODE_SALE_MODEL_CONFIG_HAS_LOCKED = 301008;
     protected static final int ERROR_CODE_WISHLIST_NOT_EXIST = 301009;
+    protected static final int ERROR_CODE_BUILD_CONFIG_NOT_MATCHED = 301010;
 
     public VsoBaseException(String message) {
         super(ERROR_CODE, message);
