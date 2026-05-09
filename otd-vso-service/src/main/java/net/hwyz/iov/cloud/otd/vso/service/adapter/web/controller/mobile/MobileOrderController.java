@@ -13,8 +13,11 @@ import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.*;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.query.OrderQuery;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.*;
 import net.hwyz.iov.cloud.otd.vso.service.application.service.OrderAppService;
+import net.hwyz.iov.cloud.otd.vso.service.application.service.WishlistAppService;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 @Slf4j
@@ -24,7 +27,31 @@ import java.util.List;
 public class MobileOrderController extends BaseController {
 
     private final OrderAppService vehicleSaleOrderAppService;
+    private final WishlistAppService wishlistAppService;
 
+    /**
+     * 获取我的车辆列表（合并心愿单和订单）
+     */
+    @GetMapping("/myVehicleList")
+    public ApiResponse<List<MyVehicleVo>> getMyVehicleList() {
+        log.info("手机客户端[{}]获取我的车辆列表", ParamHelper.getClientAccountInfo());
+        String accountId = SecurityContextHolder.getUserId();
+        
+        List<WishlistListResult> wishlists = wishlistAppService.getWishlistList(accountId);
+        List<OrderListResult> orders = vehicleSaleOrderAppService.search(OrderQuery.builder().type("valid").build());
+        
+        List<MyVehicleVo> myVehicles = new ArrayList<>();
+        myVehicles.addAll(MyVehicleAssembler.INSTANCE.fromWishlistList(wishlists));
+        myVehicles.addAll(MyVehicleAssembler.INSTANCE.fromOrderList(orders));
+        
+        myVehicles.sort(Comparator.comparing(MyVehicleVo::getModifyTime, Comparator.nullsLast(Comparator.reverseOrder())));
+        
+        return ApiResponse.ok(myVehicles);
+    }
+
+    /**
+     * 获取订单列表
+     */
     @GetMapping("/order")
     public ApiResponse<List<OrderVo>> getOrderList(@RequestParam(required = false) String type) {
         log.info("手机客户端[{}]获取[{}]订单列表", ParamHelper.getClientAccountInfo(), type);
@@ -35,6 +62,53 @@ public class MobileOrderController extends BaseController {
         return ApiResponse.ok(OrderVoAssembler.INSTANCE.toVoList(result));
     }
 
+    /**
+     * 创建心愿单
+     */
+    @PostMapping("/wishlist/action/create")
+    public ApiResponse<String> createWishlist(@RequestBody @Valid CreateWishlistRequestVo request) {
+        log.info("手机客户端[{}]创建心愿单", ParamHelper.getClientAccountInfo());
+        CreateWishlistCmd cmd = WishlistVoAssembler.INSTANCE.toCreateWishlistCmd(SecurityContextHolder.getUserId(), request);
+        String wishlistId = wishlistAppService.createWishlist(cmd);
+        return ApiResponse.ok(wishlistId);
+    }
+
+    /**
+     * 修改心愿单
+     */
+    @PostMapping("/wishlist/action/modify")
+    public ApiResponse<Void> modifyWishlist(@RequestBody @Valid ModifyWishlistRequestVo request) {
+        log.info("手机客户端[{}]修改心愿单[{}]", ParamHelper.getClientAccountInfo(), request.getWishlistId());
+        ModifyWishlistCmd cmd = WishlistVoAssembler.INSTANCE.toModifyWishlistCmd(SecurityContextHolder.getUserId(), request);
+        wishlistAppService.modifyWishlist(cmd);
+        return ApiResponse.ok();
+    }
+
+    /**
+     * 删除心愿单
+     */
+    @PostMapping("/wishlist/action/delete")
+    public ApiResponse<Void> deleteWishlist(@RequestBody @Valid DeleteWishlistRequestVo request) {
+        log.info("手机客户端[{}]删除心愿单[{}]", ParamHelper.getClientAccountInfo(), request.getWishlistId());
+        DeleteWishlistCmd cmd = WishlistVoAssembler.INSTANCE.toDeleteWishlistCmd(SecurityContextHolder.getUserId(), request);
+        wishlistAppService.deleteWishlist(cmd);
+        return ApiResponse.ok();
+    }
+
+    /**
+     * 获取心愿单详情
+     */
+    @GetMapping("/wishlist/{wishlistId}")
+    public ApiResponse<WishlistDetailVo> getWishlist(@PathVariable String wishlistId) {
+        log.info("手机客户端[{}]获取心愿单[{}]详情", ParamHelper.getClientAccountInfo(), wishlistId);
+        WishlistDetailResult result = wishlistAppService.getWishlistDetail(SecurityContextHolder.getUserId(), wishlistId);
+        WishlistDetailVo vo = WishlistVoAssembler.INSTANCE.toDetailVo(result);
+        return ApiResponse.ok(vo);
+    }
+
+    /**
+     * 意向金下订单
+     */
     @PostMapping("/action/earnestMoneyOrder")
     public ApiResponse<String> earnestMoneyOrder(@RequestBody @Valid EarnestMoneyOrderRequestVo request) {
         log.info("手机客户端[{}]意向金下订单", ParamHelper.getClientAccountInfo());
@@ -43,6 +117,9 @@ public class MobileOrderController extends BaseController {
         return ApiResponse.ok(orderNo);
     }
 
+    /**
+     * 定金下订单
+     */
     @PostMapping("/action/downPaymentOrder")
     public ApiResponse<String> downPaymentOrder(@RequestBody @Valid DownPaymentOrderRequestVo request) {
         log.info("手机客户端[{}]定金下订单", ParamHelper.getClientAccountInfo());
@@ -51,6 +128,9 @@ public class MobileOrderController extends BaseController {
         return ApiResponse.ok(orderNo);
     }
 
+    /**
+     * 获取订单详情
+     */
     @GetMapping("/order/{orderNo}")
     public ApiResponse<OrderResponseVo> getOrder(@PathVariable String orderNo) {
         log.info("手机客户端[{}]获取订单[{}]详情", ParamHelper.getClientAccountInfo(), orderNo);
@@ -59,6 +139,9 @@ public class MobileOrderController extends BaseController {
         return ApiResponse.ok(vo);
     }
 
+    /**
+     * 取消订单
+     */
     @PostMapping("/order/action/cancel")
     public ApiResponse<Void> cancel(@RequestBody @Valid OrderVo order) {
         log.info("手机客户端[{}]取消订单[{}]", ParamHelper.getClientAccountInfo(), order.getOrderNo());
@@ -67,6 +150,9 @@ public class MobileOrderController extends BaseController {
         return ApiResponse.ok();
     }
 
+    /**
+     * 支付订单
+     */
     @PostMapping("/order/action/pay")
     public ApiResponse<OrderPaymentResponseVo> pay(@RequestBody @Valid OrderPaymentRequestVo request) {
         log.info("手机客户端[{}]支付订单[{}]", ParamHelper.getClientAccountInfo(), request.getOrderNo());
@@ -76,6 +162,9 @@ public class MobileOrderController extends BaseController {
         return ApiResponse.ok(vo);
     }
 
+    /**
+     * 退款订单
+     */
     @PostMapping("/order/action/requestRefund")
     public ApiResponse<Void> requestRefund(@RequestBody @Valid OrderVo order) {
         log.info("手机客户端[{}]退款订单[{}]", ParamHelper.getClientAccountInfo(), order.getOrderNo());
@@ -84,6 +173,9 @@ public class MobileOrderController extends BaseController {
         return ApiResponse.ok();
     }
 
+    /**
+     * 意向金转定金
+     */
     @PostMapping("/order/action/earnestMoneyToDownPayment")
     public ApiResponse<Void> earnestMoneyToDownPayment(@RequestBody @Valid OrderVo order) {
         log.info("手机客户端[{}]订单[{}]意向金转定金", ParamHelper.getClientAccountInfo(), order.getOrderNo());
@@ -92,6 +184,9 @@ public class MobileOrderController extends BaseController {
         return ApiResponse.ok();
     }
 
+    /**
+     * 锁定订单
+     */
     @PostMapping("/order/action/lock")
     public ApiResponse<Void> lock(@RequestBody @Valid OrderVo order) {
         log.info("手机客户端[{}]锁定订单[{}]", ParamHelper.getClientAccountInfo(), order.getOrderNo());

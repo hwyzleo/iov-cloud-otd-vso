@@ -1,7 +1,6 @@
-package net.hwyz.iov.cloud.otd.vso.service.application.dto.result;
+package net.hwyz.iov.cloud.otd.vso.service.adapter.web.vo;
 
-import lombok.Builder;
-import lombok.Data;
+import lombok.*;
 
 import java.math.BigDecimal;
 import java.util.Date;
@@ -9,21 +8,25 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 心愿单列表结果
+ * 我的车辆 VO（合并心愿单和订单）
  *
  * @author VSO Team
  */
 @Data
 @Builder
-public class WishlistListResult {
+@NoArgsConstructor
+@AllArgsConstructor
+public class MyVehicleVo {
 
-    private String wishlistId;
-    private String saleCode;
-    private String buildConfigCode;
+    private String id;
+    private String type;
+    private String displayName;
+    private Integer state;
     private Date createTime;
     private Date modifyTime;
 
-    private String displayName;
+    private String saleCode;
+    private String buildConfigCode;
     private Map<String, String> saleModelConfigType;
     private Map<String, String> saleModelConfigName;
     private List<String> saleModelImages;

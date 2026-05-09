@@ -23,6 +23,11 @@ public interface WishlistPoConverter {
 
     @Mapping(target = "wishlistId", source = "id")
     @Mapping(target = "id", ignore = true)
+    @Mapping(target = "createBy", ignore = true)
+    @Mapping(target = "modifyBy", ignore = true)
+    @Mapping(target = "rowVersion", ignore = true)
+    @Mapping(target = "rowValid", ignore = true)
+    @Mapping(target = "description", ignore = true)
     WishlistPo toPo(Wishlist domain);
 
     List<Wishlist> toDomainList(List<WishlistPo> poList);

@@ -108,12 +108,16 @@ public class WishlistAppService {
         SelectedSaleModelResult selectedModel = saleModelAppService.getSelectedSaleModelByFeatureCodes(
                 wishlist.getSaleCode(), featureCodes);
 
+        String displayName = selectedModel.getSaleModelConfigName() != null ?
+                selectedModel.getSaleModelConfigName().get("MODEL") : "";
+
         return WishlistListResult.builder()
                 .wishlistId(wishlist.getId())
                 .saleCode(wishlist.getSaleCode())
                 .buildConfigCode(wishlist.getBuildConfigCode())
                 .createTime(wishlist.getCreateTime())
                 .modifyTime(wishlist.getModifyTime())
+                .displayName(displayName)
                 .saleModelConfigType(selectedModel.getSaleModelConfigType())
                 .saleModelConfigName(selectedModel.getSaleModelConfigName())
                 .saleModelImages(selectedModel.getSaleModelImages())
