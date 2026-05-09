@@ -108,8 +108,12 @@ public class WishlistAppService {
         SelectedSaleModelResult selectedModel = saleModelAppService.getSelectedSaleModelByFeatureCodes(
                 wishlist.getSaleCode(), featureCodes);
 
-        String displayName = selectedModel.getSaleModelConfigName() != null ?
-                selectedModel.getSaleModelConfigName().get("MODEL") : "";
+        String displayName = "";
+        if (selectedModel.getSaleModelConfigName() != null) {
+            // 优先使用 BASE_MODEL，如果没有则使用 MODEL
+            displayName = selectedModel.getSaleModelConfigName().getOrDefault("BASE_MODEL", 
+                    selectedModel.getSaleModelConfigName().getOrDefault("MODEL", ""));
+        }
 
         return WishlistListResult.builder()
                 .wishlistId(wishlist.getId())
