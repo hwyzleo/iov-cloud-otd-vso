@@ -383,67 +383,10 @@ public class SaleModelAppService {
      * @return 匹配的生产配置代码，如果没有匹配到返回null
      */
     private String matchBuildConfigCode(String saleCode, Map<String, String> featureCodes, String baseModelCode) {
-        List<SaleModelBuildConfigPo> buildConfigs = saleModelBuildConfigRepository.findBySaleCode(saleCode);
-
-        for (SaleModelBuildConfigPo bc : buildConfigs) {
-            if (!bc.getEnable()) continue;
-
-            VmdBuildConfigResponse buildConfig = vmdVehicleModelConfigService.getBuildConfigByCode(bc.getBuildConfigCode());
-
-            if (buildConfig != null && buildConfig.getFeatureCodes() != null) {
-                // 如果指定了基础车型，先检查基础车型是否匹配
-                if (baseModelCode != null && !baseModelCode.isEmpty()) {
-                    if (buildConfig.getBaseModelCode() == null || 
-                        !buildConfig.getBaseModelCode().equals(baseModelCode)) {
-                        continue;
-                    }
-                }
-
-                boolean matched = checkFeatureCodesMatch(buildConfig.getFeatureCodes(), featureCodes);
-                if (matched) {
-                    return bc.getBuildConfigCode();
-                }
-            }
-        }
-
-        return null;
-    }
-
-    /**
-     * 检查特征值是否匹配
-     *
-     * @param featureCodesFromBuildConfig 生产配置的特征值列表
-     * @param selectedFeatureCodes        用户选择的特征值
-     * @return 是否匹配
-     */
-    private boolean checkFeatureCodesMatch(List<VmdBuildConfigFeatureCodeResponse> featureCodesFromBuildConfig,
-                                           Map<String, String> selectedFeatureCodes) {
-        if (featureCodesFromBuildConfig == null || selectedFeatureCodes == null) {
-            return false;
-        }
-
-        Map<String, Set<String>> buildConfigFeatureMap = new HashMap<>();
-        for (VmdBuildConfigFeatureCodeResponse fc : featureCodesFromBuildConfig) {
-            String familyCode = fc.getFamilyCode();
-            buildConfigFeatureMap.computeIfAbsent(familyCode, k -> new HashSet<>());
-            if (fc.getFeatureCode() != null) {
-                for (String code : fc.getFeatureCode()) {
-                    buildConfigFeatureMap.get(familyCode).add(code);
-                }
-            }
-        }
-
-        for (Map.Entry<String, String> entry : selectedFeatureCodes.entrySet()) {
-            String familyCode = entry.getKey();
-            String featureCode = entry.getValue();
-
-            Set<String> allowedCodes = buildConfigFeatureMap.get(familyCode);
-            if (allowedCodes == null || !allowedCodes.contains(featureCode)) {
-                return false;
-            }
-        }
-
-        return true;
+        Map<String, String> featureConfig = new HashMap<>(featureCodes);
+        featureConfig.remove("BASE_MODEL");
+        
+        return vmdVehicleModelConfigService.getVehicleBuildConfigCode(featureConfig);
     }
 
     public List<SaleModelBuildConfigVo> getBuildConfigPageBySaleCode(String saleCode) {
