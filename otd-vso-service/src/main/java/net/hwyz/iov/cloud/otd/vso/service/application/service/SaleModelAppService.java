@@ -2,6 +2,7 @@ package net.hwyz.iov.cloud.otd.vso.service.application.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import net.hwyz.iov.cloud.edd.dictionary.api.service.DictionaryService;
 import net.hwyz.iov.cloud.edd.vmd.api.service.VmdVehicleModelConfigService;
 import net.hwyz.iov.cloud.edd.vmd.api.vo.response.VmdBuildConfigFeatureCodeResponse;
 import net.hwyz.iov.cloud.edd.vmd.api.vo.response.VmdBuildConfigResponse;
@@ -23,7 +24,6 @@ import net.hwyz.iov.cloud.otd.vso.service.domain.repository.SaleModelConfigRepos
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.SaleModelRepository;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.mapper.PurchaseBenefitsMapper;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.*;
-import net.hwyz.iov.cloud.tsp.dictionary.api.feign.service.ExDictionaryService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -40,7 +40,7 @@ public class SaleModelAppService {
     private final SaleModelConfigRepository saleModelConfigRepository;
     private final SaleModelBuildConfigRepository saleModelBuildConfigRepository;
     private final SaleModelBaseModelRepository saleModelBaseModelRepository;
-    private final ExDictionaryService exDictionaryService;
+    private final DictionaryService dictionaryService;
     private final VmdVehicleModelConfigService vmdVehicleModelConfigService;
     private final PurchaseBenefitsMapper purchaseBenefitsMapper;
 
@@ -254,13 +254,13 @@ public class SaleModelAppService {
 
     public List<LicenseArea> getLicenseAreaList() {
         List<LicenseArea> list = new ArrayList<>();
-        exDictionaryService.getDictionaryMap("province").forEach(p ->
-                list.add(LicenseArea.builder().provinceCode(p.get("code").toString()).displayName(p.get("name").toString()).build()));
-        exDictionaryService.getDictionaryMap("city").forEach(c ->
+        dictionaryService.getDictionary("province").getItems().forEach(p ->
+                list.add(LicenseArea.builder().provinceCode(p.getFields().get("code").toString()).displayName(p.getFields().get("name").toString()).build()));
+        dictionaryService.getDictionary("city").getItems().forEach(c ->
                 list.add(LicenseArea.builder()
-                        .provinceCode(c.get("province_code").toString())
-                        .cityCode(c.get("code").toString())
-                        .displayName(c.get("name").toString()).build()));
+                        .provinceCode(c.getFields().get("province_code").toString())
+                        .cityCode(c.getFields().get("code").toString())
+                        .displayName(c.getFields().get("name").toString()).build()));
         return list;
     }
 
@@ -377,15 +377,15 @@ public class SaleModelAppService {
     /**
      * 根据选择的特征值匹配 BuildConfigCode
      *
-     * @param saleCode     销售代码
-     * @param featureCodes 特征值选择
+     * @param saleCode      销售代码
+     * @param featureCodes  特征值选择
      * @param baseModelCode 基础车型代码（可选）
      * @return 匹配的生产配置代码，如果没有匹配到返回null
      */
     private String matchBuildConfigCode(String saleCode, Map<String, String> featureCodes, String baseModelCode) {
         Map<String, String> featureConfig = new HashMap<>(featureCodes);
         featureConfig.remove("BASE_MODEL");
-        
+
         return vmdVehicleModelConfigService.getVehicleBuildConfigCode(featureConfig);
     }
 
@@ -469,7 +469,7 @@ public class SaleModelAppService {
                         FeatureCodeRangeVo newRange = new FeatureCodeRangeVo();
                         newRange.setFamilyCode(familyCode);
                         newRange.setFamilyName(familyName);
-                        
+
                         String familyKey = familyCode + "_";
                         SaleModelConfigPo familyConfig = configMap.get(familyKey);
                         if (familyConfig != null) {
@@ -490,7 +490,7 @@ public class SaleModelAppService {
                             newRange.setEnable(true);
                             newRange.setSort(0);
                         }
-                        
+
                         newRange.setFeatureDetails(new ArrayList<>());
                         return newRange;
                     });
@@ -542,7 +542,7 @@ public class SaleModelAppService {
     public List<Long> batchCreateBuildConfig(Long saleModelId, SaleModelBuildConfigDto dto, String userId) {
         SaleModelResult model = getSaleModelById(saleModelId);
         List<Long> ids = new ArrayList<>();
-        
+
         List<String> buildConfigCodes = dto.getBuildConfigCodes();
         if (buildConfigCodes == null || buildConfigCodes.isEmpty()) {
             if (dto.getBuildConfigCode() != null && !dto.getBuildConfigCode().isEmpty()) {
@@ -552,7 +552,7 @@ public class SaleModelAppService {
                 return ids;
             }
         }
-        
+
         for (String buildConfigCode : buildConfigCodes) {
             if (saleModelBuildConfigRepository.findBySaleCodeAndBuildConfigCode(model.getSaleCode(), buildConfigCode).isPresent()) {
                 log.info("生产配置已存在关联关系，跳过: saleCode={}, buildConfigCode={}", model.getSaleCode(), buildConfigCode);

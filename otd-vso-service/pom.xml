@@ -42,8 +42,8 @@
         </dependency>
 
         <dependency>
-            <groupId>net.hwyz.iov.cloud.tsp</groupId>
-            <artifactId>dictionary-api</artifactId>
+            <groupId>net.hwyz.iov.cloud.edd</groupId>
+            <artifactId>edd-dictionary-api</artifactId>
             <version>${dictionary.version}</version>
         </dependency>
 
@@ -51,12 +51,6 @@
             <groupId>net.hwyz.iov.cloud.dms</groupId>
             <artifactId>org-api</artifactId>
             <version>${org.version}</version>
-        </dependency>
-
-        <!-- 框架: WEB -->
-        <dependency>
-            <groupId>net.hwyz.iov.cloud.framework</groupId>
-            <artifactId>framework-web-starter</artifactId>
         </dependency>
 
         <!-- 框架: MySQL -->
