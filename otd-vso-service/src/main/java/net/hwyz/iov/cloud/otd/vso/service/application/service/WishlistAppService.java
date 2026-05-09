@@ -5,7 +5,6 @@ import lombok.extern.slf4j.Slf4j;
 import net.hwyz.iov.cloud.edd.vmd.api.service.VmdVehicleModelConfigService;
 import net.hwyz.iov.cloud.edd.vmd.api.vo.response.VmdBuildConfigFeatureCodeResponse;
 import net.hwyz.iov.cloud.edd.vmd.api.vo.response.VmdBuildConfigResponse;
-import net.hwyz.iov.cloud.otd.vso.service.adapter.web.vo.FeatureCodeRangeVo;
 import net.hwyz.iov.cloud.otd.vso.service.adapter.web.vo.SaleModelConfigFamilyVo;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.CreateWishlistCmd;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.DeleteWishlistCmd;
@@ -64,12 +63,15 @@ public class WishlistAppService {
 
     @Transactional(rollbackFor = Exception.class)
     public void modifyWishlist(ModifyWishlistCmd cmd) {
+        Map<String, String> featureConfig = cmd.getFeatureConfig();
         log.info("修改心愿单：wishlistId={}, accountId={}, featureConfig={}",
-                cmd.getWishlistId(), cmd.getAccountId(), cmd.getFeatureConfig());
+                cmd.getWishlistId(), cmd.getAccountId(), featureConfig);
+        // 去除基础车型
+        featureConfig.remove("BASE_MODEL");
 
         Wishlist wishlist = findWishlistById(cmd.getAccountId(), cmd.getWishlistId());
 
-        String buildConfigCode = vmdVehicleModelConfigService.getVehicleBuildConfigCode(cmd.getFeatureConfig());
+        String buildConfigCode = vmdVehicleModelConfigService.getVehicleBuildConfigCode(featureConfig);
 
         if (buildConfigCode == null || buildConfigCode.isEmpty()) {
             throw new BuildConfigNotMatchedException(wishlist.getSaleCode());
@@ -116,7 +118,7 @@ public class WishlistAppService {
         String displayName = "";
         if (selectedModel.getSaleModelConfigName() != null) {
             // 优先使用 BASE_MODEL，如果没有则使用 MODEL
-            displayName = selectedModel.getSaleModelConfigName().getOrDefault("BASE_MODEL", 
+            displayName = selectedModel.getSaleModelConfigName().getOrDefault("BASE_MODEL",
                     selectedModel.getSaleModelConfigName().getOrDefault("MODEL", ""));
         }
 
