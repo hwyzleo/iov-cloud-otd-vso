@@ -34,7 +34,7 @@
         )
         VALUES (
             #{id}, #{saleCode}, #{baseModelCode}, #{baseModelName}, #{baseModelImage}, #{baseModelPrice}, #{baseModelDesc}, #{baseModelParam}, #{enable}, #{sort},
-            #{description}, now(), #{createBy}, now(), #{modifyBy}, #{rowVersion}, #{rowValid}
+            #{description}, now(), #{createBy}, now(), #{modifyBy}, 1, 1
         )
     </insert>
 

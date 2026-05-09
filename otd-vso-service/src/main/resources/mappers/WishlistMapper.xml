@@ -31,7 +31,7 @@
         )
         VALUES (
             #{id}, #{wishlistId}, #{userId}, #{saleCode}, #{buildConfigCode}, #{wishlistName}, #{status},
-            #{description}, now(), #{createBy}, now(), #{modifyBy}, #{rowVersion}, #{rowValid}
+            #{description}, now(), #{createBy}, now(), #{modifyBy}, 1, 1
         )
     </insert>
 
