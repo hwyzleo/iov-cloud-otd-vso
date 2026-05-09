@@ -26,11 +26,14 @@ public class WishlistRepositoryImpl implements WishlistRepository {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Wishlist save(Wishlist wishlist) {
+        WishlistPo existingPo = wishlistMapper.selectByWishlistId(wishlist.getId());
         WishlistPo po = WishlistPoConverter.INSTANCE.toPo(wishlist);
-        if (po.getId() == null) {
-            wishlistMapper.insertPo(po);
-        } else {
+        
+        if (existingPo != null) {
+            po.setId(existingPo.getId());
             wishlistMapper.updatePo(po);
+        } else {
+            wishlistMapper.insertPo(po);
         }
         return WishlistPoConverter.INSTANCE.toDomain(po);
     }
