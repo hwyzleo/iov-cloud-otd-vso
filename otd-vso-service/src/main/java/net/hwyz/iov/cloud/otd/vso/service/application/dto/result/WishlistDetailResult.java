@@ -3,7 +3,10 @@ package net.hwyz.iov.cloud.otd.vso.service.application.dto.result;
 import lombok.Builder;
 import lombok.Data;
 
+import java.math.BigDecimal;
 import java.util.Date;
+import java.util.List;
+import java.util.Map;
 
 /**
  * 心愿单详情结果
@@ -19,5 +22,13 @@ public class WishlistDetailResult {
     private String buildConfigCode;
     private Date createTime;
     private Date modifyTime;
+
+    private Map<String, String> saleModelConfigType;
+    private Map<String, String> saleModelConfigName;
+    private Map<String, BigDecimal> saleModelConfigPrice;
+    private List<String> saleModelImages;
+    private String saleModelDesc;
+    private BigDecimal totalPrice;
+    private Boolean isValid;
 
 }

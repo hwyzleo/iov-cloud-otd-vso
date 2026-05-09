@@ -3,6 +3,8 @@ package net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd;
 import lombok.Builder;
 import lombok.Data;
 
+import java.util.Map;
+
 /**
  * 修改心愿单命令
  *
@@ -14,6 +16,6 @@ public class ModifyWishlistCmd {
 
     private String accountId;
     private String wishlistId;
-    private String buildConfigCode;
+    private Map<String, String> featureConfig;
 
 }
