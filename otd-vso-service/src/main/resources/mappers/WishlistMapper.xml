@@ -83,7 +83,7 @@
         SELECT <include refid="baseColumnList"/>
         FROM vso_wishlist t
         WHERE t.user_id = #{userId}
-        AND t.status = 'active'
+        AND t.status = 'ACTIVE'
         AND t.row_valid = 1
         ORDER BY t.modify_time DESC
     </select>
