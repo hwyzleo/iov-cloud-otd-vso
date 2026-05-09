@@ -39,10 +39,13 @@ public class WishlistAppService {
 
     @Transactional(rollbackFor = Exception.class)
     public String createWishlist(CreateWishlistCmd cmd) {
+        Map<String, String> featureConfig = cmd.getFeatureConfig();
         log.info("创建心愿单：accountId={}, saleCode={}, featureConfig={}",
-                cmd.getAccountId(), cmd.getSaleCode(), cmd.getFeatureConfig());
+                cmd.getAccountId(), cmd.getSaleCode(), featureConfig);
+        // 去除基础车型
+        featureConfig.remove("BASE_MODEL");
 
-        String buildConfigCode = vmdVehicleModelConfigService.getVehicleBuildConfigCode(cmd.getFeatureConfig());
+        String buildConfigCode = vmdVehicleModelConfigService.getVehicleBuildConfigCode(featureConfig);
 
         if (buildConfigCode == null || buildConfigCode.isEmpty()) {
             throw new BuildConfigNotMatchedException(cmd.getSaleCode());
