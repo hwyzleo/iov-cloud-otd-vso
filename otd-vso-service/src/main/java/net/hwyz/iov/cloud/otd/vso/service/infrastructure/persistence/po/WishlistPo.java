@@ -2,17 +2,19 @@ package net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po;
 
 import com.baomidou.mybatisplus.annotation.*;
 import lombok.Data;
-import java.io.Serializable;
-import java.time.LocalDateTime;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
+import net.hwyz.iov.cloud.framework.mysql.po.BasePo;
 
-/**
- * 心愿单持久化对象
- *
- * @author VSO Team
- */
+import java.io.Serializable;
+
 @Data
+@SuperBuilder
+@NoArgsConstructor
+@EqualsAndHashCode(callSuper = true)
 @TableName("vso_wishlist")
-public class WishlistPo implements Serializable {
+public class WishlistPo extends BasePo {
 
     private static final long serialVersionUID = 1L;
 
@@ -36,26 +38,5 @@ public class WishlistPo implements Serializable {
 
     @TableField("status")
     private String status;
-
-    @TableField(value = "create_time", fill = FieldFill.INSERT)
-    private LocalDateTime createTime;
-
-    @TableField(value = "create_by", fill = FieldFill.INSERT)
-    private String createBy;
-
-    @TableField(value = "modify_time", fill = FieldFill.INSERT_UPDATE)
-    private LocalDateTime modifyTime;
-
-    @TableField(value = "modify_by", fill = FieldFill.INSERT_UPDATE)
-    private String modifyBy;
-
-    @TableField(value = "row_version", fill = FieldFill.INSERT)
-    private Integer rowVersion;
-
-    @TableField(value = "row_valid", fill = FieldFill.INSERT)
-    private Integer rowValid;
-
-    @TableField("description")
-    private String description;
 
 }

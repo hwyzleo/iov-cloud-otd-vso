@@ -2,17 +2,19 @@ package net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po;
 
 import com.baomidou.mybatisplus.annotation.*;
 import lombok.Data;
-import java.io.Serializable;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
+import net.hwyz.iov.cloud.framework.mysql.po.BasePo;
+
 import java.time.LocalDateTime;
 
-/**
- * 订单主表持久化对象
- *
- * @author VSO Team
- */
 @Data
+@SuperBuilder
+@NoArgsConstructor
+@EqualsAndHashCode(callSuper = true)
 @TableName("vso_order")
-public class OrderPo implements Serializable {
+public class OrderPo extends BasePo {
 
     private static final long serialVersionUID = 1L;
 
@@ -108,23 +110,5 @@ public class OrderPo implements Serializable {
 
     @TableField("close_time")
     private LocalDateTime closeTime;
-
-    @TableField(value = "create_time", fill = FieldFill.INSERT)
-    private LocalDateTime createTime;
-
-    @TableField(value = "create_by", fill = FieldFill.INSERT)
-    private Long createBy;
-
-    @TableField(value = "modify_time", fill = FieldFill.INSERT_UPDATE)
-    private LocalDateTime modifyTime;
-
-    @TableField(value = "modify_by", fill = FieldFill.INSERT_UPDATE)
-    private Long modifyBy;
-
-    @TableField(value = "row_version", fill = FieldFill.INSERT)
-    private Integer rowVersion;
-
-    @TableField(value = "row_valid", fill = FieldFill.INSERT)
-    private Integer rowValid;
 
 }

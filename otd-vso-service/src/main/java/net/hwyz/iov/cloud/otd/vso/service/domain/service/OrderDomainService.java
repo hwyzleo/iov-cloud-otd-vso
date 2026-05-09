@@ -179,7 +179,7 @@ public class OrderDomainService {
         po.setSmallOrderNo(order.getSmallOrderNo());
         po.setOrderType(order.getOrderType());
         po.setOrderSource(order.getOrderSource());
-        po.setRowValid(order.getValid() != null && order.getValid() ? 1 : 0);
+        po.setRowValid(order.getValid() != null && order.getValid());
         return po;
     }
 
