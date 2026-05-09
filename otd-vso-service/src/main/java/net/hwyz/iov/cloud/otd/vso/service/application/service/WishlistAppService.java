@@ -5,9 +5,12 @@ import lombok.extern.slf4j.Slf4j;
 import net.hwyz.iov.cloud.edd.vmd.api.service.VmdVehicleModelConfigService;
 import net.hwyz.iov.cloud.edd.vmd.api.vo.response.VmdBuildConfigFeatureCodeResponse;
 import net.hwyz.iov.cloud.edd.vmd.api.vo.response.VmdBuildConfigResponse;
+import net.hwyz.iov.cloud.otd.vso.service.adapter.web.vo.FeatureCodeRangeVo;
+import net.hwyz.iov.cloud.otd.vso.service.adapter.web.vo.SaleModelConfigFamilyVo;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.CreateWishlistCmd;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.DeleteWishlistCmd;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.ModifyWishlistCmd;
+import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.SaleModelConfigItemResult;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.SelectedSaleModelResult;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.WishlistDetailResult;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.WishlistListResult;
@@ -18,6 +21,8 @@ import net.hwyz.iov.cloud.otd.vso.service.domain.repository.WishlistRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -135,20 +140,82 @@ public class WishlistAppService {
         SelectedSaleModelResult selectedModel = saleModelAppService.getSelectedSaleModelByFeatureCodes(
                 wishlist.getSaleCode(), featureCodes);
 
+        // 构建 displayName
+        String displayName = "";
+        if (selectedModel.getSaleModelConfigName() != null) {
+            displayName = selectedModel.getSaleModelConfigName().getOrDefault("BASE_MODEL",
+                    selectedModel.getSaleModelConfigName().getOrDefault("MODEL", ""));
+        }
+
+        // 将 Map 转换为配置项列表
+        List<SaleModelConfigItemResult> saleModelConfigs = buildConfigItems(wishlist.getSaleCode(), selectedModel);
+
         return WishlistDetailResult.builder()
                 .wishlistId(wishlist.getId())
                 .saleCode(wishlist.getSaleCode())
                 .buildConfigCode(wishlist.getBuildConfigCode())
                 .createTime(wishlist.getCreateTime())
                 .modifyTime(wishlist.getModifyTime())
-                .saleModelConfigType(selectedModel.getSaleModelConfigType())
-                .saleModelConfigName(selectedModel.getSaleModelConfigName())
-                .saleModelConfigPrice(selectedModel.getSaleModelConfigPrice())
+                .displayName(displayName)
+                .saleModelConfigs(saleModelConfigs)
                 .saleModelImages(selectedModel.getSaleModelImages())
                 .saleModelDesc(selectedModel.getSaleModelDesc())
                 .totalPrice(selectedModel.getTotalPrice())
                 .isValid(checkBuildConfigValid(wishlist.getBuildConfigCode()))
                 .build();
+    }
+
+    /**
+     * 从 SelectedSaleModelResult 构建配置项列表
+     */
+    private List<SaleModelConfigItemResult> buildConfigItems(String saleCode, SelectedSaleModelResult selectedModel) {
+        List<SaleModelConfigItemResult> configItems = new ArrayList<>();
+
+        if (selectedModel.getSaleModelConfigType() == null) {
+            return configItems;
+        }
+
+        Map<String, String> typeMap = selectedModel.getSaleModelConfigType();
+        Map<String, String> nameMap = selectedModel.getSaleModelConfigName();
+        Map<String, BigDecimal> priceMap = selectedModel.getSaleModelConfigPrice();
+
+        for (String familyCode : typeMap.keySet()) {
+            String featureCode = typeMap.get(familyCode);
+            String featureName = nameMap != null ? nameMap.getOrDefault(familyCode, featureCode) : featureCode;
+            BigDecimal featurePrice = priceMap != null ? priceMap.getOrDefault(familyCode, BigDecimal.ZERO) : BigDecimal.ZERO;
+
+            // 从 featureCode 获取特征族名称（通过调用 VMD 接口获取）
+            String familyName = getFamilyName(saleCode, familyCode);
+
+            configItems.add(SaleModelConfigItemResult.builder()
+                    .familyCode(familyCode)
+                    .familyName(familyName)
+                    .featureCode(featureCode)
+                    .featureName(featureName)
+                    .featurePrice(featurePrice)
+                    .featureImages(null)  // 可以从 selectedSaleModel 中提取图片
+                    .build());
+        }
+
+        return configItems;
+    }
+
+    /**
+     * 获取特征族名称
+     */
+    private String getFamilyName(String saleCode, String familyCode) {
+        // 从 SaleModelAppService 的配置数据中获取特征族名称
+        try {
+            List<SaleModelConfigFamilyVo> ranges = saleModelAppService.getSaleModelConfigFamilyList(saleCode);
+            for (SaleModelConfigFamilyVo range : ranges) {
+                if (range.getFamilyCode().equals(familyCode)) {
+                    return range.getFamilyName();
+                }
+            }
+        } catch (Exception e) {
+            log.warn("获取特征族名称失败: saleCode={}, familyCode={}", saleCode, familyCode, e);
+        }
+        return familyCode;  // 默认返回代码本身
     }
 
     private Map<String, String> parseBuildConfigToFeatureCodes(String buildConfigCode) {
