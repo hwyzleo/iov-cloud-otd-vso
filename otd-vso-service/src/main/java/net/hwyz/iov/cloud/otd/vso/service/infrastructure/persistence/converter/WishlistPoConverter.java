@@ -22,6 +22,7 @@ public interface WishlistPoConverter {
     Wishlist toDomain(WishlistPo po);
 
     @Mapping(target = "wishlistId", source = "id")
+    @Mapping(target = "id", ignore = true)
     WishlistPo toPo(Wishlist domain);
 
     List<Wishlist> toDomainList(List<WishlistPo> poList);
