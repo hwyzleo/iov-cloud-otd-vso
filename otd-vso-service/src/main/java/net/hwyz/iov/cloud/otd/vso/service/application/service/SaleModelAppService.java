@@ -8,7 +8,6 @@ import net.hwyz.iov.cloud.edd.vmd.api.service.VmdVehicleModelConfigService;
 import net.hwyz.iov.cloud.edd.vmd.api.vo.response.VmdBuildConfigFeatureCodeResponse;
 import net.hwyz.iov.cloud.edd.vmd.api.vo.response.VmdBuildConfigResponse;
 import net.hwyz.iov.cloud.framework.common.enums.Symbol;
-import net.hwyz.iov.cloud.framework.common.util.ParamHelper;
 import net.hwyz.iov.cloud.framework.common.util.StrUtil;
 import net.hwyz.iov.cloud.framework.web.context.SecurityContextHolder;
 import net.hwyz.iov.cloud.framework.web.util.PageUtil;
@@ -255,27 +254,30 @@ public class SaleModelAppService {
     }
 
     public List<LicenseArea> getLicenseAreaList() {
-        log.info("获取上牌区域列表");
         List<LicenseArea> list = new ArrayList<>();
         DictionaryResponse province = dictionaryService.getDictionary("province");
         if (province == null || province.getItems() == null) {
             log.warn("获取省份字典失败");
             return list;
         }
-        province.getItems().forEach(p -> list.add(LicenseArea.builder()
-                .provinceCode(p.get("code").toString())
-                .displayName(p.get("name").toString())
-                .build()));
+        for (Map<String, Object> item : province.getItems()) {
+            list.add(LicenseArea.builder()
+                    .provinceCode(item.get("code").toString())
+                    .displayName(item.get("name").toString())
+                    .build());
+        }
         DictionaryResponse city = dictionaryService.getDictionary("city");
         if (city == null || city.getItems() == null) {
             log.warn("获取城市字典失败");
             return list;
         }
-        city.getItems().forEach(c -> list.add(LicenseArea.builder()
-                .provinceCode(c.get("province_code").toString())
-                .cityCode(c.get("code").toString())
-                .displayName(c.get("name").toString())
-                .build()));
+        for (Map<String, Object> item : city.getItems()) {
+            list.add(LicenseArea.builder()
+                    .provinceCode(item.get("province_code").toString())
+                    .cityCode(item.get("code").toString())
+                    .displayName(item.get("name").toString())
+                    .build());
+        }
         return list;
     }
 
