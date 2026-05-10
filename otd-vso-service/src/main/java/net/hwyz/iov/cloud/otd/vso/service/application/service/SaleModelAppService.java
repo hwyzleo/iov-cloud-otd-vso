@@ -3,6 +3,7 @@ package net.hwyz.iov.cloud.otd.vso.service.application.service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.hwyz.iov.cloud.edd.dictionary.api.service.DictionaryService;
+import net.hwyz.iov.cloud.edd.dictionary.api.vo.response.DictionaryResponse;
 import net.hwyz.iov.cloud.edd.vmd.api.service.VmdVehicleModelConfigService;
 import net.hwyz.iov.cloud.edd.vmd.api.vo.response.VmdBuildConfigFeatureCodeResponse;
 import net.hwyz.iov.cloud.edd.vmd.api.vo.response.VmdBuildConfigResponse;
@@ -254,13 +255,25 @@ public class SaleModelAppService {
 
     public List<LicenseArea> getLicenseAreaList() {
         List<LicenseArea> list = new ArrayList<>();
-        dictionaryService.getDictionary("province").getItems().forEach(p ->
-                list.add(LicenseArea.builder().provinceCode(p.getFields().get("code").toString()).displayName(p.getFields().get("name").toString()).build()));
-        dictionaryService.getDictionary("city").getItems().forEach(c ->
-                list.add(LicenseArea.builder()
-                        .provinceCode(c.getFields().get("province_code").toString())
-                        .cityCode(c.getFields().get("code").toString())
-                        .displayName(c.getFields().get("name").toString()).build()));
+        DictionaryResponse province = dictionaryService.getDictionary("province");
+        if (province == null || province.getItems() == null) {
+            log.warn("获取省份字典失败");
+            return list;
+        }
+        province.getItems().forEach(p -> list.add(LicenseArea.builder()
+                .provinceCode(p.getFields().get("code").toString())
+                .displayName(p.getFields().get("name").toString())
+                .build()));
+        DictionaryResponse city = dictionaryService.getDictionary("city");
+        if (city == null || city.getItems() == null) {
+            log.warn("获取城市字典失败");
+            return list;
+        }
+        city.getItems().forEach(c -> list.add(LicenseArea.builder()
+                .provinceCode(c.getFields().get("province_code").toString())
+                .cityCode(c.getFields().get("code").toString())
+                .displayName(c.getFields().get("name").toString())
+                .build()));
         return list;
     }
 
