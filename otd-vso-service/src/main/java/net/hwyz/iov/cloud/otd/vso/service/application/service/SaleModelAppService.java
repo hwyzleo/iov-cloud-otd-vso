@@ -261,8 +261,8 @@ public class SaleModelAppService {
             return list;
         }
         province.getItems().forEach(p -> list.add(LicenseArea.builder()
-                .provinceCode(p.getFields().get("code").toString())
-                .displayName(p.getFields().get("name").toString())
+                .provinceCode(p.get("code").toString())
+                .displayName(p.get("name").toString())
                 .build()));
         DictionaryResponse city = dictionaryService.getDictionary("city");
         if (city == null || city.getItems() == null) {
@@ -270,9 +270,9 @@ public class SaleModelAppService {
             return list;
         }
         city.getItems().forEach(c -> list.add(LicenseArea.builder()
-                .provinceCode(c.getFields().get("province_code").toString())
-                .cityCode(c.getFields().get("code").toString())
-                .displayName(c.getFields().get("name").toString())
+                .provinceCode(c.get("province_code").toString())
+                .cityCode(c.get("code").toString())
+                .displayName(c.get("name").toString())
                 .build()));
         return list;
     }
