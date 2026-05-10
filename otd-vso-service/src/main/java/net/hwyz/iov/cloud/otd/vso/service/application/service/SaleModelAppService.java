@@ -8,6 +8,7 @@ import net.hwyz.iov.cloud.edd.vmd.api.service.VmdVehicleModelConfigService;
 import net.hwyz.iov.cloud.edd.vmd.api.vo.response.VmdBuildConfigFeatureCodeResponse;
 import net.hwyz.iov.cloud.edd.vmd.api.vo.response.VmdBuildConfigResponse;
 import net.hwyz.iov.cloud.framework.common.enums.Symbol;
+import net.hwyz.iov.cloud.framework.common.util.ParamHelper;
 import net.hwyz.iov.cloud.framework.common.util.StrUtil;
 import net.hwyz.iov.cloud.framework.web.context.SecurityContextHolder;
 import net.hwyz.iov.cloud.framework.web.util.PageUtil;
@@ -254,6 +255,7 @@ public class SaleModelAppService {
     }
 
     public List<LicenseArea> getLicenseAreaList() {
+        log.info("获取上牌区域列表");
         List<LicenseArea> list = new ArrayList<>();
         DictionaryResponse province = dictionaryService.getDictionary("province");
         if (province == null || province.getItems() == null) {
