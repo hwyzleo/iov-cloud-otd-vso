@@ -17,6 +17,7 @@ public interface EarnestMoneyOrderRequestVoAssembler {
     EarnestMoneyOrderRequestVoAssembler INSTANCE = Mappers.getMapper(EarnestMoneyOrderRequestVoAssembler.class);
 
     @Mapping(target = "accountId", source = "accountId")
+    @Mapping(target = "featureConfig", source = "vo.saleModelConfigType")
     EarnestMoneyCmd toCmd(String accountId, EarnestMoneyOrderRequestVo vo);
 
 }

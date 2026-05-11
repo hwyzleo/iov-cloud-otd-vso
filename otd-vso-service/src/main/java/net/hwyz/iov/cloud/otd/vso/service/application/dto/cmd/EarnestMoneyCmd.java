@@ -20,6 +20,7 @@ public class EarnestMoneyCmd {
     private String saleCode;
     private String licenseCityCode;
     private String buildConfigCode;
+    private Map<String, String> featureConfig;
     private Map<String, OrderModelConfig> modelConfigMap;
 
 }

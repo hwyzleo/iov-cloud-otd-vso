@@ -104,7 +104,16 @@ public class Order {
      * 初始化
      */
     public void init(String orderPersonId, String orderPersonPhone, String saleCode, OrderState orderState) {
+        if (this.id == null) {
+            this.id = IdUtil.nanoId(15);
+        }
         generateOrderNo();
+        if (this.orderType == null) {
+            this.orderType = "formal";
+        }
+        if (this.orderSource == null) {
+            this.orderSource = "capp";
+        }
         this.orderState = orderState;
         Date now = new Date();
         this.orderStateTime = now;
@@ -354,6 +363,10 @@ public class Order {
 
     public static Order fromWishlist(String accountId, String saleCode) {
         Order order = new Order();
+        order.id = IdUtil.nanoId(15);
+        order.generateOrderNo();
+        order.orderType = "formal";
+        order.orderSource = "capp";
         order.orderPersonId = accountId;
         order.saleCode = saleCode;
         order.orderState = OrderState.WISHLIST;

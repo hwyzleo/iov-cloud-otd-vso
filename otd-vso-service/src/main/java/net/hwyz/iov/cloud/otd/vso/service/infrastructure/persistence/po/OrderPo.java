@@ -66,6 +66,9 @@ public class OrderPo extends BasePo {
     @TableField("vehicle_vin")
     private String vehicleVin;
 
+    @TableField("build_config_code")
+    private String buildConfigCode;
+
     @TableField("has_exception")
     private Integer hasException;
 

@@ -3,6 +3,7 @@ package net.hwyz.iov.cloud.otd.vso.service.application.service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.hwyz.iov.cloud.dms.org.api.feign.service.ExDealershipStaffService;
+import net.hwyz.iov.cloud.edd.vmd.api.service.VmdVehicleModelConfigService;
 import net.hwyz.iov.cloud.framework.web.util.PageUtil;
 import net.hwyz.iov.cloud.otd.vso.service.adapter.web.assembler.OrderDtoAssembler;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.*;
@@ -25,7 +26,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -44,6 +47,7 @@ public class OrderAppService {
     private final OrderLockService orderLockService;
     private final TimeoutNotifyService timeoutNotifyService;
     private final OrderRepository orderRepository;
+    private final VmdVehicleModelConfigService vmdVehicleModelConfigService;
 
     /**
      * 创建小订单
@@ -327,8 +331,19 @@ public class OrderAppService {
 
     public String earnestMoneyOrder(EarnestMoneyCmd cmd) {
         Order order = createOrFindOrder(cmd.getAccountId(), cmd.getOrderNo());
+        
+        if (cmd.getFeatureConfig() != null && !cmd.getFeatureConfig().isEmpty()) {
+            Map<String, String> featureConfig = new HashMap<>(cmd.getFeatureConfig());
+            featureConfig.remove("BASE_MODEL");
+            String buildConfigCode = vmdVehicleModelConfigService.getVehicleBuildConfigCode(featureConfig);
+            if (buildConfigCode != null && !buildConfigCode.isEmpty()) {
+                order.saveBuildConfig(buildConfigCode, cmd.getModelConfigMap());
+            }
+        } else if (cmd.getBuildConfigCode() != null) {
+            order.saveBuildConfig(cmd.getBuildConfigCode(), cmd.getModelConfigMap());
+        }
+        
         order.earnestMoneyOrder();
-        order.saveBuildConfig(cmd.getBuildConfigCode(), cmd.getModelConfigMap());
         order.saveLicenseCity(cmd.getLicenseCityCode());
         orderRepository.save(order);
         return order.getOrderNo();
