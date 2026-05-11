@@ -37,6 +37,7 @@ public interface OrderPoConverter {
      * @return 数据对象
      */
 @Mappings({
+            @Mapping(target="id", ignore = true),
             @Mapping(target="orderNo", source = "orderNo"),
             @Mapping(target="orderId", source = "id")
     })

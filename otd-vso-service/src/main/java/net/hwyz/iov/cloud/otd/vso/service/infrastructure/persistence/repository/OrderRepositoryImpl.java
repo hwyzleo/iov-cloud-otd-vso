@@ -31,9 +31,11 @@ public class OrderRepositoryImpl implements OrderRepository {
     @Transactional(rollbackFor = Exception.class)
     public Order save(Order order) {
         OrderPo orderPo = OrderPoConverter.INSTANCE.fromDomain(order);
-        if (orderPo.getId() == null) {
+        OrderPo existingPo = orderMapper.selectByOrderId(order.getId());
+        if (existingPo == null) {
             orderMapper.insertPo(orderPo);
         } else {
+            orderPo.setId(existingPo.getId());
             orderMapper.updatePo(orderPo);
         }
         return OrderPoConverter.INSTANCE.toDomain(orderPo);
