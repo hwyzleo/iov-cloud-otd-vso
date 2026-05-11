@@ -36,6 +36,18 @@ public class Order {
     private String orderType;
     /** 订单来源 */
     private String orderSource;
+    /** 客户类型 */
+    private String customerType;
+    /** 品牌编码 */
+    private String brandCode;
+    /** 是否有异常单 */
+    private Boolean hasException;
+    /** 当前版本号 */
+    private Integer currentVersionNo;
+    /** 是否锁定 */
+    private Boolean lockedFlag;
+    /** 是否重开 */
+    private Boolean reopenFlag;
     /** 订单状态 */
     private OrderState orderState;
     /** 订单状态时间 */
@@ -114,6 +126,21 @@ public class Order {
         if (this.orderSource == null) {
             this.orderSource = "capp";
         }
+        if (this.customerType == null) {
+            this.customerType = "personal";
+        }
+        if (this.hasException == null) {
+            this.hasException = false;
+        }
+        if (this.currentVersionNo == null) {
+            this.currentVersionNo = 1;
+        }
+        if (this.lockedFlag == null) {
+            this.lockedFlag = false;
+        }
+        if (this.reopenFlag == null) {
+            this.reopenFlag = false;
+        }
         this.orderState = orderState;
         Date now = new Date();
         this.orderStateTime = now;
@@ -176,6 +203,10 @@ public class Order {
         }
         this.buildConfigCode = buildConfigCode;
         this.modelConfigMap = modelConfigMap;
+    }
+
+    public void saveBrandCode(String brandCode) {
+        this.brandCode = brandCode;
     }
 
     public void pay(BigDecimal payAmount) {
@@ -367,6 +398,11 @@ public class Order {
         order.generateOrderNo();
         order.orderType = "formal";
         order.orderSource = "capp";
+        order.customerType = "personal";
+        order.hasException = false;
+        order.currentVersionNo = 1;
+        order.lockedFlag = false;
+        order.reopenFlag = false;
         order.orderPersonId = accountId;
         order.saleCode = saleCode;
         order.orderState = OrderState.WISHLIST;

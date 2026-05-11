@@ -25,7 +25,10 @@ public interface OrderPoConverter {
      */
     @Mappings({
             @Mapping(target="orderNo", source = "orderNo"),
-            @Mapping(target="id", source = "orderId")
+            @Mapping(target="id", source = "orderId"),
+            @Mapping(target="hasException", expression = "java(orderPo.getHasException() != null && orderPo.getHasException() == 1)"),
+            @Mapping(target="lockedFlag", expression = "java(orderPo.getLockedFlag() != null && orderPo.getLockedFlag() == 1)"),
+            @Mapping(target="reopenFlag", expression = "java(orderPo.getReopenFlag() != null && orderPo.getReopenFlag() == 1)")
     })
     @org.mapstruct.BeanMapping(ignoreUnmappedSourceProperties = {"orderNo", "payState", "orderState", "orderStateTime", "orderTime", "saleCode", "modelConfigType", "modelConfigName", "modelConfigPrice", "modelConfigMap", "modelConfigDesc", "totalPrice", "licenseCity", "dealership", "deliveryCenter", "deliveryVin", "orderPersonId", "orderPersonType", "orderPersonName", "orderPersonIdType", "orderPersonIdNum", "purchasePlan", "transportApplyPersonId", "transportApplyPersonName", "deliveryPersonId", "deliveryPersonName", "earnestMoneyTime", "earnestMoneyAmount", "downPaymentTime", "downPaymentAmount", "transportApplyTime", "customerInfo", "organizationInfo", "vehicleInfo", "orderAmount", "orderPersonPhone", "buildConfigLock", "remark", "valid", "domainEvents"})
     Order toDomain(OrderPo orderPo);
@@ -36,12 +39,15 @@ public interface OrderPoConverter {
      * @param order 领域对象
      * @return 数据对象
      */
-@Mappings({
+    @Mappings({
             @Mapping(target="id", ignore = true),
             @Mapping(target="orderNo", source = "orderNo"),
-            @Mapping(target="orderId", source = "id")
+            @Mapping(target="orderId", source = "id"),
+            @Mapping(target="hasException", expression = "java(order.getHasException() != null && order.getHasException() ? 1 : 0)"),
+            @Mapping(target="lockedFlag", expression = "java(order.getLockedFlag() != null && order.getLockedFlag() ? 1 : 0)"),
+            @Mapping(target="reopenFlag", expression = "java(order.getReopenFlag() != null && order.getReopenFlag() ? 1 : 0)")
     })
-    @org.mapstruct.BeanMapping(ignoreUnmappedSourceProperties = {"orderNo", "earnestMoneyTime", "earnestMoneyAmount", "downPaymentTime", "downPaymentAmount", "transportApplyTime", "customerInfo", "organizationInfo", "vehicleInfo", "orderAmount", "orderPersonPhone", "buildConfigLock", "remark", "valid", "domainEvents", "payState", "orderState", "orderStateTime", "orderTime", "saleCode", "modelConfigType", "modelConfigName", "modelConfigPrice", "modelConfigMap", "modelConfigDesc", "totalPrice", "licenseCity", "dealership", "deliveryCenter", "deliveryVin", "orderPersonId", "orderPersonType", "orderPersonName", "orderPersonIdType", "orderPersonIdNum", "purchasePlan", "transportApplyPersonId", "transportApplyPersonName", "deliveryPersonId", "deliveryPersonName", "sourceRemark", "customerType", "mainStatus", "endType", "previousMainStatus", "brandCode", "regionCode", "storeCode", "salesCode", "vehicleVin", "hasException", "currentVersionNo", "lockedFlag", "reopenFlag", "cancelReason", "closeReason", "voidReason", "createdAtBusiness", "auditSubmitTime", "auditPassTime", "deliveryFinishTime", "finishTime", "cancelTime", "closeTime", "createTime", "createBy", "modifyTime", "modifyBy"})
+    @org.mapstruct.BeanMapping(ignoreUnmappedSourceProperties = {"orderNo", "earnestMoneyTime", "earnestMoneyAmount", "downPaymentTime", "downPaymentAmount", "transportApplyTime", "customerInfo", "organizationInfo", "vehicleInfo", "orderAmount", "orderPersonPhone", "buildConfigLock", "remark", "valid", "domainEvents", "payState", "orderState", "orderStateTime", "orderTime", "saleCode", "modelConfigType", "modelConfigName", "modelConfigPrice", "modelConfigMap", "modelConfigDesc", "totalPrice", "licenseCity", "dealership", "deliveryCenter", "deliveryVin", "orderPersonId", "orderPersonType", "orderPersonName", "orderPersonIdType", "orderPersonIdNum", "purchasePlan", "transportApplyPersonId", "transportApplyPersonName", "deliveryPersonId", "deliveryPersonName", "sourceRemark", "endType", "previousMainStatus", "regionCode", "storeCode", "salesCode", "vehicleVin", "cancelReason", "closeReason", "voidReason", "createdAtBusiness", "auditSubmitTime", "auditPassTime", "deliveryFinishTime", "finishTime", "cancelTime", "closeTime", "createTime", "createBy", "modifyTime", "modifyBy"})
     OrderPo fromDomain(Order order);
 
 }

@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.hwyz.iov.cloud.dms.org.api.feign.service.ExDealershipStaffService;
 import net.hwyz.iov.cloud.edd.vmd.api.service.VmdVehicleModelConfigService;
+import net.hwyz.iov.cloud.edd.vmd.api.vo.response.VmdBuildConfigResponse;
 import net.hwyz.iov.cloud.framework.web.util.PageUtil;
 import net.hwyz.iov.cloud.otd.vso.service.adapter.web.assembler.OrderDtoAssembler;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.*;
@@ -332,15 +333,21 @@ public class OrderAppService {
     public String earnestMoneyOrder(EarnestMoneyCmd cmd) {
         Order order = createOrFindOrder(cmd.getAccountId(), cmd.getOrderNo());
         
+        String buildConfigCode = null;
         if (cmd.getFeatureConfig() != null && !cmd.getFeatureConfig().isEmpty()) {
             Map<String, String> featureConfig = new HashMap<>(cmd.getFeatureConfig());
             featureConfig.remove("BASE_MODEL");
-            String buildConfigCode = vmdVehicleModelConfigService.getVehicleBuildConfigCode(featureConfig);
-            if (buildConfigCode != null && !buildConfigCode.isEmpty()) {
-                order.saveBuildConfig(buildConfigCode, cmd.getModelConfigMap());
-            }
+            buildConfigCode = vmdVehicleModelConfigService.getVehicleBuildConfigCode(featureConfig);
         } else if (cmd.getBuildConfigCode() != null) {
-            order.saveBuildConfig(cmd.getBuildConfigCode(), cmd.getModelConfigMap());
+            buildConfigCode = cmd.getBuildConfigCode();
+        }
+        
+        if (buildConfigCode != null && !buildConfigCode.isEmpty()) {
+            order.saveBuildConfig(buildConfigCode, cmd.getModelConfigMap());
+            VmdBuildConfigResponse buildConfig = vmdVehicleModelConfigService.getBuildConfigByCode(buildConfigCode);
+            if (buildConfig != null && buildConfig.getBrandCode() != null) {
+                order.saveBrandCode(buildConfig.getBrandCode());
+            }
         }
         
         order.earnestMoneyOrder();
