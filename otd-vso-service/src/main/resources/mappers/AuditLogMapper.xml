@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.mapper.AuditLogMapper">
+
+    <resultMap id="baseResultMap" type="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.AuditLogPo">
+        <id column="id" property="id" />
+        <result column="audit_id" property="auditId" />
+        <result column="order_id" property="orderId" />
+        <result column="event_type" property="eventType" />
+        <result column="event_name" property="eventName" />
+        <result column="operator_id" property="operatorId" />
+        <result column="operator_role" property="operatorRole" />
+        <result column="request_uri" property="requestUri" />
+        <result column="request_method" property="requestMethod" />
+        <result column="trace_id" property="traceId" />
+        <result column="operation_result" property="operationResult" />
+        <result column="request_snapshot" property="requestSnapshot" />
+        <result column="response_code" property="responseCode" />
+        <result column="ip_address" property="ipAddress" />
+        <result column="event_time" property="eventTime" />
+        <result column="create_time" property="createTime" />
+        <result column="create_by" property="createBy" />
+        <result column="modify_time" property="modifyTime" />
+        <result column="modify_by" property="modifyBy" />
+        <result column="row_version" property="rowVersion" />
+        <result column="row_valid" property="rowValid" />
+    </resultMap>
+
+    <sql id="baseColumnList">
+        t.id, t.audit_id, t.order_id, t.event_type, t.event_name, t.operator_id,
+        t.operator_role, t.request_uri, t.request_method, t.trace_id, t.operation_result,
+        t.request_snapshot, t.response_code, t.ip_address, t.event_time,
+        t.create_time, t.create_by, t.modify_time, t.modify_by, t.row_version, t.row_valid
+    </sql>
+
+    <select id="selectByOrderId" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_audit_log t
+        WHERE t.order_id = #{orderId}
+        AND t.row_valid = 1
+    </select>
+
+</mapper>

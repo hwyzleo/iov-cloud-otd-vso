@@ -36,4 +36,6 @@ public interface ExceptionOrderMapper extends BaseDao<ExceptionOrderPo, Long> {
 
     List<ExceptionOrderPo> selectPoByExample(ExceptionOrderPo example);
 
+    List<ExceptionOrderPo> selectByOrderId(@Param("orderId") String orderId);
+
 }

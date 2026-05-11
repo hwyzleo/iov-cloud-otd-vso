@@ -36,4 +36,6 @@ public interface DeliveryAppointmentMapper extends BaseDao<DeliveryAppointmentPo
 
     List<DeliveryAppointmentPo> selectPoByExample(DeliveryAppointmentPo example);
 
+    List<DeliveryAppointmentPo> selectByOrderId(@Param("orderId") String orderId);
+
 }

@@ -34,4 +34,6 @@ public interface AuditLogMapper extends BaseDao<AuditLogPo, Long> {
 
     List<AuditLogPo> selectPoByExample(AuditLogPo example);
 
+    List<AuditLogPo> selectByOrderId(@Param("orderId") String orderId);
+
 }

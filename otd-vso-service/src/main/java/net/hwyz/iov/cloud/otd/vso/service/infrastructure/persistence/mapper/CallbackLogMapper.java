@@ -36,4 +36,6 @@ public interface CallbackLogMapper extends BaseDao<CallbackLogPo, Long> {
 
     List<CallbackLogPo> selectPoByExample(CallbackLogPo example);
 
+    List<CallbackLogPo> selectByOrderId(@Param("orderId") String orderId);
+
 }

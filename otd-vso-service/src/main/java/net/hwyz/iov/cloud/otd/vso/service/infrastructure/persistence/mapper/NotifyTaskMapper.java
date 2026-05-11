@@ -34,4 +34,6 @@ public interface NotifyTaskMapper extends BaseDao<NotifyTaskPo, Long> {
 
     List<NotifyTaskPo> selectPoByExample(NotifyTaskPo example);
 
+    List<NotifyTaskPo> selectByOrderId(@Param("orderId") String orderId);
+
 }

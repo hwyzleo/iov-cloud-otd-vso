@@ -20,14 +20,19 @@ import net.hwyz.iov.cloud.framework.web.util.PageUtil;
 import net.hwyz.iov.cloud.otd.vso.api.vo.mpt.DeliveryCenterStaffMpt;
 import net.hwyz.iov.cloud.otd.vso.api.vo.mpt.TransportOrderMpt;
 import net.hwyz.iov.cloud.otd.vso.api.vo.mpt.VehicleSaleOrderMpt;
+import net.hwyz.iov.cloud.otd.vso.service.adapter.web.vo.DeleteOrderRequestVo;
+import net.hwyz.iov.cloud.otd.vso.service.adapter.web.vo.PhysicalDeleteResponseVo;
 import net.hwyz.iov.cloud.otd.vso.api.vo.mpt.request.ApplyTransportRequest;
 import net.hwyz.iov.cloud.otd.vso.api.vo.mpt.request.AssignDeliveryPersonRequest;
 import net.hwyz.iov.cloud.otd.vso.api.vo.mpt.request.AssignVehicleRequest;
 import net.hwyz.iov.cloud.otd.vso.service.adapter.web.assembler.DeliveryCenterStaffMptAssembler;
+import net.hwyz.iov.cloud.otd.vso.service.adapter.web.assembler.DeleteOrderRequestVoAssembler;
+import net.hwyz.iov.cloud.otd.vso.service.adapter.web.assembler.PhysicalDeleteResponseVoAssembler;
 import net.hwyz.iov.cloud.otd.vso.service.adapter.web.assembler.TransportOrderMptAssembler;
 import net.hwyz.iov.cloud.otd.vso.service.adapter.web.assembler.VehicleSaleOrderMptAssembler;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.AuditOrderCmd;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.CancelOrderCmd;
+import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.DeleteOrderCmd;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.LockOrderCmd;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.AssignDeliveryPersonCmd;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.AssignVehicleCmd;
@@ -36,6 +41,7 @@ import net.hwyz.iov.cloud.otd.vso.service.application.dto.query.OrderQuery;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.DeliveryStaffResult;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.OrderDetailResult;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.OrderListResult;
+import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.PhysicalDeleteResult;
 import net.hwyz.iov.cloud.otd.vso.service.application.service.OrderAppService;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.OrderState;
 import org.springframework.web.bind.annotation.*;
@@ -266,6 +272,30 @@ public class MptOrderController extends BaseController {
     public ApiResponse<Integer> remove(@PathVariable String orderNo) {
         log.info("管理后台用户[{}]删除订单[{}]", SecurityUtils.getUsername(), orderNo);
         return ApiResponse.ok(vehicleSaleOrderAppService.remove(orderNo) ? 1 : 0);
+    }
+
+    /**
+     * 物理删除订单及其所有关联数据
+     *
+     * @param orderId 订单业务 ID
+     * @param request 删除请求
+     * @return 删除结果
+     */
+    @Log(title = "订单物理删除", businessType = BusinessType.DELETE)
+    @RequiresPermissions("completeVehicle:order:info:physicalDelete")
+    @DeleteMapping("/physical/{orderId}")
+    public ApiResponse<PhysicalDeleteResponseVo> physicalDelete(
+            @PathVariable String orderId,
+            @RequestBody DeleteOrderRequestVo request) {
+        log.info("管理后台用户[{}]物理删除订单[{}]", SecurityUtils.getUsername(), orderId);
+
+        DeleteOrderCmd cmd = DeleteOrderRequestVoAssembler.INSTANCE.toCmd(request);
+        cmd.setOrderId(orderId);
+        cmd.setOperatorId(SecurityUtils.getUsername());
+
+        PhysicalDeleteResult result = vehicleSaleOrderAppService.deleteOrder(cmd);
+
+        return ApiResponse.ok(PhysicalDeleteResponseVoAssembler.INSTANCE.toVo(result));
     }
 
     /**

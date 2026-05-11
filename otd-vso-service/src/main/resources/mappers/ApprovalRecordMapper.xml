@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.mapper.ApprovalRecordMapper">
+
+    <resultMap id="baseResultMap" type="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.ApprovalRecordPo">
+        <id column="id" property="id" />
+        <result column="approval_record_id" property="approvalRecordId" />
+        <result column="approval_id" property="approvalId" />
+        <result column="node_no" property="nodeNo" />
+        <result column="approve_type" property="approveType" />
+        <result column="approver_id" property="approverId" />
+        <result column="approver_role" property="approverRole" />
+        <result column="approve_comment" property="approveComment" />
+        <result column="attachment_url" property="attachmentUrl" />
+        <result column="operate_time" property="operateTime" />
+        <result column="timeout_flag" property="timeoutFlag" />
+        <result column="create_time" property="createTime" />
+        <result column="create_by" property="createBy" />
+        <result column="modify_time" property="modifyTime" />
+        <result column="modify_by" property="modifyBy" />
+        <result column="row_version" property="rowVersion" />
+        <result column="row_valid" property="rowValid" />
+    </resultMap>
+
+    <sql id="baseColumnList">
+        t.id, t.approval_record_id, t.approval_id, t.node_no, t.approve_type,
+        t.approver_id, t.approver_role, t.approve_comment, t.attachment_url,
+        t.operate_time, t.timeout_flag, t.create_time, t.create_by,
+        t.modify_time, t.modify_by, t.row_version, t.row_valid
+    </sql>
+
+    <select id="selectByApprovalId" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_approval_record t
+        WHERE t.approval_id = #{approvalId}
+        AND t.row_valid = 1
+    </select>
+
+</mapper>

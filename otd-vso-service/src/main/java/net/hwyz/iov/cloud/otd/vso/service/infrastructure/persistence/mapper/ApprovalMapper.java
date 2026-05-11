@@ -36,4 +36,6 @@ public interface ApprovalMapper extends BaseDao<ApprovalPo, Long> {
 
     List<ApprovalPo> selectPoByExample(ApprovalPo example);
 
+    List<ApprovalPo> selectByOrderId(@Param("orderId") String orderId);
+
 }

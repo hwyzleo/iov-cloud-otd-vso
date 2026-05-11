@@ -23,6 +23,7 @@ import net.hwyz.iov.cloud.otd.vso.service.domain.model.shared.VehicleInfo;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.OrderRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.service.OrderDomainService;
 import net.hwyz.iov.cloud.otd.vso.service.domain.service.OrderLockService;
+import net.hwyz.iov.cloud.otd.vso.service.domain.service.OrderPhysicalDeleteService;
 import net.hwyz.iov.cloud.otd.vso.service.domain.service.OrderValidationService;
 import net.hwyz.iov.cloud.otd.vso.service.domain.service.TimeoutNotifyService;
 import org.springframework.stereotype.Service;
@@ -51,6 +52,7 @@ public class OrderAppService {
     private final TimeoutNotifyService timeoutNotifyService;
     private final OrderRepository orderRepository;
     private final VmdVehicleModelConfigService vmdVehicleModelConfigService;
+    private final OrderPhysicalDeleteService orderPhysicalDeleteService;
 
     /**
      * 创建小订单
@@ -222,6 +224,22 @@ public class OrderAppService {
         });
 
         log.info("订单完成成功：orderId={}", cmd.getOrderId());
+    }
+
+    /**
+     * 物理删除订单
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public PhysicalDeleteResult deleteOrder(DeleteOrderCmd cmd) {
+        log.info("物理删除订单：orderId={}, operatorId={}, reason={}",
+                cmd.getOrderId(), cmd.getOperatorId(), cmd.getReason());
+
+        return orderPhysicalDeleteService.physicalDeleteOrder(
+                cmd.getOrderId(),
+                cmd.getReason(),
+                cmd.getOperatorId(),
+                cmd.getComplianceFlag() != null ? cmd.getComplianceFlag() : false
+        );
     }
 
     /**

@@ -36,4 +36,6 @@ public interface ContractMapper extends BaseDao<ContractPo, Long> {
 
     List<ContractPo> selectPoByExample(ContractPo example);
 
+    List<ContractPo> selectByOrderId(@Param("orderId") String orderId);
+
 }

@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.mapper.RefundMapper">
+
+    <resultMap id="baseResultMap" type="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.RefundPo">
+        <id column="id" property="id" />
+        <result column="refund_id" property="refundId" />
+        <result column="refund_no" property="refundNo" />
+        <result column="order_id" property="orderId" />
+        <result column="payment_id" property="paymentId" />
+        <result column="refund_scene" property="refundScene" />
+        <result column="refund_amount" property="refundAmount" />
+        <result column="refund_status" property="refundStatus" />
+        <result column="approval_id" property="approvalId" />
+        <result column="external_refund_no" property="externalRefundNo" />
+        <result column="apply_time" property="applyTime" />
+        <result column="refund_time" property="refundTime" />
+        <result column="fail_reason" property="failReason" />
+        <result column="create_time" property="createTime" />
+        <result column="create_by" property="createBy" />
+        <result column="modify_time" property="modifyTime" />
+        <result column="modify_by" property="modifyBy" />
+        <result column="row_version" property="rowVersion" />
+        <result column="row_valid" property="rowValid" />
+    </resultMap>
+
+    <sql id="baseColumnList">
+        t.id, t.refund_id, t.refund_no, t.order_id, t.payment_id, t.refund_scene,
+        t.refund_amount, t.refund_status, t.approval_id, t.external_refund_no,
+        t.apply_time, t.refund_time, t.fail_reason, t.create_time, t.create_by,
+        t.modify_time, t.modify_by, t.row_version, t.row_valid
+    </sql>
+
+    <select id="selectByOrderId" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_refund t
+        WHERE t.order_id = #{orderId}
+        AND t.row_valid = 1
+    </select>
+
+</mapper>

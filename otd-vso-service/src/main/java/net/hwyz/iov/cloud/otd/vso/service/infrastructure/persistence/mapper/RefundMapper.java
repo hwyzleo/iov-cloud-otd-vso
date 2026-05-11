@@ -36,4 +36,6 @@ public interface RefundMapper extends BaseDao<RefundPo, Long> {
 
     List<RefundPo> selectPoByExample(RefundPo example);
 
+    List<RefundPo> selectByOrderId(@Param("orderId") String orderId);
+
 }

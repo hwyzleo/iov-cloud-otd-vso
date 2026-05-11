@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.mapper.NotifyTaskMapper">
+
+    <resultMap id="baseResultMap" type="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.NotifyTaskPo">
+        <id column="id" property="id" />
+        <result column="notify_task_id" property="notifyTaskId" />
+        <result column="order_id" property="orderId" />
+        <result column="notify_type" property="notifyType" />
+        <result column="receiver_type" property="receiverType" />
+        <result column="receiver_id" property="receiverId" />
+        <result column="receiver_address" property="receiverAddress" />
+        <result column="content_template_code" property="contentTemplateCode" />
+        <result column="send_status" property="sendStatus" />
+        <result column="retry_count" property="retryCount" />
+        <result column="plan_send_time" property="planSendTime" />
+        <result column="send_time" property="sendTime" />
+        <result column="fail_reason" property="failReason" />
+        <result column="create_time" property="createTime" />
+        <result column="create_by" property="createBy" />
+        <result column="modify_time" property="modifyTime" />
+        <result column="modify_by" property="modifyBy" />
+        <result column="row_version" property="rowVersion" />
+        <result column="row_valid" property="rowValid" />
+    </resultMap>
+
+    <sql id="baseColumnList">
+        t.id, t.notify_task_id, t.order_id, t.notify_type, t.receiver_type,
+        t.receiver_id, t.receiver_address, t.content_template_code, t.send_status,
+        t.retry_count, t.plan_send_time, t.send_time, t.fail_reason,
+        t.create_time, t.create_by, t.modify_time, t.modify_by, t.row_version, t.row_valid
+    </sql>
+
+    <select id="selectByOrderId" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_notify_task t
+        WHERE t.order_id = #{orderId}
+        AND t.row_valid = 1
+    </select>
+
+</mapper>

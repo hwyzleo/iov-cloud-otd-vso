@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.mapper.ContractMapper">
+
+    <resultMap id="baseResultMap" type="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.ContractPo">
+        <id column="id" property="id" />
+        <result column="contract_id" property="contractId" />
+        <result column="order_id" property="orderId" />
+        <result column="contract_no" property="contractNo" />
+        <result column="contract_type" property="contractType" />
+        <result column="version_no" property="versionNo" />
+        <result column="contract_status" property="contractStatus" />
+        <result column="sign_mode" property="signMode" />
+        <result column="sign_effective_rule" property="signEffectiveRule" />
+        <result column="file_url" property="fileUrl" />
+        <result column="external_contract_no" property="externalContractNo" />
+        <result column="generate_time" property="generateTime" />
+        <result column="sign_time" property="signTime" />
+        <result column="effective_time" property="effectiveTime" />
+        <result column="invalid_time" property="invalidTime" />
+        <result column="invalid_reason" property="invalidReason" />
+        <result column="create_time" property="createTime" />
+        <result column="create_by" property="createBy" />
+        <result column="modify_time" property="modifyTime" />
+        <result column="modify_by" property="modifyBy" />
+        <result column="row_version" property="rowVersion" />
+        <result column="row_valid" property="rowValid" />
+    </resultMap>
+
+    <sql id="baseColumnList">
+        t.id, t.contract_id, t.order_id, t.contract_no, t.contract_type, t.version_no,
+        t.contract_status, t.sign_mode, t.sign_effective_rule, t.file_url,
+        t.external_contract_no, t.generate_time, t.sign_time, t.effective_time,
+        t.invalid_time, t.invalid_reason, t.create_time, t.create_by,
+        t.modify_time, t.modify_by, t.row_version, t.row_valid
+    </sql>
+
+    <select id="selectByOrderId" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_contract t
+        WHERE t.order_id = #{orderId}
+        AND t.row_valid = 1
+    </select>
+
+</mapper>

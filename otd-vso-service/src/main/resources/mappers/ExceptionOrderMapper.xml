@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.mapper.ExceptionOrderMapper">
+
+    <resultMap id="baseResultMap" type="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.ExceptionOrderPo">
+        <id column="id" property="id" />
+        <result column="exception_order_id" property="exceptionOrderId" />
+        <result column="exception_no" property="exceptionNo" />
+        <result column="order_id" property="orderId" />
+        <result column="exception_type" property="exceptionType" />
+        <result column="exception_source" property="exceptionSource" />
+        <result column="exception_status" property="exceptionStatus" />
+        <result column="responsible_user_id" property="responsibleUserId" />
+        <result column="upgrade_flag" property="upgradeFlag" />
+        <result column="exception_desc" property="exceptionDesc" />
+        <result column="external_system_name" property="externalSystemName" />
+        <result column="external_error_code" property="externalErrorCode" />
+        <result column="root_cause" property="rootCause" />
+        <result column="solution_desc" property="solutionDesc" />
+        <result column="prevention_desc" property="preventionDesc" />
+        <result column="discover_time" property="discoverTime" />
+        <result column="close_time" property="closeTime" />
+        <result column="close_user_id" property="closeUserId" />
+        <result column="create_time" property="createTime" />
+        <result column="create_by" property="createBy" />
+        <result column="modify_time" property="modifyTime" />
+        <result column="modify_by" property="modifyBy" />
+        <result column="row_version" property="rowVersion" />
+        <result column="row_valid" property="rowValid" />
+    </resultMap>
+
+    <sql id="baseColumnList">
+        t.id, t.exception_order_id, t.exception_no, t.order_id, t.exception_type,
+        t.exception_source, t.exception_status, t.responsible_user_id, t.upgrade_flag,
+        t.exception_desc, t.external_system_name, t.external_error_code, t.root_cause,
+        t.solution_desc, t.prevention_desc, t.discover_time, t.close_time, t.close_user_id,
+        t.create_time, t.create_by, t.modify_time, t.modify_by, t.row_version, t.row_valid
+    </sql>
+
+    <select id="selectByOrderId" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_exception_order t
+        WHERE t.order_id = #{orderId}
+        AND t.row_valid = 1
+    </select>
+
+</mapper>

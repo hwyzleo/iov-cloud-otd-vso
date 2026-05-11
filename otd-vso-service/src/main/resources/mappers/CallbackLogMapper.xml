@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.mapper.CallbackLogMapper">
+
+    <resultMap id="baseResultMap" type="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.CallbackLogPo">
+        <id column="id" property="id" />
+        <result column="callback_log_id" property="callbackLogId" />
+        <result column="order_id" property="orderId" />
+        <result column="business_type" property="businessType" />
+        <result column="external_system_name" property="externalSystemName" />
+        <result column="external_business_no" property="externalBusinessNo" />
+        <result column="idempotent_key" property="idempotentKey" />
+        <result column="callback_status_value" property="callbackStatusValue" />
+        <result column="callback_result_code" property="callbackResultCode" />
+        <result column="event_time" property="eventTime" />
+        <result column="request_body" property="requestBody" />
+        <result column="response_body" property="responseBody" />
+        <result column="process_result" property="processResult" />
+        <result column="manual_override_flag" property="manualOverrideFlag" />
+        <result column="process_time" property="processTime" />
+        <result column="create_time" property="createTime" />
+        <result column="create_by" property="createBy" />
+        <result column="modify_time" property="modifyTime" />
+        <result column="modify_by" property="modifyBy" />
+        <result column="row_version" property="rowVersion" />
+        <result column="row_valid" property="rowValid" />
+    </resultMap>
+
+    <sql id="baseColumnList">
+        t.id, t.callback_log_id, t.order_id, t.business_type, t.external_system_name,
+        t.external_business_no, t.idempotent_key, t.callback_status_value, t.callback_result_code,
+        t.event_time, t.request_body, t.response_body, t.process_result, t.manual_override_flag,
+        t.process_time, t.create_time, t.create_by, t.modify_time, t.modify_by,
+        t.row_version, t.row_valid
+    </sql>
+
+    <select id="selectByOrderId" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_callback_log t
+        WHERE t.order_id = #{orderId}
+        AND t.row_valid = 1
+    </select>
+
+</mapper>
