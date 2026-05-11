@@ -23,6 +23,11 @@ public class VehicleSaleOrderMpt implements Serializable {
     private Long id;
 
     /**
+     * 订单业务ID（用于物理删除等操作）
+     */
+    private String orderId;
+
+    /**
      * 订单号
      */
     private String orderNo;
