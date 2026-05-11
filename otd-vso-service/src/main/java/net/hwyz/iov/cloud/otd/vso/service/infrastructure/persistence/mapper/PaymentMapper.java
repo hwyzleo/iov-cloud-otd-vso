@@ -36,4 +36,12 @@ public interface PaymentMapper extends BaseDao<PaymentPo, Long> {
 
     List<PaymentPo> selectPoByExample(PaymentPo example);
 
+    /**
+     * 根据订单业务 ID 查询支付记录
+     *
+     * @param orderId 订单业务 ID
+     * @return 支付记录列表
+     */
+    List<PaymentPo> selectByOrderId(@Param("orderId") String orderId);
+
 }
