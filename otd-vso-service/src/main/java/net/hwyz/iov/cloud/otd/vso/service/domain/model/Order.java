@@ -85,8 +85,17 @@ public class Order {
     private Integer orderPersonIdType;
     private String orderPersonIdNum;
     private Integer purchasePlan;
+    /** 销售代码 */
     private String saleCode;
+    /** 生产配置代码 */
     private String buildConfigCode;
+    /** 区域代码 */
+    private String regionCode;
+    /** 门店代码 */
+    private String storeCode;
+    /** 销售顾问代码 */
+    private String salesCode;
+    /** 生产配置锁定 */
     private Boolean buildConfigLock;
     private Map<String, OrderModelConfig> modelConfigMap;
     private String licenseCity;
@@ -161,6 +170,13 @@ public class Order {
     }
 
     /**
+     * 生成小订单编码
+     */
+    private void generateSmallOrderNo() {
+        this.smallOrderNo = IdUtil.nanoId(15);
+    }
+
+    /**
      * 添加领域事件
      */
     protected void addDomainEvent(OrderDomainEvent event) {
@@ -207,6 +223,18 @@ public class Order {
 
     public void saveBrandCode(String brandCode) {
         this.brandCode = brandCode;
+    }
+
+    public void saveRegionCode(String regionCode) {
+        this.regionCode = regionCode;
+    }
+
+    public void saveStoreCode(String storeCode) {
+        this.storeCode = storeCode;
+    }
+
+    public void saveSalesCode(String salesCode) {
+        this.salesCode = salesCode;
     }
 
     public void pay(BigDecimal payAmount) {
@@ -395,14 +423,8 @@ public class Order {
     public static Order fromWishlist(String accountId, String saleCode) {
         Order order = new Order();
         order.id = IdUtil.nanoId(15);
-        order.generateOrderNo();
-        order.orderType = "formal";
+        order.orderType = "small";
         order.orderSource = "capp";
-        order.customerType = "personal";
-        order.hasException = false;
-        order.currentVersionNo = 1;
-        order.lockedFlag = false;
-        order.reopenFlag = false;
         order.customerType = "personal";
         order.hasException = false;
         order.currentVersionNo = 1;
@@ -412,6 +434,20 @@ public class Order {
         order.saleCode = saleCode;
         order.orderState = OrderState.WISHLIST;
         return order;
+    }
+
+    /**
+     * 意向金下单（小订单创建）
+     */
+    public void createSmallOrder() {
+        if (this.orderType == null || this.orderType.equals("small")) {
+            this.orderType = "small";
+            generateSmallOrderNo();
+        }
+        this.orderState = OrderState.EARNEST_MONEY_UNPAID;
+        Date now = new Date();
+        this.orderStateTime = now;
+        this.orderTime = now;
     }
 
 }

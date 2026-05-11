@@ -333,8 +333,8 @@ public class OrderAppService {
     // --- 以下为兼容旧接口的方法 ---
 
     public String earnestMoneyOrder(EarnestMoneyCmd cmd) {
-        log.info("意向金下单：accountId={}, saleCode={}, featureConfig={}", 
-                cmd.getAccountId(), cmd.getSaleCode(), cmd.getFeatureConfig());
+        log.info("意向金下单：accountId={}, saleCode={}, regionCode={}, featureConfig={}", 
+                cmd.getAccountId(), cmd.getSaleCode(), cmd.getRegionCode(), cmd.getFeatureConfig());
         
         Order order = createOrFindOrder(cmd.getAccountId(), cmd.getOrderNo());
         
@@ -360,11 +360,14 @@ public class OrderAppService {
             throw new BrandCodeNotExistException(buildConfigCode);
         }
         order.saveBrandCode(buildConfig.getBrandCode());
+        order.saveRegionCode(cmd.getRegionCode());
         
-        order.earnestMoneyOrder();
+        order.createSmallOrder();
         order.saveLicenseCity(cmd.getLicenseCityCode());
         orderRepository.save(order);
-        return order.getOrderNo();
+        log.info("意向金下单完成：orderId={}, smallOrderNo={}, buildConfigCode={}, regionCode={}", 
+                order.getId(), order.getSmallOrderNo(), order.getBuildConfigCode(), order.getRegionCode());
+        return order.getSmallOrderNo();
     }
 
     public String downPaymentOrder(DownPaymentCmd cmd) {

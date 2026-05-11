@@ -20,6 +20,9 @@ public class EarnestMoneyOrderRequestVo {
     @NotEmpty(message = "特征配置不能为空")
     private Map<String, String> saleModelConfigType;
 
+    @NotBlank(message = "区域代码不能为空")
+    private String regionCode;
+
     private String licenseCityCode;
 
 }
