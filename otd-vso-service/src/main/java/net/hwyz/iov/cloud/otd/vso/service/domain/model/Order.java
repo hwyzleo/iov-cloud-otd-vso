@@ -403,6 +403,11 @@ public class Order {
         order.currentVersionNo = 1;
         order.lockedFlag = false;
         order.reopenFlag = false;
+        order.customerType = "personal";
+        order.hasException = false;
+        order.currentVersionNo = 1;
+        order.lockedFlag = false;
+        order.reopenFlag = false;
         order.orderPersonId = accountId;
         order.saleCode = saleCode;
         order.orderState = OrderState.WISHLIST;

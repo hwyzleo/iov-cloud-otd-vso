@@ -1,5 +1,7 @@
 package net.hwyz.iov.cloud.otd.vso.service.adapter.web.vo;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
 import lombok.*;
 
 import java.util.Map;
@@ -10,9 +12,14 @@ import java.util.Map;
 @AllArgsConstructor
 public class EarnestMoneyOrderRequestVo {
 
+    @NotBlank(message = "销售代码不能为空")
     private String saleCode;
+
     private String orderNo;
+
+    @NotEmpty(message = "特征配置不能为空")
     private Map<String, String> saleModelConfigType;
+
     private String licenseCityCode;
 
 }

@@ -11,6 +11,8 @@ import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.*;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.query.CountQuery;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.query.OrderQuery;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.*;
+import net.hwyz.iov.cloud.otd.vso.service.common.exception.BrandCodeNotExistException;
+import net.hwyz.iov.cloud.otd.vso.service.common.exception.BuildConfigNotMatchedException;
 import net.hwyz.iov.cloud.otd.vso.service.common.exception.OrderNotExistException;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.Order;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.OrderAmount;
@@ -331,24 +333,33 @@ public class OrderAppService {
     // --- 以下为兼容旧接口的方法 ---
 
     public String earnestMoneyOrder(EarnestMoneyCmd cmd) {
+        log.info("意向金下单：accountId={}, saleCode={}, featureConfig={}", 
+                cmd.getAccountId(), cmd.getSaleCode(), cmd.getFeatureConfig());
+        
         Order order = createOrFindOrder(cmd.getAccountId(), cmd.getOrderNo());
         
         String buildConfigCode = null;
         if (cmd.getFeatureConfig() != null && !cmd.getFeatureConfig().isEmpty()) {
             Map<String, String> featureConfig = new HashMap<>(cmd.getFeatureConfig());
             featureConfig.remove("BASE_MODEL");
+            log.info("调用VMD获取buildConfigCode，featureConfig={}", featureConfig);
             buildConfigCode = vmdVehicleModelConfigService.getVehicleBuildConfigCode(featureConfig);
+            log.info("VMD返回buildConfigCode={}", buildConfigCode);
         } else if (cmd.getBuildConfigCode() != null) {
             buildConfigCode = cmd.getBuildConfigCode();
         }
         
-        if (buildConfigCode != null && !buildConfigCode.isEmpty()) {
-            order.saveBuildConfig(buildConfigCode, cmd.getModelConfigMap());
-            VmdBuildConfigResponse buildConfig = vmdVehicleModelConfigService.getBuildConfigByCode(buildConfigCode);
-            if (buildConfig != null && buildConfig.getBrandCode() != null) {
-                order.saveBrandCode(buildConfig.getBrandCode());
-            }
+        if (buildConfigCode == null || buildConfigCode.isEmpty()) {
+            throw new BuildConfigNotMatchedException(cmd.getSaleCode());
         }
+        
+        order.saveBuildConfig(buildConfigCode, cmd.getModelConfigMap());
+        VmdBuildConfigResponse buildConfig = vmdVehicleModelConfigService.getBuildConfigByCode(buildConfigCode);
+        log.info("VMD返回buildConfig详情={}", buildConfig);
+        if (buildConfig == null || buildConfig.getBrandCode() == null) {
+            throw new BrandCodeNotExistException(buildConfigCode);
+        }
+        order.saveBrandCode(buildConfig.getBrandCode());
         
         order.earnestMoneyOrder();
         order.saveLicenseCity(cmd.getLicenseCityCode());
