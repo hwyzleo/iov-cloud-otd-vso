@@ -119,4 +119,10 @@
         </if>
     </select>
 
+    <!-- Physical delete: intentionally removes ALL records including soft-deleted ones for wishlist-to-order conversion -->
+    <delete id="deleteByUserId" parameterType="string">
+        DELETE FROM vso_wishlist
+        WHERE user_id = #{userId}
+    </delete>
+
 </mapper>
