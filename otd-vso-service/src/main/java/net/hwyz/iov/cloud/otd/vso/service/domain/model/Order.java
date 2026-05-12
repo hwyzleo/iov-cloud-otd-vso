@@ -85,8 +85,8 @@ public class Order {
     private Integer orderPersonIdType;
     private String orderPersonIdNum;
     private Integer purchasePlan;
-    /** 销售代码 */
-    private String saleCode;
+    /** 销售车型 */
+    private String saleModel;
     /** 生产配置代码 */
     private String buildConfigCode;
     /** 区域代码 */
@@ -124,7 +124,7 @@ public class Order {
     /**
      * 初始化
      */
-    public void init(String orderPersonId, String orderPersonPhone, String saleCode, OrderState orderState) {
+    public void init(String orderPersonId, String orderPersonPhone, String saleModel, OrderState orderState) {
         if (this.id == null) {
             this.id = IdUtil.nanoId(15);
         }
@@ -159,7 +159,7 @@ public class Order {
         this.buildConfigLock = false;
         this.orderPersonId = orderPersonId;
         this.orderPersonPhone = orderPersonPhone;
-        this.saleCode = saleCode;
+        this.saleModel = saleModel;
     }
 
     /**
@@ -229,8 +229,8 @@ public class Order {
         this.regionCode = regionCode;
     }
 
-    public void saveSaleCode(String saleCode) {
-        this.saleCode = saleCode;
+    public void saveSaleModel(String saleModel) {
+        this.saleModel = saleModel;
     }
 
     public void saveStoreCode(String storeCode) {
@@ -424,7 +424,7 @@ public class Order {
         this.orderStateTime = new Date();
     }
 
-    public static Order fromWishlist(String accountId, String saleCode) {
+    public static Order fromWishlist(String accountId, String saleModel) {
         Order order = new Order();
         order.id = IdUtil.nanoId(15);
         order.orderType = "small";
@@ -435,7 +435,7 @@ public class Order {
         order.lockedFlag = false;
         order.reopenFlag = false;
         order.orderPersonId = accountId;
-        order.saleCode = saleCode;
+        order.saleModel = saleModel;
         order.orderState = OrderState.WISHLIST;
         return order;
     }

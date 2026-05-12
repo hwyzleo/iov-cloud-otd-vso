@@ -74,7 +74,7 @@ public class WishlistAppService {
         String buildConfigCode = vmdVehicleModelConfigService.getVehicleBuildConfigCode(featureConfig);
 
         if (buildConfigCode == null || buildConfigCode.isEmpty()) {
-            throw new BuildConfigNotMatchedException(wishlist.getSaleCode());
+            throw new BuildConfigNotMatchedException(wishlist.getSaleModel());
         }
 
         wishlist.modify(buildConfigCode);
@@ -113,7 +113,7 @@ public class WishlistAppService {
     private WishlistListResult toWishlistListResult(Wishlist wishlist) {
         Map<String, String> featureCodes = parseBuildConfigToFeatureCodes(wishlist.getBuildConfigCode());
         SelectedSaleModelResult selectedModel = saleModelAppService.getSelectedSaleModelByFeatureCodes(
-                wishlist.getSaleCode(), featureCodes);
+                wishlist.getSaleModel(), featureCodes);
 
         String displayName = "";
         if (selectedModel.getSaleModelConfigName() != null) {
@@ -124,7 +124,7 @@ public class WishlistAppService {
 
         return WishlistListResult.builder()
                 .wishlistId(wishlist.getId())
-                .saleCode(wishlist.getSaleCode())
+                .saleCode(wishlist.getSaleModel())
                 .buildConfigCode(wishlist.getBuildConfigCode())
                 .createTime(wishlist.getCreateTime())
                 .modifyTime(wishlist.getModifyTime())
@@ -140,7 +140,7 @@ public class WishlistAppService {
     private WishlistDetailResult toWishlistDetailResult(Wishlist wishlist) {
         Map<String, String> featureCodes = parseBuildConfigToFeatureCodes(wishlist.getBuildConfigCode());
         SelectedSaleModelResult selectedModel = saleModelAppService.getSelectedSaleModelByFeatureCodes(
-                wishlist.getSaleCode(), featureCodes);
+                wishlist.getSaleModel(), featureCodes);
 
         // 构建 displayName
         String displayName = "";
@@ -150,11 +150,11 @@ public class WishlistAppService {
         }
 
         // 将 Map 转换为配置项列表
-        List<SaleModelConfigItemResult> saleModelConfigs = buildConfigItems(wishlist.getSaleCode(), selectedModel);
+        List<SaleModelConfigItemResult> saleModelConfigs = buildConfigItems(wishlist.getSaleModel(), selectedModel);
 
         return WishlistDetailResult.builder()
                 .wishlistId(wishlist.getId())
-                .saleCode(wishlist.getSaleCode())
+                .saleCode(wishlist.getSaleModel())
                 .buildConfigCode(wishlist.getBuildConfigCode())
                 .createTime(wishlist.getCreateTime())
                 .modifyTime(wishlist.getModifyTime())

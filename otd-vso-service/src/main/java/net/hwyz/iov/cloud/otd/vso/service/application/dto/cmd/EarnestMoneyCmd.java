@@ -17,7 +17,7 @@ public class EarnestMoneyCmd {
 
     private String accountId;
     private String orderNo;
-    private String saleCode;
+    private String saleModel;
     private String regionCode;
     private String licenseCityCode;
     private String buildConfigCode;

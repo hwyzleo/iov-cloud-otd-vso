@@ -23,18 +23,18 @@ public class Wishlist {
 
     private String id;
     private String userId;
-    private String saleCode;
+    private String saleModel;
     private String buildConfigCode;
     private String wishlistName;
     private WishlistStatus status;
     private Date createTime;
     private Date modifyTime;
 
-    public static Wishlist create(String userId, String saleCode, String buildConfigCode) {
+    public static Wishlist create(String userId, String saleModel, String buildConfigCode) {
         Wishlist wishlist = new Wishlist();
         wishlist.id = IdUtil.nanoId(15);
         wishlist.userId = userId;
-        wishlist.saleCode = saleCode;
+        wishlist.saleModel = saleModel;
         wishlist.buildConfigCode = buildConfigCode;
         wishlist.status = WishlistStatus.ACTIVE;
         wishlist.createTime = new Date();

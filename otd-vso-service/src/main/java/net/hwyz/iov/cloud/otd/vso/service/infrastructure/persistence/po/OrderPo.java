@@ -63,6 +63,9 @@ public class OrderPo extends BasePo {
     @TableField("sales_code")
     private String salesCode;
 
+    @TableField("sale_model")
+    private String saleModel;
+
     @TableField("vehicle_vin")
     private String vehicleVin;
 

@@ -22,6 +22,7 @@ import net.hwyz.iov.cloud.otd.vso.service.domain.model.Wishlist;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.shared.CustomerInfo;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.shared.OrganizationInfo;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.shared.VehicleInfo;
+import net.hwyz.iov.cloud.otd.vso.service.domain.repository.OrderPartyRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.OrderRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.WishlistRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.service.OrderDomainService;
@@ -29,9 +30,11 @@ import net.hwyz.iov.cloud.otd.vso.service.domain.service.OrderLockService;
 import net.hwyz.iov.cloud.otd.vso.service.domain.service.OrderPhysicalDeleteService;
 import net.hwyz.iov.cloud.otd.vso.service.domain.service.OrderValidationService;
 import net.hwyz.iov.cloud.otd.vso.service.domain.service.TimeoutNotifyService;
+import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.OrderPartyPo;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import cn.hutool.core.util.IdUtil;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -54,6 +57,7 @@ public class OrderAppService {
     private final OrderLockService orderLockService;
     private final TimeoutNotifyService timeoutNotifyService;
     private final OrderRepository orderRepository;
+    private final OrderPartyRepository orderPartyRepository;
     private final WishlistRepository wishlistRepository;
     private final VmdVehicleModelConfigService vmdVehicleModelConfigService;
     private final OrderPhysicalDeleteService orderPhysicalDeleteService;
@@ -355,19 +359,19 @@ public class OrderAppService {
     // --- 以下为兼容旧接口的方法 ---
 
     public String earnestMoneyOrder(EarnestMoneyCmd cmd) {
-        log.info("意向金下单：accountId={}, saleCode={}, regionCode={}, featureConfig={}, wishlistId={}", 
-                cmd.getAccountId(), cmd.getSaleCode(), cmd.getRegionCode(), cmd.getFeatureConfig(), cmd.getWishlistId());
+        log.info("意向金下单：accountId={}, saleModel={}, regionCode={}, featureConfig={}, wishlistId={}", 
+                cmd.getAccountId(), cmd.getSaleModel(), cmd.getRegionCode(), cmd.getFeatureConfig(), cmd.getWishlistId());
         
         Order order = createOrFindOrder(cmd.getAccountId(), cmd.getOrderNo());
         
         String buildConfigCode = null;
-        String saleCode = cmd.getSaleCode();
+        String saleModel = cmd.getSaleModel();
         
         if (cmd.getWishlistId() != null && !cmd.getWishlistId().isEmpty()) {
             Wishlist wishlist = wishlistRepository.findByWishlistIdAndUserId(cmd.getWishlistId(), cmd.getAccountId())
                 .orElseThrow(() -> new WishlistNotExistException(cmd.getWishlistId()));
             
-            saleCode = cmd.getSaleCode() != null ? cmd.getSaleCode() : wishlist.getSaleCode();
+            saleModel = cmd.getSaleModel() != null ? cmd.getSaleModel() : wishlist.getSaleModel();
             buildConfigCode = cmd.getBuildConfigCode() != null ? cmd.getBuildConfigCode() : wishlist.getBuildConfigCode();
             
             if (buildConfigCode == null || buildConfigCode.isEmpty()) {
@@ -381,7 +385,7 @@ public class OrderAppService {
             }
             
             if (buildConfigCode == null || buildConfigCode.isEmpty()) {
-                throw new BuildConfigNotMatchedException(saleCode);
+                throw new BuildConfigNotMatchedException(saleModel);
             }
             
             order.saveBuildConfig(buildConfigCode, cmd.getModelConfigMap());
@@ -392,7 +396,7 @@ public class OrderAppService {
             }
             order.saveBrandCode(buildConfig.getBrandCode());
             order.saveRegionCode(cmd.getRegionCode());
-            order.saveSaleCode(saleCode);
+            order.saveSaleModel(saleModel);
         } else {
             if (cmd.getFeatureConfig() != null && !cmd.getFeatureConfig().isEmpty()) {
                 Map<String, String> featureConfig = new HashMap<>(cmd.getFeatureConfig());
@@ -405,7 +409,7 @@ public class OrderAppService {
             }
             
             if (buildConfigCode == null || buildConfigCode.isEmpty()) {
-                throw new BuildConfigNotMatchedException(cmd.getSaleCode());
+                throw new BuildConfigNotMatchedException(cmd.getSaleModel());
             }
             
             order.saveBuildConfig(buildConfigCode, cmd.getModelConfigMap());
@@ -416,38 +420,41 @@ public class OrderAppService {
             }
             order.saveBrandCode(buildConfig.getBrandCode());
             order.saveRegionCode(cmd.getRegionCode());
-            order.saveSaleCode(saleCode);
+            order.saveSaleModel(saleModel);
         }
         
         order.createSmallOrder();
         order.saveLicenseCity(cmd.getLicenseCityCode());
         orderRepository.save(order);
+        
+        saveOrderParty(order.getId(), cmd.getAccountId(), "order_user");
+        
         log.info("意向金下单完成：orderId={}, smallOrderNo={}, buildConfigCode={}, regionCode={}", 
                 order.getId(), order.getSmallOrderNo(), order.getBuildConfigCode(), order.getRegionCode());
         return order.getSmallOrderNo();
     }
 
     public String downPaymentOrder(DownPaymentCmd cmd) {
-        log.info("定金下单：accountId={}, saleCode={}, wishlistId={}", 
-                cmd.getAccountId(), cmd.getSaleCode(), cmd.getWishlistId());
+        log.info("定金下单：accountId={}, saleModel={}, wishlistId={}", 
+                cmd.getAccountId(), cmd.getSaleModel(), cmd.getWishlistId());
         
         Order order = createOrFindOrder(cmd.getAccountId(), cmd.getOrderNo());
         
         String buildConfigCode = cmd.getBuildConfigCode();
-        String saleCode = cmd.getSaleCode();
+        String saleModel = cmd.getSaleModel();
         
         if (cmd.getWishlistId() != null && !cmd.getWishlistId().isEmpty()) {
             Wishlist wishlist = wishlistRepository.findByWishlistIdAndUserId(cmd.getWishlistId(), cmd.getAccountId())
                 .orElseThrow(() -> new WishlistNotExistException(cmd.getWishlistId()));
             
-            saleCode = cmd.getSaleCode() != null ? cmd.getSaleCode() : wishlist.getSaleCode();
+            saleModel = cmd.getSaleModel() != null ? cmd.getSaleModel() : wishlist.getSaleModel();
             buildConfigCode = cmd.getBuildConfigCode() != null ? cmd.getBuildConfigCode() : wishlist.getBuildConfigCode();
             
-            order.saveSaleCode(saleCode);
+            order.saveSaleModel(saleModel);
         }
         
         if (buildConfigCode == null || buildConfigCode.isEmpty()) {
-            throw new BuildConfigNotMatchedException(saleCode);
+            throw new BuildConfigNotMatchedException(saleModel);
         }
         
         VmdBuildConfigResponse buildConfig = vmdVehicleModelConfigService.getBuildConfigByCode(buildConfigCode);
@@ -581,6 +588,17 @@ public class OrderAppService {
             return orderOpt.get();
         }
         return Order.fromWishlist(accountId, null);
+    }
+
+    private void saveOrderParty(String orderId, String userId, String partyRole) {
+        OrderPartyPo orderPartyPo = new OrderPartyPo();
+        orderPartyPo.setPartyId(IdUtil.nanoId(15));
+        orderPartyPo.setOrderId(orderId);
+        orderPartyPo.setPartyRole(partyRole);
+        orderPartyPo.setUserId(userId);
+        orderPartyPo.setAuthorizedFlag(0);
+        orderPartyRepository.save(orderPartyPo);
+        log.info("保存订单客户信息：orderId={}, userId={}, partyRole={}", orderId, userId, partyRole);
     }
 
 }

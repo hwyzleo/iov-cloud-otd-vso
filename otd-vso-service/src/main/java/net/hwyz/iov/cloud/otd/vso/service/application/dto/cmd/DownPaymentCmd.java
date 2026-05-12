@@ -17,7 +17,7 @@ public class DownPaymentCmd {
 
     private String accountId;
     private String orderNo;
-    private String saleCode;
+    private String saleModel;
     private String buildConfigCode;
     private Map<String, OrderModelConfig> modelConfigMap;
     private Integer orderPersonType;

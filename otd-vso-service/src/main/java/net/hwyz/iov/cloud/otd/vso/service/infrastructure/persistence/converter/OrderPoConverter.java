@@ -28,6 +28,7 @@ public interface OrderPoConverter {
             @Mapping(target="smallOrderNo", source = "smallOrderNo"),
             @Mapping(target="id", source = "orderId"),
             @Mapping(target="buildConfigCode", source = "buildConfigCode"),
+            @Mapping(target="saleModel", source = "saleModel"),
             @Mapping(target="regionCode", source = "regionCode"),
             @Mapping(target="storeCode", source = "storeCode"),
             @Mapping(target="salesCode", source = "salesCode"),
@@ -51,6 +52,7 @@ public interface OrderPoConverter {
             @Mapping(target="smallOrderNo", source = "smallOrderNo"),
             @Mapping(target="orderId", source = "id"),
             @Mapping(target="buildConfigCode", source = "buildConfigCode"),
+            @Mapping(target="saleModel", source = "saleModel"),
             @Mapping(target="regionCode", source = "regionCode"),
             @Mapping(target="storeCode", source = "storeCode"),
             @Mapping(target="salesCode", source = "salesCode"),
@@ -59,7 +61,7 @@ public interface OrderPoConverter {
             @Mapping(target="lockedFlag", expression = "java(order.getLockedFlag() != null && order.getLockedFlag() ? 1 : 0)"),
             @Mapping(target="reopenFlag", expression = "java(order.getReopenFlag() != null && order.getReopenFlag() ? 1 : 0)")
     })
-    @org.mapstruct.BeanMapping(ignoreUnmappedSourceProperties = {"saleCode", "earnestMoneyTime", "earnestMoneyAmount", "downPaymentTime", "downPaymentAmount", "transportApplyTime", "customerInfo", "organizationInfo", "vehicleInfo", "orderAmount", "orderPersonPhone", "buildConfigLock", "remark", "valid", "domainEvents", "payState", "orderState", "orderStateTime", "orderTime", "modelConfigType", "modelConfigName", "modelConfigPrice", "modelConfigMap", "modelConfigDesc", "totalPrice", "licenseCity", "dealership", "deliveryCenter", "deliveryVin", "orderPersonId", "orderPersonType", "orderPersonName", "orderPersonIdType", "orderPersonIdNum", "purchasePlan", "transportApplyPersonId", "transportApplyPersonName", "deliveryPersonId", "deliveryPersonName", "sourceRemark", "endType", "previousMainStatus", "vehicleVin", "cancelReason", "closeReason", "voidReason", "createdAtBusiness", "auditSubmitTime", "auditPassTime", "deliveryFinishTime", "finishTime", "cancelTime", "closeTime", "createTime", "createBy", "modifyTime", "modifyBy"})
+    @org.mapstruct.BeanMapping(ignoreUnmappedSourceProperties = {"earnestMoneyTime", "earnestMoneyAmount", "downPaymentTime", "downPaymentAmount", "transportApplyTime", "customerInfo", "organizationInfo", "vehicleInfo", "orderAmount", "orderPersonPhone", "buildConfigLock", "remark", "valid", "domainEvents", "payState", "orderState", "orderStateTime", "orderTime", "modelConfigType", "modelConfigName", "modelConfigPrice", "modelConfigMap", "modelConfigDesc", "totalPrice", "licenseCity", "dealership", "deliveryCenter", "deliveryVin", "orderPersonId", "orderPersonType", "orderPersonName", "orderPersonIdType", "orderPersonIdNum", "purchasePlan", "transportApplyPersonId", "transportApplyPersonName", "deliveryPersonId", "deliveryPersonName", "sourceRemark", "endType", "previousMainStatus", "vehicleVin", "cancelReason", "closeReason", "voidReason", "createdAtBusiness", "auditSubmitTime", "auditPassTime", "deliveryFinishTime", "finishTime", "cancelTime", "closeTime", "createTime", "createBy", "modifyTime", "modifyBy"})
     OrderPo fromDomain(Order order);
 
 }
