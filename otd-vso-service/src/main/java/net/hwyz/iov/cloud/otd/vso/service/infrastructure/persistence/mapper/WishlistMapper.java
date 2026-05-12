@@ -24,4 +24,6 @@ public interface WishlistMapper extends BaseDao<WishlistPo, Long> {
 
     List<WishlistPo> selectPoByMap(Map<String, Object> params);
 
+    void deleteByUserId(@Param("userId") String userId);
+
 }

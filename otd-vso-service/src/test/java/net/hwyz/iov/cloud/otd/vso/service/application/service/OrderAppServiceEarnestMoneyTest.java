@@ -107,4 +107,21 @@ class OrderAppServiceEarnestMoneyTest {
         
         assertNotNull(smallOrderNo, "小订单号应该不为空");
     }
+
+    @Test
+    void testEarnestMoneyOrderDirectOrder() {
+        String userId = "test_user_direct_" + System.currentTimeMillis();
+        
+        EarnestMoneyCmd cmd = EarnestMoneyCmd.builder()
+            .accountId(userId)
+            .saleCode("DIRECT_SALE_CODE")
+            .buildConfigCode("DIRECT_BUILD_CONFIG")
+            .regionCode("TEST_REGION")
+            .licenseCityCode("TEST_CITY")
+            .build();
+        
+        String smallOrderNo = orderAppService.earnestMoneyOrder(cmd);
+        
+        assertNotNull(smallOrderNo, "小订单号应该不为空");
+    }
 }

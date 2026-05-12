@@ -416,6 +416,7 @@ public class OrderAppService {
             }
             order.saveBrandCode(buildConfig.getBrandCode());
             order.saveRegionCode(cmd.getRegionCode());
+            order.saveSaleCode(saleCode);
         }
         
         order.createSmallOrder();
