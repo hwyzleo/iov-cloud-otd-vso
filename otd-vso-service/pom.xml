@@ -35,11 +35,11 @@
             <version>${vmd.version}</version>
         </dependency>
 
-        <dependency>
-            <groupId>net.hwyz.iov.cloud.tsp</groupId>
-            <artifactId>account-api</artifactId>
-            <version>${account.version}</version>
-        </dependency>
+<!--        <dependency>-->
+<!--            <groupId>net.hwyz.iov.cloud.tsp</groupId>-->
+<!--            <artifactId>account-api</artifactId>-->
+<!--            <version>${account.version}</version>-->
+<!--        </dependency>-->
 
         <dependency>
             <groupId>net.hwyz.iov.cloud.edd</groupId>
@@ -47,11 +47,11 @@
             <version>${dictionary.version}</version>
         </dependency>
 
-        <dependency>
-            <groupId>net.hwyz.iov.cloud.dms</groupId>
-            <artifactId>org-api</artifactId>
-            <version>${org.version}</version>
-        </dependency>
+<!--        <dependency>-->
+<!--            <groupId>net.hwyz.iov.cloud.dms</groupId>-->
+<!--            <artifactId>org-api</artifactId>-->
+<!--            <version>${org.version}</version>-->
+<!--        </dependency>-->
 
         <!-- 框架: MySQL -->
         <dependency>
