@@ -21,6 +21,7 @@ import net.hwyz.iov.cloud.otd.vso.service.domain.model.shared.CustomerInfo;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.shared.OrganizationInfo;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.shared.VehicleInfo;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.OrderRepository;
+import net.hwyz.iov.cloud.otd.vso.service.domain.repository.WishlistRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.service.OrderDomainService;
 import net.hwyz.iov.cloud.otd.vso.service.domain.service.OrderLockService;
 import net.hwyz.iov.cloud.otd.vso.service.domain.service.OrderPhysicalDeleteService;
@@ -51,6 +52,7 @@ public class OrderAppService {
     private final OrderLockService orderLockService;
     private final TimeoutNotifyService timeoutNotifyService;
     private final OrderRepository orderRepository;
+    private final WishlistRepository wishlistRepository;
     private final VmdVehicleModelConfigService vmdVehicleModelConfigService;
     private final OrderPhysicalDeleteService orderPhysicalDeleteService;
 
