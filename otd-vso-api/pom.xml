@@ -26,11 +26,11 @@
             <scope>provided</scope>
         </dependency>
 
-        <dependency>
-            <groupId>net.hwyz.iov.cloud.dms</groupId>
-            <artifactId>org-api</artifactId>
-            <version>${org.version}</version>
-        </dependency>
+<!--        <dependency>-->
+<!--            <groupId>net.hwyz.iov.cloud.dms</groupId>-->
+<!--            <artifactId>org-api</artifactId>-->
+<!--            <version>${org.version}</version>-->
+<!--        </dependency>-->
     </dependencies>
 
 </project>
