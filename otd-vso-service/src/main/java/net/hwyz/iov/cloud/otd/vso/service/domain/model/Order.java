@@ -229,6 +229,10 @@ public class Order {
         this.regionCode = regionCode;
     }
 
+    public void saveSaleCode(String saleCode) {
+        this.saleCode = saleCode;
+    }
+
     public void saveStoreCode(String storeCode) {
         this.storeCode = storeCode;
     }
