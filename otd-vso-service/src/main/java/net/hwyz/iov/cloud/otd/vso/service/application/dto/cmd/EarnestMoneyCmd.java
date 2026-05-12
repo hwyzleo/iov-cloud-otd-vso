@@ -23,5 +23,6 @@ public class EarnestMoneyCmd {
     private String buildConfigCode;
     private Map<String, String> featureConfig;
     private Map<String, OrderModelConfig> modelConfigMap;
+    private String wishlistId;
 
 }

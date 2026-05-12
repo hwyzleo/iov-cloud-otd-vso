@@ -28,5 +28,6 @@ public class DownPaymentCmd {
     private String licenseCityCode;
     private String dealership;
     private String deliveryCenter;
+    private String wishlistId;
 
 }
