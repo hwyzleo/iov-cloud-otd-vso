@@ -32,8 +32,6 @@ public interface ApprovalRecordMapper extends BaseDao<ApprovalRecordPo, Long> {
 
     int physicalDeletePo(Long id);
 
-    int batchPhysicalDeletePo(@Param("array") Long[] ids);
-
     List<ApprovalRecordPo> selectPoByExample(ApprovalRecordPo example);
 
 }

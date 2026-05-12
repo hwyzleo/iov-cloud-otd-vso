@@ -30,8 +30,6 @@ public interface OrderMaterialVersionMapper extends BaseDao<OrderMaterialVersion
 
     int physicalDeletePo(Long id);
 
-    int batchPhysicalDeletePo(@Param("array") Long[] ids);
-
     List<OrderMaterialVersionPo> selectPoByExample(OrderMaterialVersionPo example);
 
 }

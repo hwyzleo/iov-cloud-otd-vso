@@ -40,8 +40,6 @@ public interface OrderAssignmentMapper extends BaseDao<OrderAssignmentPo, Long> 
 
     int physicalDeletePo(Long id);
 
-    int batchPhysicalDeletePo(@Param("array") Long[] ids);
-
     List<OrderAssignmentPo> selectPoByExample(OrderAssignmentPo example);
 
 }

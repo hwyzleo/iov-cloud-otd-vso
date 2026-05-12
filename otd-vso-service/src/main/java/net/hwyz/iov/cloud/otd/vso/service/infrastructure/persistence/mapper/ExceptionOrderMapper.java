@@ -32,8 +32,6 @@ public interface ExceptionOrderMapper extends BaseDao<ExceptionOrderPo, Long> {
 
     int physicalDeletePo(Long id);
 
-    int batchPhysicalDeletePo(@Param("array") Long[] ids);
-
     List<ExceptionOrderPo> selectPoByExample(ExceptionOrderPo example);
 
     List<ExceptionOrderPo> selectByOrderId(@Param("orderId") String orderId);

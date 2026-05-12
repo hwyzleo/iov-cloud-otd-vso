@@ -40,8 +40,6 @@ public interface OrderAmountMapper extends BaseDao<OrderAmountPo, Long> {
 
     int physicalDeletePo(Long id);
 
-    int batchPhysicalDeletePo(@Param("array") Long[] ids);
-
     List<OrderAmountPo> selectPoByExample(OrderAmountPo example);
 
 }

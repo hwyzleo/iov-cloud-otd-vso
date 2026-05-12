@@ -40,8 +40,6 @@ public interface OrderStatusDimensionMapper extends BaseDao<OrderStatusDimension
 
     int physicalDeletePo(Long id);
 
-    int batchPhysicalDeletePo(@Param("array") Long[] ids);
-
     List<OrderStatusDimensionPo> selectPoByExample(OrderStatusDimensionPo example);
 
 }

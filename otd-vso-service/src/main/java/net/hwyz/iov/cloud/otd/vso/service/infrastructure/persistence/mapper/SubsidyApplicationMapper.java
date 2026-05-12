@@ -32,8 +32,6 @@ public interface SubsidyApplicationMapper extends BaseDao<SubsidyApplicationPo, 
 
     int physicalDeletePo(Long id);
 
-    int batchPhysicalDeletePo(@Param("array") Long[] ids);
-
     List<SubsidyApplicationPo> selectPoByExample(SubsidyApplicationPo example);
 
 }

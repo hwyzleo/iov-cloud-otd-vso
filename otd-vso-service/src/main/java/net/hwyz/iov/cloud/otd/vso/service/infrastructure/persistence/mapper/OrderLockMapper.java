@@ -32,8 +32,6 @@ public interface OrderLockMapper extends BaseDao<OrderLockPo, Long> {
 
     int physicalDeletePo(Long id);
 
-    int batchPhysicalDeletePo(@Param("array") Long[] ids);
-
     List<OrderLockPo> selectPoByExample(OrderLockPo example);
 
 }

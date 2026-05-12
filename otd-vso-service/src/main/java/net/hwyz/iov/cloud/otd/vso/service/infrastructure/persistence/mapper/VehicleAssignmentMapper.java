@@ -32,8 +32,6 @@ public interface VehicleAssignmentMapper extends BaseDao<VehicleAssignmentPo, Lo
 
     int physicalDeletePo(Long id);
 
-    int batchPhysicalDeletePo(@Param("array") Long[] ids);
-
     List<VehicleAssignmentPo> selectPoByExample(VehicleAssignmentPo example);
 
 }

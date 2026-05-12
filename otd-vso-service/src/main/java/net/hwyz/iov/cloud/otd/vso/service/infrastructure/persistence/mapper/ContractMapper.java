@@ -32,8 +32,6 @@ public interface ContractMapper extends BaseDao<ContractPo, Long> {
 
     int physicalDeletePo(Long id);
 
-    int batchPhysicalDeletePo(@Param("array") Long[] ids);
-
     List<ContractPo> selectPoByExample(ContractPo example);
 
     List<ContractPo> selectByOrderId(@Param("orderId") String orderId);

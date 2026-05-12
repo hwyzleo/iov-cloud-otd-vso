@@ -32,8 +32,6 @@ public interface RegistrationMapper extends BaseDao<RegistrationPo, Long> {
 
     int physicalDeletePo(Long id);
 
-    int batchPhysicalDeletePo(@Param("array") Long[] ids);
-
     List<RegistrationPo> selectPoByExample(RegistrationPo example);
 
 }

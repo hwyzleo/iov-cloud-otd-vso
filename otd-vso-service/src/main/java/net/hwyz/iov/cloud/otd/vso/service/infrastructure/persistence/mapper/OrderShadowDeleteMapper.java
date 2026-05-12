@@ -30,8 +30,6 @@ public interface OrderShadowDeleteMapper extends BaseDao<OrderShadowDeletePo, Lo
 
     int physicalDeletePo(Long id);
 
-    int batchPhysicalDeletePo(@Param("array") Long[] ids);
-
     List<OrderShadowDeletePo> selectPoByExample(OrderShadowDeletePo example);
 
 }

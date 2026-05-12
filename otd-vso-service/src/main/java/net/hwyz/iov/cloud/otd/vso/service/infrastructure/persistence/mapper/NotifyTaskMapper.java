@@ -30,8 +30,6 @@ public interface NotifyTaskMapper extends BaseDao<NotifyTaskPo, Long> {
 
     int physicalDeletePo(Long id);
 
-    int batchPhysicalDeletePo(@Param("array") Long[] ids);
-
     List<NotifyTaskPo> selectPoByExample(NotifyTaskPo example);
 
     List<NotifyTaskPo> selectByOrderId(@Param("orderId") String orderId);

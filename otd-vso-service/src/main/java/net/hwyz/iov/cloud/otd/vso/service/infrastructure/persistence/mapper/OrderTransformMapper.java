@@ -30,8 +30,6 @@ public interface OrderTransformMapper extends BaseDao<OrderTransformPo, Long> {
 
     int physicalDeletePo(Long id);
 
-    int batchPhysicalDeletePo(@Param("array") Long[] ids);
-
     List<OrderTransformPo> selectPoByExample(OrderTransformPo example);
 
 }

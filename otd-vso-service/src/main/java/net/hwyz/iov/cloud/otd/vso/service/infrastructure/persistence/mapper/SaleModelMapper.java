@@ -25,5 +25,4 @@ public interface SaleModelMapper extends BaseDao<SaleModelPo, Long> {
      * @param ids ID 数组
      * @return 影响行数
      */
-    int batchPhysicalDeletePo(@Param("array") Long[] ids);
 }

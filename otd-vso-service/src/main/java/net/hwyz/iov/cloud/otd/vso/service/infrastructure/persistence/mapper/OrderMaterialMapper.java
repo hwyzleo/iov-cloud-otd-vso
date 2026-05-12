@@ -32,8 +32,6 @@ public interface OrderMaterialMapper extends BaseDao<OrderMaterialPo, Long> {
 
     int physicalDeletePo(Long id);
 
-    int batchPhysicalDeletePo(@Param("array") Long[] ids);
-
     List<OrderMaterialPo> selectPoByExample(OrderMaterialPo example);
 
 }

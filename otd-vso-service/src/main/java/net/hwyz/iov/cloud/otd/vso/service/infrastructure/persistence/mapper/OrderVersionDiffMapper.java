@@ -30,8 +30,6 @@ public interface OrderVersionDiffMapper extends BaseDao<OrderVersionDiffPo, Long
 
     int physicalDeletePo(Long id);
 
-    int batchPhysicalDeletePo(@Param("array") Long[] ids);
-
     List<OrderVersionDiffPo> selectPoByExample(OrderVersionDiffPo example);
 
 }

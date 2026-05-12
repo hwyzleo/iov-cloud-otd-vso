@@ -30,8 +30,6 @@ public interface ConfigTimeoutMapper extends BaseDao<ConfigTimeoutPo, Long> {
 
     int physicalDeletePo(Long id);
 
-    int batchPhysicalDeletePo(@Param("array") Long[] ids);
-
     List<ConfigTimeoutPo> selectPoByExample(ConfigTimeoutPo example);
 
 }

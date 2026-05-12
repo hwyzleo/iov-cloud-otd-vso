@@ -32,8 +32,6 @@ public interface OrderTimelineMapper extends BaseDao<OrderTimelinePo, Long> {
 
     int physicalDeletePo(Long id);
 
-    int batchPhysicalDeletePo(@Param("array") Long[] ids);
-
     List<OrderTimelinePo> selectPoByExample(OrderTimelinePo example);
 
 }

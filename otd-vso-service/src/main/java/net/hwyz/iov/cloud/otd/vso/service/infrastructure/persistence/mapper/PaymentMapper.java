@@ -40,8 +40,6 @@ public interface PaymentMapper extends BaseDao<PaymentPo, Long> {
 
     int physicalDeletePo(Long id);
 
-    int batchPhysicalDeletePo(@Param("array") Long[] ids);
-
     List<PaymentPo> selectPoByExample(PaymentPo example);
 
 }

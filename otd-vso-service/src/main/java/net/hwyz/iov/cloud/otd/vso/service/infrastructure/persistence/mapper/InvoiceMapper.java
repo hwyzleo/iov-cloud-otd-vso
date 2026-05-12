@@ -32,8 +32,6 @@ public interface InvoiceMapper extends BaseDao<InvoicePo, Long> {
 
     int physicalDeletePo(Long id);
 
-    int batchPhysicalDeletePo(@Param("array") Long[] ids);
-
     List<InvoicePo> selectPoByExample(InvoicePo example);
 
 }

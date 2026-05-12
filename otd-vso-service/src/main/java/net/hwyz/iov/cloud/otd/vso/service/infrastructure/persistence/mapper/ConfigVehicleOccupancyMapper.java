@@ -30,8 +30,6 @@ public interface ConfigVehicleOccupancyMapper extends BaseDao<ConfigVehicleOccup
 
     int physicalDeletePo(Long id);
 
-    int batchPhysicalDeletePo(@Param("array") Long[] ids);
-
     List<ConfigVehicleOccupancyPo> selectPoByExample(ConfigVehicleOccupancyPo example);
 
 }

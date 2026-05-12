@@ -32,8 +32,6 @@ public interface FinanceApplicationMapper extends BaseDao<FinanceApplicationPo, 
 
     int physicalDeletePo(Long id);
 
-    int batchPhysicalDeletePo(@Param("array") Long[] ids);
-
     List<FinanceApplicationPo> selectPoByExample(FinanceApplicationPo example);
 
 }

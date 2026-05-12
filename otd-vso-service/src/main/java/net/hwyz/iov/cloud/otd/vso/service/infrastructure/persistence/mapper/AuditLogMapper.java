@@ -30,8 +30,6 @@ public interface AuditLogMapper extends BaseDao<AuditLogPo, Long> {
 
     int physicalDeletePo(Long id);
 
-    int batchPhysicalDeletePo(@Param("array") Long[] ids);
-
     List<AuditLogPo> selectPoByExample(AuditLogPo example);
 
     List<AuditLogPo> selectByOrderId(@Param("orderId") String orderId);

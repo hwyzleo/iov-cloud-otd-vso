@@ -32,8 +32,6 @@ public interface DeliveryAppointmentMapper extends BaseDao<DeliveryAppointmentPo
 
     int physicalDeletePo(Long id);
 
-    int batchPhysicalDeletePo(@Param("array") Long[] ids);
-
     List<DeliveryAppointmentPo> selectPoByExample(DeliveryAppointmentPo example);
 
     List<DeliveryAppointmentPo> selectByOrderId(@Param("orderId") String orderId);

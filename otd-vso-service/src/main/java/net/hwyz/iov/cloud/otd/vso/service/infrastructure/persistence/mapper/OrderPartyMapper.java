@@ -49,8 +49,6 @@ public interface OrderPartyMapper extends BaseDao<OrderPartyPo, Long> {
 
     int physicalDeletePo(Long id);
 
-    int batchPhysicalDeletePo(@Param("array") Long[] ids);
-
     List<OrderPartyPo> selectPoByExample(OrderPartyPo example);
 
 }

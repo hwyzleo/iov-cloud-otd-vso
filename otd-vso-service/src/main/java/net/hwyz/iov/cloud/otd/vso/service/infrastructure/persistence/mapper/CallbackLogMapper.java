@@ -32,8 +32,6 @@ public interface CallbackLogMapper extends BaseDao<CallbackLogPo, Long> {
 
     int physicalDeletePo(Long id);
 
-    int batchPhysicalDeletePo(@Param("array") Long[] ids);
-
     List<CallbackLogPo> selectPoByExample(CallbackLogPo example);
 
     List<CallbackLogPo> selectByOrderId(@Param("orderId") String orderId);

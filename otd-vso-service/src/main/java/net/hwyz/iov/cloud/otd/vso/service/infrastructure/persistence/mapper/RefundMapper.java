@@ -32,8 +32,6 @@ public interface RefundMapper extends BaseDao<RefundPo, Long> {
 
     int physicalDeletePo(Long id);
 
-    int batchPhysicalDeletePo(@Param("array") Long[] ids);
-
     List<RefundPo> selectPoByExample(RefundPo example);
 
     List<RefundPo> selectByOrderId(@Param("orderId") String orderId);

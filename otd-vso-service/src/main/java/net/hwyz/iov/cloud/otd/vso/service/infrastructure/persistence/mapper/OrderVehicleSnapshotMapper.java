@@ -40,8 +40,6 @@ public interface OrderVehicleSnapshotMapper extends BaseDao<OrderVehicleSnapshot
 
     int physicalDeletePo(Long id);
 
-    int batchPhysicalDeletePo(@Param("array") Long[] ids);
-
     List<OrderVehicleSnapshotPo> selectPoByExample(OrderVehicleSnapshotPo example);
 
 }
