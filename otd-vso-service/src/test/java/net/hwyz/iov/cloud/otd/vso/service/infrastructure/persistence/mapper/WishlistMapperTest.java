@@ -25,7 +25,7 @@ public class WishlistMapperTest extends BaseTest {
         WishlistPo po = WishlistPo.builder()
                 .wishlistId("wishlist_" + System.currentTimeMillis())
                 .userId(userId)
-                .saleCode("TEST_SALE_CODE")
+                .saleModel("TEST_SALE_CODE")
                 .buildConfigCode("TEST_BUILD_CONFIG")
                 .status("ACTIVE")
                 .build();

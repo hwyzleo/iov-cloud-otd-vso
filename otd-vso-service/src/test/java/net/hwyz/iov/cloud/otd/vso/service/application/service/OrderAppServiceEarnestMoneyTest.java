@@ -24,10 +24,10 @@ class OrderAppServiceEarnestMoneyTest {
     @Test
     void testEarnestMoneyOrderWithWishlistId() {
         String userId = "test_user_" + System.currentTimeMillis();
-        String saleCode = "TEST_SALE_CODE";
+        String saleModel = "TEST_SALE_CODE";
         String buildConfigCode = "TEST_BUILD_CONFIG";
         
-        Wishlist wishlist = Wishlist.create(userId, saleCode, buildConfigCode);
+        Wishlist wishlist = Wishlist.create(userId, saleModel, buildConfigCode);
         wishlistRepository.save(wishlist);
         
         EarnestMoneyCmd cmd = EarnestMoneyCmd.builder()
@@ -75,7 +75,7 @@ class OrderAppServiceEarnestMoneyTest {
         EarnestMoneyCmd cmd = EarnestMoneyCmd.builder()
             .accountId(userId)
             .wishlistId(wishlist.getId())
-            .saleCode(overrideSaleCode)
+            .saleModel(overrideSaleCode)
             .regionCode("TEST_REGION")
             .licenseCityCode("TEST_CITY")
             .build();
@@ -88,11 +88,11 @@ class OrderAppServiceEarnestMoneyTest {
     @Test
     void testEarnestMoneyOrderWithWishlistOverrideBuildConfigCode() {
         String userId = "test_user_" + System.currentTimeMillis();
-        String saleCode = "TEST_SALE_CODE";
+        String saleModel = "TEST_SALE_CODE";
         String wishlistBuildConfigCode = "WISHLIST_BUILD_CONFIG";
         String overrideBuildConfigCode = "OVERRIDE_BUILD_CONFIG";
         
-        Wishlist wishlist = Wishlist.create(userId, saleCode, wishlistBuildConfigCode);
+        Wishlist wishlist = Wishlist.create(userId, saleModel, wishlistBuildConfigCode);
         wishlistRepository.save(wishlist);
         
         EarnestMoneyCmd cmd = EarnestMoneyCmd.builder()
@@ -114,7 +114,7 @@ class OrderAppServiceEarnestMoneyTest {
         
         EarnestMoneyCmd cmd = EarnestMoneyCmd.builder()
             .accountId(userId)
-            .saleCode("DIRECT_SALE_CODE")
+            .saleModel("DIRECT_SALE_CODE")
             .buildConfigCode("DIRECT_BUILD_CONFIG")
             .regionCode("TEST_REGION")
             .licenseCityCode("TEST_CITY")
