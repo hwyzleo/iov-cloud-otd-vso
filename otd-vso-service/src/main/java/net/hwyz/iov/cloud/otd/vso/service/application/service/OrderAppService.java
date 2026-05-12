@@ -2,7 +2,7 @@ package net.hwyz.iov.cloud.otd.vso.service.application.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import net.hwyz.iov.cloud.dms.org.api.feign.service.ExDealershipStaffService;
+//import net.hwyz.iov.cloud.dms.org.api.feign.service.ExDealershipStaffService;
 import net.hwyz.iov.cloud.edd.vmd.api.service.VmdVehicleModelConfigService;
 import net.hwyz.iov.cloud.edd.vmd.api.vo.response.VmdBuildConfigResponse;
 import net.hwyz.iov.cloud.framework.web.util.PageUtil;

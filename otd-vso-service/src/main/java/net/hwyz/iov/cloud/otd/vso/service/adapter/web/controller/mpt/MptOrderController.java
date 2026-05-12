@@ -5,8 +5,8 @@ import cn.hutool.core.util.StrUtil;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import net.hwyz.iov.cloud.dms.org.api.contract.DealershipExService;
-import net.hwyz.iov.cloud.dms.org.api.feign.service.ExDealershipService;
+//import net.hwyz.iov.cloud.dms.org.api.contract.DealershipExService;
+//import net.hwyz.iov.cloud.dms.org.api.feign.service.ExDealershipService;
 import net.hwyz.iov.cloud.framework.audit.annotation.Log;
 import net.hwyz.iov.cloud.framework.audit.enums.BusinessType;
 import net.hwyz.iov.cloud.framework.common.bean.ApiResponse;
@@ -63,7 +63,7 @@ import java.util.Map;
 public class MptOrderController extends BaseController {
 
     private final OrderAppService vehicleSaleOrderAppService;
-    private final ExDealershipService exDealershipService;
+//    private final ExDealershipService exDealershipService;
 
     /**
      * 分页查询车辆销售订单信息
@@ -142,10 +142,10 @@ public class MptOrderController extends BaseController {
         List<VehicleSaleOrderMpt> voList = PageUtil.convert(result, VehicleSaleOrderMptAssembler.INSTANCE::toVo);
         for (VehicleSaleOrderMpt vo : voList) {
             if (StrUtil.isNotBlank(vo.getDeliveryCenter())) {
-                DealershipExService dealership = exDealershipService.getByCode(vo.getDeliveryCenter());
-                if (ObjUtil.isNotNull(dealership)) {
-                    vo.setDeliveryCenterName(dealership.getName());
-                }
+//                DealershipExService dealership = exDealershipService.getByCode(vo.getDeliveryCenter());
+//                if (ObjUtil.isNotNull(dealership)) {
+//                    vo.setDeliveryCenterName(dealership.getName());
+//                }
             }
         }
         return ApiResponse.ok(getPageResult(voList));
@@ -212,10 +212,10 @@ public class MptOrderController extends BaseController {
         List<TransportOrderMpt> voList = PageUtil.convert(result, TransportOrderMptAssembler.INSTANCE::toVo);
         for (TransportOrderMpt vo : voList) {
             if (StrUtil.isNotBlank(vo.getDeliveryCenter())) {
-                DealershipExService dealership = exDealershipService.getByCode(vo.getDeliveryCenter());
-                if (ObjUtil.isNotNull(dealership)) {
-                    vo.setDeliveryCenterName(dealership.getName());
-                }
+//                DealershipExService dealership = exDealershipService.getByCode(vo.getDeliveryCenter());
+//                if (ObjUtil.isNotNull(dealership)) {
+//                    vo.setDeliveryCenterName(dealership.getName());
+//                }
             }
         }
         return ApiResponse.ok(getPageResult(voList));
