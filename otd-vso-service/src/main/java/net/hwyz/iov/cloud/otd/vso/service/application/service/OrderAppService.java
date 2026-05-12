@@ -428,9 +428,26 @@ public class OrderAppService {
     }
 
     public String downPaymentOrder(DownPaymentCmd cmd) {
+        log.info("定金下单：accountId={}, saleCode={}, wishlistId={}", 
+                cmd.getAccountId(), cmd.getSaleCode(), cmd.getWishlistId());
+        
         Order order = createOrFindOrder(cmd.getAccountId(), cmd.getOrderNo());
+        
+        String buildConfigCode = cmd.getBuildConfigCode();
+        String saleCode = cmd.getSaleCode();
+        
+        if (cmd.getWishlistId() != null && !cmd.getWishlistId().isEmpty()) {
+            Wishlist wishlist = wishlistRepository.findByWishlistIdAndUserId(cmd.getWishlistId(), cmd.getAccountId())
+                .orElseThrow(() -> new WishlistNotExistException(cmd.getWishlistId()));
+            
+            saleCode = cmd.getSaleCode() != null ? cmd.getSaleCode() : wishlist.getSaleCode();
+            buildConfigCode = cmd.getBuildConfigCode() != null ? cmd.getBuildConfigCode() : wishlist.getBuildConfigCode();
+            
+            order.saveSaleCode(saleCode);
+        }
+        
         order.downPaymentOrder();
-        order.saveBuildConfig(cmd.getBuildConfigCode(), cmd.getModelConfigMap());
+        order.saveBuildConfig(buildConfigCode, cmd.getModelConfigMap());
         order.saveOrderPerson(cmd.getAccountId(), cmd.getOrderPersonType(), cmd.getOrderPersonName(),
                 cmd.getOrderPersonIdType(), cmd.getOrderPersonIdNum());
         order.savePurchasePlan(cmd.getPurchasePlan());
@@ -438,6 +455,8 @@ public class OrderAppService {
         order.saveDealership(cmd.getDealership());
         order.saveDeliveryCenter(cmd.getDeliveryCenter());
         orderRepository.save(order);
+        log.info("定金下单完成：orderId={}, orderNo={}, buildConfigCode={}", 
+                order.getId(), order.getOrderNo(), order.getBuildConfigCode());
         return order.getOrderNo();
     }
 
