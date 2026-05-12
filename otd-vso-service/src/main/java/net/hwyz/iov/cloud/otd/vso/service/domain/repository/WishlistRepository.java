@@ -20,4 +20,6 @@ public interface WishlistRepository {
 
     List<Wishlist> findByUserId(String userId);
 
+    void deleteByUserId(String userId);
+
 }

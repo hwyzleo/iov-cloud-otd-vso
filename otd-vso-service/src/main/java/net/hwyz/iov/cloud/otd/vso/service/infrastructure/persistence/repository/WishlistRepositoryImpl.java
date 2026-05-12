@@ -55,4 +55,9 @@ public class WishlistRepositoryImpl implements WishlistRepository {
         return WishlistPoConverter.INSTANCE.toDomainList(wishlistMapper.selectByUserId(userId));
     }
 
+    @Override
+    public void deleteByUserId(String userId) {
+        wishlistMapper.deleteByUserId(userId);
+    }
+
 }
