@@ -39,4 +39,134 @@
         AND t.row_valid = 1
     </select>
 
+    <select id="selectPoById" parameterType="Long" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_approval t
+        WHERE t.id = #{value}
+        AND t.row_valid = 1
+    </select>
+
+    <select id="selectPoByExample" parameterType="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.ApprovalPo" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_approval t
+        WHERE t.row_valid = 1
+        <if test="id != null">
+            AND t.id = #{id}
+        </if>
+        <if test="approvalId != null and approvalId != ''">
+            AND t.approval_id = #{approvalId}
+        </if>
+        <if test="orderId != null and orderId != ''">
+            AND t.order_id = #{orderId}
+        </if>
+        <if test="approvalType != null and approvalType != ''">
+            AND t.approval_type = #{approvalType}
+        </if>
+        <if test="approvalStatus != null and approvalStatus != ''">
+            AND t.approval_status = #{approvalStatus}
+        </if>
+        ORDER BY t.id DESC
+    </select>
+
+    <select id="selectPoByMap" parameterType="java.util.Map" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_approval t
+        WHERE t.row_valid = 1
+        <if test="params.orderId != null and params.orderId != ''">
+            AND t.order_id = #{params.orderId}
+        </if>
+        <if test="params.approvalType != null and params.approvalType != ''">
+            AND t.approval_type = #{params.approvalType}
+        </if>
+        <if test="params.approvalStatus != null and params.approvalStatus != ''">
+            AND t.approval_status = #{params.approvalStatus}
+        </if>
+        ORDER BY t.id DESC
+    </select>
+
+    <select id="countPoByMap" parameterType="java.util.Map" resultType="int">
+        SELECT COUNT(*)
+        FROM vso_approval t
+        WHERE t.row_valid = 1
+        <if test="params.orderId != null and params.orderId != ''">
+            AND t.order_id = #{params.orderId}
+        </if>
+    </select>
+
+    <insert id="insertPo" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO vso_approval (
+            approval_id, approval_no, order_id, approval_type, approval_status,
+            apply_user_id, apply_role, apply_reason, change_snapshot, current_node_no,
+            executor_result, submit_time, finish_time, create_time, create_by,
+            modify_time, modify_by, row_version, row_valid
+        )
+        VALUES (
+            #{approvalId}, #{approvalNo}, #{orderId}, #{approvalType}, #{approvalStatus},
+            #{applyUserId}, #{applyRole}, #{applyReason}, #{changeSnapshot}, #{currentNodeNo},
+            #{executorResult}, #{submitTime}, #{finishTime}, now(), #{createBy},
+            now(), #{modifyBy}, 1, 1
+        )
+    </insert>
+
+    <insert id="batchInsertPo">
+        INSERT INTO vso_approval (
+            approval_id, approval_no, order_id, approval_type, approval_status,
+            apply_user_id, apply_role, apply_reason, change_snapshot, current_node_no,
+            executor_result, submit_time, finish_time, create_time, create_by,
+            modify_time, modify_by, row_version, row_valid
+        )
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (
+                #{item.approvalId}, #{item.approvalNo}, #{item.orderId}, #{item.approvalType}, #{item.approvalStatus},
+                #{item.applyUserId}, #{item.applyRole}, #{item.applyReason}, #{item.changeSnapshot}, #{item.currentNodeNo},
+                #{item.executorResult}, #{item.submitTime}, #{item.finishTime}, now(), #{item.createBy},
+                now(), #{item.modifyBy}, 1, 1
+            )
+        </foreach>
+    </insert>
+
+    <update id="updatePo" parameterType="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.ApprovalPo">
+        UPDATE vso_approval t SET
+        <if test="approvalStatus != null and approvalStatus != ''">
+            t.approval_status = #{approvalStatus},
+        </if>
+        <if test="currentNodeNo != null">
+            t.current_node_no = #{currentNodeNo},
+        </if>
+        <if test="executorResult != null and executorResult != ''">
+            t.executor_result = #{executorResult},
+        </if>
+        <if test="finishTime != null">
+            t.finish_time = #{finishTime},
+        </if>
+        <if test="modifyBy != null">
+            t.modify_by = #{modifyBy},
+        </if>
+        t.row_version = t.row_version + 1,
+        t.modify_time = now()
+        WHERE t.id = #{id}
+    </update>
+
+    <update id="logicalDeletePo" parameterType="Long">
+        UPDATE vso_approval t SET
+        t.row_version = t.row_version + 1,
+        t.modify_time = now(),
+        t.row_valid = 0
+        WHERE t.id = #{value}
+    </update>
+
+    <delete id="physicalDeletePo" parameterType="Long">
+        DELETE FROM vso_approval
+        WHERE id = #{value}
+    </delete>
+
+    <delete id="batchPhysicalDeletePo">
+        DELETE FROM vso_approval
+        WHERE id IN
+        <foreach collection="array" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+
 </mapper>

@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.mapper.OrderPartyMapper">
+
+    <resultMap id="baseResultMap" type="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.OrderPartyPo">
+        <id column="id" property="id" />
+        <result column="party_id" property="partyId" />
+        <result column="order_id" property="orderId" />
+        <result column="party_role" property="partyRole" />
+        <result column="user_id" property="userId" />
+        <result column="name" property="name" />
+        <result column="mobile_encrypted" property="mobileEncrypted" />
+        <result column="mobile_hash" property="mobileHash" />
+        <result column="id_no_encrypted" property="idNoEncrypted" />
+        <result column="id_no_hash" property="idNoHash" />
+        <result column="relation_to_buyer" property="relationToBuyer" />
+        <result column="address_encrypted" property="addressEncrypted" />
+        <result column="authorized_flag" property="authorizedFlag" />
+        <result column="authorized_proof_type" property="authorizedProofType" />
+        <result column="authorized_proof_url" property="authorizedProofUrl" />
+        <result column="create_time" property="createTime" />
+        <result column="create_by" property="createBy" />
+        <result column="modify_time" property="modifyTime" />
+        <result column="modify_by" property="modifyBy" />
+        <result column="row_version" property="rowVersion" />
+        <result column="row_valid" property="rowValid" />
+    </resultMap>
+
+    <sql id="baseColumnList">
+        t.id, t.party_id, t.order_id, t.party_role, t.user_id, t.name, t.mobile_encrypted,
+        t.mobile_hash, t.id_no_encrypted, t.id_no_hash, t.relation_to_buyer, t.address_encrypted,
+        t.authorized_flag, t.authorized_proof_type, t.authorized_proof_url, t.create_time,
+        t.create_by, t.modify_time, t.modify_by, t.row_version, t.row_valid
+    </sql>
+
+    <select id="selectByOrderIdAndRole" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_order_party t
+        WHERE t.order_id = #{orderId}
+        AND t.party_role = #{partyRole}
+        AND t.row_valid = 1
+    </select>
+
+    <select id="selectByOrderId" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_order_party t
+        WHERE t.order_id = #{orderId}
+        AND t.row_valid = 1
+    </select>
+
+    <select id="selectPoById" parameterType="Long" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_order_party t
+        WHERE t.id = #{value}
+        AND t.row_valid = 1
+    </select>
+
+    <select id="selectPoByExample" parameterType="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.OrderPartyPo" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_order_party t
+        WHERE t.row_valid = 1
+        <if test="id != null">
+            AND t.id = #{id}
+        </if>
+        <if test="orderId != null and orderId != ''">
+            AND t.order_id = #{orderId}
+        </if>
+        <if test="partyRole != null and partyRole != ''">
+            AND t.party_role = #{partyRole}
+        </if>
+        ORDER BY t.id DESC
+    </select>
+
+    <select id="selectPoByMap" parameterType="java.util.Map" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_order_party t
+        WHERE t.row_valid = 1
+        <if test="params.orderId != null and params.orderId != ''">
+            AND t.order_id = #{params.orderId}
+        </if>
+        <if test="params.partyRole != null and params.partyRole != ''">
+            AND t.party_role = #{params.partyRole}
+        </if>
+        ORDER BY t.id DESC
+    </select>
+
+    <select id="countPoByMap" parameterType="java.util.Map" resultType="int">
+        SELECT COUNT(*)
+        FROM vso_order_party t
+        WHERE t.row_valid = 1
+        <if test="params.orderId != null and params.orderId != ''">
+            AND t.order_id = #{params.orderId}
+        </if>
+    </select>
+
+    <insert id="insertPo" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO vso_order_party (
+            party_id, order_id, party_role, user_id, name, mobile_encrypted, mobile_hash,
+            id_no_encrypted, id_no_hash, relation_to_buyer, address_encrypted, authorized_flag,
+            authorized_proof_type, authorized_proof_url, create_time, create_by, modify_time,
+            modify_by, row_version, row_valid
+        )
+        VALUES (
+            #{partyId}, #{orderId}, #{partyRole}, #{userId}, #{name}, #{mobileEncrypted}, #{mobileHash},
+            #{idNoEncrypted}, #{idNoHash}, #{relationToBuyer}, #{addressEncrypted}, #{authorizedFlag},
+            #{authorizedProofType}, #{authorizedProofUrl}, now(), #{createBy}, now(),
+            #{modifyBy}, 1, 1
+        )
+    </insert>
+
+    <insert id="batchInsertPo">
+        INSERT INTO vso_order_party (
+            party_id, order_id, party_role, user_id, name, mobile_encrypted, mobile_hash,
+            id_no_encrypted, id_no_hash, relation_to_buyer, address_encrypted, authorized_flag,
+            authorized_proof_type, authorized_proof_url, create_time, create_by, modify_time,
+            modify_by, row_version, row_valid
+        )
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (
+                #{item.partyId}, #{item.orderId}, #{item.partyRole}, #{item.userId}, #{item.name}, #{item.mobileEncrypted}, #{item.mobileHash},
+                #{item.idNoEncrypted}, #{item.idNoHash}, #{item.relationToBuyer}, #{item.addressEncrypted}, #{item.authorizedFlag},
+                #{item.authorizedProofType}, #{item.authorizedProofUrl}, now(), #{item.createBy}, now(),
+                #{item.modifyBy}, 1, 1
+            )
+        </foreach>
+    </insert>
+
+    <update id="updatePo" parameterType="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.OrderPartyPo">
+        UPDATE vso_order_party t SET
+        <if test="name != null and name != ''">
+            t.name = #{name},
+        </if>
+        <if test="mobileEncrypted != null and mobileEncrypted != ''">
+            t.mobile_encrypted = #{mobileEncrypted},
+        </if>
+        <if test="idNoEncrypted != null and idNoEncrypted != ''">
+            t.id_no_encrypted = #{idNoEncrypted},
+        </if>
+        <if test="authorizedFlag != null">
+            t.authorized_flag = #{authorizedFlag},
+        </if>
+        <if test="authorizedProofType != null and authorizedProofType != ''">
+            t.authorized_proof_type = #{authorizedProofType},
+        </if>
+        <if test="authorizedProofUrl != null and authorizedProofUrl != ''">
+            t.authorized_proof_url = #{authorizedProofUrl},
+        </if>
+        <if test="modifyBy != null">
+            t.modify_by = #{modifyBy},
+        </if>
+        t.row_version = t.row_version + 1,
+        t.modify_time = now()
+        WHERE t.id = #{id}
+    </update>
+
+    <update id="logicalDeletePo" parameterType="Long">
+        UPDATE vso_order_party t SET
+        t.row_version = t.row_version + 1,
+        t.modify_time = now(),
+        t.row_valid = 0
+        WHERE t.id = #{value}
+    </update>
+
+    <delete id="physicalDeletePo" parameterType="Long">
+        DELETE FROM vso_order_party
+        WHERE id = #{value}
+    </delete>
+
+    <delete id="batchPhysicalDeletePo">
+        DELETE FROM vso_order_party
+        WHERE id IN
+        <foreach collection="array" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+</mapper>

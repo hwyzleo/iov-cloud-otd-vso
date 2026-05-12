@@ -42,4 +42,140 @@
         AND t.row_valid = 1
     </select>
 
+    <select id="selectPoById" parameterType="Long" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_contract t
+        WHERE t.id = #{value}
+        AND t.row_valid = 1
+    </select>
+
+    <select id="selectPoByExample" parameterType="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.ContractPo" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_contract t
+        WHERE t.row_valid = 1
+        <if test="id != null">
+            AND t.id = #{id}
+        </if>
+        <if test="orderId != null and orderId != ''">
+            AND t.order_id = #{orderId}
+        </if>
+        <if test="contractType != null and contractType != ''">
+            AND t.contract_type = #{contractType}
+        </if>
+        <if test="contractStatus != null and contractStatus != ''">
+            AND t.contract_status = #{contractStatus}
+        </if>
+        ORDER BY t.id DESC
+    </select>
+
+    <select id="selectPoByMap" parameterType="java.util.Map" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_contract t
+        WHERE t.row_valid = 1
+        <if test="params.orderId != null and params.orderId != ''">
+            AND t.order_id = #{params.orderId}
+        </if>
+        <if test="params.contractType != null and params.contractType != ''">
+            AND t.contract_type = #{params.contractType}
+        </if>
+        <if test="params.contractStatus != null and params.contractStatus != ''">
+            AND t.contract_status = #{params.contractStatus}
+        </if>
+        ORDER BY t.id DESC
+    </select>
+
+    <select id="countPoByMap" parameterType="java.util.Map" resultType="int">
+        SELECT COUNT(*)
+        FROM vso_contract t
+        WHERE t.row_valid = 1
+        <if test="params.orderId != null and params.orderId != ''">
+            AND t.order_id = #{params.orderId}
+        </if>
+    </select>
+
+    <insert id="insertPo" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO vso_contract (
+            contract_id, order_id, contract_no, contract_type, version_no,
+            contract_status, sign_mode, sign_effective_rule, file_url, external_contract_no,
+            generate_time, sign_time, effective_time, invalid_time, invalid_reason,
+            create_time, create_by, modify_time, modify_by, row_version, row_valid
+        )
+        VALUES (
+            #{contractId}, #{orderId}, #{contractNo}, #{contractType}, #{versionNo},
+            #{contractStatus}, #{signMode}, #{signEffectiveRule}, #{fileUrl}, #{externalContractNo},
+            #{generateTime}, #{signTime}, #{effectiveTime}, #{invalidTime}, #{invalidReason},
+            now(), #{createBy}, now(), #{modifyBy}, 1, 1
+        )
+    </insert>
+
+    <insert id="batchInsertPo">
+        INSERT INTO vso_contract (
+            contract_id, order_id, contract_no, contract_type, version_no,
+            contract_status, sign_mode, sign_effective_rule, file_url, external_contract_no,
+            generate_time, sign_time, effective_time, invalid_time, invalid_reason,
+            create_time, create_by, modify_time, modify_by, row_version, row_valid
+        )
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (
+                #{item.contractId}, #{item.orderId}, #{item.contractNo}, #{item.contractType}, #{item.versionNo},
+                #{item.contractStatus}, #{item.signMode}, #{item.signEffectiveRule}, #{item.fileUrl}, #{item.externalContractNo},
+                #{item.generateTime}, #{item.signTime}, #{item.effectiveTime}, #{item.invalidTime}, #{item.invalidReason},
+                now(), #{item.createBy}, now(), #{item.modifyBy}, 1, 1
+            )
+        </foreach>
+    </insert>
+
+    <update id="updatePo" parameterType="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.ContractPo">
+        UPDATE vso_contract t SET
+        <if test="contractStatus != null and contractStatus != ''">
+            t.contract_status = #{contractStatus},
+        </if>
+        <if test="versionNo != null">
+            t.version_no = #{versionNo},
+        </if>
+        <if test="fileUrl != null and fileUrl != ''">
+            t.file_url = #{fileUrl},
+        </if>
+        <if test="signTime != null">
+            t.sign_time = #{signTime},
+        </if>
+        <if test="effectiveTime != null">
+            t.effective_time = #{effectiveTime},
+        </if>
+        <if test="invalidTime != null">
+            t.invalid_time = #{invalidTime},
+        </if>
+        <if test="invalidReason != null and invalidReason != ''">
+            t.invalid_reason = #{invalidReason},
+        </if>
+        <if test="modifyBy != null">
+            t.modify_by = #{modifyBy},
+        </if>
+        t.row_version = t.row_version + 1,
+        t.modify_time = now()
+        WHERE t.id = #{id}
+    </update>
+
+    <update id="logicalDeletePo" parameterType="Long">
+        UPDATE vso_contract t SET
+        t.row_version = t.row_version + 1,
+        t.modify_time = now(),
+        t.row_valid = 0
+        WHERE t.id = #{value}
+    </update>
+
+    <delete id="physicalDeletePo" parameterType="Long">
+        DELETE FROM vso_contract
+        WHERE id = #{value}
+    </delete>
+
+    <delete id="batchPhysicalDeletePo">
+        DELETE FROM vso_contract
+        WHERE id IN
+        <foreach collection="array" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+
 </mapper>

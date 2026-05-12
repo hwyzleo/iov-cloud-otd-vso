@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.mapper.ConfigVehicleOccupancyMapper">
+
+    <resultMap id="baseResultMap" type="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.ConfigVehicleOccupancyPo">
+        <id column="id" property="id" />
+        <result column="occupancy_rule_key" property="occupancyRuleKey" />
+        <result column="model_code" property="modelCode" />
+        <result column="order_type" property="orderType" />
+        <result column="store_code" property="storeCode" />
+        <result column="region_code" property="regionCode" />
+        <result column="activity_type" property="activityType" />
+        <result column="customer_type" property="customerType" />
+        <result column="finance_order_flag" property="financeOrderFlag" />
+        <result column="special_approval_flag" property="specialApprovalFlag" />
+        <result column="occupancy_hours" property="occupancyHours" />
+        <result column="enable_flag" property="enableFlag" />
+        <result column="priority" property="priority" />
+        <result column="remark" property="remark" />
+        <result column="create_time" property="createTime" />
+        <result column="create_by" property="createBy" />
+        <result column="modify_time" property="modifyTime" />
+        <result column="modify_by" property="modifyBy" />
+        <result column="row_version" property="rowVersion" />
+        <result column="row_valid" property="rowValid" />
+    </resultMap>
+
+    <sql id="baseColumnList">
+        t.id, t.occupancy_rule_key, t.model_code, t.order_type, t.store_code, t.region_code,
+        t.activity_type, t.customer_type, t.finance_order_flag, t.special_approval_flag,
+        t.occupancy_hours, t.enable_flag, t.priority, t.remark, t.create_time, t.create_by,
+        t.modify_time, t.modify_by, t.row_version, t.row_valid
+    </sql>
+
+    <select id="selectPoById" parameterType="Long" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_config_vehicle_occupancy t
+        WHERE t.id = #{value}
+        AND t.row_valid = 1
+    </select>
+
+    <select id="selectPoByExample" parameterType="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.ConfigVehicleOccupancyPo" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_config_vehicle_occupancy t
+        WHERE t.row_valid = 1
+        <if test="id != null">
+            AND t.id = #{id}
+        </if>
+        <if test="modelCode != null and modelCode != ''">
+            AND t.model_code = #{modelCode}
+        </if>
+        <if test="enableFlag != null">
+            AND t.enable_flag = #{enableFlag}
+        </if>
+        ORDER BY t.priority DESC, t.id DESC
+    </select>
+
+    <select id="selectPoByMap" parameterType="java.util.Map" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_config_vehicle_occupancy t
+        WHERE t.row_valid = 1
+        <if test="params.modelCode != null and params.modelCode != ''">
+            AND t.model_code = #{params.modelCode}
+        </if>
+        <if test="params.orderType != null and params.orderType != ''">
+            AND t.order_type = #{params.orderType}
+        </if>
+        <if test="params.storeCode != null and params.storeCode != ''">
+            AND t.store_code = #{params.storeCode}
+        </if>
+        <if test="params.enableFlag != null">
+            AND t.enable_flag = #{params.enableFlag}
+        </if>
+        ORDER BY t.priority DESC, t.id DESC
+    </select>
+
+    <select id="countPoByMap" parameterType="java.util.Map" resultType="int">
+        SELECT COUNT(*)
+        FROM vso_config_vehicle_occupancy t
+        WHERE t.row_valid = 1
+        <if test="params.modelCode != null and params.modelCode != ''">
+            AND t.model_code = #{params.modelCode}
+        </if>
+    </select>
+
+    <insert id="insertPo" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO vso_config_vehicle_occupancy (
+            occupancy_rule_key, model_code, order_type, store_code, region_code, activity_type,
+            customer_type, finance_order_flag, special_approval_flag, occupancy_hours, enable_flag,
+            priority, remark, create_time, create_by, modify_time, modify_by, row_version, row_valid
+        )
+        VALUES (
+            #{occupancyRuleKey}, #{modelCode}, #{orderType}, #{storeCode}, #{regionCode}, #{activityType},
+            #{customerType}, #{financeOrderFlag}, #{specialApprovalFlag}, #{occupancyHours}, #{enableFlag},
+            #{priority}, #{remark}, now(), #{createBy}, now(), #{modifyBy}, 1, 1
+        )
+    </insert>
+
+    <insert id="batchInsertPo">
+        INSERT INTO vso_config_vehicle_occupancy (
+            occupancy_rule_key, model_code, order_type, store_code, region_code, activity_type,
+            customer_type, finance_order_flag, special_approval_flag, occupancy_hours, enable_flag,
+            priority, remark, create_time, create_by, modify_time, modify_by, row_version, row_valid
+        )
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (
+                #{item.occupancyRuleKey}, #{item.modelCode}, #{item.orderType}, #{item.storeCode}, #{item.regionCode}, #{item.activityType},
+                #{item.customerType}, #{item.financeOrderFlag}, #{item.specialApprovalFlag}, #{item.occupancyHours}, #{item.enableFlag},
+                #{item.priority}, #{item.remark}, now(), #{item.createBy}, now(), #{item.modifyBy}, 1, 1
+            )
+        </foreach>
+    </insert>
+
+    <update id="updatePo" parameterType="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.ConfigVehicleOccupancyPo">
+        UPDATE vso_config_vehicle_occupancy t SET
+        <if test="occupancyHours != null">
+            t.occupancy_hours = #{occupancyHours},
+        </if>
+        <if test="enableFlag != null">
+            t.enable_flag = #{enableFlag},
+        </if>
+        <if test="priority != null">
+            t.priority = #{priority},
+        </if>
+        <if test="remark != null and remark != ''">
+            t.remark = #{remark},
+        </if>
+        <if test="modifyBy != null">
+            t.modify_by = #{modifyBy},
+        </if>
+        t.row_version = t.row_version + 1,
+        t.modify_time = now()
+        WHERE t.id = #{id}
+    </update>
+
+    <update id="logicalDeletePo" parameterType="Long">
+        UPDATE vso_config_vehicle_occupancy t SET
+        t.row_version = t.row_version + 1,
+        t.modify_time = now(),
+        t.row_valid = 0
+        WHERE t.id = #{value}
+    </update>
+
+    <delete id="physicalDeletePo" parameterType="Long">
+        DELETE FROM vso_config_vehicle_occupancy
+        WHERE id = #{value}
+    </delete>
+
+    <delete id="batchPhysicalDeletePo">
+        DELETE FROM vso_config_vehicle_occupancy
+        WHERE id IN
+        <foreach collection="array" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+</mapper>

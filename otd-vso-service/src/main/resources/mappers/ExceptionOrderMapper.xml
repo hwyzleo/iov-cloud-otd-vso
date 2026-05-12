@@ -44,4 +44,144 @@
         AND t.row_valid = 1
     </select>
 
+    <select id="selectPoById" parameterType="Long" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_exception_order t
+        WHERE t.id = #{value}
+        AND t.row_valid = 1
+    </select>
+
+    <select id="selectPoByExample" parameterType="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.ExceptionOrderPo" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_exception_order t
+        WHERE t.row_valid = 1
+        <if test="id != null">
+            AND t.id = #{id}
+        </if>
+        <if test="orderId != null and orderId != ''">
+            AND t.order_id = #{orderId}
+        </if>
+        <if test="exceptionType != null and exceptionType != ''">
+            AND t.exception_type = #{exceptionType}
+        </if>
+        <if test="exceptionStatus != null and exceptionStatus != ''">
+            AND t.exception_status = #{exceptionStatus}
+        </if>
+        ORDER BY t.id DESC
+    </select>
+
+    <select id="selectPoByMap" parameterType="java.util.Map" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_exception_order t
+        WHERE t.row_valid = 1
+        <if test="params.orderId != null and params.orderId != ''">
+            AND t.order_id = #{params.orderId}
+        </if>
+        <if test="params.exceptionType != null and params.exceptionType != ''">
+            AND t.exception_type = #{params.exceptionType}
+        </if>
+        <if test="params.exceptionStatus != null and params.exceptionStatus != ''">
+            AND t.exception_status = #{params.exceptionStatus}
+        </if>
+        ORDER BY t.id DESC
+    </select>
+
+    <select id="countPoByMap" parameterType="java.util.Map" resultType="int">
+        SELECT COUNT(*)
+        FROM vso_exception_order t
+        WHERE t.row_valid = 1
+        <if test="params.orderId != null and params.orderId != ''">
+            AND t.order_id = #{params.orderId}
+        </if>
+    </select>
+
+    <insert id="insertPo" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO vso_exception_order (
+            exception_order_id, exception_no, order_id, exception_type, exception_source,
+            exception_status, responsible_user_id, upgrade_flag, exception_desc, external_system_name,
+            external_error_code, root_cause, solution_desc, prevention_desc, discover_time,
+            close_time, close_user_id, create_time, create_by, modify_time, modify_by,
+            row_version, row_valid
+        )
+        VALUES (
+            #{exceptionOrderId}, #{exceptionNo}, #{orderId}, #{exceptionType}, #{exceptionSource},
+            #{exceptionStatus}, #{responsibleUserId}, #{upgradeFlag}, #{exceptionDesc}, #{externalSystemName},
+            #{externalErrorCode}, #{rootCause}, #{solutionDesc}, #{preventionDesc}, #{discoverTime},
+            #{closeTime}, #{closeUserId}, now(), #{createBy}, now(), #{modifyBy},
+            1, 1
+        )
+    </insert>
+
+    <insert id="batchInsertPo">
+        INSERT INTO vso_exception_order (
+            exception_order_id, exception_no, order_id, exception_type, exception_source,
+            exception_status, responsible_user_id, upgrade_flag, exception_desc, external_system_name,
+            external_error_code, root_cause, solution_desc, prevention_desc, discover_time,
+            close_time, close_user_id, create_time, create_by, modify_time, modify_by,
+            row_version, row_valid
+        )
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (
+                #{item.exceptionOrderId}, #{item.exceptionNo}, #{item.orderId}, #{item.exceptionType}, #{item.exceptionSource},
+                #{item.exceptionStatus}, #{item.responsibleUserId}, #{item.upgradeFlag}, #{item.exceptionDesc}, #{item.externalSystemName},
+                #{item.externalErrorCode}, #{item.rootCause}, #{item.solutionDesc}, #{item.preventionDesc}, #{item.discoverTime},
+                #{item.closeTime}, #{item.closeUserId}, now(), #{item.createBy}, now(), #{item.modifyBy},
+                1, 1
+            )
+        </foreach>
+    </insert>
+
+    <update id="updatePo" parameterType="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.ExceptionOrderPo">
+        UPDATE vso_exception_order t SET
+        <if test="exceptionStatus != null and exceptionStatus != ''">
+            t.exception_status = #{exceptionStatus},
+        </if>
+        <if test="responsibleUserId != null and responsibleUserId != ''">
+            t.responsible_user_id = #{responsibleUserId},
+        </if>
+        <if test="upgradeFlag != null">
+            t.upgrade_flag = #{upgradeFlag},
+        </if>
+        <if test="rootCause != null and rootCause != ''">
+            t.root_cause = #{rootCause},
+        </if>
+        <if test="solutionDesc != null and solutionDesc != ''">
+            t.solution_desc = #{solutionDesc},
+        </if>
+        <if test="closeTime != null">
+            t.close_time = #{closeTime},
+        </if>
+        <if test="closeUserId != null and closeUserId != ''">
+            t.close_user_id = #{closeUserId},
+        </if>
+        <if test="modifyBy != null">
+            t.modify_by = #{modifyBy},
+        </if>
+        t.row_version = t.row_version + 1,
+        t.modify_time = now()
+        WHERE t.id = #{id}
+    </update>
+
+    <update id="logicalDeletePo" parameterType="Long">
+        UPDATE vso_exception_order t SET
+        t.row_version = t.row_version + 1,
+        t.modify_time = now(),
+        t.row_valid = 0
+        WHERE t.id = #{value}
+    </update>
+
+    <delete id="physicalDeletePo" parameterType="Long">
+        DELETE FROM vso_exception_order
+        WHERE id = #{value}
+    </delete>
+
+    <delete id="batchPhysicalDeletePo">
+        DELETE FROM vso_exception_order
+        WHERE id IN
+        <foreach collection="array" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+
 </mapper>

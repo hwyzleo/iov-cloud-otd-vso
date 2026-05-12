@@ -38,4 +38,131 @@
         AND t.row_valid = 1
     </select>
 
+    <select id="selectPoById" parameterType="Long" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_refund t
+        WHERE t.id = #{value}
+        AND t.row_valid = 1
+    </select>
+
+    <select id="selectPoByExample" parameterType="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.RefundPo" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_refund t
+        WHERE t.row_valid = 1
+        <if test="id != null">
+            AND t.id = #{id}
+        </if>
+        <if test="orderId != null and orderId != ''">
+            AND t.order_id = #{orderId}
+        </if>
+        <if test="refundScene != null and refundScene != ''">
+            AND t.refund_scene = #{refundScene}
+        </if>
+        <if test="refundStatus != null and refundStatus != ''">
+            AND t.refund_status = #{refundStatus}
+        </if>
+        ORDER BY t.id DESC
+    </select>
+
+    <select id="selectPoByMap" parameterType="java.util.Map" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_refund t
+        WHERE t.row_valid = 1
+        <if test="params.orderId != null and params.orderId != ''">
+            AND t.order_id = #{params.orderId}
+        </if>
+        <if test="params.refundScene != null and params.refundScene != ''">
+            AND t.refund_scene = #{params.refundScene}
+        </if>
+        <if test="params.refundStatus != null and params.refundStatus != ''">
+            AND t.refund_status = #{params.refundStatus}
+        </if>
+        ORDER BY t.id DESC
+    </select>
+
+    <select id="countPoByMap" parameterType="java.util.Map" resultType="int">
+        SELECT COUNT(*)
+        FROM vso_refund t
+        WHERE t.row_valid = 1
+        <if test="params.orderId != null and params.orderId != ''">
+            AND t.order_id = #{params.orderId}
+        </if>
+    </select>
+
+    <insert id="insertPo" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO vso_refund (
+            refund_id, refund_no, order_id, payment_id, refund_scene,
+            refund_amount, refund_status, approval_id, external_refund_no,
+            apply_time, refund_time, fail_reason, create_time, create_by,
+            modify_time, modify_by, row_version, row_valid
+        )
+        VALUES (
+            #{refundId}, #{refundNo}, #{orderId}, #{paymentId}, #{refundScene},
+            #{refundAmount}, #{refundStatus}, #{approvalId}, #{externalRefundNo},
+            #{applyTime}, #{refundTime}, #{failReason}, now(), #{createBy},
+            now(), #{modifyBy}, 1, 1
+        )
+    </insert>
+
+    <insert id="batchInsertPo">
+        INSERT INTO vso_refund (
+            refund_id, refund_no, order_id, payment_id, refund_scene,
+            refund_amount, refund_status, approval_id, external_refund_no,
+            apply_time, refund_time, fail_reason, create_time, create_by,
+            modify_time, modify_by, row_version, row_valid
+        )
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (
+                #{item.refundId}, #{item.refundNo}, #{item.orderId}, #{item.paymentId}, #{item.refundScene},
+                #{item.refundAmount}, #{item.refundStatus}, #{item.approvalId}, #{item.externalRefundNo},
+                #{item.applyTime}, #{item.refundTime}, #{item.failReason}, now(), #{item.createBy},
+                now(), #{item.modifyBy}, 1, 1
+            )
+        </foreach>
+    </insert>
+
+    <update id="updatePo" parameterType="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.RefundPo">
+        UPDATE vso_refund t SET
+        <if test="refundStatus != null and refundStatus != ''">
+            t.refund_status = #{refundStatus},
+        </if>
+        <if test="externalRefundNo != null and externalRefundNo != ''">
+            t.external_refund_no = #{externalRefundNo},
+        </if>
+        <if test="refundTime != null">
+            t.refund_time = #{refundTime},
+        </if>
+        <if test="failReason != null and failReason != ''">
+            t.fail_reason = #{failReason},
+        </if>
+        <if test="modifyBy != null">
+            t.modify_by = #{modifyBy},
+        </if>
+        t.row_version = t.row_version + 1,
+        t.modify_time = now()
+        WHERE t.id = #{id}
+    </update>
+
+    <update id="logicalDeletePo" parameterType="Long">
+        UPDATE vso_refund t SET
+        t.row_version = t.row_version + 1,
+        t.modify_time = now(),
+        t.row_valid = 0
+        WHERE t.id = #{value}
+    </update>
+
+    <delete id="physicalDeletePo" parameterType="Long">
+        DELETE FROM vso_refund
+        WHERE id = #{value}
+    </delete>
+
+    <delete id="batchPhysicalDeletePo">
+        DELETE FROM vso_refund
+        WHERE id IN
+        <foreach collection="array" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+
 </mapper>

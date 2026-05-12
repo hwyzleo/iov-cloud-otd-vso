@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.mapper.OrderMaterialVersionMapper">
+
+    <resultMap id="baseResultMap" type="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.OrderMaterialVersionPo">
+        <id column="id" property="id" />
+        <result column="material_version_id" property="materialVersionId" />
+        <result column="material_id" property="materialId" />
+        <result column="version_no" property="versionNo" />
+        <result column="file_url" property="fileUrl" />
+        <result column="file_name" property="fileName" />
+        <result column="file_type" property="fileType" />
+        <result column="file_size" property="fileSize" />
+        <result column="submit_time" property="submitTime" />
+        <result column="review_status" property="reviewStatus" />
+        <result column="review_time" property="reviewTime" />
+        <result column="reviewer_id" property="reviewerId" />
+        <result column="create_time" property="createTime" />
+        <result column="create_by" property="createBy" />
+        <result column="modify_time" property="modifyTime" />
+        <result column="modify_by" property="modifyBy" />
+        <result column="row_version" property="rowVersion" />
+        <result column="row_valid" property="rowValid" />
+    </resultMap>
+
+    <sql id="baseColumnList">
+        t.id, t.material_version_id, t.material_id, t.version_no, t.file_url, t.file_name,
+        t.file_type, t.file_size, t.submit_time, t.review_status, t.review_time, t.reviewer_id,
+        t.create_time, t.create_by, t.modify_time, t.modify_by, t.row_version, t.row_valid
+    </sql>
+
+    <select id="selectPoById" parameterType="Long" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_order_material_version t
+        WHERE t.id = #{value}
+        AND t.row_valid = 1
+    </select>
+
+    <select id="selectPoByExample" parameterType="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.OrderMaterialVersionPo" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_order_material_version t
+        WHERE t.row_valid = 1
+        <if test="id != null">
+            AND t.id = #{id}
+        </if>
+        <if test="materialId != null and materialId != ''">
+            AND t.material_id = #{materialId}
+        </if>
+        <if test="reviewStatus != null and reviewStatus != ''">
+            AND t.review_status = #{reviewStatus}
+        </if>
+        ORDER BY t.id DESC
+    </select>
+
+    <select id="selectPoByMap" parameterType="java.util.Map" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_order_material_version t
+        WHERE t.row_valid = 1
+        <if test="params.materialId != null and params.materialId != ''">
+            AND t.material_id = #{params.materialId}
+        </if>
+        <if test="params.reviewStatus != null and params.reviewStatus != ''">
+            AND t.review_status = #{params.reviewStatus}
+        </if>
+        ORDER BY t.id DESC
+    </select>
+
+    <select id="countPoByMap" parameterType="java.util.Map" resultType="int">
+        SELECT COUNT(*)
+        FROM vso_order_material_version t
+        WHERE t.row_valid = 1
+        <if test="params.materialId != null and params.materialId != ''">
+            AND t.material_id = #{params.materialId}
+        </if>
+    </select>
+
+    <insert id="insertPo" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO vso_order_material_version (
+            material_version_id, material_id, version_no, file_url, file_name, file_type,
+            file_size, submit_time, review_status, review_time, reviewer_id,
+            create_time, create_by, modify_time, modify_by, row_version, row_valid
+        )
+        VALUES (
+            #{materialVersionId}, #{materialId}, #{versionNo}, #{fileUrl}, #{fileName}, #{fileType},
+            #{fileSize}, #{submitTime}, #{reviewStatus}, #{reviewTime}, #{reviewerId},
+            now(), #{createBy}, now(), #{modifyBy}, 1, 1
+        )
+    </insert>
+
+    <insert id="batchInsertPo">
+        INSERT INTO vso_order_material_version (
+            material_version_id, material_id, version_no, file_url, file_name, file_type,
+            file_size, submit_time, review_status, review_time, reviewer_id,
+            create_time, create_by, modify_time, modify_by, row_version, row_valid
+        )
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (
+                #{item.materialVersionId}, #{item.materialId}, #{item.versionNo}, #{item.fileUrl}, #{item.fileName}, #{item.fileType},
+                #{item.fileSize}, #{item.submitTime}, #{item.reviewStatus}, #{item.reviewTime}, #{item.reviewerId},
+                now(), #{item.createBy}, now(), #{item.modifyBy}, 1, 1
+            )
+        </foreach>
+    </insert>
+
+    <update id="updatePo" parameterType="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.OrderMaterialVersionPo">
+        UPDATE vso_order_material_version t SET
+        <if test="reviewStatus != null and reviewStatus != ''">
+            t.review_status = #{reviewStatus},
+        </if>
+        <if test="reviewTime != null">
+            t.review_time = #{reviewTime},
+        </if>
+        <if test="reviewerId != null and reviewerId != ''">
+            t.reviewer_id = #{reviewerId},
+        </if>
+        <if test="modifyBy != null">
+            t.modify_by = #{modifyBy},
+        </if>
+        t.row_version = t.row_version + 1,
+        t.modify_time = now()
+        WHERE t.id = #{id}
+    </update>
+
+    <update id="logicalDeletePo" parameterType="Long">
+        UPDATE vso_order_material_version t SET
+        t.row_version = t.row_version + 1,
+        t.modify_time = now(),
+        t.row_valid = 0
+        WHERE t.id = #{value}
+    </update>
+
+    <delete id="physicalDeletePo" parameterType="Long">
+        DELETE FROM vso_order_material_version
+        WHERE id = #{value}
+    </delete>
+
+    <delete id="batchPhysicalDeletePo">
+        DELETE FROM vso_order_material_version
+        WHERE id IN
+        <foreach collection="array" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+</mapper>

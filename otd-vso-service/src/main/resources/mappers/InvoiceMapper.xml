@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.mapper.InvoiceMapper">
+
+    <resultMap id="baseResultMap" type="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.InvoicePo">
+        <id column="id" property="id" />
+        <result column="invoice_id" property="invoiceId" />
+        <result column="invoice_no" property="invoiceNo" />
+        <result column="order_id" property="orderId" />
+        <result column="invoice_status" property="invoiceStatus" />
+        <result column="invoice_type" property="invoiceType" />
+        <result column="invoice_title" property="invoiceTitle" />
+        <result column="invoice_tax_no" property="invoiceTaxNo" />
+        <result column="invoice_amount" property="invoiceAmount" />
+        <result column="invoice_subject_code" property="invoiceSubjectCode" />
+        <result column="issue_time" property="issueTime" />
+        <result column="void_time" property="voidTime" />
+        <result column="reissue_flag" property="reissueFlag" />
+        <result column="void_reason" property="voidReason" />
+        <result column="external_invoice_no" property="externalInvoiceNo" />
+        <result column="create_time" property="createTime" />
+        <result column="create_by" property="createBy" />
+        <result column="modify_time" property="modifyTime" />
+        <result column="modify_by" property="modifyBy" />
+        <result column="row_version" property="rowVersion" />
+        <result column="row_valid" property="rowValid" />
+    </resultMap>
+
+    <sql id="baseColumnList">
+        t.id, t.invoice_id, t.invoice_no, t.order_id, t.invoice_status, t.invoice_type,
+        t.invoice_title, t.invoice_tax_no, t.invoice_amount, t.invoice_subject_code,
+        t.issue_time, t.void_time, t.reissue_flag, t.void_reason, t.external_invoice_no,
+        t.create_time, t.create_by, t.modify_time, t.modify_by, t.row_version, t.row_valid
+    </sql>
+
+    <select id="selectByOrderId" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_invoice t
+        WHERE t.order_id = #{orderId}
+        AND t.row_valid = 1
+    </select>
+
+    <select id="selectPoById" parameterType="Long" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_invoice t
+        WHERE t.id = #{value}
+        AND t.row_valid = 1
+    </select>
+
+    <select id="selectPoByExample" parameterType="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.InvoicePo" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_invoice t
+        WHERE t.row_valid = 1
+        <if test="id != null">
+            AND t.id = #{id}
+        </if>
+        <if test="orderId != null and orderId != ''">
+            AND t.order_id = #{orderId}
+        </if>
+        <if test="invoiceStatus != null and invoiceStatus != ''">
+            AND t.invoice_status = #{invoiceStatus}
+        </if>
+        ORDER BY t.id DESC
+    </select>
+
+    <select id="selectPoByMap" parameterType="java.util.Map" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_invoice t
+        WHERE t.row_valid = 1
+        <if test="params.orderId != null and params.orderId != ''">
+            AND t.order_id = #{params.orderId}
+        </if>
+        <if test="params.invoiceStatus != null and params.invoiceStatus != ''">
+            AND t.invoice_status = #{params.invoiceStatus}
+        </if>
+        ORDER BY t.id DESC
+    </select>
+
+    <select id="countPoByMap" parameterType="java.util.Map" resultType="int">
+        SELECT COUNT(*)
+        FROM vso_invoice t
+        WHERE t.row_valid = 1
+        <if test="params.orderId != null and params.orderId != ''">
+            AND t.order_id = #{params.orderId}
+        </if>
+    </select>
+
+    <insert id="insertPo" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO vso_invoice (
+            invoice_id, invoice_no, order_id, invoice_status, invoice_type, invoice_title,
+            invoice_tax_no, invoice_amount, invoice_subject_code, issue_time, void_time,
+            reissue_flag, void_reason, external_invoice_no, create_time, create_by,
+            modify_time, modify_by, row_version, row_valid
+        )
+        VALUES (
+            #{invoiceId}, #{invoiceNo}, #{orderId}, #{invoiceStatus}, #{invoiceType}, #{invoiceTitle},
+            #{invoiceTaxNo}, #{invoiceAmount}, #{invoiceSubjectCode}, #{issueTime}, #{voidTime},
+            #{reissueFlag}, #{voidReason}, #{externalInvoiceNo}, now(), #{createBy},
+            now(), #{modifyBy}, 1, 1
+        )
+    </insert>
+
+    <insert id="batchInsertPo">
+        INSERT INTO vso_invoice (
+            invoice_id, invoice_no, order_id, invoice_status, invoice_type, invoice_title,
+            invoice_tax_no, invoice_amount, invoice_subject_code, issue_time, void_time,
+            reissue_flag, void_reason, external_invoice_no, create_time, create_by,
+            modify_time, modify_by, row_version, row_valid
+        )
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (
+                #{item.invoiceId}, #{item.invoiceNo}, #{item.orderId}, #{item.invoiceStatus}, #{item.invoiceType}, #{item.invoiceTitle},
+                #{item.invoiceTaxNo}, #{item.invoiceAmount}, #{item.invoiceSubjectCode}, #{item.issueTime}, #{item.voidTime},
+                #{item.reissueFlag}, #{item.voidReason}, #{item.externalInvoiceNo}, now(), #{item.createBy},
+                now(), #{item.modifyBy}, 1, 1
+            )
+        </foreach>
+    </insert>
+
+    <update id="updatePo" parameterType="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.InvoicePo">
+        UPDATE vso_invoice t SET
+        <if test="invoiceStatus != null and invoiceStatus != ''">
+            t.invoice_status = #{invoiceStatus},
+        </if>
+        <if test="issueTime != null">
+            t.issue_time = #{issueTime},
+        </if>
+        <if test="voidTime != null">
+            t.void_time = #{voidTime},
+        </if>
+        <if test="voidReason != null and voidReason != ''">
+            t.void_reason = #{voidReason},
+        </if>
+        <if test="modifyBy != null">
+            t.modify_by = #{modifyBy},
+        </if>
+        t.row_version = t.row_version + 1,
+        t.modify_time = now()
+        WHERE t.id = #{id}
+    </update>
+
+    <update id="logicalDeletePo" parameterType="Long">
+        UPDATE vso_invoice t SET
+        t.row_version = t.row_version + 1,
+        t.modify_time = now(),
+        t.row_valid = 0
+        WHERE t.id = #{value}
+    </update>
+
+    <delete id="physicalDeletePo" parameterType="Long">
+        DELETE FROM vso_invoice
+        WHERE id = #{value}
+    </delete>
+
+    <delete id="batchPhysicalDeletePo">
+        DELETE FROM vso_invoice
+        WHERE id IN
+        <foreach collection="array" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+</mapper>

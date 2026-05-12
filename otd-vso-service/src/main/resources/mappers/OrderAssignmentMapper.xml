@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.mapper.OrderAssignmentMapper">
+
+    <resultMap id="baseResultMap" type="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.OrderAssignmentPo">
+        <id column="id" property="id" />
+        <result column="assignment_id" property="assignmentId" />
+        <result column="order_id" property="orderId" />
+        <result column="order_store_code" property="orderStoreCode" />
+        <result column="owner_store_code" property="ownerStoreCode" />
+        <result column="delivery_store_code" property="deliveryStoreCode" />
+        <result column="origin_region_code" property="originRegionCode" />
+        <result column="owner_region_code" property="ownerRegionCode" />
+        <result column="delivery_region_code" property="deliveryRegionCode" />
+        <result column="sales_code" property="salesCode" />
+        <result column="assign_type" property="assignType" />
+        <result column="assign_reason" property="assignReason" />
+        <result column="assign_time" property="assignTime" />
+        <result column="operator_code" property="operatorCode" />
+        <result column="create_time" property="createTime" />
+        <result column="create_by" property="createBy" />
+        <result column="modify_time" property="modifyTime" />
+        <result column="modify_by" property="modifyBy" />
+        <result column="row_version" property="rowVersion" />
+        <result column="row_valid" property="rowValid" />
+    </resultMap>
+
+    <sql id="baseColumnList">
+        t.id, t.assignment_id, t.order_id, t.order_store_code, t.owner_store_code, t.delivery_store_code,
+        t.origin_region_code, t.owner_region_code, t.delivery_region_code, t.sales_code, t.assign_type,
+        t.assign_reason, t.assign_time, t.operator_code, t.create_time, t.create_by, t.modify_time,
+        t.modify_by, t.row_version, t.row_valid
+    </sql>
+
+    <select id="selectByOrderId" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_order_assignment t
+        WHERE t.order_id = #{orderId}
+        AND t.row_valid = 1
+    </select>
+
+    <select id="selectPoById" parameterType="Long" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_order_assignment t
+        WHERE t.id = #{value}
+        AND t.row_valid = 1
+    </select>
+
+    <select id="selectPoByExample" parameterType="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.OrderAssignmentPo" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_order_assignment t
+        WHERE t.row_valid = 1
+        <if test="id != null">
+            AND t.id = #{id}
+        </if>
+        <if test="orderId != null and orderId != ''">
+            AND t.order_id = #{orderId}
+        </if>
+        <if test="assignType != null and assignType != ''">
+            AND t.assign_type = #{assignType}
+        </if>
+        ORDER BY t.id DESC
+    </select>
+
+    <select id="selectPoByMap" parameterType="java.util.Map" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_order_assignment t
+        WHERE t.row_valid = 1
+        <if test="params.orderId != null and params.orderId != ''">
+            AND t.order_id = #{params.orderId}
+        </if>
+        <if test="params.assignType != null and params.assignType != ''">
+            AND t.assign_type = #{params.assignType}
+        </if>
+        ORDER BY t.id DESC
+    </select>
+
+    <select id="countPoByMap" parameterType="java.util.Map" resultType="int">
+        SELECT COUNT(*)
+        FROM vso_order_assignment t
+        WHERE t.row_valid = 1
+        <if test="params.orderId != null and params.orderId != ''">
+            AND t.order_id = #{params.orderId}
+        </if>
+    </select>
+
+    <insert id="insertPo" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO vso_order_assignment (
+            assignment_id, order_id, order_store_code, owner_store_code, delivery_store_code,
+            origin_region_code, owner_region_code, delivery_region_code, sales_code, assign_type,
+            assign_reason, assign_time, operator_code, create_time, create_by, modify_time,
+            modify_by, row_version, row_valid
+        )
+        VALUES (
+            #{assignmentId}, #{orderId}, #{orderStoreCode}, #{ownerStoreCode}, #{deliveryStoreCode},
+            #{originRegionCode}, #{ownerRegionCode}, #{deliveryRegionCode}, #{salesCode}, #{assignType},
+            #{assignReason}, #{assignTime}, #{operatorCode}, now(), #{createBy}, now(),
+            #{modifyBy}, 1, 1
+        )
+    </insert>
+
+    <insert id="batchInsertPo">
+        INSERT INTO vso_order_assignment (
+            assignment_id, order_id, order_store_code, owner_store_code, delivery_store_code,
+            origin_region_code, owner_region_code, delivery_region_code, sales_code, assign_type,
+            assign_reason, assign_time, operator_code, create_time, create_by, modify_time,
+            modify_by, row_version, row_valid
+        )
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (
+                #{item.assignmentId}, #{item.orderId}, #{item.orderStoreCode}, #{item.ownerStoreCode}, #{item.deliveryStoreCode},
+                #{item.originRegionCode}, #{item.ownerRegionCode}, #{item.deliveryRegionCode}, #{item.salesCode}, #{item.assignType},
+                #{item.assignReason}, #{item.assignTime}, #{item.operatorCode}, now(), #{item.createBy}, now(),
+                #{item.modifyBy}, 1, 1
+            )
+        </foreach>
+    </insert>
+
+    <update id="updatePo" parameterType="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.OrderAssignmentPo">
+        UPDATE vso_order_assignment t SET
+        <if test="ownerStoreCode != null and ownerStoreCode != ''">
+            t.owner_store_code = #{ownerStoreCode},
+        </if>
+        <if test="deliveryStoreCode != null and deliveryStoreCode != ''">
+            t.delivery_store_code = #{deliveryStoreCode},
+        </if>
+        <if test="salesCode != null and salesCode != ''">
+            t.sales_code = #{salesCode},
+        </if>
+        <if test="assignType != null and assignType != ''">
+            t.assign_type = #{assignType},
+        </if>
+        <if test="assignReason != null and assignReason != ''">
+            t.assign_reason = #{assignReason},
+        </if>
+        <if test="assignTime != null">
+            t.assign_time = #{assignTime},
+        </if>
+        <if test="modifyBy != null">
+            t.modify_by = #{modifyBy},
+        </if>
+        t.row_version = t.row_version + 1,
+        t.modify_time = now()
+        WHERE t.id = #{id}
+    </update>
+
+    <update id="logicalDeletePo" parameterType="Long">
+        UPDATE vso_order_assignment t SET
+        t.row_version = t.row_version + 1,
+        t.modify_time = now(),
+        t.row_valid = 0
+        WHERE t.id = #{value}
+    </update>
+
+    <delete id="physicalDeletePo" parameterType="Long">
+        DELETE FROM vso_order_assignment
+        WHERE id = #{value}
+    </delete>
+
+    <delete id="batchPhysicalDeletePo">
+        DELETE FROM vso_order_assignment
+        WHERE id IN
+        <foreach collection="array" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+</mapper>

@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.mapper.ConfigTimeoutMapper">
+
+    <resultMap id="baseResultMap" type="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.ConfigTimeoutPo">
+        <id column="id" property="id" />
+        <result column="config_key" property="configKey" />
+        <result column="config_name" property="configName" />
+        <result column="threshold_minutes" property="thresholdMinutes" />
+        <result column="trigger_strategy" property="triggerStrategy" />
+        <result column="enable_flag" property="enableFlag" />
+        <result column="remark" property="remark" />
+        <result column="create_time" property="createTime" />
+        <result column="create_by" property="createBy" />
+        <result column="modify_time" property="modifyTime" />
+        <result column="modify_by" property="modifyBy" />
+        <result column="row_version" property="rowVersion" />
+        <result column="row_valid" property="rowValid" />
+    </resultMap>
+
+    <sql id="baseColumnList">
+        t.id, t.config_key, t.config_name, t.threshold_minutes, t.trigger_strategy, t.enable_flag,
+        t.remark, t.create_time, t.create_by, t.modify_time, t.modify_by, t.row_version, t.row_valid
+    </sql>
+
+    <select id="selectPoById" parameterType="Long" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_config_timeout t
+        WHERE t.id = #{value}
+        AND t.row_valid = 1
+    </select>
+
+    <select id="selectPoByExample" parameterType="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.ConfigTimeoutPo" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_config_timeout t
+        WHERE t.row_valid = 1
+        <if test="id != null">
+            AND t.id = #{id}
+        </if>
+        <if test="configKey != null and configKey != ''">
+            AND t.config_key = #{configKey}
+        </if>
+        <if test="enableFlag != null">
+            AND t.enable_flag = #{enableFlag}
+        </if>
+        ORDER BY t.id DESC
+    </select>
+
+    <select id="selectPoByMap" parameterType="java.util.Map" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_config_timeout t
+        WHERE t.row_valid = 1
+        <if test="params.configKey != null and params.configKey != ''">
+            AND t.config_key = #{params.configKey}
+        </if>
+        <if test="params.enableFlag != null">
+            AND t.enable_flag = #{params.enableFlag}
+        </if>
+        ORDER BY t.id DESC
+    </select>
+
+    <select id="countPoByMap" parameterType="java.util.Map" resultType="int">
+        SELECT COUNT(*)
+        FROM vso_config_timeout t
+        WHERE t.row_valid = 1
+    </select>
+
+    <insert id="insertPo" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO vso_config_timeout (
+            config_key, config_name, threshold_minutes, trigger_strategy, enable_flag, remark,
+            create_time, create_by, modify_time, modify_by, row_version, row_valid
+        )
+        VALUES (
+            #{configKey}, #{configName}, #{thresholdMinutes}, #{triggerStrategy}, #{enableFlag}, #{remark},
+            now(), #{createBy}, now(), #{modifyBy}, 1, 1
+        )
+    </insert>
+
+    <insert id="batchInsertPo">
+        INSERT INTO vso_config_timeout (
+            config_key, config_name, threshold_minutes, trigger_strategy, enable_flag, remark,
+            create_time, create_by, modify_time, modify_by, row_version, row_valid
+        )
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (
+                #{item.configKey}, #{item.configName}, #{item.thresholdMinutes}, #{item.triggerStrategy}, #{item.enableFlag}, #{item.remark},
+                now(), #{item.createBy}, now(), #{item.modifyBy}, 1, 1
+            )
+        </foreach>
+    </insert>
+
+    <update id="updatePo" parameterType="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.ConfigTimeoutPo">
+        UPDATE vso_config_timeout t SET
+        <if test="thresholdMinutes != null">
+            t.threshold_minutes = #{thresholdMinutes},
+        </if>
+        <if test="triggerStrategy != null and triggerStrategy != ''">
+            t.trigger_strategy = #{triggerStrategy},
+        </if>
+        <if test="enableFlag != null">
+            t.enable_flag = #{enableFlag},
+        </if>
+        <if test="remark != null and remark != ''">
+            t.remark = #{remark},
+        </if>
+        <if test="modifyBy != null">
+            t.modify_by = #{modifyBy},
+        </if>
+        t.row_version = t.row_version + 1,
+        t.modify_time = now()
+        WHERE t.id = #{id}
+    </update>
+
+    <update id="logicalDeletePo" parameterType="Long">
+        UPDATE vso_config_timeout t SET
+        t.row_version = t.row_version + 1,
+        t.modify_time = now(),
+        t.row_valid = 0
+        WHERE t.id = #{value}
+    </update>
+
+    <delete id="physicalDeletePo" parameterType="Long">
+        DELETE FROM vso_config_timeout
+        WHERE id = #{value}
+    </delete>
+
+    <delete id="batchPhysicalDeletePo">
+        DELETE FROM vso_config_timeout
+        WHERE id IN
+        <foreach collection="array" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+</mapper>

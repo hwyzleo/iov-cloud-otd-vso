@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.mapper.OrderVersionMapper">
+
+    <resultMap id="baseResultMap" type="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.OrderVersionPo">
+        <id column="id" property="id" />
+        <result column="order_version_id" property="orderVersionId" />
+        <result column="order_id" property="orderId" />
+        <result column="version_no" property="versionNo" />
+        <result column="change_type" property="changeType" />
+        <result column="change_reason" property="changeReason" />
+        <result column="approval_id" property="approvalId" />
+        <result column="trigger_source" property="triggerSource" />
+        <result column="trigger_user_id" property="triggerUserId" />
+        <result column="effective_flag" property="effectiveFlag" />
+        <result column="effective_time" property="effectiveTime" />
+        <result column="snapshot_json" property="snapshotJson" />
+        <result column="create_time" property="createTime" />
+        <result column="create_by" property="createBy" />
+        <result column="modify_time" property="modifyTime" />
+        <result column="modify_by" property="modifyBy" />
+        <result column="row_version" property="rowVersion" />
+        <result column="row_valid" property="rowValid" />
+    </resultMap>
+
+    <sql id="baseColumnList">
+        t.id, t.order_version_id, t.order_id, t.version_no, t.change_type, t.change_reason,
+        t.approval_id, t.trigger_source, t.trigger_user_id, t.effective_flag, t.effective_time,
+        t.snapshot_json, t.create_time, t.create_by, t.modify_time, t.modify_by, t.row_version, t.row_valid
+    </sql>
+
+    <select id="selectByOrderId" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_order_version t
+        WHERE t.order_id = #{orderId}
+        AND t.row_valid = 1
+        ORDER BY t.version_no DESC
+    </select>
+
+    <select id="selectPoById" parameterType="Long" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_order_version t
+        WHERE t.id = #{value}
+        AND t.row_valid = 1
+    </select>
+
+    <select id="selectPoByExample" parameterType="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.OrderVersionPo" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_order_version t
+        WHERE t.row_valid = 1
+        <if test="id != null">
+            AND t.id = #{id}
+        </if>
+        <if test="orderId != null and orderId != ''">
+            AND t.order_id = #{orderId}
+        </if>
+        <if test="changeType != null and changeType != ''">
+            AND t.change_type = #{changeType}
+        </if>
+        <if test="effectiveFlag != null">
+            AND t.effective_flag = #{effectiveFlag}
+        </if>
+        ORDER BY t.id DESC
+    </select>
+
+    <select id="selectPoByMap" parameterType="java.util.Map" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_order_version t
+        WHERE t.row_valid = 1
+        <if test="params.orderId != null and params.orderId != ''">
+            AND t.order_id = #{params.orderId}
+        </if>
+        <if test="params.changeType != null and params.changeType != ''">
+            AND t.change_type = #{params.changeType}
+        </if>
+        <if test="params.effectiveFlag != null">
+            AND t.effective_flag = #{params.effectiveFlag}
+        </if>
+        ORDER BY t.id DESC
+    </select>
+
+    <select id="countPoByMap" parameterType="java.util.Map" resultType="int">
+        SELECT COUNT(*)
+        FROM vso_order_version t
+        WHERE t.row_valid = 1
+        <if test="params.orderId != null and params.orderId != ''">
+            AND t.order_id = #{params.orderId}
+        </if>
+    </select>
+
+    <insert id="insertPo" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO vso_order_version (
+            order_version_id, order_id, version_no, change_type, change_reason,
+            approval_id, trigger_source, trigger_user_id, effective_flag, effective_time,
+            snapshot_json, create_time, create_by, modify_time, modify_by, row_version, row_valid
+        )
+        VALUES (
+            #{orderVersionId}, #{orderId}, #{versionNo}, #{changeType}, #{changeReason},
+            #{approvalId}, #{triggerSource}, #{triggerUserId}, #{effectiveFlag}, #{effectiveTime},
+            #{snapshotJson}, now(), #{createBy}, now(), #{modifyBy}, 1, 1
+        )
+    </insert>
+
+    <insert id="batchInsertPo">
+        INSERT INTO vso_order_version (
+            order_version_id, order_id, version_no, change_type, change_reason,
+            approval_id, trigger_source, trigger_user_id, effective_flag, effective_time,
+            snapshot_json, create_time, create_by, modify_time, modify_by, row_version, row_valid
+        )
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (
+                #{item.orderVersionId}, #{item.orderId}, #{item.versionNo}, #{item.changeType}, #{item.changeReason},
+                #{item.approvalId}, #{item.triggerSource}, #{item.triggerUserId}, #{item.effectiveFlag}, #{item.effectiveTime},
+                #{item.snapshotJson}, now(), #{item.createBy}, now(), #{item.modifyBy}, 1, 1
+            )
+        </foreach>
+    </insert>
+
+    <update id="updatePo" parameterType="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.OrderVersionPo">
+        UPDATE vso_order_version t SET
+        <if test="effectiveFlag != null">
+            t.effective_flag = #{effectiveFlag},
+        </if>
+        <if test="effectiveTime != null">
+            t.effective_time = #{effectiveTime},
+        </if>
+        <if test="modifyBy != null">
+            t.modify_by = #{modifyBy},
+        </if>
+        t.row_version = t.row_version + 1,
+        t.modify_time = now()
+        WHERE t.id = #{id}
+    </update>
+
+    <update id="logicalDeletePo" parameterType="Long">
+        UPDATE vso_order_version t SET
+        t.row_version = t.row_version + 1,
+        t.modify_time = now(),
+        t.row_valid = 0
+        WHERE t.id = #{value}
+    </update>
+
+    <delete id="physicalDeletePo" parameterType="Long">
+        DELETE FROM vso_order_version
+        WHERE id = #{value}
+    </delete>
+
+    <delete id="batchPhysicalDeletePo">
+        DELETE FROM vso_order_version
+        WHERE id IN
+        <foreach collection="array" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+</mapper>

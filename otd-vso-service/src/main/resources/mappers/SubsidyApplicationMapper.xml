@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.mapper.SubsidyApplicationMapper">
+
+    <resultMap id="baseResultMap" type="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.SubsidyApplicationPo">
+        <id column="id" property="id" />
+        <result column="subsidy_application_id" property="subsidyApplicationId" />
+        <result column="order_id" property="orderId" />
+        <result column="subsidy_type" property="subsidyType" />
+        <result column="subsidy_amount" property="subsidyAmount" />
+        <result column="subsidy_status" property="subsidyStatus" />
+        <result column="apply_time" property="applyTime" />
+        <result column="approve_time" property="approveTime" />
+        <result column="grant_time" property="grantTime" />
+        <result column="reject_reason" property="rejectReason" />
+        <result column="external_apply_no" property="externalApplyNo" />
+        <result column="create_time" property="createTime" />
+        <result column="create_by" property="createBy" />
+        <result column="modify_time" property="modifyTime" />
+        <result column="modify_by" property="modifyBy" />
+        <result column="row_version" property="rowVersion" />
+        <result column="row_valid" property="rowValid" />
+    </resultMap>
+
+    <sql id="baseColumnList">
+        t.id, t.subsidy_application_id, t.order_id, t.subsidy_type, t.subsidy_amount,
+        t.subsidy_status, t.apply_time, t.approve_time, t.grant_time, t.reject_reason,
+        t.external_apply_no, t.create_time, t.create_by, t.modify_time, t.modify_by,
+        t.row_version, t.row_valid
+    </sql>
+
+    <select id="selectByOrderId" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_subsidy_application t
+        WHERE t.order_id = #{orderId}
+        AND t.row_valid = 1
+    </select>
+
+    <select id="selectPoById" parameterType="Long" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_subsidy_application t
+        WHERE t.id = #{value}
+        AND t.row_valid = 1
+    </select>
+
+    <select id="selectPoByExample" parameterType="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.SubsidyApplicationPo" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_subsidy_application t
+        WHERE t.row_valid = 1
+        <if test="id != null">
+            AND t.id = #{id}
+        </if>
+        <if test="orderId != null and orderId != ''">
+            AND t.order_id = #{orderId}
+        </if>
+        <if test="subsidyStatus != null and subsidyStatus != ''">
+            AND t.subsidy_status = #{subsidyStatus}
+        </if>
+        ORDER BY t.id DESC
+    </select>
+
+    <select id="selectPoByMap" parameterType="java.util.Map" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_subsidy_application t
+        WHERE t.row_valid = 1
+        <if test="params.orderId != null and params.orderId != ''">
+            AND t.order_id = #{params.orderId}
+        </if>
+        <if test="params.subsidyStatus != null and params.subsidyStatus != ''">
+            AND t.subsidy_status = #{params.subsidyStatus}
+        </if>
+        ORDER BY t.id DESC
+    </select>
+
+    <select id="countPoByMap" parameterType="java.util.Map" resultType="int">
+        SELECT COUNT(*)
+        FROM vso_subsidy_application t
+        WHERE t.row_valid = 1
+        <if test="params.orderId != null and params.orderId != ''">
+            AND t.order_id = #{params.orderId}
+        </if>
+    </select>
+
+    <insert id="insertPo" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO vso_subsidy_application (
+            subsidy_application_id, order_id, subsidy_type, subsidy_amount, subsidy_status,
+            apply_time, approve_time, grant_time, reject_reason, external_apply_no,
+            create_time, create_by, modify_time, modify_by, row_version, row_valid
+        )
+        VALUES (
+            #{subsidyApplicationId}, #{orderId}, #{subsidyType}, #{subsidyAmount}, #{subsidyStatus},
+            #{applyTime}, #{approveTime}, #{grantTime}, #{rejectReason}, #{externalApplyNo},
+            now(), #{createBy}, now(), #{modifyBy}, 1, 1
+        )
+    </insert>
+
+    <insert id="batchInsertPo">
+        INSERT INTO vso_subsidy_application (
+            subsidy_application_id, order_id, subsidy_type, subsidy_amount, subsidy_status,
+            apply_time, approve_time, grant_time, reject_reason, external_apply_no,
+            create_time, create_by, modify_time, modify_by, row_version, row_valid
+        )
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (
+                #{item.subsidyApplicationId}, #{item.orderId}, #{item.subsidyType}, #{item.subsidyAmount}, #{item.subsidyStatus},
+                #{item.applyTime}, #{item.approveTime}, #{item.grantTime}, #{item.rejectReason}, #{item.externalApplyNo},
+                now(), #{item.createBy}, now(), #{item.modifyBy}, 1, 1
+            )
+        </foreach>
+    </insert>
+
+    <update id="updatePo" parameterType="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.SubsidyApplicationPo">
+        UPDATE vso_subsidy_application t SET
+        <if test="subsidyStatus != null and subsidyStatus != ''">
+            t.subsidy_status = #{subsidyStatus},
+        </if>
+        <if test="approveTime != null">
+            t.approve_time = #{approveTime},
+        </if>
+        <if test="grantTime != null">
+            t.grant_time = #{grantTime},
+        </if>
+        <if test="rejectReason != null and rejectReason != ''">
+            t.reject_reason = #{rejectReason},
+        </if>
+        <if test="modifyBy != null">
+            t.modify_by = #{modifyBy},
+        </if>
+        t.row_version = t.row_version + 1,
+        t.modify_time = now()
+        WHERE t.id = #{id}
+    </update>
+
+    <update id="logicalDeletePo" parameterType="Long">
+        UPDATE vso_subsidy_application t SET
+        t.row_version = t.row_version + 1,
+        t.modify_time = now(),
+        t.row_valid = 0
+        WHERE t.id = #{value}
+    </update>
+
+    <delete id="physicalDeletePo" parameterType="Long">
+        DELETE FROM vso_subsidy_application
+        WHERE id = #{value}
+    </delete>
+
+    <delete id="batchPhysicalDeletePo">
+        DELETE FROM vso_subsidy_application
+        WHERE id IN
+        <foreach collection="array" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+</mapper>

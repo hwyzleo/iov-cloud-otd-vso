@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.mapper.RegistrationMapper">
+
+    <resultMap id="baseResultMap" type="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.RegistrationPo">
+        <id column="id" property="id" />
+        <result column="registration_id" property="registrationId" />
+        <result column="order_id" property="orderId" />
+        <result column="registration_status" property="registrationStatus" />
+        <result column="plate_no" property="plateNo" />
+        <result column="apply_time" property="applyTime" />
+        <result column="material_submit_time" property="materialSubmitTime" />
+        <result column="finish_time" property="finishTime" />
+        <result column="fail_reason" property="failReason" />
+        <result column="external_apply_no" property="externalApplyNo" />
+        <result column="create_time" property="createTime" />
+        <result column="create_by" property="createBy" />
+        <result column="modify_time" property="modifyTime" />
+        <result column="modify_by" property="modifyBy" />
+        <result column="row_version" property="rowVersion" />
+        <result column="row_valid" property="rowValid" />
+    </resultMap>
+
+    <sql id="baseColumnList">
+        t.id, t.registration_id, t.order_id, t.registration_status, t.plate_no,
+        t.apply_time, t.material_submit_time, t.finish_time, t.fail_reason, t.external_apply_no,
+        t.create_time, t.create_by, t.modify_time, t.modify_by, t.row_version, t.row_valid
+    </sql>
+
+    <select id="selectByOrderId" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_registration t
+        WHERE t.order_id = #{orderId}
+        AND t.row_valid = 1
+    </select>
+
+    <select id="selectPoById" parameterType="Long" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_registration t
+        WHERE t.id = #{value}
+        AND t.row_valid = 1
+    </select>
+
+    <select id="selectPoByExample" parameterType="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.RegistrationPo" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_registration t
+        WHERE t.row_valid = 1
+        <if test="id != null">
+            AND t.id = #{id}
+        </if>
+        <if test="orderId != null and orderId != ''">
+            AND t.order_id = #{orderId}
+        </if>
+        <if test="registrationStatus != null and registrationStatus != ''">
+            AND t.registration_status = #{registrationStatus}
+        </if>
+        ORDER BY t.id DESC
+    </select>
+
+    <select id="selectPoByMap" parameterType="java.util.Map" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_registration t
+        WHERE t.row_valid = 1
+        <if test="params.orderId != null and params.orderId != ''">
+            AND t.order_id = #{params.orderId}
+        </if>
+        <if test="params.registrationStatus != null and params.registrationStatus != ''">
+            AND t.registration_status = #{params.registrationStatus}
+        </if>
+        ORDER BY t.id DESC
+    </select>
+
+    <select id="countPoByMap" parameterType="java.util.Map" resultType="int">
+        SELECT COUNT(*)
+        FROM vso_registration t
+        WHERE t.row_valid = 1
+        <if test="params.orderId != null and params.orderId != ''">
+            AND t.order_id = #{params.orderId}
+        </if>
+    </select>
+
+    <insert id="insertPo" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO vso_registration (
+            registration_id, order_id, registration_status, plate_no, apply_time,
+            material_submit_time, finish_time, fail_reason, external_apply_no,
+            create_time, create_by, modify_time, modify_by, row_version, row_valid
+        )
+        VALUES (
+            #{registrationId}, #{orderId}, #{registrationStatus}, #{plateNo}, #{applyTime},
+            #{materialSubmitTime}, #{finishTime}, #{failReason}, #{externalApplyNo},
+            now(), #{createBy}, now(), #{modifyBy}, 1, 1
+        )
+    </insert>
+
+    <insert id="batchInsertPo">
+        INSERT INTO vso_registration (
+            registration_id, order_id, registration_status, plate_no, apply_time,
+            material_submit_time, finish_time, fail_reason, external_apply_no,
+            create_time, create_by, modify_time, modify_by, row_version, row_valid
+        )
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (
+                #{item.registrationId}, #{item.orderId}, #{item.registrationStatus}, #{item.plateNo}, #{item.applyTime},
+                #{item.materialSubmitTime}, #{item.finishTime}, #{item.failReason}, #{item.externalApplyNo},
+                now(), #{item.createBy}, now(), #{item.modifyBy}, 1, 1
+            )
+        </foreach>
+    </insert>
+
+    <update id="updatePo" parameterType="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.RegistrationPo">
+        UPDATE vso_registration t SET
+        <if test="registrationStatus != null and registrationStatus != ''">
+            t.registration_status = #{registrationStatus},
+        </if>
+        <if test="plateNo != null and plateNo != ''">
+            t.plate_no = #{plateNo},
+        </if>
+        <if test="finishTime != null">
+            t.finish_time = #{finishTime},
+        </if>
+        <if test="failReason != null and failReason != ''">
+            t.fail_reason = #{failReason},
+        </if>
+        <if test="modifyBy != null">
+            t.modify_by = #{modifyBy},
+        </if>
+        t.row_version = t.row_version + 1,
+        t.modify_time = now()
+        WHERE t.id = #{id}
+    </update>
+
+    <update id="logicalDeletePo" parameterType="Long">
+        UPDATE vso_registration t SET
+        t.row_version = t.row_version + 1,
+        t.modify_time = now(),
+        t.row_valid = 0
+        WHERE t.id = #{value}
+    </update>
+
+    <delete id="physicalDeletePo" parameterType="Long">
+        DELETE FROM vso_registration
+        WHERE id = #{value}
+    </delete>
+
+    <delete id="batchPhysicalDeletePo">
+        DELETE FROM vso_registration
+        WHERE id IN
+        <foreach collection="array" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+</mapper>

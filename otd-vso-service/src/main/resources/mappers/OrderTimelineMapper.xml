@@ -1,22 +1,23 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.mapper.AuditLogMapper">
+<mapper namespace="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.mapper.OrderTimelineMapper">
 
-    <resultMap id="baseResultMap" type="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.AuditLogPo">
+    <resultMap id="baseResultMap" type="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.OrderTimelinePo">
         <id column="id" property="id" />
-        <result column="audit_id" property="auditId" />
+        <result column="timeline_id" property="timelineId" />
         <result column="order_id" property="orderId" />
         <result column="event_type" property="eventType" />
         <result column="event_name" property="eventName" />
+        <result column="before_status" property="beforeStatus" />
+        <result column="after_status" property="afterStatus" />
         <result column="operator_id" property="operatorId" />
         <result column="operator_role" property="operatorRole" />
-        <result column="request_uri" property="requestUri" />
-        <result column="request_method" property="requestMethod" />
-        <result column="trace_id" property="traceId" />
-        <result column="operation_result" property="operationResult" />
-        <result column="request_snapshot" property="requestSnapshot" />
-        <result column="response_code" property="responseCode" />
-        <result column="ip_address" property="ipAddress" />
+        <result column="operate_source" property="operateSource" />
+        <result column="related_doc_no" property="relatedDocNo" />
+        <result column="external_system_name" property="externalSystemName" />
+        <result column="result" property="result" />
+        <result column="fail_reason" property="failReason" />
+        <result column="event_remark" property="eventRemark" />
         <result column="event_time" property="eventTime" />
         <result column="create_time" property="createTime" />
         <result column="create_by" property="createBy" />
@@ -27,29 +28,30 @@
     </resultMap>
 
     <sql id="baseColumnList">
-        t.id, t.audit_id, t.order_id, t.event_type, t.event_name, t.operator_id,
-        t.operator_role, t.request_uri, t.request_method, t.trace_id, t.operation_result,
-        t.request_snapshot, t.response_code, t.ip_address, t.event_time,
+        t.id, t.timeline_id, t.order_id, t.event_type, t.event_name, t.before_status,
+        t.after_status, t.operator_id, t.operator_role, t.operate_source, t.related_doc_no,
+        t.external_system_name, t.result, t.fail_reason, t.event_remark, t.event_time,
         t.create_time, t.create_by, t.modify_time, t.modify_by, t.row_version, t.row_valid
     </sql>
 
     <select id="selectByOrderId" resultMap="baseResultMap">
         SELECT <include refid="baseColumnList"/>
-        FROM vso_audit_log t
+        FROM vso_order_timeline t
         WHERE t.order_id = #{orderId}
         AND t.row_valid = 1
+        ORDER BY t.event_time DESC
     </select>
 
     <select id="selectPoById" parameterType="Long" resultMap="baseResultMap">
         SELECT <include refid="baseColumnList"/>
-        FROM vso_audit_log t
+        FROM vso_order_timeline t
         WHERE t.id = #{value}
         AND t.row_valid = 1
     </select>
 
-    <select id="selectPoByExample" parameterType="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.AuditLogPo" resultMap="baseResultMap">
+    <select id="selectPoByExample" parameterType="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.OrderTimelinePo" resultMap="baseResultMap">
         SELECT <include refid="baseColumnList"/>
-        FROM vso_audit_log t
+        FROM vso_order_timeline t
         WHERE t.row_valid = 1
         <if test="id != null">
             AND t.id = #{id}
@@ -60,15 +62,15 @@
         <if test="eventType != null and eventType != ''">
             AND t.event_type = #{eventType}
         </if>
-        <if test="operationResult != null and operationResult != ''">
-            AND t.operation_result = #{operationResult}
+        <if test="result != null and result != ''">
+            AND t.result = #{result}
         </if>
         ORDER BY t.id DESC
     </select>
 
     <select id="selectPoByMap" parameterType="java.util.Map" resultMap="baseResultMap">
         SELECT <include refid="baseColumnList"/>
-        FROM vso_audit_log t
+        FROM vso_order_timeline t
         WHERE t.row_valid = 1
         <if test="params.orderId != null and params.orderId != ''">
             AND t.order_id = #{params.orderId}
@@ -76,15 +78,15 @@
         <if test="params.eventType != null and params.eventType != ''">
             AND t.event_type = #{params.eventType}
         </if>
-        <if test="params.operationResult != null and params.operationResult != ''">
-            AND t.operation_result = #{params.operationResult}
+        <if test="params.result != null and params.result != ''">
+            AND t.result = #{params.result}
         </if>
         ORDER BY t.id DESC
     </select>
 
     <select id="countPoByMap" parameterType="java.util.Map" resultType="int">
         SELECT COUNT(*)
-        FROM vso_audit_log t
+        FROM vso_order_timeline t
         WHERE t.row_valid = 1
         <if test="params.orderId != null and params.orderId != ''">
             AND t.order_id = #{params.orderId}
@@ -92,45 +94,48 @@
     </select>
 
     <insert id="insertPo" useGeneratedKeys="true" keyProperty="id">
-        INSERT INTO vso_audit_log (
-            audit_id, order_id, event_type, event_name, operator_id, operator_role,
-            request_uri, request_method, trace_id, operation_result, request_snapshot,
-            response_code, ip_address, event_time, create_time, create_by,
+        INSERT INTO vso_order_timeline (
+            timeline_id, order_id, event_type, event_name, before_status, after_status,
+            operator_id, operator_role, operate_source, related_doc_no, external_system_name,
+            result, fail_reason, event_remark, event_time, create_time, create_by,
             modify_time, modify_by, row_version, row_valid
         )
         VALUES (
-            #{auditId}, #{orderId}, #{eventType}, #{eventName}, #{operatorId}, #{operatorRole},
-            #{requestUri}, #{requestMethod}, #{traceId}, #{operationResult}, #{requestSnapshot},
-            #{responseCode}, #{ipAddress}, #{eventTime}, now(), #{createBy},
+            #{timelineId}, #{orderId}, #{eventType}, #{eventName}, #{beforeStatus}, #{afterStatus},
+            #{operatorId}, #{operatorRole}, #{operateSource}, #{relatedDocNo}, #{externalSystemName},
+            #{result}, #{failReason}, #{eventRemark}, #{eventTime}, now(), #{createBy},
             now(), #{modifyBy}, 1, 1
         )
     </insert>
 
     <insert id="batchInsertPo">
-        INSERT INTO vso_audit_log (
-            audit_id, order_id, event_type, event_name, operator_id, operator_role,
-            request_uri, request_method, trace_id, operation_result, request_snapshot,
-            response_code, ip_address, event_time, create_time, create_by,
+        INSERT INTO vso_order_timeline (
+            timeline_id, order_id, event_type, event_name, before_status, after_status,
+            operator_id, operator_role, operate_source, related_doc_no, external_system_name,
+            result, fail_reason, event_remark, event_time, create_time, create_by,
             modify_time, modify_by, row_version, row_valid
         )
         VALUES
         <foreach collection="list" item="item" separator=",">
             (
-                #{item.auditId}, #{item.orderId}, #{item.eventType}, #{item.eventName}, #{item.operatorId}, #{item.operatorRole},
-                #{item.requestUri}, #{item.requestMethod}, #{item.traceId}, #{item.operationResult}, #{item.requestSnapshot},
-                #{item.responseCode}, #{item.ipAddress}, #{item.eventTime}, now(), #{item.createBy},
+                #{item.timelineId}, #{item.orderId}, #{item.eventType}, #{item.eventName}, #{item.beforeStatus}, #{item.afterStatus},
+                #{item.operatorId}, #{item.operatorRole}, #{item.operateSource}, #{item.relatedDocNo}, #{item.externalSystemName},
+                #{item.result}, #{item.failReason}, #{item.eventRemark}, #{item.eventTime}, now(), #{item.createBy},
                 now(), #{item.modifyBy}, 1, 1
             )
         </foreach>
     </insert>
 
-    <update id="updatePo" parameterType="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.AuditLogPo">
-        UPDATE vso_audit_log t SET
-        <if test="operationResult != null and operationResult != ''">
-            t.operation_result = #{operationResult},
+    <update id="updatePo" parameterType="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.OrderTimelinePo">
+        UPDATE vso_order_timeline t SET
+        <if test="result != null and result != ''">
+            t.result = #{result},
         </if>
-        <if test="responseCode != null and responseCode != ''">
-            t.response_code = #{responseCode},
+        <if test="failReason != null and failReason != ''">
+            t.fail_reason = #{failReason},
+        </if>
+        <if test="eventRemark != null and eventRemark != ''">
+            t.event_remark = #{eventRemark},
         </if>
         <if test="modifyBy != null">
             t.modify_by = #{modifyBy},
@@ -141,7 +146,7 @@
     </update>
 
     <update id="logicalDeletePo" parameterType="Long">
-        UPDATE vso_audit_log t SET
+        UPDATE vso_order_timeline t SET
         t.row_version = t.row_version + 1,
         t.modify_time = now(),
         t.row_valid = 0
@@ -149,12 +154,12 @@
     </update>
 
     <delete id="physicalDeletePo" parameterType="Long">
-        DELETE FROM vso_audit_log
+        DELETE FROM vso_order_timeline
         WHERE id = #{value}
     </delete>
 
     <delete id="batchPhysicalDeletePo">
-        DELETE FROM vso_audit_log
+        DELETE FROM vso_order_timeline
         WHERE id IN
         <foreach collection="array" item="id" open="(" separator="," close=")">
             #{id}

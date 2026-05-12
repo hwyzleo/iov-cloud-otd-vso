@@ -41,4 +41,134 @@
         AND t.row_valid = 1
     </select>
 
+    <select id="selectPoById" parameterType="Long" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_callback_log t
+        WHERE t.id = #{value}
+        AND t.row_valid = 1
+    </select>
+
+    <select id="selectPoByExample" parameterType="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.CallbackLogPo" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_callback_log t
+        WHERE t.row_valid = 1
+        <if test="id != null">
+            AND t.id = #{id}
+        </if>
+        <if test="orderId != null and orderId != ''">
+            AND t.order_id = #{orderId}
+        </if>
+        <if test="businessType != null and businessType != ''">
+            AND t.business_type = #{businessType}
+        </if>
+        <if test="callbackStatusValue != null and callbackStatusValue != ''">
+            AND t.callback_status_value = #{callbackStatusValue}
+        </if>
+        ORDER BY t.id DESC
+    </select>
+
+    <select id="selectPoByMap" parameterType="java.util.Map" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_callback_log t
+        WHERE t.row_valid = 1
+        <if test="params.orderId != null and params.orderId != ''">
+            AND t.order_id = #{params.orderId}
+        </if>
+        <if test="params.businessType != null and params.businessType != ''">
+            AND t.business_type = #{params.businessType}
+        </if>
+        <if test="params.callbackStatusValue != null and params.callbackStatusValue != ''">
+            AND t.callback_status_value = #{params.callbackStatusValue}
+        </if>
+        ORDER BY t.id DESC
+    </select>
+
+    <select id="countPoByMap" parameterType="java.util.Map" resultType="int">
+        SELECT COUNT(*)
+        FROM vso_callback_log t
+        WHERE t.row_valid = 1
+        <if test="params.orderId != null and params.orderId != ''">
+            AND t.order_id = #{params.orderId}
+        </if>
+    </select>
+
+    <insert id="insertPo" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO vso_callback_log (
+            callback_log_id, order_id, business_type, external_system_name, external_business_no,
+            idempotent_key, callback_status_value, callback_result_code, event_time, request_body,
+            response_body, process_result, manual_override_flag, process_time, create_time, create_by,
+            modify_time, modify_by, row_version, row_valid
+        )
+        VALUES (
+            #{callbackLogId}, #{orderId}, #{businessType}, #{externalSystemName}, #{externalBusinessNo},
+            #{idempotentKey}, #{callbackStatusValue}, #{callbackResultCode}, #{eventTime}, #{requestBody},
+            #{responseBody}, #{processResult}, #{manualOverrideFlag}, #{processTime}, now(), #{createBy},
+            now(), #{modifyBy}, 1, 1
+        )
+    </insert>
+
+    <insert id="batchInsertPo">
+        INSERT INTO vso_callback_log (
+            callback_log_id, order_id, business_type, external_system_name, external_business_no,
+            idempotent_key, callback_status_value, callback_result_code, event_time, request_body,
+            response_body, process_result, manual_override_flag, process_time, create_time, create_by,
+            modify_time, modify_by, row_version, row_valid
+        )
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (
+                #{item.callbackLogId}, #{item.orderId}, #{item.businessType}, #{item.externalSystemName}, #{item.externalBusinessNo},
+                #{item.idempotentKey}, #{item.callbackStatusValue}, #{item.callbackResultCode}, #{item.eventTime}, #{item.requestBody},
+                #{item.responseBody}, #{item.processResult}, #{item.manualOverrideFlag}, #{item.processTime}, now(), #{item.createBy},
+                now(), #{item.modifyBy}, 1, 1
+            )
+        </foreach>
+    </insert>
+
+    <update id="updatePo" parameterType="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.CallbackLogPo">
+        UPDATE vso_callback_log t SET
+        <if test="callbackStatusValue != null and callbackStatusValue != ''">
+            t.callback_status_value = #{callbackStatusValue},
+        </if>
+        <if test="callbackResultCode != null and callbackResultCode != ''">
+            t.callback_result_code = #{callbackResultCode},
+        </if>
+        <if test="processResult != null and processResult != ''">
+            t.process_result = #{processResult},
+        </if>
+        <if test="manualOverrideFlag != null">
+            t.manual_override_flag = #{manualOverrideFlag},
+        </if>
+        <if test="processTime != null">
+            t.process_time = #{processTime},
+        </if>
+        <if test="modifyBy != null">
+            t.modify_by = #{modifyBy},
+        </if>
+        t.row_version = t.row_version + 1,
+        t.modify_time = now()
+        WHERE t.id = #{id}
+    </update>
+
+    <update id="logicalDeletePo" parameterType="Long">
+        UPDATE vso_callback_log t SET
+        t.row_version = t.row_version + 1,
+        t.modify_time = now(),
+        t.row_valid = 0
+        WHERE t.id = #{value}
+    </update>
+
+    <delete id="physicalDeletePo" parameterType="Long">
+        DELETE FROM vso_callback_log
+        WHERE id = #{value}
+    </delete>
+
+    <delete id="batchPhysicalDeletePo">
+        DELETE FROM vso_callback_log
+        WHERE id IN
+        <foreach collection="array" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+
 </mapper>

@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.mapper.OrderTransformMapper">
+
+    <resultMap id="baseResultMap" type="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.OrderTransformPo">
+        <id column="id" property="id" />
+        <result column="transform_id" property="transformId" />
+        <result column="small_order_id" property="smallOrderId" />
+        <result column="small_order_no" property="smallOrderNo" />
+        <result column="formal_order_id" property="formalOrderId" />
+        <result column="formal_order_no" property="formalOrderNo" />
+        <result column="transform_time" property="transformTime" />
+        <result column="transform_user_id" property="transformUserId" />
+        <result column="transform_user_role" property="transformUserRole" />
+        <result column="transform_scene" property="transformScene" />
+        <result column="transform_remark" property="transformRemark" />
+        <result column="create_time" property="createTime" />
+        <result column="create_by" property="createBy" />
+        <result column="modify_time" property="modifyTime" />
+        <result column="modify_by" property="modifyBy" />
+        <result column="row_version" property="rowVersion" />
+        <result column="row_valid" property="rowValid" />
+    </resultMap>
+
+    <sql id="baseColumnList">
+        t.id, t.transform_id, t.small_order_id, t.small_order_no, t.formal_order_id, t.formal_order_no,
+        t.transform_time, t.transform_user_id, t.transform_user_role, t.transform_scene, t.transform_remark,
+        t.create_time, t.create_by, t.modify_time, t.modify_by, t.row_version, t.row_valid
+    </sql>
+
+    <select id="selectPoById" parameterType="Long" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_order_transform t
+        WHERE t.id = #{value}
+        AND t.row_valid = 1
+    </select>
+
+    <select id="selectPoByExample" parameterType="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.OrderTransformPo" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_order_transform t
+        WHERE t.row_valid = 1
+        <if test="id != null">
+            AND t.id = #{id}
+        </if>
+        <if test="smallOrderId != null and smallOrderId != ''">
+            AND t.small_order_id = #{smallOrderId}
+        </if>
+        <if test="formalOrderId != null and formalOrderId != ''">
+            AND t.formal_order_id = #{formalOrderId}
+        </if>
+        ORDER BY t.id DESC
+    </select>
+
+    <select id="selectPoByMap" parameterType="java.util.Map" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_order_transform t
+        WHERE t.row_valid = 1
+        <if test="params.smallOrderId != null and params.smallOrderId != ''">
+            AND t.small_order_id = #{params.smallOrderId}
+        </if>
+        <if test="params.formalOrderId != null and params.formalOrderId != ''">
+            AND t.formal_order_id = #{params.formalOrderId}
+        </if>
+        <if test="params.orderId != null and params.orderId != ''">
+            AND (t.small_order_id = #{params.orderId} OR t.formal_order_id = #{params.orderId})
+        </if>
+        ORDER BY t.id DESC
+    </select>
+
+    <select id="countPoByMap" parameterType="java.util.Map" resultType="int">
+        SELECT COUNT(*)
+        FROM vso_order_transform t
+        WHERE t.row_valid = 1
+        <if test="params.smallOrderId != null and params.smallOrderId != ''">
+            AND t.small_order_id = #{params.smallOrderId}
+        </if>
+        <if test="params.formalOrderId != null and params.formalOrderId != ''">
+            AND t.formal_order_id = #{params.formalOrderId}
+        </if>
+    </select>
+
+    <insert id="insertPo" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO vso_order_transform (
+            transform_id, small_order_id, small_order_no, formal_order_id, formal_order_no,
+            transform_time, transform_user_id, transform_user_role, transform_scene, transform_remark,
+            create_time, create_by, modify_time, modify_by, row_version, row_valid
+        )
+        VALUES (
+            #{transformId}, #{smallOrderId}, #{smallOrderNo}, #{formalOrderId}, #{formalOrderNo},
+            #{transformTime}, #{transformUserId}, #{transformUserRole}, #{transformScene}, #{transformRemark},
+            now(), #{createBy}, now(), #{modifyBy}, 1, 1
+        )
+    </insert>
+
+    <insert id="batchInsertPo">
+        INSERT INTO vso_order_transform (
+            transform_id, small_order_id, small_order_no, formal_order_id, formal_order_no,
+            transform_time, transform_user_id, transform_user_role, transform_scene, transform_remark,
+            create_time, create_by, modify_time, modify_by, row_version, row_valid
+        )
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (
+                #{item.transformId}, #{item.smallOrderId}, #{item.smallOrderNo}, #{item.formalOrderId}, #{item.formalOrderNo},
+                #{item.transformTime}, #{item.transformUserId}, #{item.transformUserRole}, #{item.transformScene}, #{item.transformRemark},
+                now(), #{item.createBy}, now(), #{item.modifyBy}, 1, 1
+            )
+        </foreach>
+    </insert>
+
+    <update id="updatePo" parameterType="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.OrderTransformPo">
+        UPDATE vso_order_transform t SET
+        <if test="transformRemark != null and transformRemark != ''">
+            t.transform_remark = #{transformRemark},
+        </if>
+        <if test="modifyBy != null">
+            t.modify_by = #{modifyBy},
+        </if>
+        t.row_version = t.row_version + 1,
+        t.modify_time = now()
+        WHERE t.id = #{id}
+    </update>
+
+    <update id="logicalDeletePo" parameterType="Long">
+        UPDATE vso_order_transform t SET
+        t.row_version = t.row_version + 1,
+        t.modify_time = now(),
+        t.row_valid = 0
+        WHERE t.id = #{value}
+    </update>
+
+    <delete id="physicalDeletePo" parameterType="Long">
+        DELETE FROM vso_order_transform
+        WHERE id = #{value}
+    </delete>
+
+    <delete id="batchPhysicalDeletePo">
+        DELETE FROM vso_order_transform
+        WHERE id IN
+        <foreach collection="array" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+</mapper>

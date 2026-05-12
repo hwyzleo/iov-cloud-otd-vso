@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.mapper.OrderLockMapper">
+
+    <resultMap id="baseResultMap" type="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.OrderLockPo">
+        <id column="id" property="id" />
+        <result column="order_lock_id" property="orderLockId" />
+        <result column="order_id" property="orderId" />
+        <result column="lock_scene" property="lockScene" />
+        <result column="lock_holder_id" property="lockHolderId" />
+        <result column="lock_holder_role" property="lockHolderRole" />
+        <result column="lock_start_time" property="lockStartTime" />
+        <result column="lock_release_time" property="lockReleaseTime" />
+        <result column="lock_release_method" property="lockReleaseMethod" />
+        <result column="lock_release_reason" property="lockReleaseReason" />
+        <result column="unlock_user_id" property="unlockUserId" />
+        <result column="create_time" property="createTime" />
+        <result column="create_by" property="createBy" />
+        <result column="modify_time" property="modifyTime" />
+        <result column="modify_by" property="modifyBy" />
+        <result column="row_version" property="rowVersion" />
+        <result column="row_valid" property="rowValid" />
+    </resultMap>
+
+    <sql id="baseColumnList">
+        t.id, t.order_lock_id, t.order_id, t.lock_scene, t.lock_holder_id, t.lock_holder_role,
+        t.lock_start_time, t.lock_release_time, t.lock_release_method, t.lock_release_reason,
+        t.unlock_user_id, t.create_time, t.create_by, t.modify_time, t.modify_by, t.row_version, t.row_valid
+    </sql>
+
+    <select id="selectByOrderIdAndScene" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_order_lock t
+        WHERE t.order_id = #{orderId}
+        AND t.lock_scene = #{lockScene}
+        AND t.row_valid = 1
+    </select>
+
+    <select id="selectPoById" parameterType="Long" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_order_lock t
+        WHERE t.id = #{value}
+        AND t.row_valid = 1
+    </select>
+
+    <select id="selectPoByExample" parameterType="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.OrderLockPo" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_order_lock t
+        WHERE t.row_valid = 1
+        <if test="id != null">
+            AND t.id = #{id}
+        </if>
+        <if test="orderId != null and orderId != ''">
+            AND t.order_id = #{orderId}
+        </if>
+        <if test="lockScene != null and lockScene != ''">
+            AND t.lock_scene = #{lockScene}
+        </if>
+        ORDER BY t.id DESC
+    </select>
+
+    <select id="selectPoByMap" parameterType="java.util.Map" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_order_lock t
+        WHERE t.row_valid = 1
+        <if test="params.orderId != null and params.orderId != ''">
+            AND t.order_id = #{params.orderId}
+        </if>
+        <if test="params.lockScene != null and params.lockScene != ''">
+            AND t.lock_scene = #{params.lockScene}
+        </if>
+        ORDER BY t.id DESC
+    </select>
+
+    <select id="countPoByMap" parameterType="java.util.Map" resultType="int">
+        SELECT COUNT(*)
+        FROM vso_order_lock t
+        WHERE t.row_valid = 1
+        <if test="params.orderId != null and params.orderId != ''">
+            AND t.order_id = #{params.orderId}
+        </if>
+    </select>
+
+    <insert id="insertPo" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO vso_order_lock (
+            order_lock_id, order_id, lock_scene, lock_holder_id, lock_holder_role,
+            lock_start_time, lock_release_time, lock_release_method, lock_release_reason,
+            unlock_user_id, create_time, create_by, modify_time, modify_by, row_version, row_valid
+        )
+        VALUES (
+            #{orderLockId}, #{orderId}, #{lockScene}, #{lockHolderId}, #{lockHolderRole},
+            #{lockStartTime}, #{lockReleaseTime}, #{lockReleaseMethod}, #{lockReleaseReason},
+            #{unlockUserId}, now(), #{createBy}, now(), #{modifyBy}, 1, 1
+        )
+    </insert>
+
+    <insert id="batchInsertPo">
+        INSERT INTO vso_order_lock (
+            order_lock_id, order_id, lock_scene, lock_holder_id, lock_holder_role,
+            lock_start_time, lock_release_time, lock_release_method, lock_release_reason,
+            unlock_user_id, create_time, create_by, modify_time, modify_by, row_version, row_valid
+        )
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (
+                #{item.orderLockId}, #{item.orderId}, #{item.lockScene}, #{item.lockHolderId}, #{item.lockHolderRole},
+                #{item.lockStartTime}, #{item.lockReleaseTime}, #{item.lockReleaseMethod}, #{item.lockReleaseReason},
+                #{item.unlockUserId}, now(), #{item.createBy}, now(), #{item.modifyBy}, 1, 1
+            )
+        </foreach>
+    </insert>
+
+    <update id="updatePo" parameterType="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.OrderLockPo">
+        UPDATE vso_order_lock t SET
+        <if test="lockReleaseTime != null">
+            t.lock_release_time = #{lockReleaseTime},
+        </if>
+        <if test="lockReleaseMethod != null and lockReleaseMethod != ''">
+            t.lock_release_method = #{lockReleaseMethod},
+        </if>
+        <if test="lockReleaseReason != null and lockReleaseReason != ''">
+            t.lock_release_reason = #{lockReleaseReason},
+        </if>
+        <if test="unlockUserId != null and unlockUserId != ''">
+            t.unlock_user_id = #{unlockUserId},
+        </if>
+        <if test="modifyBy != null">
+            t.modify_by = #{modifyBy},
+        </if>
+        t.row_version = t.row_version + 1,
+        t.modify_time = now()
+        WHERE t.id = #{id}
+    </update>
+
+    <update id="logicalDeletePo" parameterType="Long">
+        UPDATE vso_order_lock t SET
+        t.row_version = t.row_version + 1,
+        t.modify_time = now(),
+        t.row_valid = 0
+        WHERE t.id = #{value}
+    </update>
+
+    <delete id="physicalDeletePo" parameterType="Long">
+        DELETE FROM vso_order_lock
+        WHERE id = #{value}
+    </delete>
+
+    <delete id="batchPhysicalDeletePo">
+        DELETE FROM vso_order_lock
+        WHERE id IN
+        <foreach collection="array" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+</mapper>

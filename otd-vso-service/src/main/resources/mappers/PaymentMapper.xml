@@ -43,4 +43,131 @@
         AND t.row_valid = 1
     </select>
 
+    <select id="selectPoById" parameterType="Long" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_payment t
+        WHERE t.id = #{value}
+        AND t.row_valid = 1
+    </select>
+
+    <select id="selectPoByExample" parameterType="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.PaymentPo" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_payment t
+        WHERE t.row_valid = 1
+        <if test="id != null">
+            AND t.id = #{id}
+        </if>
+        <if test="orderId != null and orderId != ''">
+            AND t.order_id = #{orderId}
+        </if>
+        <if test="paymentStage != null and paymentStage != ''">
+            AND t.payment_stage = #{paymentStage}
+        </if>
+        <if test="paymentStatus != null and paymentStatus != ''">
+            AND t.payment_status = #{paymentStatus}
+        </if>
+        ORDER BY t.id DESC
+    </select>
+
+    <select id="selectPoByMap" parameterType="java.util.Map" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_payment t
+        WHERE t.row_valid = 1
+        <if test="params.orderId != null and params.orderId != ''">
+            AND t.order_id = #{params.orderId}
+        </if>
+        <if test="params.paymentStage != null and params.paymentStage != ''">
+            AND t.payment_stage = #{params.paymentStage}
+        </if>
+        <if test="params.paymentStatus != null and params.paymentStatus != ''">
+            AND t.payment_status = #{params.paymentStatus}
+        </if>
+        ORDER BY t.id DESC
+    </select>
+
+    <select id="countPoByMap" parameterType="java.util.Map" resultType="int">
+        SELECT COUNT(*)
+        FROM vso_payment t
+        WHERE t.row_valid = 1
+        <if test="params.orderId != null and params.orderId != ''">
+            AND t.order_id = #{params.orderId}
+        </if>
+    </select>
+
+    <insert id="insertPo" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO vso_payment (
+            payment_id, payment_no, order_id, payment_stage, payment_channel,
+            payment_amount, payment_status, initiator_role, initiator_id, authorized_flag,
+            authorized_proof_type, external_trade_no, pay_time, fail_reason,
+            create_time, create_by, modify_time, modify_by, row_version, row_valid
+        )
+        VALUES (
+            #{paymentId}, #{paymentNo}, #{orderId}, #{paymentStage}, #{paymentChannel},
+            #{paymentAmount}, #{paymentStatus}, #{initiatorRole}, #{initiatorId}, #{authorizedFlag},
+            #{authorizedProofType}, #{externalTradeNo}, #{payTime}, #{failReason},
+            now(), #{createBy}, now(), #{modifyBy}, 1, 1
+        )
+    </insert>
+
+    <insert id="batchInsertPo">
+        INSERT INTO vso_payment (
+            payment_id, payment_no, order_id, payment_stage, payment_channel,
+            payment_amount, payment_status, initiator_role, initiator_id, authorized_flag,
+            authorized_proof_type, external_trade_no, pay_time, fail_reason,
+            create_time, create_by, modify_time, modify_by, row_version, row_valid
+        )
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (
+                #{item.paymentId}, #{item.paymentNo}, #{item.orderId}, #{item.paymentStage}, #{item.paymentChannel},
+                #{item.paymentAmount}, #{item.paymentStatus}, #{item.initiatorRole}, #{item.initiatorId}, #{item.authorizedFlag},
+                #{item.authorizedProofType}, #{item.externalTradeNo}, #{item.payTime}, #{item.failReason},
+                now(), #{item.createBy}, now(), #{item.modifyBy}, 1, 1
+            )
+        </foreach>
+    </insert>
+
+    <update id="updatePo" parameterType="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.PaymentPo">
+        UPDATE vso_payment t SET
+        <if test="paymentStatus != null and paymentStatus != ''">
+            t.payment_status = #{paymentStatus},
+        </if>
+        <if test="externalTradeNo != null and externalTradeNo != ''">
+            t.external_trade_no = #{externalTradeNo},
+        </if>
+        <if test="payTime != null">
+            t.pay_time = #{payTime},
+        </if>
+        <if test="failReason != null and failReason != ''">
+            t.fail_reason = #{failReason},
+        </if>
+        <if test="modifyBy != null">
+            t.modify_by = #{modifyBy},
+        </if>
+        t.row_version = t.row_version + 1,
+        t.modify_time = now()
+        WHERE t.id = #{id}
+    </update>
+
+    <update id="logicalDeletePo" parameterType="Long">
+        UPDATE vso_payment t SET
+        t.row_version = t.row_version + 1,
+        t.modify_time = now(),
+        t.row_valid = 0
+        WHERE t.id = #{value}
+    </update>
+
+    <delete id="physicalDeletePo" parameterType="Long">
+        DELETE FROM vso_payment
+        WHERE id = #{value}
+    </delete>
+
+    <delete id="batchPhysicalDeletePo">
+        DELETE FROM vso_payment
+        WHERE id IN
+        <foreach collection="array" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+
 </mapper>

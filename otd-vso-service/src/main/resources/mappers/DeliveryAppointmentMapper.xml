@@ -40,4 +40,134 @@
         AND t.row_valid = 1
     </select>
 
+    <select id="selectPoById" parameterType="Long" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_delivery_appointment t
+        WHERE t.id = #{value}
+        AND t.row_valid = 1
+    </select>
+
+    <select id="selectPoByExample" parameterType="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.DeliveryAppointmentPo" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_delivery_appointment t
+        WHERE t.row_valid = 1
+        <if test="id != null">
+            AND t.id = #{id}
+        </if>
+        <if test="orderId != null and orderId != ''">
+            AND t.order_id = #{orderId}
+        </if>
+        <if test="appointmentStatus != null and appointmentStatus != ''">
+            AND t.appointment_status = #{appointmentStatus}
+        </if>
+        <if test="deliveryMode != null and deliveryMode != ''">
+            AND t.delivery_mode = #{deliveryMode}
+        </if>
+        ORDER BY t.id DESC
+    </select>
+
+    <select id="selectPoByMap" parameterType="java.util.Map" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_delivery_appointment t
+        WHERE t.row_valid = 1
+        <if test="params.orderId != null and params.orderId != ''">
+            AND t.order_id = #{params.orderId}
+        </if>
+        <if test="params.appointmentStatus != null and params.appointmentStatus != ''">
+            AND t.appointment_status = #{params.appointmentStatus}
+        </if>
+        <if test="params.deliveryMode != null and params.deliveryMode != ''">
+            AND t.delivery_mode = #{params.deliveryMode}
+        </if>
+        ORDER BY t.id DESC
+    </select>
+
+    <select id="countPoByMap" parameterType="java.util.Map" resultType="int">
+        SELECT COUNT(*)
+        FROM vso_delivery_appointment t
+        WHERE t.row_valid = 1
+        <if test="params.orderId != null and params.orderId != ''">
+            AND t.order_id = #{params.orderId}
+        </if>
+    </select>
+
+    <insert id="insertPo" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO vso_delivery_appointment (
+            delivery_appointment_id, delivery_appointment_no, order_id, appointment_status,
+            delivery_mode, appointment_time, appointment_place, appointment_store_code,
+            contact_name, contact_mobile_encrypted, reschedule_reason, cancel_reason,
+            operator_id, create_time, create_by, modify_time, modify_by, row_version, row_valid
+        )
+        VALUES (
+            #{deliveryAppointmentId}, #{deliveryAppointmentNo}, #{orderId}, #{appointmentStatus},
+            #{deliveryMode}, #{appointmentTime}, #{appointmentPlace}, #{appointmentStoreCode},
+            #{contactName}, #{contactMobileEncrypted}, #{rescheduleReason}, #{cancelReason},
+            #{operatorId}, now(), #{createBy}, now(), #{modifyBy}, 1, 1
+        )
+    </insert>
+
+    <insert id="batchInsertPo">
+        INSERT INTO vso_delivery_appointment (
+            delivery_appointment_id, delivery_appointment_no, order_id, appointment_status,
+            delivery_mode, appointment_time, appointment_place, appointment_store_code,
+            contact_name, contact_mobile_encrypted, reschedule_reason, cancel_reason,
+            operator_id, create_time, create_by, modify_time, modify_by, row_version, row_valid
+        )
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (
+                #{item.deliveryAppointmentId}, #{item.deliveryAppointmentNo}, #{item.orderId}, #{item.appointmentStatus},
+                #{item.deliveryMode}, #{item.appointmentTime}, #{item.appointmentPlace}, #{item.appointmentStoreCode},
+                #{item.contactName}, #{item.contactMobileEncrypted}, #{item.rescheduleReason}, #{item.cancelReason},
+                #{item.operatorId}, now(), #{item.createBy}, now(), #{item.modifyBy}, 1, 1
+            )
+        </foreach>
+    </insert>
+
+    <update id="updatePo" parameterType="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.DeliveryAppointmentPo">
+        UPDATE vso_delivery_appointment t SET
+        <if test="appointmentStatus != null and appointmentStatus != ''">
+            t.appointment_status = #{appointmentStatus},
+        </if>
+        <if test="appointmentTime != null">
+            t.appointment_time = #{appointmentTime},
+        </if>
+        <if test="appointmentPlace != null and appointmentPlace != ''">
+            t.appointment_place = #{appointmentPlace},
+        </if>
+        <if test="rescheduleReason != null and rescheduleReason != ''">
+            t.reschedule_reason = #{rescheduleReason},
+        </if>
+        <if test="cancelReason != null and cancelReason != ''">
+            t.cancel_reason = #{cancelReason},
+        </if>
+        <if test="modifyBy != null">
+            t.modify_by = #{modifyBy},
+        </if>
+        t.row_version = t.row_version + 1,
+        t.modify_time = now()
+        WHERE t.id = #{id}
+    </update>
+
+    <update id="logicalDeletePo" parameterType="Long">
+        UPDATE vso_delivery_appointment t SET
+        t.row_version = t.row_version + 1,
+        t.modify_time = now(),
+        t.row_valid = 0
+        WHERE t.id = #{value}
+    </update>
+
+    <delete id="physicalDeletePo" parameterType="Long">
+        DELETE FROM vso_delivery_appointment
+        WHERE id = #{value}
+    </delete>
+
+    <delete id="batchPhysicalDeletePo">
+        DELETE FROM vso_delivery_appointment
+        WHERE id IN
+        <foreach collection="array" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+
 </mapper>

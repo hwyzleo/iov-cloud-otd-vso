@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.mapper.OrderMaterialMapper">
+
+    <resultMap id="baseResultMap" type="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.OrderMaterialPo">
+        <id column="id" property="id" />
+        <result column="material_id" property="materialId" />
+        <result column="order_id" property="orderId" />
+        <result column="material_type" property="materialType" />
+        <result column="material_name" property="materialName" />
+        <result column="material_status" property="materialStatus" />
+        <result column="current_version_no" property="currentVersionNo" />
+        <result column="submitter_role" property="submitterRole" />
+        <result column="submitter_id" property="submitterId" />
+        <result column="review_comment" property="reviewComment" />
+        <result column="timeout_flag" property="timeoutFlag" />
+        <result column="create_time" property="createTime" />
+        <result column="create_by" property="createBy" />
+        <result column="modify_time" property="modifyTime" />
+        <result column="modify_by" property="modifyBy" />
+        <result column="row_version" property="rowVersion" />
+        <result column="row_valid" property="rowValid" />
+    </resultMap>
+
+    <sql id="baseColumnList">
+        t.id, t.material_id, t.order_id, t.material_type, t.material_name, t.material_status,
+        t.current_version_no, t.submitter_role, t.submitter_id, t.review_comment, t.timeout_flag,
+        t.create_time, t.create_by, t.modify_time, t.modify_by, t.row_version, t.row_valid
+    </sql>
+
+    <select id="selectByOrderIdAndType" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_order_material t
+        WHERE t.order_id = #{orderId}
+        AND t.material_type = #{materialType}
+        AND t.row_valid = 1
+    </select>
+
+    <select id="selectPoById" parameterType="Long" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_order_material t
+        WHERE t.id = #{value}
+        AND t.row_valid = 1
+    </select>
+
+    <select id="selectPoByExample" parameterType="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.OrderMaterialPo" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_order_material t
+        WHERE t.row_valid = 1
+        <if test="id != null">
+            AND t.id = #{id}
+        </if>
+        <if test="orderId != null and orderId != ''">
+            AND t.order_id = #{orderId}
+        </if>
+        <if test="materialType != null and materialType != ''">
+            AND t.material_type = #{materialType}
+        </if>
+        <if test="materialStatus != null and materialStatus != ''">
+            AND t.material_status = #{materialStatus}
+        </if>
+        ORDER BY t.id DESC
+    </select>
+
+    <select id="selectPoByMap" parameterType="java.util.Map" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_order_material t
+        WHERE t.row_valid = 1
+        <if test="params.orderId != null and params.orderId != ''">
+            AND t.order_id = #{params.orderId}
+        </if>
+        <if test="params.materialType != null and params.materialType != ''">
+            AND t.material_type = #{params.materialType}
+        </if>
+        <if test="params.materialStatus != null and params.materialStatus != ''">
+            AND t.material_status = #{params.materialStatus}
+        </if>
+        ORDER BY t.id DESC
+    </select>
+
+    <select id="countPoByMap" parameterType="java.util.Map" resultType="int">
+        SELECT COUNT(*)
+        FROM vso_order_material t
+        WHERE t.row_valid = 1
+        <if test="params.orderId != null and params.orderId != ''">
+            AND t.order_id = #{params.orderId}
+        </if>
+    </select>
+
+    <insert id="insertPo" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO vso_order_material (
+            material_id, order_id, material_type, material_name, material_status,
+            current_version_no, submitter_role, submitter_id, review_comment, timeout_flag,
+            create_time, create_by, modify_time, modify_by, row_version, row_valid
+        )
+        VALUES (
+            #{materialId}, #{orderId}, #{materialType}, #{materialName}, #{materialStatus},
+            #{currentVersionNo}, #{submitterRole}, #{submitterId}, #{reviewComment}, #{timeoutFlag},
+            now(), #{createBy}, now(), #{modifyBy}, 1, 1
+        )
+    </insert>
+
+    <insert id="batchInsertPo">
+        INSERT INTO vso_order_material (
+            material_id, order_id, material_type, material_name, material_status,
+            current_version_no, submitter_role, submitter_id, review_comment, timeout_flag,
+            create_time, create_by, modify_time, modify_by, row_version, row_valid
+        )
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (
+                #{item.materialId}, #{item.orderId}, #{item.materialType}, #{item.materialName}, #{item.materialStatus},
+                #{item.currentVersionNo}, #{item.submitterRole}, #{item.submitterId}, #{item.reviewComment}, #{item.timeoutFlag},
+                now(), #{item.createBy}, now(), #{item.modifyBy}, 1, 1
+            )
+        </foreach>
+    </insert>
+
+    <update id="updatePo" parameterType="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.OrderMaterialPo">
+        UPDATE vso_order_material t SET
+        <if test="materialStatus != null and materialStatus != ''">
+            t.material_status = #{materialStatus},
+        </if>
+        <if test="currentVersionNo != null">
+            t.current_version_no = #{currentVersionNo},
+        </if>
+        <if test="reviewComment != null and reviewComment != ''">
+            t.review_comment = #{reviewComment},
+        </if>
+        <if test="timeoutFlag != null">
+            t.timeout_flag = #{timeoutFlag},
+        </if>
+        <if test="modifyBy != null">
+            t.modify_by = #{modifyBy},
+        </if>
+        t.row_version = t.row_version + 1,
+        t.modify_time = now()
+        WHERE t.id = #{id}
+    </update>
+
+    <update id="logicalDeletePo" parameterType="Long">
+        UPDATE vso_order_material t SET
+        t.row_version = t.row_version + 1,
+        t.modify_time = now(),
+        t.row_valid = 0
+        WHERE t.id = #{value}
+    </update>
+
+    <delete id="physicalDeletePo" parameterType="Long">
+        DELETE FROM vso_order_material
+        WHERE id = #{value}
+    </delete>
+
+    <delete id="batchPhysicalDeletePo">
+        DELETE FROM vso_order_material
+        WHERE id IN
+        <foreach collection="array" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+</mapper>

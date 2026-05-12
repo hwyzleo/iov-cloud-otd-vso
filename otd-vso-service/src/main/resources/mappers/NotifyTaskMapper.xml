@@ -38,4 +38,161 @@
         AND t.row_valid = 1
     </select>
 
+    <select id="selectPoById" parameterType="Long" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_notify_task t
+        WHERE t.id = #{value}
+        AND t.row_valid = 1
+    </select>
+
+    <select id="selectPoByExample" parameterType="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.NotifyTaskPo" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_notify_task t
+        WHERE t.row_valid = 1
+        <if test="id != null">
+            AND t.id = #{id}
+        </if>
+        <if test="notifyTaskId != null and notifyTaskId != ''">
+            AND t.notify_task_id = #{notifyTaskId}
+        </if>
+        <if test="orderId != null and orderId != ''">
+            AND t.order_id = #{orderId}
+        </if>
+        <if test="notifyType != null and notifyType != ''">
+            AND t.notify_type = #{notifyType}
+        </if>
+        <if test="receiverType != null and receiverType != ''">
+            AND t.receiver_type = #{receiverType}
+        </if>
+        <if test="receiverId != null and receiverId != ''">
+            AND t.receiver_id = #{receiverId}
+        </if>
+        <if test="sendStatus != null and sendStatus != ''">
+            AND t.send_status = #{sendStatus}
+        </if>
+        ORDER BY t.id DESC
+    </select>
+
+    <select id="selectPoByMap" parameterType="java.util.Map" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_notify_task t
+        WHERE t.row_valid = 1
+        <if test="params.orderId != null and params.orderId != ''">
+            AND t.order_id = #{params.orderId}
+        </if>
+        <if test="params.notifyType != null and params.notifyType != ''">
+            AND t.notify_type = #{params.notifyType}
+        </if>
+        <if test="params.receiverType != null and params.receiverType != ''">
+            AND t.receiver_type = #{params.receiverType}
+        </if>
+        <if test="params.sendStatus != null and params.sendStatus != ''">
+            AND t.send_status = #{params.sendStatus}
+        </if>
+        ORDER BY t.id DESC
+    </select>
+
+    <select id="countPoByMap" parameterType="java.util.Map" resultType="int">
+        SELECT COUNT(*)
+        FROM vso_notify_task t
+        WHERE t.row_valid = 1
+        <if test="params.orderId != null and params.orderId != ''">
+            AND t.order_id = #{params.orderId}
+        </if>
+    </select>
+
+    <insert id="insertPo" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO vso_notify_task (
+            notify_task_id, order_id, notify_type, receiver_type, receiver_id,
+            receiver_address, content_template_code, send_status, retry_count,
+            plan_send_time, send_time, fail_reason, create_time, create_by,
+            modify_time, modify_by, row_version, row_valid
+        )
+        VALUES (
+            #{notifyTaskId}, #{orderId}, #{notifyType}, #{receiverType}, #{receiverId},
+            #{receiverAddress}, #{contentTemplateCode}, #{sendStatus}, #{retryCount},
+            #{planSendTime}, #{sendTime}, #{failReason}, now(), #{createBy},
+            now(), #{modifyBy}, 1, 1
+        )
+    </insert>
+
+    <insert id="batchInsertPo">
+        INSERT INTO vso_notify_task (
+            notify_task_id, order_id, notify_type, receiver_type, receiver_id,
+            receiver_address, content_template_code, send_status, retry_count,
+            plan_send_time, send_time, fail_reason, create_time, create_by,
+            modify_time, modify_by, row_version, row_valid
+        )
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (
+                #{item.notifyTaskId}, #{item.orderId}, #{item.notifyType}, #{item.receiverType}, #{item.receiverId},
+                #{item.receiverAddress}, #{item.contentTemplateCode}, #{item.sendStatus}, #{item.retryCount},
+                #{item.planSendTime}, #{item.sendTime}, #{item.failReason}, now(), #{item.createBy},
+                now(), #{item.modifyBy}, 1, 1
+            )
+        </foreach>
+    </insert>
+
+    <update id="updatePo" parameterType="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.NotifyTaskPo">
+        UPDATE vso_notify_task t SET
+        <if test="notifyType != null and notifyType != ''">
+            t.notify_type = #{notifyType},
+        </if>
+        <if test="receiverType != null and receiverType != ''">
+            t.receiver_type = #{receiverType},
+        </if>
+        <if test="receiverId != null and receiverId != ''">
+            t.receiver_id = #{receiverId},
+        </if>
+        <if test="receiverAddress != null and receiverAddress != ''">
+            t.receiver_address = #{receiverAddress},
+        </if>
+        <if test="contentTemplateCode != null and contentTemplateCode != ''">
+            t.content_template_code = #{contentTemplateCode},
+        </if>
+        <if test="sendStatus != null and sendStatus != ''">
+            t.send_status = #{sendStatus},
+        </if>
+        <if test="retryCount != null">
+            t.retry_count = #{retryCount},
+        </if>
+        <if test="planSendTime != null">
+            t.plan_send_time = #{planSendTime},
+        </if>
+        <if test="sendTime != null">
+            t.send_time = #{sendTime},
+        </if>
+        <if test="failReason != null and failReason != ''">
+            t.fail_reason = #{failReason},
+        </if>
+        <if test="modifyBy != null">
+            t.modify_by = #{modifyBy},
+        </if>
+        t.row_version = t.row_version + 1,
+        t.modify_time = now()
+        WHERE t.id = #{id}
+    </update>
+
+    <update id="logicalDeletePo" parameterType="Long">
+        UPDATE vso_notify_task t SET
+        t.row_version = t.row_version + 1,
+        t.modify_time = now(),
+        t.row_valid = 0
+        WHERE t.id = #{value}
+    </update>
+
+    <delete id="physicalDeletePo" parameterType="Long">
+        DELETE FROM vso_notify_task
+        WHERE id = #{value}
+    </delete>
+
+    <delete id="batchPhysicalDeletePo">
+        DELETE FROM vso_notify_task
+        WHERE id IN
+        <foreach collection="array" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+
 </mapper>

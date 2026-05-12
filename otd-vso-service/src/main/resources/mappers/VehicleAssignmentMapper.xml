@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.mapper.VehicleAssignmentMapper">
+
+    <resultMap id="baseResultMap" type="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.VehicleAssignmentPo">
+        <id column="id" property="id" />
+        <result column="vehicle_assignment_id" property="vehicleAssignmentId" />
+        <result column="order_id" property="orderId" />
+        <result column="assignment_type" property="assignmentType" />
+        <result column="vehicle_source_type" property="vehicleSourceType" />
+        <result column="vin" property="vin" />
+        <result column="vehicle_id" property="vehicleId" />
+        <result column="assign_status" property="assignStatus" />
+        <result column="manual_assign_flag" property="manualAssignFlag" />
+        <result column="manual_assign_reason" property="manualAssignReason" />
+        <result column="unbind_reason" property="unbindReason" />
+        <result column="occupy_expire_time" property="occupyExpireTime" />
+        <result column="assign_time" property="assignTime" />
+        <result column="bind_time" property="bindTime" />
+        <result column="release_time" property="releaseTime" />
+        <result column="create_time" property="createTime" />
+        <result column="create_by" property="createBy" />
+        <result column="modify_time" property="modifyTime" />
+        <result column="modify_by" property="modifyBy" />
+        <result column="row_version" property="rowVersion" />
+        <result column="row_valid" property="rowValid" />
+    </resultMap>
+
+    <sql id="baseColumnList">
+        t.id, t.vehicle_assignment_id, t.order_id, t.assignment_type, t.vehicle_source_type,
+        t.vin, t.vehicle_id, t.assign_status, t.manual_assign_flag, t.manual_assign_reason,
+        t.unbind_reason, t.occupy_expire_time, t.assign_time, t.bind_time, t.release_time,
+        t.create_time, t.create_by, t.modify_time, t.modify_by, t.row_version, t.row_valid
+    </sql>
+
+    <select id="selectByOrderId" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_vehicle_assignment t
+        WHERE t.order_id = #{orderId}
+        AND t.row_valid = 1
+    </select>
+
+    <select id="selectPoById" parameterType="Long" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_vehicle_assignment t
+        WHERE t.id = #{value}
+        AND t.row_valid = 1
+    </select>
+
+    <select id="selectPoByExample" parameterType="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.VehicleAssignmentPo" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_vehicle_assignment t
+        WHERE t.row_valid = 1
+        <if test="id != null">
+            AND t.id = #{id}
+        </if>
+        <if test="orderId != null and orderId != ''">
+            AND t.order_id = #{orderId}
+        </if>
+        <if test="assignStatus != null and assignStatus != ''">
+            AND t.assign_status = #{assignStatus}
+        </if>
+        ORDER BY t.id DESC
+    </select>
+
+    <select id="selectPoByMap" parameterType="java.util.Map" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_vehicle_assignment t
+        WHERE t.row_valid = 1
+        <if test="params.orderId != null and params.orderId != ''">
+            AND t.order_id = #{params.orderId}
+        </if>
+        <if test="params.assignStatus != null and params.assignStatus != ''">
+            AND t.assign_status = #{params.assignStatus}
+        </if>
+        ORDER BY t.id DESC
+    </select>
+
+    <select id="countPoByMap" parameterType="java.util.Map" resultType="int">
+        SELECT COUNT(*)
+        FROM vso_vehicle_assignment t
+        WHERE t.row_valid = 1
+        <if test="params.orderId != null and params.orderId != ''">
+            AND t.order_id = #{params.orderId}
+        </if>
+    </select>
+
+    <insert id="insertPo" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO vso_vehicle_assignment (
+            vehicle_assignment_id, order_id, assignment_type, vehicle_source_type,
+            vin, vehicle_id, assign_status, manual_assign_flag, manual_assign_reason,
+            unbind_reason, occupy_expire_time, assign_time, bind_time, release_time,
+            create_time, create_by, modify_time, modify_by, row_version, row_valid
+        )
+        VALUES (
+            #{vehicleAssignmentId}, #{orderId}, #{assignmentType}, #{vehicleSourceType},
+            #{vin}, #{vehicleId}, #{assignStatus}, #{manualAssignFlag}, #{manualAssignReason},
+            #{unbindReason}, #{occupyExpireTime}, #{assignTime}, #{bindTime}, #{releaseTime},
+            now(), #{createBy}, now(), #{modifyBy}, 1, 1
+        )
+    </insert>
+
+    <insert id="batchInsertPo">
+        INSERT INTO vso_vehicle_assignment (
+            vehicle_assignment_id, order_id, assignment_type, vehicle_source_type,
+            vin, vehicle_id, assign_status, manual_assign_flag, manual_assign_reason,
+            unbind_reason, occupy_expire_time, assign_time, bind_time, release_time,
+            create_time, create_by, modify_time, modify_by, row_version, row_valid
+        )
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (
+                #{item.vehicleAssignmentId}, #{item.orderId}, #{item.assignmentType}, #{item.vehicleSourceType},
+                #{item.vin}, #{item.vehicleId}, #{item.assignStatus}, #{item.manualAssignFlag}, #{item.manualAssignReason},
+                #{item.unbindReason}, #{item.occupyExpireTime}, #{item.assignTime}, #{item.bindTime}, #{item.releaseTime},
+                now(), #{item.createBy}, now(), #{item.modifyBy}, 1, 1
+            )
+        </foreach>
+    </insert>
+
+    <update id="updatePo" parameterType="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.VehicleAssignmentPo">
+        UPDATE vso_vehicle_assignment t SET
+        <if test="assignStatus != null and assignStatus != ''">
+            t.assign_status = #{assignStatus},
+        </if>
+        <if test="vin != null and vin != ''">
+            t.vin = #{vin},
+        </if>
+        <if test="vehicleId != null and vehicleId != ''">
+            t.vehicle_id = #{vehicleId},
+        </if>
+        <if test="bindTime != null">
+            t.bind_time = #{bindTime},
+        </if>
+        <if test="releaseTime != null">
+            t.release_time = #{releaseTime},
+        </if>
+        <if test="unbindReason != null and unbindReason != ''">
+            t.unbind_reason = #{unbindReason},
+        </if>
+        <if test="modifyBy != null">
+            t.modify_by = #{modifyBy},
+        </if>
+        t.row_version = t.row_version + 1,
+        t.modify_time = now()
+        WHERE t.id = #{id}
+    </update>
+
+    <update id="logicalDeletePo" parameterType="Long">
+        UPDATE vso_vehicle_assignment t SET
+        t.row_version = t.row_version + 1,
+        t.modify_time = now(),
+        t.row_valid = 0
+        WHERE t.id = #{value}
+    </update>
+
+    <delete id="physicalDeletePo" parameterType="Long">
+        DELETE FROM vso_vehicle_assignment
+        WHERE id = #{value}
+    </delete>
+
+    <delete id="batchPhysicalDeletePo">
+        DELETE FROM vso_vehicle_assignment
+        WHERE id IN
+        <foreach collection="array" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+</mapper>

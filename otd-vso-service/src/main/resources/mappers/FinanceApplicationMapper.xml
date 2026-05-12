@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.mapper.FinanceApplicationMapper">
+
+    <resultMap id="baseResultMap" type="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.FinanceApplicationPo">
+        <id column="id" property="id" />
+        <result column="finance_application_id" property="financeApplicationId" />
+        <result column="order_id" property="orderId" />
+        <result column="finance_type" property="financeType" />
+        <result column="finance_provider" property="financeProvider" />
+        <result column="finance_status" property="financeStatus" />
+        <result column="loan_amount" property="loanAmount" />
+        <result column="interest_discount_amount" property="interestDiscountAmount" />
+        <result column="apply_time" property="applyTime" />
+        <result column="approve_time" property="approveTime" />
+        <result column="disbursement_time" property="disbursementTime" />
+        <result column="reject_reason" property="rejectReason" />
+        <result column="external_apply_no" property="externalApplyNo" />
+        <result column="create_time" property="createTime" />
+        <result column="create_by" property="createBy" />
+        <result column="modify_time" property="modifyTime" />
+        <result column="modify_by" property="modifyBy" />
+        <result column="row_version" property="rowVersion" />
+        <result column="row_valid" property="rowValid" />
+    </resultMap>
+
+    <sql id="baseColumnList">
+        t.id, t.finance_application_id, t.order_id, t.finance_type, t.finance_provider,
+        t.finance_status, t.loan_amount, t.interest_discount_amount, t.apply_time,
+        t.approve_time, t.disbursement_time, t.reject_reason, t.external_apply_no,
+        t.create_time, t.create_by, t.modify_time, t.modify_by, t.row_version, t.row_valid
+    </sql>
+
+    <select id="selectByOrderId" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_finance_application t
+        WHERE t.order_id = #{orderId}
+        AND t.row_valid = 1
+    </select>
+
+    <select id="selectPoById" parameterType="Long" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_finance_application t
+        WHERE t.id = #{value}
+        AND t.row_valid = 1
+    </select>
+
+    <select id="selectPoByExample" parameterType="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.FinanceApplicationPo" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_finance_application t
+        WHERE t.row_valid = 1
+        <if test="id != null">
+            AND t.id = #{id}
+        </if>
+        <if test="orderId != null and orderId != ''">
+            AND t.order_id = #{orderId}
+        </if>
+        <if test="financeStatus != null and financeStatus != ''">
+            AND t.finance_status = #{financeStatus}
+        </if>
+        ORDER BY t.id DESC
+    </select>
+
+    <select id="selectPoByMap" parameterType="java.util.Map" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_finance_application t
+        WHERE t.row_valid = 1
+        <if test="params.orderId != null and params.orderId != ''">
+            AND t.order_id = #{params.orderId}
+        </if>
+        <if test="params.financeStatus != null and params.financeStatus != ''">
+            AND t.finance_status = #{params.financeStatus}
+        </if>
+        ORDER BY t.id DESC
+    </select>
+
+    <select id="countPoByMap" parameterType="java.util.Map" resultType="int">
+        SELECT COUNT(*)
+        FROM vso_finance_application t
+        WHERE t.row_valid = 1
+        <if test="params.orderId != null and params.orderId != ''">
+            AND t.order_id = #{params.orderId}
+        </if>
+    </select>
+
+    <insert id="insertPo" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO vso_finance_application (
+            finance_application_id, order_id, finance_type, finance_provider, finance_status,
+            loan_amount, interest_discount_amount, apply_time, approve_time, disbursement_time,
+            reject_reason, external_apply_no, create_time, create_by, modify_time, modify_by,
+            row_version, row_valid
+        )
+        VALUES (
+            #{financeApplicationId}, #{orderId}, #{financeType}, #{financeProvider}, #{financeStatus},
+            #{loanAmount}, #{interestDiscountAmount}, #{applyTime}, #{approveTime}, #{disbursementTime},
+            #{rejectReason}, #{externalApplyNo}, now(), #{createBy}, now(), #{modifyBy}, 1, 1
+        )
+    </insert>
+
+    <insert id="batchInsertPo">
+        INSERT INTO vso_finance_application (
+            finance_application_id, order_id, finance_type, finance_provider, finance_status,
+            loan_amount, interest_discount_amount, apply_time, approve_time, disbursement_time,
+            reject_reason, external_apply_no, create_time, create_by, modify_time, modify_by,
+            row_version, row_valid
+        )
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (
+                #{item.financeApplicationId}, #{item.orderId}, #{item.financeType}, #{item.financeProvider}, #{item.financeStatus},
+                #{item.loanAmount}, #{item.interestDiscountAmount}, #{item.applyTime}, #{item.approveTime}, #{item.disbursementTime},
+                #{item.rejectReason}, #{item.externalApplyNo}, now(), #{item.createBy}, now(), #{item.modifyBy}, 1, 1
+            )
+        </foreach>
+    </insert>
+
+    <update id="updatePo" parameterType="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.FinanceApplicationPo">
+        UPDATE vso_finance_application t SET
+        <if test="financeStatus != null and financeStatus != ''">
+            t.finance_status = #{financeStatus},
+        </if>
+        <if test="approveTime != null">
+            t.approve_time = #{approveTime},
+        </if>
+        <if test="disbursementTime != null">
+            t.disbursement_time = #{disbursementTime},
+        </if>
+        <if test="rejectReason != null and rejectReason != ''">
+            t.reject_reason = #{rejectReason},
+        </if>
+        <if test="modifyBy != null">
+            t.modify_by = #{modifyBy},
+        </if>
+        t.row_version = t.row_version + 1,
+        t.modify_time = now()
+        WHERE t.id = #{id}
+    </update>
+
+    <update id="logicalDeletePo" parameterType="Long">
+        UPDATE vso_finance_application t SET
+        t.row_version = t.row_version + 1,
+        t.modify_time = now(),
+        t.row_valid = 0
+        WHERE t.id = #{value}
+    </update>
+
+    <delete id="physicalDeletePo" parameterType="Long">
+        DELETE FROM vso_finance_application
+        WHERE id = #{value}
+    </delete>
+
+    <delete id="batchPhysicalDeletePo">
+        DELETE FROM vso_finance_application
+        WHERE id IN
+        <foreach collection="array" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+</mapper>

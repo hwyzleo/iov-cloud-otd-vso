@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.mapper.OrderAmountMapper">
+
+    <resultMap id="baseResultMap" type="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.OrderAmountPo">
+        <id column="id" property="id" />
+        <result column="amount_id" property="amountId" />
+        <result column="order_id" property="orderId" />
+        <result column="guide_price" property="guidePrice" />
+        <result column="vehicle_price" property="vehiclePrice" />
+        <result column="option_price" property="optionPrice" />
+        <result column="color_markup" property="colorMarkup" />
+        <result column="service_fee" property="serviceFee" />
+        <result column="plate_service_fee" property="plateServiceFee" />
+        <result column="insurance_fee" property="insuranceFee" />
+        <result column="discount_total" property="discountTotal" />
+        <result column="subsidy_total" property="subsidyTotal" />
+        <result column="finance_discount_total" property="financeDiscountTotal" />
+        <result column="deal_price_total" property="dealPriceTotal" />
+        <result column="deposit_amount" property="depositAmount" />
+        <result column="down_payment_amount" property="downPaymentAmount" />
+        <result column="tail_payment_amount" property="tailPaymentAmount" />
+        <result column="paid_total" property="paidTotal" />
+        <result column="refund_total" property="refundTotal" />
+        <result column="receivable_total" property="receivableTotal" />
+        <result column="net_receivable_total" property="netReceivableTotal" />
+        <result column="unpaid_total" property="unpaidTotal" />
+        <result column="invoice_amount" property="invoiceAmount" />
+        <result column="calculation_version" property="calculationVersion" />
+        <result column="create_time" property="createTime" />
+        <result column="create_by" property="createBy" />
+        <result column="modify_time" property="modifyTime" />
+        <result column="modify_by" property="modifyBy" />
+        <result column="row_version" property="rowVersion" />
+        <result column="row_valid" property="rowValid" />
+    </resultMap>
+
+    <sql id="baseColumnList">
+        t.id, t.amount_id, t.order_id, t.guide_price, t.vehicle_price, t.option_price,
+        t.color_markup, t.service_fee, t.plate_service_fee, t.insurance_fee, t.discount_total,
+        t.subsidy_total, t.finance_discount_total, t.deal_price_total, t.deposit_amount,
+        t.down_payment_amount, t.tail_payment_amount, t.paid_total, t.refund_total,
+        t.receivable_total, t.net_receivable_total, t.unpaid_total, t.invoice_amount,
+        t.calculation_version, t.create_time, t.create_by, t.modify_time, t.modify_by,
+        t.row_version, t.row_valid
+    </sql>
+
+    <select id="selectByOrderId" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_order_amount t
+        WHERE t.order_id = #{orderId}
+        AND t.row_valid = 1
+    </select>
+
+    <select id="selectPoById" parameterType="Long" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_order_amount t
+        WHERE t.id = #{value}
+        AND t.row_valid = 1
+    </select>
+
+    <select id="selectPoByExample" parameterType="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.OrderAmountPo" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_order_amount t
+        WHERE t.row_valid = 1
+        <if test="id != null">
+            AND t.id = #{id}
+        </if>
+        <if test="orderId != null and orderId != ''">
+            AND t.order_id = #{orderId}
+        </if>
+        ORDER BY t.id DESC
+    </select>
+
+    <select id="selectPoByMap" parameterType="java.util.Map" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_order_amount t
+        WHERE t.row_valid = 1
+        <if test="params.orderId != null and params.orderId != ''">
+            AND t.order_id = #{params.orderId}
+        </if>
+        ORDER BY t.id DESC
+    </select>
+
+    <select id="countPoByMap" parameterType="java.util.Map" resultType="int">
+        SELECT COUNT(*)
+        FROM vso_order_amount t
+        WHERE t.row_valid = 1
+        <if test="params.orderId != null and params.orderId != ''">
+            AND t.order_id = #{params.orderId}
+        </if>
+    </select>
+
+    <insert id="insertPo" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO vso_order_amount (
+            amount_id, order_id, guide_price, vehicle_price, option_price, color_markup,
+            service_fee, plate_service_fee, insurance_fee, discount_total, subsidy_total,
+            finance_discount_total, deal_price_total, deposit_amount, down_payment_amount,
+            tail_payment_amount, paid_total, refund_total, receivable_total, net_receivable_total,
+            unpaid_total, invoice_amount, calculation_version, create_time, create_by,
+            modify_time, modify_by, row_version, row_valid
+        )
+        VALUES (
+            #{amountId}, #{orderId}, #{guidePrice}, #{vehiclePrice}, #{optionPrice}, #{colorMarkup},
+            #{serviceFee}, #{plateServiceFee}, #{insuranceFee}, #{discountTotal}, #{subsidyTotal},
+            #{financeDiscountTotal}, #{dealPriceTotal}, #{depositAmount}, #{downPaymentAmount},
+            #{tailPaymentAmount}, #{paidTotal}, #{refundTotal}, #{receivableTotal}, #{netReceivableTotal},
+            #{unpaidTotal}, #{invoiceAmount}, #{calculationVersion}, now(), #{createBy},
+            now(), #{modifyBy}, 1, 1
+        )
+    </insert>
+
+    <insert id="batchInsertPo">
+        INSERT INTO vso_order_amount (
+            amount_id, order_id, guide_price, vehicle_price, option_price, color_markup,
+            service_fee, plate_service_fee, insurance_fee, discount_total, subsidy_total,
+            finance_discount_total, deal_price_total, deposit_amount, down_payment_amount,
+            tail_payment_amount, paid_total, refund_total, receivable_total, net_receivable_total,
+            unpaid_total, invoice_amount, calculation_version, create_time, create_by,
+            modify_time, modify_by, row_version, row_valid
+        )
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (
+                #{item.amountId}, #{item.orderId}, #{item.guidePrice}, #{item.vehiclePrice}, #{item.optionPrice}, #{item.colorMarkup},
+                #{item.serviceFee}, #{item.plateServiceFee}, #{item.insuranceFee}, #{item.discountTotal}, #{item.subsidyTotal},
+                #{item.financeDiscountTotal}, #{item.dealPriceTotal}, #{item.depositAmount}, #{item.downPaymentAmount},
+                #{item.tailPaymentAmount}, #{item.paidTotal}, #{item.refundTotal}, #{item.receivableTotal}, #{item.netReceivableTotal},
+                #{item.unpaidTotal}, #{item.invoiceAmount}, #{item.calculationVersion}, now(), #{item.createBy},
+                now(), #{item.modifyBy}, 1, 1
+            )
+        </foreach>
+    </insert>
+
+    <update id="updatePo" parameterType="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.OrderAmountPo">
+        UPDATE vso_order_amount t SET
+        <if test="guidePrice != null">
+            t.guide_price = #{guidePrice},
+        </if>
+        <if test="vehiclePrice != null">
+            t.vehicle_price = #{vehiclePrice},
+        </if>
+        <if test="paidTotal != null">
+            t.paid_total = #{paidTotal},
+        </if>
+        <if test="refundTotal != null">
+            t.refund_total = #{refundTotal},
+        </if>
+        <if test="receivableTotal != null">
+            t.receivable_total = #{receivableTotal},
+        </if>
+        <if test="unpaidTotal != null">
+            t.unpaid_total = #{unpaidTotal},
+        </if>
+        <if test="calculationVersion != null">
+            t.calculation_version = #{calculationVersion},
+        </if>
+        <if test="modifyBy != null">
+            t.modify_by = #{modifyBy},
+        </if>
+        t.row_version = t.row_version + 1,
+        t.modify_time = now()
+        WHERE t.id = #{id}
+    </update>
+
+    <update id="logicalDeletePo" parameterType="Long">
+        UPDATE vso_order_amount t SET
+        t.row_version = t.row_version + 1,
+        t.modify_time = now(),
+        t.row_valid = 0
+        WHERE t.id = #{value}
+    </update>
+
+    <delete id="physicalDeletePo" parameterType="Long">
+        DELETE FROM vso_order_amount
+        WHERE id = #{value}
+    </delete>
+
+    <delete id="batchPhysicalDeletePo">
+        DELETE FROM vso_order_amount
+        WHERE id IN
+        <foreach collection="array" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+</mapper>
