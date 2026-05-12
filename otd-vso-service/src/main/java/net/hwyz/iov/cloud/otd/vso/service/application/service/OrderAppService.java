@@ -446,6 +446,16 @@ public class OrderAppService {
             order.saveSaleCode(saleCode);
         }
         
+        if (buildConfigCode == null || buildConfigCode.isEmpty()) {
+            throw new BuildConfigNotMatchedException(saleCode);
+        }
+        
+        VmdBuildConfigResponse buildConfig = vmdVehicleModelConfigService.getBuildConfigByCode(buildConfigCode);
+        if (buildConfig == null || buildConfig.getBrandCode() == null) {
+            throw new BrandCodeNotExistException(buildConfigCode);
+        }
+        order.saveBrandCode(buildConfig.getBrandCode());
+        
         order.downPaymentOrder();
         order.saveBuildConfig(buildConfigCode, cmd.getModelConfigMap());
         order.saveOrderPerson(cmd.getAccountId(), cmd.getOrderPersonType(), cmd.getOrderPersonName(),
