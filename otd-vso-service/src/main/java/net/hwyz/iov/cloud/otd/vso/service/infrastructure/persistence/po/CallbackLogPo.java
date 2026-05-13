@@ -53,6 +53,9 @@ public class CallbackLogPo implements Serializable {
     @TableField("process_result")
     private String processResult;
 
+    @TableField("fail_reason")
+    private String failReason;
+
     @TableField("manual_override_flag")
     private Integer manualOverrideFlag;
 
