@@ -22,6 +22,8 @@ public class VsoBaseException extends BaseException {
     protected static final int ERROR_CODE_WISHLIST_NOT_EXIST = 301009;
     protected static final int ERROR_CODE_BUILD_CONFIG_NOT_MATCHED = 301010;
     protected static final int ERROR_CODE_PAYMENT_CHANNEL_NOT_AVAILABLE = 301011;
+    protected static final int ERROR_CODE_PAYMENT_NOT_EXIST = 301012;
+    protected static final int ERROR_CODE_PAYMENT_STATUS_MISMATCH = 301013;
 
     public VsoBaseException(String message) {
         super(ERROR_CODE, message);

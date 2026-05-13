@@ -61,6 +61,21 @@ public class TimeoutNotifyService {
     }
 
     /**
+     * 根据订单ID和任务类型取消超时任务
+     *
+     * @param orderId 订单 ID
+     * @param taskType 任务类型
+     */
+    public void cancelByOrderIdAndType(String orderId, String taskType) {
+        pendingTasks.values().stream()
+                .filter(task -> task.getOrderId().equals(orderId) && task.getTaskType().equals(taskType))
+                .forEach(task -> {
+                    task.cancel();
+                    pendingTasks.remove(task.getTaskId());
+                });
+    }
+
+    /**
      * 完成超时任务
      *
      * @param taskId 任务 ID

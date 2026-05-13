@@ -7,6 +7,7 @@ import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.PaymentP
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -51,6 +52,19 @@ public class PaymentRepositoryImpl implements PaymentRepository {
         PaymentPo paymentPo = paymentMapper.selectPoById(Long.valueOf(paymentId));
         if (paymentPo != null) {
             paymentPo.setRowValid(0);
+            paymentMapper.updatePo(paymentPo);
+        }
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void updateStatus(String paymentNo, String status, String externalTradeNo, LocalDateTime payTime) {
+        Optional<PaymentPo> paymentOpt = findByPaymentNo(paymentNo);
+        if (paymentOpt.isPresent()) {
+            PaymentPo paymentPo = paymentOpt.get();
+            paymentPo.setPaymentStatus(status);
+            paymentPo.setExternalTradeNo(externalTradeNo);
+            paymentPo.setPayTime(payTime);
             paymentMapper.updatePo(paymentPo);
         }
     }

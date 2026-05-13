@@ -2,6 +2,7 @@ package net.hwyz.iov.cloud.otd.vso.service.domain.repository;
 
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.PaymentPo;
 
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 /**
@@ -16,5 +17,7 @@ public interface PaymentRepository {
     Optional<PaymentPo> findByOrderId(String orderId);
 
     void delete(String paymentId);
+
+    void updateStatus(String paymentNo, String status, String externalTradeNo, LocalDateTime payTime);
 
 }
