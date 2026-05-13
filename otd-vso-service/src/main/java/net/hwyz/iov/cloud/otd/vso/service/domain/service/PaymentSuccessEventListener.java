@@ -6,6 +6,8 @@ import net.hwyz.iov.cloud.otd.vso.api.enums.PaymentStage;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.Order;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.event.PaymentSuccessDomainEvent;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.OrderRepository;
+import net.hwyz.iov.cloud.otd.vso.service.domain.repository.WishlistRepository;
+import net.hwyz.iov.cloud.otd.vso.service.domain.service.TimeoutNotifyService;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,6 +21,7 @@ public class PaymentSuccessEventListener {
 
     private final OrderRepository orderRepository;
     private final TimeoutNotifyService timeoutNotifyService;
+    private final WishlistRepository wishlistRepository;
 
     @EventListener
     @Transactional(rollbackFor = Exception.class)
@@ -44,6 +47,12 @@ public class PaymentSuccessEventListener {
         order.pay(amount);
         log.info("意向金支付成功，订单状态更新：orderId={}, newState={}",
                 order.getId(), order.getOrderState());
+
+        if (order.getOrderPersonId() != null && !order.getOrderPersonId().isEmpty()) {
+            wishlistRepository.deleteByUserId(order.getOrderPersonId());
+            log.info("支付意向金成功后删除心愿单：accountId={}, orderNo={}",
+                    order.getOrderPersonId(), order.getOrderNo());
+        }
     }
 
 }
