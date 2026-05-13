@@ -16,6 +16,8 @@
         <result column="end_type" property="endType" />
         <result column="previous_main_status" property="previousMainStatus" />
         <result column="brand_code" property="brandCode" />
+        <result column="sale_model" property="saleModel" />
+        <result column="build_config_code" property="buildConfigCode" />
         <result column="region_code" property="regionCode" />
         <result column="store_code" property="storeCode" />
         <result column="sales_code" property="salesCode" />
@@ -46,11 +48,11 @@
     <!-- 通用查询结果列 -->
     <sql id="baseColumnList">
         t.id, t.order_id, t.order_no, t.small_order_no, t.order_type, t.order_source, t.source_remark,
-        t.customer_type, t.main_status, t.end_type, t.previous_main_status, t.brand_code, t.region_code,
-        t.store_code, t.sales_code, t.vehicle_vin, t.has_exception, t.current_version_no, t.locked_flag,
-        t.reopen_flag, t.cancel_reason, t.close_reason, t.void_reason, t.created_at_business,
-        t.audit_submit_time, t.audit_pass_time, t.lock_time, t.delivery_finish_time, t.finish_time,
-        t.cancel_time, t.close_time, t.create_time, t.create_by, t.modify_time, t.modify_by,
+        t.customer_type, t.main_status, t.end_type, t.previous_main_status, t.brand_code, t.sale_model,
+        t.build_config_code, t.region_code, t.store_code, t.sales_code, t.vehicle_vin, t.has_exception,
+        t.current_version_no, t.locked_flag, t.reopen_flag, t.cancel_reason, t.close_reason, t.void_reason,
+        t.created_at_business, t.audit_submit_time, t.audit_pass_time, t.lock_time, t.delivery_finish_time,
+        t.finish_time, t.cancel_time, t.close_time, t.create_time, t.create_by, t.modify_time, t.modify_by,
         t.row_version, t.row_valid
     </sql>
 
@@ -58,20 +60,20 @@
     <insert id="insertPo" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO vso_order (
             id, order_id, order_no, small_order_no, order_type, order_source, source_remark,
-            customer_type, main_status, end_type, previous_main_status, brand_code, region_code,
-            store_code, sales_code, vehicle_vin, has_exception, current_version_no, locked_flag,
-            reopen_flag, cancel_reason, close_reason, void_reason, created_at_business,
-            audit_submit_time, audit_pass_time, lock_time, delivery_finish_time, finish_time,
-            cancel_time, close_time, create_time, create_by, modify_time, modify_by,
+            customer_type, main_status, end_type, previous_main_status, brand_code, sale_model,
+            build_config_code, region_code, store_code, sales_code, vehicle_vin, has_exception,
+            current_version_no, locked_flag, reopen_flag, cancel_reason, close_reason, void_reason,
+            created_at_business, audit_submit_time, audit_pass_time, lock_time, delivery_finish_time,
+            finish_time, cancel_time, close_time, create_time, create_by, modify_time, modify_by,
             row_version, row_valid
         )
         VALUES (
             #{id}, #{orderId}, #{orderNo}, #{smallOrderNo}, #{orderType}, #{orderSource}, #{sourceRemark},
-            #{customerType}, #{mainStatus}, #{endType}, #{previousMainStatus}, #{brandCode}, #{regionCode},
-            #{storeCode}, #{salesCode}, #{vehicleVin}, #{hasException}, #{currentVersionNo}, #{lockedFlag},
-            #{reopenFlag}, #{cancelReason}, #{closeReason}, #{voidReason}, #{createdAtBusiness},
-            #{auditSubmitTime}, #{auditPassTime}, #{lockTime}, #{deliveryFinishTime}, #{finishTime},
-            #{cancelTime}, #{closeTime}, now(), #{createBy}, now(), #{modifyBy}, 1, 1
+            #{customerType}, #{mainStatus}, #{endType}, #{previousMainStatus}, #{brandCode}, #{saleModel},
+            #{buildConfigCode}, #{regionCode}, #{storeCode}, #{salesCode}, #{vehicleVin}, #{hasException},
+            #{currentVersionNo}, #{lockedFlag}, #{reopenFlag}, #{cancelReason}, #{closeReason}, #{voidReason},
+            #{createdAtBusiness}, #{auditSubmitTime}, #{auditPassTime}, #{lockTime}, #{deliveryFinishTime},
+            #{finishTime}, #{cancelTime}, #{closeTime}, now(), #{createBy}, now(), #{modifyBy}, 1, 1
         )
     </insert>
 
@@ -107,6 +109,12 @@
         </if>
         <if test="brandCode != null and brandCode != ''">
             t.brand_code = #{brandCode},
+        </if>
+        <if test="saleModel != null and saleModel != ''">
+            t.sale_model = #{saleModel},
+        </if>
+        <if test="buildConfigCode != null and buildConfigCode != ''">
+            t.build_config_code = #{buildConfigCode},
         </if>
         <if test="regionCode != null and regionCode != ''">
             t.region_code = #{regionCode},
