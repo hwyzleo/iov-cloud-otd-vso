@@ -43,6 +43,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import cn.hutool.core.util.IdUtil;
+import cn.hutool.core.util.StrUtil;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.ZoneId;
@@ -51,6 +52,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -282,7 +284,110 @@ public class OrderAppService {
                 query.getBeginTime(),
                 query.getEndTime()
         );
-        return PageUtil.convert(orderList, OrderDtoAssembler.INSTANCE::toOrderListResult);
+        List<OrderListResult> results = PageUtil.convert(orderList, OrderDtoAssembler.INSTANCE::toOrderListResult);
+        
+        enrichOrderListResults(results);
+        
+        return results;
+    }
+
+    private void enrichOrderListResults(List<OrderListResult> results) {
+        if (results == null || results.isEmpty()) {
+            return;
+        }
+
+        Set<String> buildConfigCodes = results.stream()
+                .map(OrderListResult::getBuildConfigCode)
+                .filter(StrUtil::isNotBlank)
+                .collect(Collectors.toSet());
+        Set<String> saleModels = results.stream()
+                .map(OrderListResult::getSaleModel)
+                .filter(StrUtil::isNotBlank)
+                .collect(Collectors.toSet());
+
+        Map<String, String> buildConfigNameMap = new HashMap<>();
+        for (String code : buildConfigCodes) {
+            try {
+                VmdBuildConfigResponse buildConfig = vmdVehicleModelConfigService.getBuildConfigByCode(code);
+                if (buildConfig != null) {
+                    buildConfigNameMap.put(code, buildConfig.getName());
+                }
+            } catch (Exception e) {
+                log.warn("获取生产配置名称失败: buildConfigCode={}", code);
+            }
+        }
+
+        Map<String, String> saleModelNameMap = new HashMap<>();
+        for (String saleModelCode : saleModels) {
+            try {
+                Optional<SaleModelPo> saleModelPo = saleModelRepository.findBySaleModelCode(saleModelCode);
+                if (saleModelPo.isPresent()) {
+                    saleModelNameMap.put(saleModelCode, saleModelPo.get().getModelName());
+                }
+            } catch (Exception e) {
+                log.warn("获取销售车型名称失败: saleModelCode={}", saleModelCode);
+            }
+        }
+
+        for (OrderListResult result : results) {
+            result.setOrderTypeName(getOrderTypeName(result.getOrderType()));
+            result.setOrderSourceName(getOrderSourceName(result.getOrderSource()));
+            result.setBrandName(result.getBrandCode());
+            result.setSaleModelName(saleModelNameMap.getOrDefault(result.getSaleModel(), ""));
+            result.setRegionName(getRegionName(result.getRegionCode()));
+        }
+    }
+
+    private String getOrderTypeName(String orderType) {
+        if (StrUtil.isBlank(orderType)) {
+            return "";
+        }
+        try {
+            net.hwyz.iov.cloud.otd.vso.api.enums.OrderType type = 
+                    net.hwyz.iov.cloud.otd.vso.api.enums.OrderType.valueOf(orderType.toUpperCase());
+            switch (type) {
+                case SMALL: return "小订单";
+                case FORMAL: return "正式订单";
+                case MANUAL: return "手工订单";
+                case REPAIR: return "补单";
+                case CHANGE: return "变更单";
+                case REFUND_APPLY: return "退订申请";
+                case VOID: return "作废单";
+                case CLOSED: return "关闭单";
+                default: return "";
+            }
+        } catch (IllegalArgumentException e) {
+            return orderType;
+        }
+    }
+
+    private String getOrderSourceName(String orderSource) {
+        if (StrUtil.isBlank(orderSource)) {
+            return "";
+        }
+        try {
+            net.hwyz.iov.cloud.otd.vso.api.enums.OrderSource source = 
+                    net.hwyz.iov.cloud.otd.vso.api.enums.OrderSource.valueOf(orderSource.toUpperCase());
+            switch (source) {
+                case CAPP: return "C端自主下单";
+                case SALES: return "销售代客下单";
+                case STORE: return "门店代客下单";
+                case OPERATION: return "运营补录";
+                case IMPORT: return "外部导入";
+                case ACTIVITY: return "活动订单";
+                case SMALL_TO_FORMAL: return "小订单转正式";
+                default: return "";
+            }
+        } catch (IllegalArgumentException e) {
+            return orderSource;
+        }
+    }
+
+    private String getRegionName(String regionCode) {
+        if (StrUtil.isBlank(regionCode)) {
+            return "";
+        }
+        return regionCode;
     }
 
     /**
