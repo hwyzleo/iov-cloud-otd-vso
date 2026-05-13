@@ -109,8 +109,12 @@
         VALUES (
             #{callbackLogId}, #{orderId}, #{businessType}, #{externalSystemName}, #{externalBusinessNo},
             #{idempotentKey}, #{callbackStatusValue}, #{callbackResultCode}, #{eventTime}, #{requestBody},
-            #{responseBody}, #{processResult}, #{manualOverrideFlag}, #{processTime}, now(), #{createBy},
-            now(), #{modifyBy}, 1, 1
+            #{responseBody}, #{processResult}, #{manualOverrideFlag}, 
+            <choose>
+                <when test="processTime != null">#{processTime}</when>
+                <otherwise>now()</otherwise>
+            </choose>,
+            now(), #{createBy}, now(), #{modifyBy}, 1, 1
         )
     </insert>
 
@@ -126,8 +130,12 @@
             (
                 #{item.callbackLogId}, #{item.orderId}, #{item.businessType}, #{item.externalSystemName}, #{item.externalBusinessNo},
                 #{item.idempotentKey}, #{item.callbackStatusValue}, #{item.callbackResultCode}, #{item.eventTime}, #{item.requestBody},
-                #{item.responseBody}, #{item.processResult}, #{item.manualOverrideFlag}, #{item.processTime}, now(), #{item.createBy},
-                now(), #{item.modifyBy}, 1, 1
+                #{item.responseBody}, #{item.processResult}, #{item.manualOverrideFlag}, 
+                <choose>
+                    <when test="item.processTime != null">#{item.processTime}</when>
+                    <otherwise>now()</otherwise>
+                </choose>,
+                now(), #{item.createBy}, now(), #{item.modifyBy}, 1, 1
             )
         </foreach>
     </insert>
