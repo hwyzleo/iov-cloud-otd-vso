@@ -148,6 +148,16 @@ public class OrderDomainService {
     }
 
     /**
+     * 失效小订单（超时）
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void invalidateSmallOrder(String orderId) {
+        Order order = loadOrder(orderId);
+        order.invalidate();
+        saveOrder(order);
+    }
+
+    /**
      * 加载订单
      */
     public Order loadOrder(String orderId) {

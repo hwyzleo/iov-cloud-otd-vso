@@ -7,6 +7,7 @@ import net.hwyz.iov.cloud.framework.common.bean.ApiResponse;
 import net.hwyz.iov.cloud.framework.common.util.ParamHelper;
 import net.hwyz.iov.cloud.framework.web.context.SecurityContextHolder;
 import net.hwyz.iov.cloud.framework.web.controller.BaseController;
+import net.hwyz.iov.cloud.otd.vso.api.enums.PaymentChannel;
 import net.hwyz.iov.cloud.otd.vso.service.adapter.web.assembler.*;
 import net.hwyz.iov.cloud.otd.vso.service.adapter.web.vo.*;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.*;
@@ -110,11 +111,27 @@ public class MobileOrderController extends BaseController {
      * 意向金下订单
      */
     @PostMapping("/action/earnestMoneyOrder")
-    public ApiResponse<String> earnestMoneyOrder(@RequestBody @Valid EarnestMoneyOrderRequestVo request) {
+    public ApiResponse<EarnestMoneyOrderResult> earnestMoneyOrder(@RequestBody @Valid EarnestMoneyOrderRequestVo request) {
         log.info("手机客户端[{}]意向金下订单", ParamHelper.getClientAccountInfo());
         EarnestMoneyCmd cmd = EarnestMoneyOrderRequestVoAssembler.INSTANCE.toCmd(SecurityContextHolder.getUserId(), request);
-        String orderNo = vehicleSaleOrderAppService.earnestMoneyOrder(cmd);
-        return ApiResponse.ok(orderNo);
+        EarnestMoneyOrderResult result = vehicleSaleOrderAppService.earnestMoneyOrder(cmd);
+        return ApiResponse.ok(result);
+    }
+
+    /**
+     * 发起支付
+     */
+    @PostMapping("/action/initiatePayment")
+    public ApiResponse<InitiatePaymentResult> initiatePayment(@RequestBody @Valid InitiatePaymentRequestVo request) {
+        log.info("手机客户端[{}]发起支付：smallOrderNo={}, paymentChannel={}", 
+                ParamHelper.getClientAccountInfo(), request.getSmallOrderNo(), request.getPaymentChannel());
+        InitiatePaymentCmd cmd = InitiatePaymentCmd.builder()
+                .accountId(SecurityContextHolder.getUserId())
+                .smallOrderNo(request.getSmallOrderNo())
+                .paymentChannel(request.getPaymentChannel())
+                .build();
+        InitiatePaymentResult result = vehicleSaleOrderAppService.initiatePayment(cmd);
+        return ApiResponse.ok(result);
     }
 
     /**

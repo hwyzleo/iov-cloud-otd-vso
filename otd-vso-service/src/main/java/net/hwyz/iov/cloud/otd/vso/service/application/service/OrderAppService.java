@@ -2,10 +2,12 @@ package net.hwyz.iov.cloud.otd.vso.service.application.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-//import net.hwyz.iov.cloud.dms.org.api.feign.service.ExDealershipStaffService;
 import net.hwyz.iov.cloud.edd.vmd.api.service.VmdVehicleModelConfigService;
 import net.hwyz.iov.cloud.edd.vmd.api.vo.response.VmdBuildConfigResponse;
 import net.hwyz.iov.cloud.framework.web.util.PageUtil;
+import net.hwyz.iov.cloud.otd.vso.api.enums.PaymentChannel;
+import net.hwyz.iov.cloud.otd.vso.api.enums.PaymentStage;
+import net.hwyz.iov.cloud.otd.vso.api.enums.PaymentStatus;
 import net.hwyz.iov.cloud.otd.vso.service.adapter.web.assembler.OrderDtoAssembler;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.*;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.query.CountQuery;
@@ -14,6 +16,7 @@ import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.*;
 import net.hwyz.iov.cloud.otd.vso.service.common.exception.BrandCodeNotExistException;
 import net.hwyz.iov.cloud.otd.vso.service.common.exception.BuildConfigNotMatchedException;
 import net.hwyz.iov.cloud.otd.vso.service.common.exception.OrderNotExistException;
+import net.hwyz.iov.cloud.otd.vso.service.common.exception.PaymentChannelNotAvailableException;
 import net.hwyz.iov.cloud.otd.vso.service.common.exception.WishlistNotExistException;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.Order;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.OrderAmount;
@@ -24,17 +27,25 @@ import net.hwyz.iov.cloud.otd.vso.service.domain.model.shared.OrganizationInfo;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.shared.VehicleInfo;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.OrderPartyRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.OrderRepository;
+import net.hwyz.iov.cloud.otd.vso.service.domain.repository.PaymentRepository;
+import net.hwyz.iov.cloud.otd.vso.service.domain.repository.SaleModelRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.WishlistRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.service.OrderDomainService;
 import net.hwyz.iov.cloud.otd.vso.service.domain.service.OrderLockService;
 import net.hwyz.iov.cloud.otd.vso.service.domain.service.OrderPhysicalDeleteService;
 import net.hwyz.iov.cloud.otd.vso.service.domain.service.OrderValidationService;
 import net.hwyz.iov.cloud.otd.vso.service.domain.service.TimeoutNotifyService;
+import net.hwyz.iov.cloud.otd.vso.service.infrastructure.config.PaymentChannelConfig;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.OrderPartyPo;
+import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.PaymentPo;
+import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.SaleModelPo;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import cn.hutool.core.util.IdUtil;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -61,6 +72,9 @@ public class OrderAppService {
     private final WishlistRepository wishlistRepository;
     private final VmdVehicleModelConfigService vmdVehicleModelConfigService;
     private final OrderPhysicalDeleteService orderPhysicalDeleteService;
+    private final PaymentChannelConfig paymentChannelConfig;
+    private final SaleModelRepository saleModelRepository;
+    private final PaymentRepository paymentRepository;
 
     /**
      * 创建小订单
@@ -358,7 +372,7 @@ public class OrderAppService {
 
     // --- 以下为兼容旧接口的方法 ---
 
-    public String earnestMoneyOrder(EarnestMoneyCmd cmd) {
+    public EarnestMoneyOrderResult earnestMoneyOrder(EarnestMoneyCmd cmd) {
         log.info("意向金下单：accountId={}, saleModel={}, regionCode={}, featureConfig={}, wishlistId={}", 
                 cmd.getAccountId(), cmd.getSaleModel(), cmd.getRegionCode(), cmd.getFeatureConfig(), cmd.getWishlistId());
         
@@ -429,9 +443,22 @@ public class OrderAppService {
         
         saveOrderParty(order.getId(), cmd.getAccountId(), "order_user");
         
-        log.info("意向金下单完成：orderId={}, smallOrderNo={}, buildConfigCode={}, regionCode={}", 
-                order.getId(), order.getSmallOrderNo(), order.getBuildConfigCode(), order.getRegionCode());
-        return order.getSmallOrderNo();
+        timeoutNotifyService.createTimeoutTask(order.getId(), "SMALL_ORDER_PAY_TIMEOUT", "invalid", 
+                paymentChannelConfig.getSmallOrderTimeoutMinutes());
+        
+        BigDecimal earnestMoneyAmount = getEarnestMoneyAmount(saleModel);
+        LocalDateTime expireTime = LocalDateTime.now().plusMinutes(paymentChannelConfig.getSmallOrderTimeoutMinutes());
+        List<EarnestMoneyOrderResult.PaymentChannelInfo> paymentChannels = buildPaymentChannelInfoList();
+        
+        log.info("意向金下单完成：orderId={}, smallOrderNo={}, buildConfigCode={}, regionCode={}, earnestMoneyAmount={}", 
+                order.getId(), order.getSmallOrderNo(), order.getBuildConfigCode(), order.getRegionCode(), earnestMoneyAmount);
+        
+        return EarnestMoneyOrderResult.builder()
+                .smallOrderNo(order.getSmallOrderNo())
+                .earnestMoneyAmount(earnestMoneyAmount)
+                .paymentChannels(paymentChannels)
+                .expireTime(expireTime)
+                .build();
     }
 
     public String downPaymentOrder(DownPaymentCmd cmd) {
@@ -599,6 +626,78 @@ public class OrderAppService {
         orderPartyPo.setAuthorizedFlag(0);
         orderPartyRepository.save(orderPartyPo);
         log.info("保存订单客户信息：orderId={}, userId={}, partyRole={}", orderId, userId, partyRole);
+    }
+
+    public InitiatePaymentResult initiatePayment(InitiatePaymentCmd cmd) {
+        log.info("发起支付：accountId={}, smallOrderNo={}, paymentChannel={}", 
+                cmd.getAccountId(), cmd.getSmallOrderNo(), cmd.getPaymentChannel());
+        
+        Optional<Order> orderOpt = orderRepository.findBySmallOrderNo(cmd.getSmallOrderNo());
+        if (orderOpt.isEmpty()) {
+            throw new OrderNotExistException(cmd.getSmallOrderNo());
+        }
+        Order order = orderOpt.get();
+        
+        if (order.getOrderState() != OrderState.EARNEST_MONEY_UNPAID) {
+            throw new OrderNotExistException("订单状态不允许支付");
+        }
+        
+        if (!paymentChannelConfig.isChannelEnabled(cmd.getPaymentChannel())) {
+            throw new PaymentChannelNotAvailableException(cmd.getPaymentChannel().name());
+        }
+        
+        BigDecimal earnestMoneyAmount = getEarnestMoneyAmount(order.getSaleModel());
+        
+        PaymentPo paymentPo = new PaymentPo();
+        paymentPo.setPaymentId(IdUtil.nanoId(15));
+        paymentPo.setPaymentNo("P" + IdUtil.nanoId(12));
+        paymentPo.setOrderId(order.getId());
+        paymentPo.setPaymentStage(PaymentStage.EARNEST_MONEY.name());
+        paymentPo.setPaymentChannel(cmd.getPaymentChannel().name());
+        paymentPo.setPaymentAmount(earnestMoneyAmount);
+        paymentPo.setPaymentStatus(PaymentStatus.PENDING_PAYMENT.name());
+        paymentPo.setInitiatorRole("capp_user");
+        paymentPo.setInitiatorId(cmd.getAccountId());
+        paymentPo.setAuthorizedFlag(0);
+        
+        paymentRepository.save(paymentPo);
+        
+        log.info("支付记录创建成功：paymentNo={}, orderId={}, paymentAmount={}", 
+                paymentPo.getPaymentNo(), order.getId(), earnestMoneyAmount);
+        
+        return InitiatePaymentResult.builder()
+                .paymentNo(paymentPo.getPaymentNo())
+                .paymentChannel(cmd.getPaymentChannel())
+                .paymentAmount(earnestMoneyAmount)
+                .paymentMerchant(null)
+                .paymentReference(null)
+                .build();
+    }
+
+    private BigDecimal getEarnestMoneyAmount(String saleCode) {
+        if (saleCode == null || saleCode.isEmpty()) {
+            return BigDecimal.ZERO;
+        }
+        Optional<SaleModelPo> saleModelOpt = saleModelRepository.findBySaleCode(saleCode);
+        if (saleModelOpt.isEmpty()) {
+            return BigDecimal.ZERO;
+        }
+        SaleModelPo saleModel = saleModelOpt.get();
+        if (saleModel.getEarnestMoneyPrice() == null) {
+            return BigDecimal.ZERO;
+        }
+        return saleModel.getEarnestMoneyPrice();
+    }
+
+    private List<EarnestMoneyOrderResult.PaymentChannelInfo> buildPaymentChannelInfoList() {
+        PaymentChannelConfig.ChannelInfo defaultChannel = paymentChannelConfig.getDefaultChannelInfo();
+        return paymentChannelConfig.getEnabledChannels().stream()
+                .map(c -> EarnestMoneyOrderResult.PaymentChannelInfo.builder()
+                        .channelCode(c.getCode())
+                        .channelName(c.getName())
+                        .isDefault(c == defaultChannel)
+                        .build())
+                .collect(Collectors.toList());
     }
 
 }

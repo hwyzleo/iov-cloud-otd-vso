@@ -393,6 +393,11 @@ public class Order {
         this.orderStateTime = new Date();
     }
 
+    public void invalidate() {
+        this.orderState = OrderState.EXPIRED;
+        this.orderStateTime = new Date();
+    }
+
     public void close(String reason) {
         // TODO: 实现关闭逻辑
     }

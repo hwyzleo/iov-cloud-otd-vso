@@ -55,7 +55,9 @@ public enum OrderState {
     /** 退款完成 **/
     REFUND_COMPLETE(925),
     /** 已取消 **/
-    CANCEL(950);
+    CANCEL(950),
+    /** 已失效（小订单超时） **/
+    EXPIRED(960);
 
     public final Integer value;
 

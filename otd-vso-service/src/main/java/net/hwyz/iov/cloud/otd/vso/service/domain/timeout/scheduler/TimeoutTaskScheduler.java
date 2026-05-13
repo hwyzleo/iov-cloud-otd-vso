@@ -3,6 +3,7 @@ package net.hwyz.iov.cloud.otd.vso.service.domain.timeout.scheduler;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.TimeoutTask;
+import net.hwyz.iov.cloud.otd.vso.service.domain.service.OrderDomainService;
 import net.hwyz.iov.cloud.otd.vso.service.domain.service.TimeoutNotifyService;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -20,6 +21,7 @@ import java.util.List;
 public class TimeoutTaskScheduler {
 
     private final TimeoutNotifyService timeoutNotifyService;
+    private final OrderDomainService orderDomainService;
 
     /**
      * 每分钟检查一次过期任务
@@ -69,8 +71,8 @@ public class TimeoutTaskScheduler {
                 
             case "invalid":
                 // 自动失效订单（小订单）
-                // TODO: 调用订单服务失效订单
-                log.info("自动失效订单：orderId={}", task.getOrderId());
+                log.info("自动失效小订单：orderId={}", task.getOrderId());
+                orderDomainService.invalidateSmallOrder(task.getOrderId());
                 task.complete();
                 break;
                 
