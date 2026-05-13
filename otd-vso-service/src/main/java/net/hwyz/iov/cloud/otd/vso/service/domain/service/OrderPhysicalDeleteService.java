@@ -531,17 +531,9 @@ public class OrderPhysicalDeleteService {
     }
 
     private int deleteOrderTransforms(String orderId, Map<String, Integer> tableDeleteCount) {
-        Map<String, Object> params = new HashMap<>();
-        params.put("orderId", orderId);
-        List<OrderTransformPo> list = orderTransformMapper.selectPoByMap(params);
-        if (list == null || list.isEmpty()) {
-            tableDeleteCount.put("vso_order_transform", 0);
-            return 0;
-        }
-        Long[] ids = list.stream().map(OrderTransformPo::getId).toArray(Long[]::new);
-        int count = orderTransformMapper.batchPhysicalDeletePo(ids);
-        tableDeleteCount.put("vso_order_transform", count);
-        return count;
+        // vso_order_transform 表已在 V1.16.0 迁移中删除，直接返回 0
+        tableDeleteCount.put("vso_order_transform", 0);
+        return 0;
     }
 
     private int deleteOrder(String orderId, Map<String, Integer> tableDeleteCount) {
