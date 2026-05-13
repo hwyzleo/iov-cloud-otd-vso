@@ -14,7 +14,7 @@ import net.hwyz.iov.cloud.otd.vso.api.enums.PaymentChannel;
 public class InitiatePaymentCmd {
 
     private String accountId;
-    private String smallOrderNo;
+    private String orderNo;
     private PaymentChannel paymentChannel;
 
 }

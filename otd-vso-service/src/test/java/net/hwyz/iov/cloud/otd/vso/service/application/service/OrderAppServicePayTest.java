@@ -42,14 +42,14 @@ class OrderAppServicePayTest {
             .build();
         
         EarnestMoneyOrderResult result = orderAppService.earnestMoneyOrder(createCmd);
-        String smallOrderNo = result.getSmallOrderNo();
+        String orderNo = result.getOrderNo();
         
         Wishlist wishlistBeforePay = wishlistRepository.findByUserId(userId).stream().findFirst().orElse(null);
         assertNotNull(wishlistBeforePay, "支付前心愿单应该存在");
         
         PayCmd payCmd = PayCmd.builder()
             .accountId(userId)
-            .orderNo(smallOrderNo)
+            .orderNo(orderNo)
             .paymentAmount(new BigDecimal("1000"))
             .build();
         

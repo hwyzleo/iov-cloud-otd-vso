@@ -555,11 +555,11 @@ public class OrderAppService {
         Instant expireTime = Instant.now().plusSeconds(paymentChannelConfig.getSmallOrderTimeoutMinutes() * 60);
         List<EarnestMoneyOrderResult.PaymentChannelInfo> paymentChannels = buildPaymentChannelInfoList();
         
-        log.info("意向金下单完成：orderId={}, smallOrderNo={}, buildConfigCode={}, regionCode={}, earnestMoneyAmount={}", 
-                order.getId(), order.getSmallOrderNo(), order.getBuildConfigCode(), order.getRegionCode(), earnestMoneyAmount);
+        log.info("意向金下单完成：orderId={}, orderNo={}, buildConfigCode={}, regionCode={}, earnestMoneyAmount={}", 
+                order.getId(), order.getOrderNo(), order.getBuildConfigCode(), order.getRegionCode(), earnestMoneyAmount);
         
         return EarnestMoneyOrderResult.builder()
-                .smallOrderNo(order.getSmallOrderNo())
+                .orderNo(order.getOrderNo())
                 .earnestMoneyAmount(earnestMoneyAmount)
                 .paymentChannels(paymentChannels)
                 .expireTime(expireTime)
@@ -734,12 +734,12 @@ public class OrderAppService {
     }
 
     public InitiatePaymentResult initiatePayment(InitiatePaymentCmd cmd) {
-        log.info("发起支付：accountId={}, smallOrderNo={}, paymentChannel={}", 
-                cmd.getAccountId(), cmd.getSmallOrderNo(), cmd.getPaymentChannel());
+        log.info("发起支付：accountId={}, orderNo={}, paymentChannel={}", 
+                cmd.getAccountId(), cmd.getOrderNo(), cmd.getPaymentChannel());
         
-        Optional<Order> orderOpt = orderRepository.findBySmallOrderNo(cmd.getSmallOrderNo());
+        Optional<Order> orderOpt = orderRepository.findByOrderNo(cmd.getOrderNo());
         if (orderOpt.isEmpty()) {
-            throw new OrderNotExistException(cmd.getSmallOrderNo());
+            throw new OrderNotExistException(cmd.getOrderNo());
         }
         Order order = orderOpt.get();
         

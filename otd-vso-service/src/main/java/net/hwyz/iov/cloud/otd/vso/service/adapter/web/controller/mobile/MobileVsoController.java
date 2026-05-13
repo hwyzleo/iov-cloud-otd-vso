@@ -122,11 +122,11 @@ public class MobileVsoController extends BaseController {
      */
     @PostMapping("/action/initiatePayment")
     public ApiResponse<InitiatePaymentResult> initiatePayment(@RequestBody @Valid InitiatePaymentRequestVo request) {
-        log.info("手机客户端[{}]发起支付：smallOrderNo={}, paymentChannel={}",
-                ParamHelper.getClientAccountInfo(), request.getSmallOrderNo(), request.getPaymentChannel());
+        log.info("手机客户端[{}]发起支付：orderNo={}, paymentChannel={}",
+                ParamHelper.getClientAccountInfo(), request.getOrderNo(), request.getPaymentChannel());
         InitiatePaymentCmd cmd = InitiatePaymentCmd.builder()
                 .accountId(SecurityContextHolder.getUserId())
-                .smallOrderNo(request.getSmallOrderNo())
+                .orderNo(request.getOrderNo())
                 .paymentChannel(request.getPaymentChannel())
                 .build();
         InitiatePaymentResult result = vehicleSaleOrderAppService.initiatePayment(cmd);

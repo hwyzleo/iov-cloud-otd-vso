@@ -30,8 +30,6 @@ public class Order {
     private String id;
     /** 订单号 */
     private String orderNo;
-    /** 小订单号 */
-    private String smallOrderNo;
     /** 订单类型 */
     private String orderType;
     /** 订单来源 */
@@ -167,13 +165,6 @@ public class Order {
      */
     private void generateOrderNo() {
         this.orderNo = IdUtil.nanoId(15);
-    }
-
-    /**
-     * 生成小订单编码
-     */
-    private void generateSmallOrderNo() {
-        this.smallOrderNo = IdUtil.nanoId(15);
     }
 
     /**
@@ -451,7 +442,7 @@ public class Order {
     public void createSmallOrder() {
         if (this.orderType == null || this.orderType.equals("small")) {
             this.orderType = "small";
-            generateSmallOrderNo();
+            generateOrderNo();
         }
         this.orderState = OrderState.EARNEST_MONEY_UNPAID;
         Date now = new Date();

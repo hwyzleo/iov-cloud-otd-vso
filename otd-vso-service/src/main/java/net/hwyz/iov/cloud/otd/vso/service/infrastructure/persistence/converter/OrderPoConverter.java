@@ -25,7 +25,6 @@ public interface OrderPoConverter {
      */
     @Mappings({
             @Mapping(target="orderNo", source = "orderNo"),
-            @Mapping(target="smallOrderNo", source = "smallOrderNo"),
             @Mapping(target="id", source = "orderId"),
             @Mapping(target="orderType", source = "orderType"),
             @Mapping(target="orderSource", source = "orderSource"),
@@ -52,7 +51,6 @@ public interface OrderPoConverter {
     @Mappings({
             @Mapping(target="id", ignore = true),
             @Mapping(target="orderNo", source = "orderNo"),
-            @Mapping(target="smallOrderNo", source = "smallOrderNo"),
             @Mapping(target="orderId", source = "id"),
             @Mapping(target="orderType", source = "orderType"),
             @Mapping(target="orderSource", source = "orderSource"),

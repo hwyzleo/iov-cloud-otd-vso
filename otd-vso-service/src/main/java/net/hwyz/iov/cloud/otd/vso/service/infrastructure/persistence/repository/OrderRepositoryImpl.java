@@ -54,12 +54,6 @@ public class OrderRepositoryImpl implements OrderRepository {
     }
 
     @Override
-    public Optional<Order> findBySmallOrderNo(String smallOrderNo) {
-        return Optional.ofNullable(orderMapper.selectBySmallOrderNo(smallOrderNo))
-                .map(OrderPoConverter.INSTANCE::toDomain);
-    }
-
-    @Override
     @Transactional(rollbackFor = Exception.class)
     public void deleteByOrderNo(String orderNo) {
         orderMapper.logicalDeletePoByOrderNo(orderNo);

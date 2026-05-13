@@ -39,14 +39,6 @@ public interface OrderRepository {
     Optional<Order> findByOrderNo(String orderNo);
 
     /**
-     * 根据小订单号查询订单
-     *
-     * @param smallOrderNo 小订单号
-     * @return 订单
-     */
-    Optional<Order> findBySmallOrderNo(String smallOrderNo);
-
-    /**
      * 根据订单号删除订单（软删除）
      *
      * @param orderNo 订单號

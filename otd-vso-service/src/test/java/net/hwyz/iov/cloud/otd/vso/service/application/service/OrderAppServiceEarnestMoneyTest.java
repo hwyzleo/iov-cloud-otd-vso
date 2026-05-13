@@ -41,7 +41,7 @@ class OrderAppServiceEarnestMoneyTest {
         EarnestMoneyOrderResult result = orderAppService.earnestMoneyOrder(cmd);
         
         assertNotNull(result, "返回结果应该不为空");
-        assertNotNull(result.getSmallOrderNo(), "小订单号应该不为空");
+        assertNotNull(result.getOrderNo(), "订单号应该不为空");
         
         Wishlist savedWishlist = wishlistRepository.findByWishlistId(wishlist.getId()).orElse(null);
         assertNotNull(savedWishlist, "心愿单在支付成功前应该还存在");
@@ -85,7 +85,7 @@ class OrderAppServiceEarnestMoneyTest {
         EarnestMoneyOrderResult result = orderAppService.earnestMoneyOrder(cmd);
         
         assertNotNull(result, "返回结果应该不为空");
-        assertNotNull(result.getSmallOrderNo(), "小订单号应该不为空");
+        assertNotNull(result.getOrderNo(), "订单号应该不为空");
     }
 
     @Test
@@ -109,7 +109,7 @@ class OrderAppServiceEarnestMoneyTest {
         EarnestMoneyOrderResult result = orderAppService.earnestMoneyOrder(cmd);
         
         assertNotNull(result, "返回结果应该不为空");
-        assertNotNull(result.getSmallOrderNo(), "小订单号应该不为空");
+        assertNotNull(result.getOrderNo(), "订单号应该不为空");
     }
 
     @Test
@@ -127,6 +127,6 @@ class OrderAppServiceEarnestMoneyTest {
         EarnestMoneyOrderResult result = orderAppService.earnestMoneyOrder(cmd);
         
         assertNotNull(result, "返回结果应该不为空");
-        assertNotNull(result.getSmallOrderNo(), "小订单号应该不为空");
+        assertNotNull(result.getOrderNo(), "订单号应该不为空");
     }
 }

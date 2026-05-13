@@ -7,7 +7,6 @@
         <id column="id" property="id" />
         <result column="order_id" property="orderId" />
         <result column="order_no" property="orderNo" />
-        <result column="small_order_no" property="smallOrderNo" />
         <result column="order_type" property="orderType" />
         <result column="order_source" property="orderSource" />
         <result column="source_remark" property="sourceRemark" />
@@ -47,7 +46,7 @@
 
     <!-- 通用查询结果列 -->
     <sql id="baseColumnList">
-        t.id, t.order_id, t.order_no, t.small_order_no, t.order_type, t.order_source, t.source_remark,
+        t.id, t.order_id, t.order_no, t.order_type, t.order_source, t.source_remark,
         t.customer_type, t.main_status, t.end_type, t.previous_main_status, t.brand_code, t.sale_model,
         t.build_config_code, t.region_code, t.store_code, t.sales_code, t.vehicle_vin, t.has_exception,
         t.current_version_no, t.locked_flag, t.reopen_flag, t.cancel_reason, t.close_reason, t.void_reason,
@@ -59,7 +58,7 @@
     <!-- 插入 -->
     <insert id="insertPo" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO vso_order (
-            id, order_id, order_no, small_order_no, order_type, order_source, source_remark,
+            id, order_id, order_no, order_type, order_source, source_remark,
             customer_type, main_status, end_type, previous_main_status, brand_code, sale_model,
             build_config_code, region_code, store_code, sales_code, vehicle_vin, has_exception,
             current_version_no, locked_flag, reopen_flag, cancel_reason, close_reason, void_reason,
@@ -68,7 +67,7 @@
             row_version, row_valid
         )
         VALUES (
-            #{id}, #{orderId}, #{orderNo}, #{smallOrderNo}, #{orderType}, #{orderSource}, #{sourceRemark},
+            #{id}, #{orderId}, #{orderNo}, #{orderType}, #{orderSource}, #{sourceRemark},
             #{customerType}, #{mainStatus}, #{endType}, #{previousMainStatus}, #{brandCode}, #{saleModel},
             #{buildConfigCode}, #{regionCode}, #{storeCode}, #{salesCode}, #{vehicleVin}, #{hasException},
             #{currentVersionNo}, #{lockedFlag}, #{reopenFlag}, #{cancelReason}, #{closeReason}, #{voidReason},
@@ -82,9 +81,6 @@
         UPDATE vso_order t SET
         <if test="orderNo != null and orderNo != ''">
             t.order_no = #{orderNo},
-        </if>
-        <if test="smallOrderNo != null and smallOrderNo != ''">
-            t.small_order_no = #{smallOrderNo},
         </if>
         <if test="orderType != null and orderType != ''">
             t.order_type = #{orderType},
@@ -233,9 +229,6 @@
         <if test="orderNo != null and orderNo != ''">
             AND t.order_no = #{orderNo}
         </if>
-        <if test="smallOrderNo != null and smallOrderNo != ''">
-            AND t.small_order_no = #{smallOrderNo}
-        </if>
         <if test="orderType != null and orderType != ''">
             AND t.order_type = #{orderType}
         </if>
@@ -298,9 +291,6 @@
         <if test="orderNo != null and orderNo != ''">
             AND t.order_no = #{orderNo}
         </if>
-        <if test="smallOrderNo != null and smallOrderNo != ''">
-            AND t.small_order_no = #{smallOrderNo}
-        </if>
         <if test="storeCode != null and storeCode != ''">
             AND t.store_code = #{storeCode}
         </if>
@@ -336,14 +326,6 @@
         SELECT <include refid="baseColumnList"/>
         FROM vso_order t
         WHERE t.order_no = #{orderNo}
-        AND t.row_valid = 1
-    </select>
-
-    <!-- 根据小订单号获取订单 -->
-    <select id="selectBySmallOrderNo" resultMap="baseResultMap">
-        SELECT <include refid="baseColumnList"/>
-        FROM vso_order t
-        WHERE t.small_order_no = #{smallOrderNo}
         AND t.row_valid = 1
     </select>
 

@@ -21,7 +21,7 @@ import java.util.List;
 @AllArgsConstructor
 public class EarnestMoneyOrderResult {
 
-    private String smallOrderNo;
+    private String orderNo;
     private BigDecimal earnestMoneyAmount;
     private List<PaymentChannelInfo> paymentChannels;
     private Instant expireTime;

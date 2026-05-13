@@ -30,14 +30,6 @@ public interface OrderMapper extends BaseDao<OrderPo, Long> {
     OrderPo selectByOrderNo(@Param("orderNo") String orderNo);
 
     /**
-     * 根据小订单号查询订单
-     *
-     * @param smallOrderNo 小订单号
-     * @return 订单 PO
-     */
-    OrderPo selectBySmallOrderNo(@Param("smallOrderNo") String smallOrderNo);
-
-    /**
      * 逻辑删除订单
      *
      * @param orderNo 订单号

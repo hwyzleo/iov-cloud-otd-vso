@@ -19,8 +19,8 @@ import net.hwyz.iov.cloud.otd.vso.api.enums.PaymentChannel;
 @AllArgsConstructor
 public class InitiatePaymentRequestVo {
 
-    @NotBlank(message = "小订单号不能为空")
-    private String smallOrderNo;
+    @NotBlank(message = "订单号不能为空")
+    private String orderNo;
 
     @NotNull(message = "支付渠道不能为空")
     private PaymentChannel paymentChannel;

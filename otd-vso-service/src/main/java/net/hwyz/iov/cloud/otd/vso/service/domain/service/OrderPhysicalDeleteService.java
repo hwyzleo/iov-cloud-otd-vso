@@ -87,7 +87,6 @@ public class OrderPhysicalDeleteService {
                 .orElseThrow(() -> new OrderNotExistException(orderId));
 
         String orderNo = order.getOrderNo();
-        String smallOrderNo = order.getSmallOrderNo();
         String beforeMainStatus = order.getOrderState() != null ? String.valueOf(order.getOrderState().getValue()) : null;
 
         LocalDateTime deleteTime = LocalDateTime.now();
@@ -132,7 +131,7 @@ public class OrderPhysicalDeleteService {
         totalDeleted += deleteOrder(orderId, tableDeleteCount);
 
         // 最后：保存审计影子记录
-        saveShadowDeleteRecord(orderId, orderNo, smallOrderNo, beforeMainStatus,
+        saveShadowDeleteRecord(orderId, orderNo, beforeMainStatus,
                 deleteReason, operatorId, complianceFlag, deleteTime);
 
         log.info("订单物理删除完成：orderId={}, totalDeleted={}", orderId, totalDeleted);
@@ -565,7 +564,6 @@ public class OrderPhysicalDeleteService {
     private void saveShadowDeleteRecord(
             String orderId,
             String orderNo,
-            String smallOrderNo,
             String beforeMainStatus,
             String deleteReason,
             String operatorId,
@@ -575,7 +573,7 @@ public class OrderPhysicalDeleteService {
         OrderShadowDeletePo shadowPo = new OrderShadowDeletePo();
         shadowPo.setShadowDeleteId("SD" + System.currentTimeMillis());
         shadowPo.setOriginOrderNo(orderNo);
-        shadowPo.setOriginSmallOrderNo(smallOrderNo);
+        shadowPo.setOriginSmallOrderNo(orderNo);
         shadowPo.setDeleteApprovalId(null);
         shadowPo.setDeleteReason(deleteReason);
         shadowPo.setBeforeMainStatus(beforeMainStatus);

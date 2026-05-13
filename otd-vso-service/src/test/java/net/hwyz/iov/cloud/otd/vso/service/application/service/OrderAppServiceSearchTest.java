@@ -37,7 +37,6 @@ class OrderAppServiceSearchTest {
         Order order = Order.builder()
                 .id("test_order_" + System.currentTimeMillis())
                 .orderNo("TEST_ORDER_NO_" + System.currentTimeMillis())
-                .smallOrderNo("TEST_SMALL_NO")
                 .orderType("small")
                 .orderSource("capp")
                 .brandCode("BRAND001")
@@ -59,7 +58,6 @@ class OrderAppServiceSearchTest {
         
         OrderListResult result = results.get(0);
         assertEquals(order.getOrderNo(), result.getOrderNo(), "订单号应该匹配");
-        assertEquals(order.getSmallOrderNo(), result.getSmallOrderNo(), "小订单号应该匹配");
         assertEquals(order.getOrderType(), result.getOrderType(), "订单类型编码应该匹配");
         assertEquals("小订单", result.getOrderTypeName(), "订单类型名称应该是小订单");
         assertEquals(order.getOrderSource(), result.getOrderSource(), "订单来源编码应该匹配");

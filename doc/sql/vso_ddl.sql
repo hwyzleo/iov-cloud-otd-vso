@@ -112,8 +112,7 @@ DROP TABLE IF EXISTS `vso_order`;
 CREATE TABLE `vso_order` (
     `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键',
     `order_id` VARCHAR(64) NOT NULL COMMENT '订单业务唯一标识',
-    `order_no` VARCHAR(64) DEFAULT NULL COMMENT '正式订单号',
-    `small_order_no` VARCHAR(64) DEFAULT NULL COMMENT '小订单号',
+    `order_no` VARCHAR(64) DEFAULT NULL COMMENT '订单号',
     `order_type` VARCHAR(32) NOT NULL COMMENT '订单类型：small-小订单，formal-正式订单，manual-手工订单，repair-补单，change-变更单，refund_apply-退订申请，void-作废单，closed-关闭单',
     `order_source` VARCHAR(32) NOT NULL COMMENT '订单来源：capp-C 端自主下单，sales-销售代客下单，store-门店代客下单，operation-运营补录，import-外部导入，activity-活动订单，small_to_formal-小订单转正式',
     `source_remark` VARCHAR(255) DEFAULT NULL COMMENT '来源补充说明',
@@ -150,7 +149,6 @@ CREATE TABLE `vso_order` (
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_order_id` (`order_id`),
     UNIQUE KEY `uk_order_no_valid` (`order_no`, `row_valid`),
-    UNIQUE KEY `uk_small_order_no_valid` (`small_order_no`, `row_valid`),
     KEY `idx_status_time` (`main_status`, `created_at_business`),
     KEY `idx_store_sales_status` (`store_code`, `sales_code`, `main_status`),
     KEY `idx_lock_time` (`lock_time`),
@@ -958,7 +956,6 @@ CREATE TABLE `vso_order_shadow_delete` (
     `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键',
     `shadow_delete_id` VARCHAR(64) NOT NULL COMMENT '影子记录业务 ID',
     `origin_order_no` VARCHAR(64) DEFAULT NULL COMMENT '原订单号',
-    `origin_small_order_no` VARCHAR(64) DEFAULT NULL COMMENT '原小订单号',
     `delete_approval_id` VARCHAR(64) DEFAULT NULL COMMENT '删除审批业务 ID',
     `delete_reason` VARCHAR(255) DEFAULT NULL COMMENT '删除原因',
     `before_main_status` VARCHAR(32) DEFAULT NULL COMMENT '删除前主状态',
@@ -1002,33 +999,6 @@ CREATE TABLE `vso_order_lock` (
     KEY `idx_lock_start_time` (`lock_start_time`),
     KEY `idx_lock_holder_time` (`lock_holder_id`, `lock_start_time`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='订单锁记录表';
-
--- 小订单转正式订单转化关系表
-DROP TABLE IF EXISTS `vso_order_transform`;
-CREATE TABLE `vso_order_transform` (
-    `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键',
-    `transform_id` VARCHAR(64) NOT NULL COMMENT '转化业务 ID',
-    `small_order_id` VARCHAR(64) NOT NULL COMMENT '小订单业务 ID',
-    `small_order_no` VARCHAR(64) NOT NULL COMMENT '小订单号',
-    `formal_order_id` VARCHAR(64) NOT NULL COMMENT '正式订单业务 ID',
-    `formal_order_no` VARCHAR(64) NOT NULL COMMENT '正式订单号',
-    `transform_time` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '转化时间',
-    `transform_user_id` VARCHAR(64) NOT NULL COMMENT '转化操作人 ID',
-    `transform_user_role` VARCHAR(32) NOT NULL COMMENT '转化操作人角色',
-    `transform_scene` VARCHAR(32) NOT NULL DEFAULT 'normal' COMMENT '转化场景：normal-正常转化，forced-人工强制转化',
-    `transform_remark` VARCHAR(255) DEFAULT NULL COMMENT '转化备注',
-    `create_time` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    `create_by` BIGINT DEFAULT NULL COMMENT '创建者',
-    `modify_time` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '修改时间',
-    `modify_by` BIGINT DEFAULT NULL COMMENT '修改者',
-    `row_version` INT DEFAULT 0 COMMENT '记录版本',
-    `row_valid` TINYINT DEFAULT 1 COMMENT '是否有效',
-    PRIMARY KEY (`id`),
-    UNIQUE KEY `uk_transform_id` (`transform_id`),
-    UNIQUE KEY `uk_small_order_transform` (`small_order_id`),
-    KEY `idx_formal_order_transform` (`formal_order_id`),
-    KEY `idx_transform_time` (`transform_time`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='小订单转正式订单转化关系表';
 
 -- ============================================================
 -- 配置表

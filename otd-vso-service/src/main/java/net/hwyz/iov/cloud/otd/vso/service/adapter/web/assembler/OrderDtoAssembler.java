@@ -21,7 +21,6 @@ public interface OrderDtoAssembler {
     @Mapping(target = "orderId", source = "id")
     @Mapping(target = "orderState", expression = "java(order.getOrderState() != null ? order.getOrderState().getValue() : null)")
     @Mapping(target = "displayName", expression = "java(order.getDeliveryVin() != null ? order.getDeliveryVin() : order.getBuildConfigCode())")
-    @Mapping(target = "smallOrderNo", source = "smallOrderNo")
     @Mapping(target = "orderType", source = "orderType")
     @Mapping(target = "orderSource", source = "orderSource")
     @Mapping(target = "brandCode", source = "brandCode")

@@ -27,9 +27,6 @@ public class OrderPo extends BasePo {
     @TableField("order_no")
     private String orderNo;
 
-    @TableField("small_order_no")
-    private String smallOrderNo;
-
     @TableField("order_type")
     private String orderType;
 

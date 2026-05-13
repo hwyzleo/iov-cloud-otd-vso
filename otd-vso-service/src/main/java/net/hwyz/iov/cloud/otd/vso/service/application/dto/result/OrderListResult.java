@@ -23,11 +23,6 @@ public class OrderListResult {
     private String orderNo;
 
     /**
-     * 小订单号
-     */
-    private String smallOrderNo;
-
-    /**
      * 订单类型编码
      */
     private String orderType;
