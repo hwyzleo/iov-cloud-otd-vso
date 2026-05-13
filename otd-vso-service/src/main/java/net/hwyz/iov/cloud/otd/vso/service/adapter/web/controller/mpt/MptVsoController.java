@@ -1,6 +1,5 @@
 package net.hwyz.iov.cloud.otd.vso.service.adapter.web.controller.mpt;
 
-import cn.hutool.core.util.ObjUtil;
 import cn.hutool.core.util.StrUtil;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -58,9 +57,9 @@ import java.util.Map;
  */
 @Slf4j
 @RestController
-@RequestMapping("/api/mpt/order/v1")
+@RequestMapping("/api/mpt/vso/v1")
 @RequiredArgsConstructor
-public class MptOrderController extends BaseController {
+public class MptVsoController extends BaseController {
 
     private final OrderAppService vehicleSaleOrderAppService;
 //    private final ExDealershipService exDealershipService;
