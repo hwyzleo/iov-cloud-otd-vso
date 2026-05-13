@@ -2,6 +2,7 @@ package net.hwyz.iov.cloud.otd.vso.service.application.service;
 
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.EarnestMoneyCmd;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.PayCmd;
+import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.EarnestMoneyOrderResult;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.PayResult;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.Wishlist;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.WishlistRepository;
@@ -40,7 +41,8 @@ class OrderAppServicePayTest {
             .licenseCityCode("TEST_CITY")
             .build();
         
-        String smallOrderNo = orderAppService.earnestMoneyOrder(createCmd);
+        EarnestMoneyOrderResult result = orderAppService.earnestMoneyOrder(createCmd);
+        String smallOrderNo = result.getSmallOrderNo();
         
         Wishlist wishlistBeforePay = wishlistRepository.findByUserId(userId).stream().findFirst().orElse(null);
         assertNotNull(wishlistBeforePay, "支付前心愿单应该存在");

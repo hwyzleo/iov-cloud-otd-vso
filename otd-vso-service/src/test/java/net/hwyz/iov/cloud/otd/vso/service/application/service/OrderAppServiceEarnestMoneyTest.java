@@ -1,6 +1,7 @@
 package net.hwyz.iov.cloud.otd.vso.service.application.service;
 
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.EarnestMoneyCmd;
+import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.EarnestMoneyOrderResult;
 import net.hwyz.iov.cloud.otd.vso.service.common.exception.WishlistNotExistException;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.Wishlist;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.WishlistRepository;
@@ -37,9 +38,10 @@ class OrderAppServiceEarnestMoneyTest {
             .licenseCityCode("TEST_CITY")
             .build();
         
-        String smallOrderNo = orderAppService.earnestMoneyOrder(cmd);
+        EarnestMoneyOrderResult result = orderAppService.earnestMoneyOrder(cmd);
         
-        assertNotNull(smallOrderNo, "小订单号应该不为空");
+        assertNotNull(result, "返回结果应该不为空");
+        assertNotNull(result.getSmallOrderNo(), "小订单号应该不为空");
         
         Wishlist savedWishlist = wishlistRepository.findByWishlistId(wishlist.getId()).orElse(null);
         assertNotNull(savedWishlist, "心愿单在支付成功前应该还存在");
@@ -80,9 +82,10 @@ class OrderAppServiceEarnestMoneyTest {
             .licenseCityCode("TEST_CITY")
             .build();
         
-        String smallOrderNo = orderAppService.earnestMoneyOrder(cmd);
+        EarnestMoneyOrderResult result = orderAppService.earnestMoneyOrder(cmd);
         
-        assertNotNull(smallOrderNo, "小订单号应该不为空");
+        assertNotNull(result, "返回结果应该不为空");
+        assertNotNull(result.getSmallOrderNo(), "小订单号应该不为空");
     }
 
     @Test
@@ -103,9 +106,10 @@ class OrderAppServiceEarnestMoneyTest {
             .licenseCityCode("TEST_CITY")
             .build();
         
-        String smallOrderNo = orderAppService.earnestMoneyOrder(cmd);
+        EarnestMoneyOrderResult result = orderAppService.earnestMoneyOrder(cmd);
         
-        assertNotNull(smallOrderNo, "小订单号应该不为空");
+        assertNotNull(result, "返回结果应该不为空");
+        assertNotNull(result.getSmallOrderNo(), "小订单号应该不为空");
     }
 
     @Test
@@ -120,8 +124,9 @@ class OrderAppServiceEarnestMoneyTest {
             .licenseCityCode("TEST_CITY")
             .build();
         
-        String smallOrderNo = orderAppService.earnestMoneyOrder(cmd);
+        EarnestMoneyOrderResult result = orderAppService.earnestMoneyOrder(cmd);
         
-        assertNotNull(smallOrderNo, "小订单号应该不为空");
+        assertNotNull(result, "返回结果应该不为空");
+        assertNotNull(result.getSmallOrderNo(), "小订单号应该不为空");
     }
 }
