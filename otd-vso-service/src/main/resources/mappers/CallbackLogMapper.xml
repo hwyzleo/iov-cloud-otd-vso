@@ -41,6 +41,13 @@
         AND t.row_valid = 1
     </select>
 
+    <select id="selectByIdempotentKey" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_callback_log t
+        WHERE t.idempotent_key = #{idempotentKey}
+        AND t.row_valid = 1
+    </select>
+
     <select id="selectPoById" parameterType="Long" resultMap="baseResultMap">
         SELECT <include refid="baseColumnList"/>
         FROM vso_callback_log t
