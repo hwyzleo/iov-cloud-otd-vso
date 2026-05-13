@@ -1,5 +1,5 @@
 server:
-  port: 10201
+  port: 8080
 
 mybatis-plus:
   type-aliases-package: net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository.po

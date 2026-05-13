@@ -7,7 +7,6 @@ import net.hwyz.iov.cloud.framework.common.bean.ApiResponse;
 import net.hwyz.iov.cloud.framework.common.util.ParamHelper;
 import net.hwyz.iov.cloud.framework.web.context.SecurityContextHolder;
 import net.hwyz.iov.cloud.framework.web.controller.BaseController;
-import net.hwyz.iov.cloud.otd.vso.api.enums.PaymentChannel;
 import net.hwyz.iov.cloud.otd.vso.service.adapter.web.assembler.*;
 import net.hwyz.iov.cloud.otd.vso.service.adapter.web.vo.*;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.*;
@@ -24,8 +23,8 @@ import java.util.List;
 @Slf4j
 @RestController
 @RequiredArgsConstructor
-@RequestMapping(value = "/api/mobile/order/v1")
-public class MobileOrderController extends BaseController {
+@RequestMapping(value = "/api/mobile/vso/v1")
+public class MobileVsoController extends BaseController {
 
     private final OrderAppService vehicleSaleOrderAppService;
     private final WishlistAppService wishlistAppService;
@@ -37,16 +36,16 @@ public class MobileOrderController extends BaseController {
     public ApiResponse<List<MyVehicleVo>> getMyVehicleList() {
         log.info("手机客户端[{}]获取我的车辆列表", ParamHelper.getClientAccountInfo());
         String accountId = SecurityContextHolder.getUserId();
-        
+
         List<WishlistListResult> wishlists = wishlistAppService.getWishlistList(accountId);
         List<OrderListResult> orders = vehicleSaleOrderAppService.search(OrderQuery.builder().type("valid").build());
-        
+
         List<MyVehicleVo> myVehicles = new ArrayList<>();
         myVehicles.addAll(MyVehicleAssembler.INSTANCE.fromWishlistList(wishlists));
         myVehicles.addAll(MyVehicleAssembler.INSTANCE.fromOrderList(orders));
-        
+
         myVehicles.sort(Comparator.comparing(MyVehicleVo::getModifyTime, Comparator.nullsLast(Comparator.reverseOrder())));
-        
+
         return ApiResponse.ok(myVehicles);
     }
 
@@ -123,7 +122,7 @@ public class MobileOrderController extends BaseController {
      */
     @PostMapping("/action/initiatePayment")
     public ApiResponse<InitiatePaymentResult> initiatePayment(@RequestBody @Valid InitiatePaymentRequestVo request) {
-        log.info("手机客户端[{}]发起支付：smallOrderNo={}, paymentChannel={}", 
+        log.info("手机客户端[{}]发起支付：smallOrderNo={}, paymentChannel={}",
                 ParamHelper.getClientAccountInfo(), request.getSmallOrderNo(), request.getPaymentChannel());
         InitiatePaymentCmd cmd = InitiatePaymentCmd.builder()
                 .accountId(SecurityContextHolder.getUserId())

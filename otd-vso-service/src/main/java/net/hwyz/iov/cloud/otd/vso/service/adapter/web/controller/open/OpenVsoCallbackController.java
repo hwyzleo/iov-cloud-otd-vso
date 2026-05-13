@@ -21,9 +21,9 @@ import java.util.Map;
  */
 @Slf4j
 @RestController
-@RequestMapping("/api/open/callback/v1")
+@RequestMapping("/api/open/vsoCallback/v1")
 @RequiredArgsConstructor
-public class OpenCallbackController extends BaseController {
+public class OpenVsoCallbackController extends BaseController {
 
     private final PaymentCallbackService paymentCallbackService;
 
