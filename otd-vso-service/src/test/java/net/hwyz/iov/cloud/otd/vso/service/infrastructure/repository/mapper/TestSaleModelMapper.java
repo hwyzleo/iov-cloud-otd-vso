@@ -25,7 +25,7 @@ public class TestSaleModelMapper extends BaseTest {
     @DisplayName("新增一条记录")
     public void testInsertPo() throws Exception {
         SaleModelPo saleModelPo = SaleModelPo.builder()
-                .saleCode("H01")
+                .saleModelCode("H01")
                 .modelName("高阶智驾")
                 .parameters("{}")
                 .images("{}")

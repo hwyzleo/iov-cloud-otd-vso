@@ -25,7 +25,7 @@ public class TestSaleModelConfigMapper extends BaseTest {
     @DisplayName("新增一条记录")
     public void testInsertPo() throws Exception {
         SaleModelConfigPo saleModelConfigPo = SaleModelConfigPo.builder()
-                .saleCode("H01")
+                .saleModelCode("H01")
                 .type("XZ")
                 .typeCode("XZ02")
                 .typeName("高阶智驾")

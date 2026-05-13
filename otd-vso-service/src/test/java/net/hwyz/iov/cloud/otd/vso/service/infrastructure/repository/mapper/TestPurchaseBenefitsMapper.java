@@ -25,7 +25,7 @@ public class TestPurchaseBenefitsMapper extends BaseTest {
     @DisplayName("新增一条记录")
     public void testInsertPo() throws Exception {
         PurchaseBenefitsPo purchaseBenefitsPo = PurchaseBenefitsPo.builder()
-                .saleCode("H01")
+                .saleModelCode("H01")
                 .startTime(new Date(1727712000000L))
                 .endTime(new Date(1735574400000L))
                 .intro("创始权益（价值6000元），首年用车服务包（价值999元），5000元选配基金（价值5000元）")
