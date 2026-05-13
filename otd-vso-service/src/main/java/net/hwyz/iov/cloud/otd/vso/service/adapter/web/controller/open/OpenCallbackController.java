@@ -1,9 +1,15 @@
 package net.hwyz.iov.cloud.otd.vso.service.adapter.web.controller.open;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.hwyz.iov.cloud.framework.common.bean.ApiResponse;
 import net.hwyz.iov.cloud.framework.web.controller.BaseController;
+import net.hwyz.iov.cloud.otd.vso.service.adapter.web.vo.request.PaymentCallbackRequest;
+import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.PaymentCallbackCmd;
+import net.hwyz.iov.cloud.otd.vso.service.application.dto.enums.PaymentCallbackResultCode;
+import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.PaymentCallbackResult;
+import net.hwyz.iov.cloud.otd.vso.service.application.service.PaymentCallbackService;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -19,21 +25,37 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class OpenCallbackController extends BaseController {
 
+    private final PaymentCallbackService paymentCallbackService;
+
     /**
      * 支付回调
      */
     @PostMapping("/payment")
-    public ApiResponse<Void> paymentCallback(@RequestBody Map<String, Object> payload,
+    public ApiResponse<Void> paymentCallback(@Valid @RequestBody PaymentCallbackRequest request,
                                              @RequestHeader(value = "X-Signature", required = false) String signature) {
-        log.info("支付回调：payload={}", payload);
+        log.info("支付回调：paymentNo={}, externalTradeNo={}, paymentStage={}",
+                request.getPaymentNo(), request.getExternalTradeNo(), request.getPaymentStage());
 
         try {
-            // TODO: 1. 验证签名
-            // TODO: 2. 幂等处理
-            // TODO: 3. 更新支付状态
-            // TODO: 4. 推进订单状态
+            PaymentCallbackCmd cmd = PaymentCallbackCmd.builder()
+                    .paymentNo(request.getPaymentNo())
+                    .externalTradeNo(request.getExternalTradeNo())
+                    .paymentStage(request.getPaymentStage())
+                    .paymentAmount(request.getPaymentAmount())
+                    .paymentStatus(request.getPaymentStatus())
+                    .payTime(request.getPayTime())
+                    .idempotentKey(request.getIdempotentKey())
+                    .build();
 
-            return ApiResponse.ok();
+            PaymentCallbackResult result = paymentCallbackService.handleCallback(cmd);
+
+            if (result.getCode() == PaymentCallbackResultCode.SUCCESS) {
+                return ApiResponse.ok();
+            } else if (result.getCode() == PaymentCallbackResultCode.DUPLICATE) {
+                return ApiResponse.ok();
+            } else {
+                return ApiResponse.fail(result.getMessage());
+            }
         } catch (Exception e) {
             log.error("支付回调异常", e);
             return ApiResponse.fail("回调处理失败");
