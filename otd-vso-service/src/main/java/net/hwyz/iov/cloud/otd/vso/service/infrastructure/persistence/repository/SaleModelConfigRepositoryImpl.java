@@ -27,8 +27,8 @@ public class SaleModelConfigRepositoryImpl implements SaleModelConfigRepository 
     }
 
     @Override
-    public List<SaleModelConfigPo> findBySaleCode(String saleCode) {
-        return mapper.selectPoBySaleCode(saleCode);
+    public List<SaleModelConfigPo> findBySaleModelCode(String saleModelCode) {
+        return mapper.selectPoBySaleModelCode(saleModelCode);
     }
 
     @Override
@@ -37,12 +37,12 @@ public class SaleModelConfigRepositoryImpl implements SaleModelConfigRepository 
         if (saleModelOpt.isEmpty()) {
             return List.of();
         }
-        return findBySaleCode(saleModelOpt.get().getSaleCode());
+        return findBySaleModelCode(saleModelOpt.get().getSaleModelCode());
     }
 
     @Override
-    public Optional<SaleModelConfigPo> findByIdAndSaleCode(Long id, String saleCode) {
-        return Optional.ofNullable(mapper.selectPoByIdAndSaleCode(id, saleCode));
+    public Optional<SaleModelConfigPo> findByIdAndSaleModelCode(Long id, String saleModelCode) {
+        return Optional.ofNullable(mapper.selectPoByIdAndSaleModelCode(id, saleModelCode));
     }
 
     @Override
@@ -56,7 +56,7 @@ public class SaleModelConfigRepositoryImpl implements SaleModelConfigRepository 
     }
 
     @Override
-    public int physicalDeleteBySaleCodeAndIds(String saleCode, Long[] ids) {
-        return mapper.batchPhysicalDeletePo(saleCode, ids);
+    public int physicalDeleteBySaleModelCodeAndIds(String saleModelCode, Long[] ids) {
+        return mapper.batchPhysicalDeletePo(saleModelCode, ids);
     }
 }

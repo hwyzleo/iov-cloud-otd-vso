@@ -25,17 +25,17 @@ public class SaleModelBuildConfigRepositoryImpl implements SaleModelBuildConfigR
     }
 
     @Override
-    public List<SaleModelBuildConfigPo> findBySaleCode(String saleCode) {
+    public List<SaleModelBuildConfigPo> findBySaleModelCode(String saleModelCode) {
         Map<String, Object> map = new HashMap<>();
-        map.put("saleCode", saleCode);
+        map.put("saleModelCode", saleModelCode);
         List<SaleModelBuildConfigPo> poList = mapper.selectPoByMap(map);
         return PageUtil.convert(poList, po -> po);
     }
 
     @Override
-    public Optional<SaleModelBuildConfigPo> findBySaleCodeAndBuildConfigCode(String saleCode, String buildConfigCode) {
+    public Optional<SaleModelBuildConfigPo> findBySaleModelCodeAndBuildConfigCode(String saleModelCode, String buildConfigCode) {
         SaleModelBuildConfigPo example = new SaleModelBuildConfigPo();
-        example.setSaleCode(saleCode);
+        example.setSaleModelCode(saleModelCode);
         example.setBuildConfigCode(buildConfigCode);
         example.setRowValid(true);
         List<SaleModelBuildConfigPo> list = mapper.selectPoByExample(example);
@@ -43,9 +43,9 @@ public class SaleModelBuildConfigRepositoryImpl implements SaleModelBuildConfigR
     }
 
     @Override
-    public Optional<SaleModelBuildConfigPo> findBySaleCodeAndBuildConfigCodeIncludeDeleted(String saleCode, String buildConfigCode) {
+    public Optional<SaleModelBuildConfigPo> findBySaleModelCodeAndBuildConfigCodeIncludeDeleted(String saleModelCode, String buildConfigCode) {
         SaleModelBuildConfigPo example = new SaleModelBuildConfigPo();
-        example.setSaleCode(saleCode);
+        example.setSaleModelCode(saleModelCode);
         example.setBuildConfigCode(buildConfigCode);
         List<SaleModelBuildConfigPo> list = mapper.selectPoByExample(example);
         return list.isEmpty() ? Optional.empty() : Optional.of(list.get(0));
@@ -67,19 +67,19 @@ public class SaleModelBuildConfigRepositoryImpl implements SaleModelBuildConfigR
     }
 
     @Override
-    public int physicalDeleteBySaleCodeAndBuildConfigCode(String saleCode, String buildConfigCode) {
-        return mapper.physicalDeleteBySaleCodeAndBuildConfigCode(saleCode, buildConfigCode);
+    public int physicalDeleteBySaleModelCodeAndBuildConfigCode(String saleModelCode, String buildConfigCode) {
+        return mapper.physicalDeleteBySaleModelCodeAndBuildConfigCode(saleModelCode, buildConfigCode);
     }
 
     @Override
-    public int physicalDeleteBySaleCode(String saleCode) {
-        return mapper.physicalDeleteBySaleCode(saleCode);
+    public int physicalDeleteBySaleModelCode(String saleModelCode) {
+        return mapper.physicalDeleteBySaleModelCode(saleModelCode);
     }
 
     @Override
-    public int countBySaleCode(String saleCode) {
+    public int countBySaleModelCode(String saleModelCode) {
         Map<String, Object> map = new HashMap<>();
-        map.put("saleCode", saleCode);
+        map.put("saleModelCode", saleModelCode);
         return mapper.countPoByMap(map);
     }
 }

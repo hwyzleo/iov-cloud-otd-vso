@@ -10,7 +10,7 @@ public class SaleModelBuildConfigVo {
 
     private Long id;
 
-    private String saleCode;
+    private String saleModelCode;
 
     private String buildConfigCode;
 

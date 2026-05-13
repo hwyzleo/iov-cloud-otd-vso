@@ -20,7 +20,7 @@ public class SaleModelBaseModelVo {
 
     private Long id;
 
-    private String saleCode;
+    private String saleModelCode;
 
     private String baseModelCode;
 

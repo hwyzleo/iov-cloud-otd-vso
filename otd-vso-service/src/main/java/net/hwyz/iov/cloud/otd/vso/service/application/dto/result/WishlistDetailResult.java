@@ -17,7 +17,7 @@ import java.util.List;
 public class WishlistDetailResult {
 
     private String wishlistId;
-    private String saleCode;
+    private String saleModelCode;
     private String buildConfigCode;
     private Date createTime;
     private Date modifyTime;

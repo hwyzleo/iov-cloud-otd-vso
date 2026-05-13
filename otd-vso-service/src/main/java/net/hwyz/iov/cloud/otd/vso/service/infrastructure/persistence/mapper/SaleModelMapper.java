@@ -12,12 +12,12 @@ import org.apache.ibatis.annotations.Param;
 public interface SaleModelMapper extends BaseDao<SaleModelPo, Long> {
 
     /**
-     * 通过销售编码查询销售车型信息
+     * 通过销售车型代码查询销售车型信息
      *
-     * @param saleCode 销售编码
+     * @param saleModelCode 销售车型代码
      * @return 销售车型信息
      */
-    SaleModelPo selectPoBySaleCode(@Param("saleCode") String saleCode);
+    SaleModelPo selectPoBySaleModelCode(@Param("saleModelCode") String saleModelCode);
 
     /**
      * 批量物理删除 PO

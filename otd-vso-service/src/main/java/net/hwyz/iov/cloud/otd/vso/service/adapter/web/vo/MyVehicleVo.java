@@ -25,7 +25,7 @@ public class MyVehicleVo {
     private Date createTime;
     private Date modifyTime;
 
-    private String saleCode;
+    private String saleModelCode;
     private String buildConfigCode;
     private Map<String, String> saleModelConfigType;
     private Map<String, String> saleModelConfigName;

@@ -12,7 +12,7 @@
         <result column="modify_by" property="modifyBy" />
         <result column="row_version" property="rowVersion" />
         <result column="row_valid" property="rowValid" />
-        <result column="sale_code" property="saleCode" />
+        <result column="sale_code" property="saleModelCode" />
         <result column="start_time" property="startTime" />
         <result column="end_time" property="endTime" />
         <result column="intro" property="intro" />
@@ -33,7 +33,7 @@
             description, create_time, create_by, modify_time, modify_by, row_version, row_valid
         )
         VALUES (
-            #{id}, #{saleCode}, #{startTime}, #{endTime}, #{intro}, #{detail}, #{enable}, 
+            #{id}, #{saleModelCode}, #{startTime}, #{endTime}, #{intro}, #{detail}, #{enable}, 
             #{description}, now(), #{createBy}, now(), #{modifyBy}, 1, 1
         )
     </insert>
@@ -47,7 +47,7 @@
         VALUES
         <foreach collection="list" item="item" index="index" separator=",">
         (
-            #{item.id}, #{item.saleCode}, #{item.startTime}, #{item.endTime}, #{item.intro}, #{item.detail}, #{item.enable}, 
+            #{item.id}, #{item.saleModelCode}, #{item.startTime}, #{item.endTime}, #{item.intro}, #{item.detail}, #{item.enable}, 
             #{item.description}, now(), #{item.createBy}, now(), #{item.modifyBy}, 1, 1
         )
         </foreach>
@@ -56,8 +56,8 @@
     <!-- 更新 -->
     <update id="updatePo" parameterType="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.PurchaseBenefitsPo">
         UPDATE vso_purchase_benefits t SET
-        <if test="saleCode != null and saleCode != ''">
-            t.sale_code = #{saleCode},
+        <if test="saleModelCode != null and saleModelCode != ''">
+            t.sale_code = #{saleModelCode},
         </if>
         <if test="startTime != null">
             t.start_time = #{startTime},
@@ -116,8 +116,8 @@
         <if test="id != null">
             AND t.id = #{id}
         </if>
-        <if test="saleCode != null and saleCode != ''">
-            AND t.sale_code = #{saleCode}
+        <if test="saleModelCode != null and saleModelCode != ''">
+            AND t.sale_code = #{saleModelCode}
         </if>
         <if test="startTime != null">
             AND t.start_time = #{startTime}
@@ -170,7 +170,7 @@
         <include refid="baseColumnList"/>
         FROM vso_purchase_benefits t
         WHERE t.row_valid = 1
-        AND t.sale_code = #{saleCode}
+        AND t.sale_code = #{saleModelCode}
         AND t.start_time &lt;= now()
         AND t.end_time &gt;= now()
         AND t.enable = 1

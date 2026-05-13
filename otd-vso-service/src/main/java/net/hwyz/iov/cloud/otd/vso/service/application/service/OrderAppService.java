@@ -44,7 +44,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import cn.hutool.core.util.IdUtil;
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -447,7 +447,7 @@ public class OrderAppService {
                 paymentChannelConfig.getSmallOrderTimeoutMinutes());
         
         BigDecimal earnestMoneyAmount = getEarnestMoneyAmount(saleModel);
-        LocalDateTime expireTime = LocalDateTime.now().plusMinutes(paymentChannelConfig.getSmallOrderTimeoutMinutes());
+        Instant expireTime = Instant.now().plusSeconds(paymentChannelConfig.getSmallOrderTimeoutMinutes() * 60);
         List<EarnestMoneyOrderResult.PaymentChannelInfo> paymentChannels = buildPaymentChannelInfoList();
         
         log.info("意向金下单完成：orderId={}, smallOrderNo={}, buildConfigCode={}, regionCode={}, earnestMoneyAmount={}", 
@@ -674,11 +674,11 @@ public class OrderAppService {
                 .build();
     }
 
-    private BigDecimal getEarnestMoneyAmount(String saleCode) {
-        if (saleCode == null || saleCode.isEmpty()) {
+    private BigDecimal getEarnestMoneyAmount(String saleModelCode) {
+        if (saleModelCode == null || saleModelCode.isEmpty()) {
             return BigDecimal.ZERO;
         }
-        Optional<SaleModelPo> saleModelOpt = saleModelRepository.findBySaleCode(saleCode);
+        Optional<SaleModelPo> saleModelOpt = saleModelRepository.findBySaleModelCode(saleModelCode);
         if (saleModelOpt.isEmpty()) {
             return BigDecimal.ZERO;
         }

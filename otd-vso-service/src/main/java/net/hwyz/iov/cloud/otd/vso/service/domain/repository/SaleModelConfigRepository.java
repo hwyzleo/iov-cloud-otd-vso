@@ -12,15 +12,15 @@ public interface SaleModelConfigRepository {
 
     Optional<SaleModelConfigPo> findById(Long id);
 
-    List<SaleModelConfigPo> findBySaleCode(String saleCode);
+    List<SaleModelConfigPo> findBySaleModelCode(String saleModelCode);
 
     List<SaleModelConfigPo> findBySaleModelId(Long saleModelId);
 
-    Optional<SaleModelConfigPo> findByIdAndSaleCode(Long id, String saleCode);
+Optional<SaleModelConfigPo> findByIdAndSaleModelCode(Long id, String saleModelCode);
 
     int insert(SaleModelConfigPo entity);
 
     int update(SaleModelConfigPo entity);
 
-    int physicalDeleteBySaleCodeAndIds(String saleCode, Long[] ids);
+    int physicalDeleteBySaleModelCodeAndIds(String saleModelCode, Long[] ids);
 }

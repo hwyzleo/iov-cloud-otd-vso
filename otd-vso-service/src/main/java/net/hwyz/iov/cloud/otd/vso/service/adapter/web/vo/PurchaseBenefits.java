@@ -24,9 +24,9 @@ public class PurchaseBenefits {
     private Long id;
 
     /**
-     * 销售代码
+     * 销售车型代码
      */
-    private String saleCode;
+    private String saleModelCode;
 
     /**
      * 权益开始时间

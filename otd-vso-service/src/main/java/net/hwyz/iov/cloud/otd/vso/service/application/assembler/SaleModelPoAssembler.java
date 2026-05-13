@@ -42,7 +42,7 @@ public interface SaleModelPoAssembler {
     SaleModelPo toUpdateDo(SaleModelUpdateDto dto);
 
     @Mapping(target = "id", ignore = true)
-    @Mapping(target = "saleCode", ignore = true)
+    @Mapping(target = "saleModelCode", ignore = true)
     @Mapping(target = "createTime", ignore = true)
     @Mapping(target = "createBy", ignore = true)
     @Mapping(target = "modifyTime", ignore = true)

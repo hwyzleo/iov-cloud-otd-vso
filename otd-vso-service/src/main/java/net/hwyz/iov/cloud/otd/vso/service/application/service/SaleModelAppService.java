@@ -60,22 +60,22 @@ public class SaleModelAppService {
                 .orElseThrow(() -> new SaleModelNotExistException(""));
     }
 
-    public SaleModelResult getSaleModelByCode(String saleCode) {
-        return saleModelRepository.findBySaleCode(saleCode)
+    public SaleModelResult getSaleModelByCode(String saleModelCode) {
+        return saleModelRepository.findBySaleModelCode(saleModelCode)
                 .map(SaleModelResultAssembler.INSTANCE::toResult)
-                .orElseThrow(() -> new SaleModelNotExistException(saleCode));
+                .orElseThrow(() -> new SaleModelNotExistException(saleModelCode));
     }
 
-    public boolean checkSaleCodeUnique(Long saleModelId, String saleCode) {
-        return !saleModelRepository.existsBySaleCodeExcludeId(saleCode, saleModelId);
+    public boolean checkSaleModelCodeUnique(Long saleModelId, String saleModelCode) {
+        return !saleModelRepository.existsBySaleModelCodeExcludeId(saleModelCode, saleModelId);
     }
 
     public List<SaleModelConfigResult> getSaleModelConfigList(Long saleModelId) {
         return SaleModelResultAssembler.INSTANCE.toConfigResultList(saleModelConfigRepository.findBySaleModelId(saleModelId));
     }
 
-    public List<SaleModelConfigResult> getSaleModelConfigList(String saleCode) {
-        return SaleModelResultAssembler.INSTANCE.toConfigResultList(saleModelConfigRepository.findBySaleCode(saleCode));
+    public List<SaleModelConfigResult> getSaleModelConfigList(String saleModelCode) {
+        return SaleModelResultAssembler.INSTANCE.toConfigResultList(saleModelConfigRepository.findBySaleModelCode(saleModelCode));
     }
 
     /**
@@ -83,14 +83,14 @@ public class SaleModelAppService {
      */
     public List<SaleModelConfigFamilyVo> getSaleModelConfigFamilyList(Long saleModelId) {
         SaleModelResult model = getSaleModelById(saleModelId);
-        return getSaleModelConfigFamilyList(model.getSaleCode());
+        return getSaleModelConfigFamilyList(model.getSaleModelCode());
     }
 
     /**
      * 获取销售车型配置的两层结构列表（特征族+特征值）
      */
-    public List<SaleModelConfigFamilyVo> getSaleModelConfigFamilyList(String saleCode) {
-        List<SaleModelConfigPo> allConfigs = saleModelConfigRepository.findBySaleCode(saleCode);
+    public List<SaleModelConfigFamilyVo> getSaleModelConfigFamilyList(String saleModelCode) {
+        List<SaleModelConfigPo> allConfigs = saleModelConfigRepository.findBySaleModelCode(saleModelCode);
 
         Map<String, SaleModelConfigPo> familyMap = allConfigs.stream()
                 .filter(c -> StrUtil.isBlank(c.getTypeCode()))
@@ -126,7 +126,7 @@ public class SaleModelAppService {
                 for (SaleModelConfigPo featurePo : features) {
                     SaleModelConfigVo featureVo = SaleModelConfigVo.builder()
                             .id(featurePo.getId())
-                            .saleCode(featurePo.getSaleCode())
+                            .saleModelCode(featurePo.getSaleModelCode())
                             .type(featurePo.getType())
                             .typeCode(featurePo.getTypeCode())
                             .typeName(featurePo.getTypeName())
@@ -163,15 +163,15 @@ public class SaleModelAppService {
 
     public SaleModelConfigResult getSaleModelConfigById(Long saleModelId, Long saleModelConfigId) {
         SaleModelResult model = getSaleModelById(saleModelId);
-        return saleModelConfigRepository.findByIdAndSaleCode(saleModelConfigId, model.getSaleCode())
+        return saleModelConfigRepository.findByIdAndSaleModelCode(saleModelConfigId, model.getSaleModelCode())
                 .map(SaleModelResultAssembler.INSTANCE::toConfigResult)
                 .orElse(null);
     }
 
     @Transactional(rollbackFor = Exception.class)
     public Long createSaleModel(SaleModelCreateDto dto, String userId) {
-        if (!checkSaleCodeUnique(null, dto.getSaleCode())) {
-            throw new IllegalArgumentException("销售代码已存在：" + dto.getSaleCode());
+        if (!checkSaleModelCodeUnique(null, dto.getSaleModelCode())) {
+            throw new IllegalArgumentException("销售代码已存在：" + dto.getSaleModelCode());
         }
         SaleModelPo entity = SaleModelPoAssembler.INSTANCE.toDo(dto);
         entity.setCreateBy(userId);
@@ -184,7 +184,7 @@ public class SaleModelAppService {
     public Long createSaleModelConfig(Long saleModelId, SaleModelConfigDto dto, String userId) {
         SaleModelResult model = getSaleModelById(saleModelId);
         SaleModelConfigPo entity = SaleModelPoAssembler.INSTANCE.toConfigDo(dto);
-        entity.setSaleCode(model.getSaleCode());
+        entity.setSaleModelCode(model.getSaleModelCode());
         entity.setCreateBy(userId);
         entity.setModifyBy(userId);
         saleModelConfigRepository.insert(entity);
@@ -193,8 +193,8 @@ public class SaleModelAppService {
 
     @Transactional(rollbackFor = Exception.class)
     public void modifySaleModel(SaleModelUpdateDto dto, String userId) {
-        if (!checkSaleCodeUnique(dto.getId(), dto.getSaleCode())) {
-            throw new IllegalArgumentException("销售代码已存在：" + dto.getSaleCode());
+        if (!checkSaleModelCodeUnique(dto.getId(), dto.getSaleModelCode())) {
+            throw new IllegalArgumentException("销售代码已存在：" + dto.getSaleModelCode());
         }
         SaleModelPo entity = SaleModelPoAssembler.INSTANCE.toUpdateDo(dto);
         entity.setModifyBy(userId);
@@ -206,14 +206,14 @@ public class SaleModelAppService {
         SaleModelResult model = getSaleModelById(saleModelId);
         SaleModelConfigPo entity = SaleModelPoAssembler.INSTANCE.toConfigDo(dto);
         entity.setId(dto.getId());
-        entity.setSaleCode(model.getSaleCode());
+        entity.setSaleModelCode(model.getSaleModelCode());
         entity.setModifyBy(userId);
         saleModelConfigRepository.update(entity);
     }
 
     @Transactional(rollbackFor = Exception.class)
-    public void modifySaleModelImages(String saleCode, List<String> images, String userId) {
-        SaleModelResult result = getSaleModelByCode(saleCode);
+    public void modifySaleModelImages(String saleModelCode, List<String> images, String userId) {
+        SaleModelResult result = getSaleModelByCode(saleModelCode);
         SaleModelPo entity = saleModelRepository.findById(result.getId()).orElseThrow();
         entity.setImages(cn.hutool.json.JSONUtil.toJsonStr(images));
         entity.setModifyBy(userId);
@@ -224,10 +224,10 @@ public class SaleModelAppService {
     public void deleteSaleModelByIds(Long[] ids) {
         for (Long id : ids) {
             SaleModelResult model = getSaleModelById(id);
-            List<SaleModelConfigPo> configs = saleModelConfigRepository.findBySaleCode(model.getSaleCode());
+            List<SaleModelConfigPo> configs = saleModelConfigRepository.findBySaleModelCode(model.getSaleModelCode());
             if (!configs.isEmpty()) {
                 Long[] configIds = configs.stream().map(SaleModelConfigPo::getId).toArray(Long[]::new);
-                saleModelConfigRepository.physicalDeleteBySaleCodeAndIds(model.getSaleCode(), configIds);
+                saleModelConfigRepository.physicalDeleteBySaleModelCodeAndIds(model.getSaleModelCode(), configIds);
             }
         }
         saleModelRepository.physicalDeleteByIds(ids);
@@ -237,19 +237,19 @@ public class SaleModelAppService {
     public void deleteSaleModelConfigByIds(Long saleModelId, Long[] ids) {
         if (ids == null || ids.length == 0) return;
         SaleModelResult model = getSaleModelById(saleModelId);
-        saleModelConfigRepository.physicalDeleteBySaleCodeAndIds(model.getSaleCode(), ids);
+        saleModelConfigRepository.physicalDeleteBySaleModelCodeAndIds(model.getSaleModelCode(), ids);
     }
 
-    public Map<String, SaleModelConfigResult> getSaleModelConfigMap(String saleCode) {
-        return getSaleModelConfigList(saleCode).stream()
+    public Map<String, SaleModelConfigResult> getSaleModelConfigMap(String saleModelCode) {
+        return getSaleModelConfigList(saleModelCode).stream()
                 .collect(Collectors.toMap(
                         k -> k.getType() + Symbol.UNDERSCORE.value + k.getTypeCode(),
                         v -> v,
                         (v1, v2) -> v1));
     }
 
-    public PurchaseBenefits getPurchaseBenefits(String saleCode) {
-        PurchaseBenefitsPo po = purchaseBenefitsMapper.selectCurrentPoBySaleCode(saleCode);
+    public PurchaseBenefits getPurchaseBenefits(String saleModelCode) {
+        PurchaseBenefitsPo po = purchaseBenefitsMapper.selectCurrentPoBySaleCode(saleModelCode);
         return po == null ? null : PurchaseBenefits.builder().intro(po.getIntro()).build();
     }
 
@@ -284,18 +284,18 @@ public class SaleModelAppService {
     /**
      * 根据动态特征值获取已选择的销售车型（新方法）
      *
-     * @param saleCode     销售代码
+     * @param saleModelCode     销售代码
      * @param featureCodes 特征值选择 Map<特征族编码, 特征值编码>
      * @return 已选择的销售车型信息
      */
-    public SelectedSaleModelResult getSelectedSaleModelByFeatureCodes(String saleCode, Map<String, String> featureCodes) {
+    public SelectedSaleModelResult getSelectedSaleModelByFeatureCodes(String saleModelCode, Map<String, String> featureCodes) {
         List<SaleModelPo> list = saleModelRepository.findByCondition(SaleModelQuery.builder()
-                .saleCode(saleCode)
+                .saleModelCode(saleModelCode)
                 .build());
-        if (list.isEmpty()) throw new SaleModelNotExistException(saleCode);
+        if (list.isEmpty()) throw new SaleModelNotExistException(saleModelCode);
         SaleModelPo model = list.get(0);
 
-        Map<String, SaleModelConfigResult> configMap = getSaleModelConfigMap(saleCode);
+        Map<String, SaleModelConfigResult> configMap = getSaleModelConfigMap(saleModelCode);
 
         List<String> images = new ArrayList<>();
         StringBuilder desc = new StringBuilder();
@@ -308,7 +308,7 @@ public class SaleModelAppService {
         // 处理基础车型选择
         if (featureCodes.containsKey("BASE_MODEL")) {
             baseModelCode = featureCodes.get("BASE_MODEL");
-            SaleModelBaseModelPo baseModelPo = saleModelBaseModelRepository.findBySaleCodeAndBaseModelCode(saleCode, baseModelCode)
+            SaleModelBaseModelPo baseModelPo = saleModelBaseModelRepository.findBySaleModelCodeAndBaseModelCode(saleModelCode, baseModelCode)
                     .orElse(null);
             if (baseModelPo != null) {
                 modelName = baseModelPo.getBaseModelName();
@@ -355,10 +355,10 @@ public class SaleModelAppService {
             }
         }
 
-        String buildConfigCode = matchBuildConfigCode(saleCode, featureCodes, baseModelCode);
+        String buildConfigCode = matchBuildConfigCode(saleModelCode, featureCodes, baseModelCode);
 
         String benefitsIntro = "";
-        PurchaseBenefits benefits = getPurchaseBenefits(saleCode);
+        PurchaseBenefits benefits = getPurchaseBenefits(saleModelCode);
         if (benefits != null) benefitsIntro = benefits.getIntro();
 
         if (modelName.isEmpty()) {
@@ -374,7 +374,7 @@ public class SaleModelAppService {
         }
 
         return SelectedSaleModelResult.builder()
-                .saleCode(saleCode)
+                .saleModelCode(saleModelCode)
                 .modelName(modelName)
                 .earnestMoney(model.getEarnestMoney())
                 .earnestMoneyPrice(model.getEarnestMoneyPrice())
@@ -394,24 +394,24 @@ public class SaleModelAppService {
     /**
      * 根据选择的特征值匹配 BuildConfigCode
      *
-     * @param saleCode      销售代码
+     * @param saleModelCode      销售代码
      * @param featureCodes  特征值选择
      * @param baseModelCode 基础车型代码（可选）
      * @return 匹配的生产配置代码，如果没有匹配到返回null
      */
-    private String matchBuildConfigCode(String saleCode, Map<String, String> featureCodes, String baseModelCode) {
+    private String matchBuildConfigCode(String saleModelCode, Map<String, String> featureCodes, String baseModelCode) {
         Map<String, String> featureConfig = new HashMap<>(featureCodes);
         featureConfig.remove("BASE_MODEL");
 
         return vmdVehicleModelConfigService.getVehicleBuildConfigCode(featureConfig);
     }
 
-    public List<SaleModelBuildConfigVo> getBuildConfigPageBySaleCode(String saleCode) {
-        List<SaleModelBuildConfigPo> poList = saleModelBuildConfigRepository.findBySaleCode(saleCode);
+    public List<SaleModelBuildConfigVo> getBuildConfigPageBySaleCode(String saleModelCode) {
+        List<SaleModelBuildConfigPo> poList = saleModelBuildConfigRepository.findBySaleModelCode(saleModelCode);
         return PageUtil.convert(poList, po -> {
             SaleModelBuildConfigVo vo = new SaleModelBuildConfigVo();
             vo.setId(po.getId());
-            vo.setSaleCode(po.getSaleCode());
+            vo.setSaleModelCode(po.getSaleModelCode());
             vo.setBuildConfigCode(po.getBuildConfigCode());
             vo.setEnable(po.getEnable());
             vo.setSort(po.getSort());
@@ -426,12 +426,12 @@ public class SaleModelAppService {
 
     public List<FeatureCodeRangeVo> getAggregatedFeatureCodeRanges(Long saleModelId) {
         SaleModelResult model = getSaleModelById(saleModelId);
-        String saleCode = model.getSaleCode();
+        String saleModelCode = model.getSaleModelCode();
 
         List<FeatureCodeRangeVo> result = new ArrayList<>();
 
         // 构建基础车型特征族作为第一个选择项
-        List<SaleModelBaseModelPo> baseModelList = saleModelBaseModelRepository.findBySaleCode(saleCode);
+        List<SaleModelBaseModelPo> baseModelList = saleModelBaseModelRepository.findBySaleModelCode(saleModelCode);
         if (!baseModelList.isEmpty()) {
             FeatureCodeRangeVo baseModelRange = new FeatureCodeRangeVo();
             baseModelRange.setFamilyCode("BASE_MODEL");
@@ -467,8 +467,8 @@ public class SaleModelAppService {
         }
 
         // 构建其他特征族
-        List<SaleModelBuildConfigPo> poList = saleModelBuildConfigRepository.findBySaleCode(saleCode);
-        List<SaleModelConfigPo> configPoList = saleModelConfigRepository.findBySaleCode(saleCode);
+        List<SaleModelBuildConfigPo> poList = saleModelBuildConfigRepository.findBySaleModelCode(saleModelCode);
+        List<SaleModelConfigPo> configPoList = saleModelConfigRepository.findBySaleModelCode(saleModelCode);
 
         Map<String, SaleModelConfigPo> configMap = configPoList.stream()
                 .collect(Collectors.toMap(c -> c.getType() + "_" + c.getTypeCode(), c -> c));
@@ -571,12 +571,12 @@ public class SaleModelAppService {
         }
 
         for (String buildConfigCode : buildConfigCodes) {
-            if (saleModelBuildConfigRepository.findBySaleCodeAndBuildConfigCode(model.getSaleCode(), buildConfigCode).isPresent()) {
-                log.info("生产配置已存在关联关系，跳过: saleCode={}, buildConfigCode={}", model.getSaleCode(), buildConfigCode);
+            if (saleModelBuildConfigRepository.findBySaleModelCodeAndBuildConfigCode(model.getSaleModelCode(), buildConfigCode).isPresent()) {
+                log.info("生产配置已存在关联关系，跳过: saleModelCode={}, buildConfigCode={}", model.getSaleModelCode(), buildConfigCode);
                 continue;
             }
             SaleModelBuildConfigPo po = SaleModelBuildConfigPo.builder()
-                    .saleCode(model.getSaleCode())
+                    .saleModelCode(model.getSaleModelCode())
                     .buildConfigCode(buildConfigCode)
                     .enable(dto.getEnable() != null ? dto.getEnable() : true)
                     .sort(dto.getSort() != null ? dto.getSort() : 0)
@@ -590,8 +590,8 @@ public class SaleModelAppService {
         }
 
         if (!ids.isEmpty()) {
-            syncSaleModelConfigFromBuildConfigs(model.getSaleCode(), userId);
-            syncBaseModelFromBuildConfigs(model.getSaleCode(), userId);
+            syncSaleModelConfigFromBuildConfigs(model.getSaleModelCode(), userId);
+            syncBaseModelFromBuildConfigs(model.getSaleModelCode(), userId);
         }
 
         return ids;
@@ -600,12 +600,12 @@ public class SaleModelAppService {
     @Transactional(rollbackFor = Exception.class)
     public Long createBuildConfig(Long saleModelId, SaleModelBuildConfigDto dto, String userId) {
         SaleModelResult model = getSaleModelById(saleModelId);
-        if (saleModelBuildConfigRepository.findBySaleCodeAndBuildConfigCode(model.getSaleCode(), dto.getBuildConfigCode()).isPresent()) {
+        if (saleModelBuildConfigRepository.findBySaleModelCodeAndBuildConfigCode(model.getSaleModelCode(), dto.getBuildConfigCode()).isPresent()) {
             throw new IllegalArgumentException("该生产配置已关联：" + dto.getBuildConfigCode());
         }
-        saleModelBuildConfigRepository.physicalDeleteBySaleCodeAndBuildConfigCode(model.getSaleCode(), dto.getBuildConfigCode());
+        saleModelBuildConfigRepository.physicalDeleteBySaleModelCodeAndBuildConfigCode(model.getSaleModelCode(), dto.getBuildConfigCode());
         SaleModelBuildConfigPo po = SaleModelBuildConfigPo.builder()
-                .saleCode(model.getSaleCode())
+                .saleModelCode(model.getSaleModelCode())
                 .buildConfigCode(dto.getBuildConfigCode())
                 .enable(dto.getEnable() != null ? dto.getEnable() : true)
                 .sort(dto.getSort() != null ? dto.getSort() : 0)
@@ -617,10 +617,10 @@ public class SaleModelAppService {
         saleModelBuildConfigRepository.insert(po);
 
         // 自动生成或更新SaleModelConfig
-        syncSaleModelConfigFromBuildConfigs(model.getSaleCode(), userId);
+        syncSaleModelConfigFromBuildConfigs(model.getSaleModelCode(), userId);
 
         // 自动生成或更新SaleModelBaseModel
-        syncBaseModelFromBuildConfigs(model.getSaleCode(), userId);
+        syncBaseModelFromBuildConfigs(model.getSaleModelCode(), userId);
 
         return po.getId();
     }
@@ -641,22 +641,22 @@ public class SaleModelAppService {
         saleModelBuildConfigRepository.physicalDeleteByIds(ids);
 
         // 重新同步SaleModelConfig
-        syncSaleModelConfigFromBuildConfigs(model.getSaleCode(), SecurityContextHolder.getUserId());
+        syncSaleModelConfigFromBuildConfigs(model.getSaleModelCode(), SecurityContextHolder.getUserId());
 
         // 重新同步SaleModelBaseModel
-        syncBaseModelFromBuildConfigs(model.getSaleCode(), SecurityContextHolder.getUserId());
+        syncBaseModelFromBuildConfigs(model.getSaleModelCode(), SecurityContextHolder.getUserId());
     }
 
     @Transactional(rollbackFor = Exception.class)
     public void batchUpdateConfigSort(Long saleModelId, SaleModelConfigSortDto dto, String userId) {
         SaleModelResult model = getSaleModelById(saleModelId);
-        String saleCode = model.getSaleCode();
+        String saleModelCode = model.getSaleModelCode();
 
         if (dto.getFamilies() != null) {
             for (SaleModelConfigSortDto.FamilySortItem familyItem : dto.getFamilies()) {
                 SaleModelConfigPo familyPo = saleModelConfigRepository.findById(familyItem.getFamilyId())
                         .orElse(null);
-                if (familyPo != null && familyPo.getSaleCode().equals(saleCode)) {
+                if (familyPo != null && familyPo.getSaleModelCode().equals(saleModelCode)) {
                     familyPo.setSort(familyItem.getSort());
                     familyPo.setModifyBy(userId);
                     saleModelConfigRepository.update(familyPo);
@@ -665,7 +665,7 @@ public class SaleModelAppService {
                         for (SaleModelConfigSortDto.FeatureSortItem featureItem : familyItem.getFeatures()) {
                             SaleModelConfigPo featurePo = saleModelConfigRepository.findById(featureItem.getFeatureId())
                                     .orElse(null);
-                            if (featurePo != null && featurePo.getSaleCode().equals(saleCode)) {
+                            if (featurePo != null && featurePo.getSaleModelCode().equals(saleModelCode)) {
                                 featurePo.setSort(featureItem.getSort());
                                 featurePo.setModifyBy(userId);
                                 saleModelConfigRepository.update(featurePo);
@@ -678,12 +678,12 @@ public class SaleModelAppService {
     }
 
     @Transactional(rollbackFor = Exception.class)
-    public void syncSaleModelConfigFromBuildConfigs(String saleCode, String userId) {
-        log.info("开始同步销售车型配置，saleCode: {}", saleCode);
-        List<SaleModelBuildConfigPo> buildConfigs = saleModelBuildConfigRepository.findBySaleCode(saleCode);
+    public void syncSaleModelConfigFromBuildConfigs(String saleModelCode, String userId) {
+        log.info("开始同步销售车型配置，saleModelCode: {}", saleModelCode);
+        List<SaleModelBuildConfigPo> buildConfigs = saleModelBuildConfigRepository.findBySaleModelCode(saleModelCode);
         log.info("找到 {} 个生产配置关联", buildConfigs.size());
 
-        List<SaleModelConfigPo> existingConfigs = saleModelConfigRepository.findBySaleCode(saleCode);
+        List<SaleModelConfigPo> existingConfigs = saleModelConfigRepository.findBySaleModelCode(saleModelCode);
         Map<String, SaleModelConfigPo> existingMap = existingConfigs.stream()
                 .collect(Collectors.toMap(c -> c.getType() + "_" + (c.getTypeCode() == null ? "" : c.getTypeCode()), c -> c));
 
@@ -746,7 +746,7 @@ public class SaleModelAppService {
             SaleModelConfigPo existingFamily = existingMap.get(familyKey);
             if (existingFamily == null) {
                 SaleModelConfigPo newFamily = SaleModelConfigPo.builder()
-                        .saleCode(saleCode)
+                        .saleModelCode(saleModelCode)
                         .type(familyCode)
                         .typeCode("")
                         .typeName(familyName)
@@ -762,16 +762,16 @@ public class SaleModelAppService {
                         .modifyBy(userId)
                         .build();
                 saleModelConfigRepository.insert(newFamily);
-                log.info("新增特征族: saleCode={}, type={}, typeName={}", saleCode, familyCode, familyName);
+                log.info("新增特征族: saleModelCode={}, type={}, typeName={}", saleModelCode, familyCode, familyName);
             } else {
                 if (!existingFamily.getEnable()) {
                     existingFamily.setEnable(true);
                     existingFamily.setTypeName(familyName);
                     existingFamily.setModifyBy(userId);
                     saleModelConfigRepository.update(existingFamily);
-                    log.info("重新启用特征族: saleCode={}, type={}, typeName={}", saleCode, familyCode, familyName);
+                    log.info("重新启用特征族: saleModelCode={}, type={}, typeName={}", saleModelCode, familyCode, familyName);
                 } else {
-                    log.info("特征族已存在且启用: saleCode={}, type={}", saleCode, familyCode);
+                    log.info("特征族已存在且启用: saleModelCode={}, type={}", saleModelCode, familyCode);
                 }
             }
 
@@ -785,7 +785,7 @@ public class SaleModelAppService {
                 SaleModelConfigPo existing = existingMap.get(featureKey);
                 if (existing == null) {
                     SaleModelConfigPo newConfig = SaleModelConfigPo.builder()
-                            .saleCode(saleCode)
+.saleModelCode(saleModelCode)
                             .type(familyCode)
                             .typeCode(featureCode)
                             .typeName(typeName)
@@ -801,16 +801,16 @@ public class SaleModelAppService {
                             .modifyBy(userId)
                             .build();
                     saleModelConfigRepository.insert(newConfig);
-                    log.info("新增特征值: saleCode={}, type={}, typeCode={}, typeName={}", saleCode, familyCode, featureCode, typeName);
+                    log.info("新增特征值: saleModelCode={}, type={}, typeCode={}, typeName={}", saleModelCode, familyCode, featureCode, typeName);
                 } else {
                     if (!existing.getEnable()) {
                         existing.setEnable(true);
                         existing.setTypeName(typeName);
                         existing.setModifyBy(userId);
                         saleModelConfigRepository.update(existing);
-                        log.info("重新启用特征值: saleCode={}, type={}, typeCode={}, typeName={}", saleCode, familyCode, featureCode, typeName);
+                        log.info("重新启用特征值: saleModelCode={}, type={}, typeCode={}, typeName={}", saleModelCode, familyCode, featureCode, typeName);
                     } else {
-                        log.info("特征值已存在且启用: saleCode={}, type={}, typeCode={}", saleCode, familyCode, featureCode);
+                        log.info("特征值已存在且启用: saleModelCode={}, type={}, typeCode={}", saleModelCode, familyCode, featureCode);
                     }
                 }
             }
@@ -820,9 +820,9 @@ public class SaleModelAppService {
         for (String key : toDelete) {
             SaleModelConfigPo config = existingMap.get(key);
             if (config != null) {
-                saleModelConfigRepository.physicalDeleteBySaleCodeAndIds(saleCode, new Long[]{config.getId()});
+                saleModelConfigRepository.physicalDeleteBySaleModelCodeAndIds(saleModelCode, new Long[]{config.getId()});
                 String itemType = config.getTypeCode() == null ? "特征族" : "特征值";
-                log.info("物理删除{}: saleCode={}, type={}, typeCode={}", itemType, saleCode, config.getType(), config.getTypeCode());
+                log.info("物理删除{}: saleModelCode={}, type={}, typeCode={}", itemType, saleModelCode, config.getType(), config.getTypeCode());
             }
         }
 
@@ -832,11 +832,11 @@ public class SaleModelAppService {
 
     public List<SaleModelBaseModelVo> getBaseModelList(Long saleModelId) {
         SaleModelResult model = getSaleModelById(saleModelId);
-        List<SaleModelBaseModelPo> poList = saleModelBaseModelRepository.findBySaleCode(model.getSaleCode());
+        List<SaleModelBaseModelPo> poList = saleModelBaseModelRepository.findBySaleModelCode(model.getSaleModelCode());
         return poList.stream().map(po -> {
             SaleModelBaseModelVo vo = SaleModelBaseModelVo.builder()
                     .id(po.getId())
-                    .saleCode(po.getSaleCode())
+                    .saleModelCode(po.getSaleModelCode())
                     .baseModelCode(po.getBaseModelCode())
                     .baseModelName(po.getBaseModelName())
                     .baseModelImage(parseJsonToList(po.getBaseModelImage()))
@@ -859,7 +859,7 @@ public class SaleModelAppService {
         SaleModelResult model = getSaleModelById(saleModelId);
         SaleModelBaseModelPo po = saleModelBaseModelRepository.findById(dto.getId())
                 .orElseThrow(() -> new IllegalArgumentException("基础车型关联不存在"));
-        if (!po.getSaleCode().equals(model.getSaleCode())) {
+        if (!po.getSaleModelCode().equals(model.getSaleModelCode())) {
             throw new IllegalArgumentException("基础车型关联不属于该销售车型");
         }
         po.setBaseModelName(dto.getBaseModelName());
@@ -874,12 +874,12 @@ public class SaleModelAppService {
     }
 
     @Transactional(rollbackFor = Exception.class)
-    public void syncBaseModelFromBuildConfigs(String saleCode, String userId) {
-        log.info("开始同步基础车型，saleCode: {}", saleCode);
-        List<SaleModelBuildConfigPo> buildConfigs = saleModelBuildConfigRepository.findBySaleCode(saleCode);
+    public void syncBaseModelFromBuildConfigs(String saleModelCode, String userId) {
+        log.info("开始同步基础车型，saleModelCode: {}", saleModelCode);
+        List<SaleModelBuildConfigPo> buildConfigs = saleModelBuildConfigRepository.findBySaleModelCode(saleModelCode);
         log.info("找到 {} 个生产配置关联", buildConfigs.size());
 
-        List<SaleModelBaseModelPo> existingBaseModels = saleModelBaseModelRepository.findBySaleCode(saleCode);
+        List<SaleModelBaseModelPo> existingBaseModels = saleModelBaseModelRepository.findBySaleModelCode(saleModelCode);
         Map<String, SaleModelBaseModelPo> existingMap = existingBaseModels.stream()
                 .collect(Collectors.toMap(SaleModelBaseModelPo::getBaseModelCode, c -> c));
 
@@ -915,7 +915,7 @@ public class SaleModelAppService {
             SaleModelBaseModelPo existing = existingMap.get(baseModelCode);
             if (existing == null) {
                 SaleModelBaseModelPo newPo = SaleModelBaseModelPo.builder()
-                        .saleCode(saleCode)
+                        .saleModelCode(saleModelCode)
                         .baseModelCode(baseModelCode)
                         .baseModelName(baseModelName)
                         .baseModelImage(null)
@@ -930,7 +930,7 @@ public class SaleModelAppService {
                         .modifyBy(userId)
                         .build();
                 saleModelBaseModelRepository.insert(newPo);
-                log.info("新增基础车型: saleCode={}, baseModelCode={}, baseModelName={}", saleCode, baseModelCode, baseModelName);
+                log.info("新增基础车型: saleModelCode={}, baseModelCode={}, baseModelName={}", saleModelCode, baseModelCode, baseModelName);
             } else {
                 if (!existing.getEnable()) {
                     existing.setEnable(true);
@@ -940,7 +940,7 @@ public class SaleModelAppService {
                     existing.setSort(baseModelSort);
                     existing.setModifyBy(userId);
                     saleModelBaseModelRepository.update(existing);
-                    log.info("重新启用基础车型: saleCode={}, baseModelCode={}, baseModelName={}", saleCode, baseModelCode, baseModelName);
+                    log.info("重新启用基础车型: saleModelCode={}, baseModelCode={}, baseModelName={}", saleModelCode, baseModelCode, baseModelName);
                 } else {
                     if (existing.getBaseModelName() == null || existing.getBaseModelName().isEmpty()) {
                         existing.setBaseModelName(baseModelName);
@@ -948,7 +948,7 @@ public class SaleModelAppService {
                     existing.setSort(baseModelSort);
                     existing.setModifyBy(userId);
                     saleModelBaseModelRepository.update(existing);
-                    log.info("更新基础车型排序: saleCode={}, baseModelCode={}", saleCode, baseModelCode);
+                    log.info("更新基础车型排序: saleModelCode={}, baseModelCode={}", saleModelCode, baseModelCode);
                 }
             }
         }
@@ -958,7 +958,7 @@ public class SaleModelAppService {
             SaleModelBaseModelPo po = existingMap.get(baseModelCode);
             if (po != null) {
                 saleModelBaseModelRepository.physicalDeleteByIds(new Long[]{po.getId()});
-                log.info("物理删除基础车型: saleCode={}, baseModelCode={}", saleCode, baseModelCode);
+                log.info("物理删除基础车型: saleModelCode={}, baseModelCode={}", saleModelCode, baseModelCode);
             }
         }
 

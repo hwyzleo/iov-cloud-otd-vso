@@ -24,8 +24,8 @@ public class SaleModelRepositoryImpl implements SaleModelRepository {
     }
 
     @Override
-    public Optional<SaleModelPo> findBySaleCode(String saleCode) {
-        return Optional.ofNullable(mapper.selectPoByMap(Map.of("saleCode", saleCode)).stream().findFirst().orElse(null));
+    public Optional<SaleModelPo> findBySaleModelCode(String saleModelCode) {
+        return Optional.ofNullable(mapper.selectPoByMap(Map.of("saleModelCode", saleModelCode)).stream().findFirst().orElse(null));
     }
 
     @Override
@@ -36,8 +36,8 @@ public class SaleModelRepositoryImpl implements SaleModelRepository {
     @Override
     public List<SaleModelPo> findByCondition(SaleModelQuery query) {
         Map<String, Object> params = new HashMap<>();
-        if (query.getSaleCode() != null && !query.getSaleCode().isEmpty()) {
-            params.put("saleCode", query.getSaleCode());
+        if (query.getSaleModelCode() != null && !query.getSaleModelCode().isEmpty()) {
+            params.put("saleModelCode", query.getSaleModelCode());
         }
         if (query.getModelName() != null && !query.getModelName().isEmpty()) {
             params.put("modelName", "%" + query.getModelName() + "%");
@@ -52,8 +52,8 @@ public class SaleModelRepositoryImpl implements SaleModelRepository {
     }
 
     @Override
-    public boolean existsBySaleCodeExcludeId(String saleCode, Long excludeId) {
-        List<SaleModelPo> existingList = mapper.selectPoByMap(Map.of("saleCode", saleCode));
+    public boolean existsBySaleModelCodeExcludeId(String saleModelCode, Long excludeId) {
+        List<SaleModelPo> existingList = mapper.selectPoByMap(Map.of("saleModelCode", saleModelCode));
         SaleModelPo existing = existingList.isEmpty() ? null : existingList.get(0);
         if (existing == null) {
             return false;

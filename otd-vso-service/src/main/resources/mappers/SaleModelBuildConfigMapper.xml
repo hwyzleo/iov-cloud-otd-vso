@@ -4,7 +4,7 @@
 
     <resultMap id="baseResultMap" type="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.SaleModelBuildConfigPo">
         <id column="id" property="id"/>
-        <result column="sale_code" property="saleCode"/>
+        <result column="sale_code" property="saleModelCode"/>
         <result column="build_config_code" property="buildConfigCode"/>
         <result column="enable" property="enable"/>
         <result column="sort" property="sort"/>
@@ -26,7 +26,7 @@
             sale_code, build_config_code, enable, sort, description, create_time, create_by, modify_time, modify_by, row_version, row_valid
         )
         VALUES (
-            #{saleCode}, #{buildConfigCode}, #{enable}, #{sort}, #{description}, now(), #{createBy}, now(), #{modifyBy}, 1, 1
+            #{saleModelCode}, #{buildConfigCode}, #{enable}, #{sort}, #{description}, now(), #{createBy}, now(), #{modifyBy}, 1, 1
         )
     </insert>
 
@@ -37,15 +37,15 @@
         VALUES
         <foreach collection="list" item="item" index="index" separator=",">
             (
-                #{item.saleCode}, #{item.buildConfigCode}, #{item.enable}, #{item.sort}, #{item.description}, now(), #{item.createBy}, now(), #{item.modifyBy}, 1, 1
+                #{item.saleModelCode}, #{item.buildConfigCode}, #{item.enable}, #{item.sort}, #{item.description}, now(), #{item.createBy}, now(), #{item.modifyBy}, 1, 1
             )
         </foreach>
     </insert>
 
     <update id="updatePo" parameterType="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.SaleModelBuildConfigPo">
         UPDATE vso_sale_model_build_config t SET
-        <if test="saleCode != null and saleCode != ''">
-            t.sale_code = #{saleCode},
+        <if test="saleModelCode != null and saleModelCode != ''">
+            t.sale_code = #{saleModelCode},
         </if>
         <if test="buildConfigCode != null and buildConfigCode != ''">
             t.build_config_code = #{buildConfigCode},
@@ -102,8 +102,8 @@
         <if test="id != null">
             AND t.id = #{id}
         </if>
-        <if test="saleCode != null and saleCode != ''">
-            AND t.sale_code = #{saleCode}
+        <if test="saleModelCode != null and saleModelCode != ''">
+            AND t.sale_code = #{saleModelCode}
         </if>
         <if test="buildConfigCode != null and buildConfigCode != ''">
             AND t.build_config_code = #{buildConfigCode}
@@ -139,8 +139,8 @@
         SELECT <include refid="baseColumnList"/>
         FROM vso_sale_model_build_config t
         WHERE t.row_valid = 1
-        <if test="saleCode != null and saleCode != ''">
-            AND t.sale_code = #{saleCode}
+        <if test="saleModelCode != null and saleModelCode != ''">
+            AND t.sale_code = #{saleModelCode}
         </if>
         <if test="buildConfigCode != null and buildConfigCode != ''">
             AND t.build_config_code = #{buildConfigCode}
@@ -161,8 +161,8 @@
         SELECT COUNT(*)
         FROM vso_sale_model_build_config t
         WHERE t.row_valid = 1
-        <if test="saleCode != null and saleCode != ''">
-            AND t.sale_code = #{saleCode}
+        <if test="saleModelCode != null and saleModelCode != ''">
+            AND t.sale_code = #{saleModelCode}
         </if>
         <if test="buildConfigCode != null and buildConfigCode != ''">
             AND t.build_config_code = #{buildConfigCode}
@@ -180,15 +180,15 @@
         </foreach>
     </delete>
 
-    <delete id="physicalDeleteBySaleCodeAndBuildConfigCode">
+    <delete id="physicalDeleteBySaleModelCodeAndBuildConfigCode">
         DELETE FROM vso_sale_model_build_config
-        WHERE sale_code = #{saleCode}
+        WHERE sale_code = #{saleModelCode}
         AND build_config_code = #{buildConfigCode}
     </delete>
 
-    <delete id="physicalDeleteBySaleCode">
+    <delete id="physicalDeleteBySaleModelCode">
         DELETE FROM vso_sale_model_build_config
-        WHERE sale_code = #{saleCode}
+        WHERE sale_code = #{saleModelCode}
     </delete>
 
 </mapper>

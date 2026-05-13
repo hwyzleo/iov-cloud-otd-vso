@@ -13,13 +13,13 @@ public interface SaleModelRepository {
 
     Optional<SaleModelPo> findById(Long id);
 
-    Optional<SaleModelPo> findBySaleCode(String saleCode);
+    Optional<SaleModelPo> findBySaleModelCode(String saleModelCode);
 
     List<SaleModelPo> findAll();
 
     List<SaleModelPo> findByCondition(SaleModelQuery query);
 
-    boolean existsBySaleCodeExcludeId(String saleCode, Long excludeId);
+    boolean existsBySaleModelCodeExcludeId(String saleModelCode, Long excludeId);
 
     int insert(SaleModelPo entity);
 

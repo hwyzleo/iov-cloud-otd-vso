@@ -21,7 +21,7 @@ import java.util.List;
 public class SaleModelConfigResult {
 
     private Long id;
-    private String saleCode;
+    private String saleModelCode;
     private String type;
     private String typeCode;
     private String typeName;

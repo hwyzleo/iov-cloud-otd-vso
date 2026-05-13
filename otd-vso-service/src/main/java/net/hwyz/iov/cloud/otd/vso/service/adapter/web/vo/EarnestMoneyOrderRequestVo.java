@@ -12,8 +12,8 @@ import java.util.Map;
 @AllArgsConstructor
 public class EarnestMoneyOrderRequestVo {
 
-    @NotBlank(message = "销售代码不能为空")
-    private String saleCode;
+    @NotBlank(message = "销售车型代码不能为空")
+    private String saleModelCode;
 
     private String orderNo;
 

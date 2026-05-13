@@ -21,9 +21,9 @@ import java.util.Map;
 public class SelectedSaleModelResult {
 
     /**
-     * 销售代码
+     * 销售车型代码
      */
-    private String saleCode;
+    private String saleModelCode;
 
     /**
      * 销售车型名称

@@ -12,11 +12,11 @@ public interface SaleModelBaseModelRepository {
 
     Optional<SaleModelBaseModelPo> findById(Long id);
 
-    List<SaleModelBaseModelPo> findBySaleCode(String saleCode);
+    List<SaleModelBaseModelPo> findBySaleModelCode(String saleModelCode);
 
-    Optional<SaleModelBaseModelPo> findBySaleCodeAndBaseModelCode(String saleCode, String baseModelCode);
+    Optional<SaleModelBaseModelPo> findBySaleModelCodeAndBaseModelCode(String saleModelCode, String baseModelCode);
 
-    Optional<SaleModelBaseModelPo> findBySaleCodeAndBaseModelCodeIncludeDeleted(String saleCode, String baseModelCode);
+    Optional<SaleModelBaseModelPo> findBySaleModelCodeAndBaseModelCodeIncludeDeleted(String saleModelCode, String baseModelCode);
 
     int insert(SaleModelBaseModelPo entity);
 
@@ -24,5 +24,5 @@ public interface SaleModelBaseModelRepository {
 
     int physicalDeleteByIds(Long[] ids);
 
-    int physicalDeleteBySaleCodeAndBaseModelCode(String saleCode, String baseModelCode);
+    int physicalDeleteBySaleModelCodeAndBaseModelCode(String saleModelCode, String baseModelCode);
 }

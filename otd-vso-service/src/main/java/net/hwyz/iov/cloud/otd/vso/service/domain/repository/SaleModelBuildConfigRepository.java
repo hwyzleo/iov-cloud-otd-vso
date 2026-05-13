@@ -12,11 +12,11 @@ public interface SaleModelBuildConfigRepository {
 
     Optional<SaleModelBuildConfigPo> findById(Long id);
 
-    List<SaleModelBuildConfigPo> findBySaleCode(String saleCode);
+    List<SaleModelBuildConfigPo> findBySaleModelCode(String saleModelCode);
 
-    Optional<SaleModelBuildConfigPo> findBySaleCodeAndBuildConfigCode(String saleCode, String buildConfigCode);
+    Optional<SaleModelBuildConfigPo> findBySaleModelCodeAndBuildConfigCode(String saleModelCode, String buildConfigCode);
 
-    Optional<SaleModelBuildConfigPo> findBySaleCodeAndBuildConfigCodeIncludeDeleted(String saleCode, String buildConfigCode);
+    Optional<SaleModelBuildConfigPo> findBySaleModelCodeAndBuildConfigCodeIncludeDeleted(String saleModelCode, String buildConfigCode);
 
     int insert(SaleModelBuildConfigPo entity);
 
@@ -24,9 +24,9 @@ public interface SaleModelBuildConfigRepository {
 
     int physicalDeleteByIds(Long[] ids);
 
-    int physicalDeleteBySaleCodeAndBuildConfigCode(String saleCode, String buildConfigCode);
+    int physicalDeleteBySaleModelCodeAndBuildConfigCode(String saleModelCode, String buildConfigCode);
 
-    int physicalDeleteBySaleCode(String saleCode);
+    int physicalDeleteBySaleModelCode(String saleModelCode);
 
-    int countBySaleCode(String saleCode);
+    int countBySaleModelCode(String saleModelCode);
 }

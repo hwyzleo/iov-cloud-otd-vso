@@ -12,7 +12,7 @@
         <result column="modify_by" property="modifyBy" />
         <result column="row_version" property="rowVersion" />
         <result column="row_valid" property="rowValid" />
-        <result column="sale_code" property="saleCode" />
+        <result column="sale_code" property="saleModelCode" />
         <result column="model_name" property="modelName" />
         <result column="parameters" property="parameters" />
         <result column="images" property="images" />
@@ -37,7 +37,7 @@
             description, create_time, create_by, modify_time, modify_by, row_version, row_valid
         )
         VALUES (
-            #{id}, #{saleCode}, #{modelName}, #{parameters}, #{images}, #{earnestMoney}, #{earnestMoneyPrice}, #{downPayment}, #{downPaymentPrice}, #{enable}, #{sort}, 
+            #{id}, #{saleModelCode}, #{modelName}, #{parameters}, #{images}, #{earnestMoney}, #{earnestMoneyPrice}, #{downPayment}, #{downPaymentPrice}, #{enable}, #{sort}, 
             #{description}, now(), #{createBy}, now(), #{modifyBy}, 1, 1
         )
     </insert>
@@ -51,7 +51,7 @@
         VALUES
         <foreach collection="list" item="item" index="index" separator=",">
         (
-            #{item.id}, #{item.saleCode}, #{item.modelName}, #{item.parameters}, #{item.images}, #{item.earnestMoney}, #{item.earnestMoneyPrice}, #{item.downPayment}, #{item.downPaymentPrice}, #{item.enable}, #{item.sort}, 
+            #{item.id}, #{item.saleModelCode}, #{item.modelName}, #{item.parameters}, #{item.images}, #{item.earnestMoney}, #{item.earnestMoneyPrice}, #{item.downPayment}, #{item.downPaymentPrice}, #{item.enable}, #{item.sort}, 
             #{item.description}, now(), #{item.createBy}, now(), #{item.modifyBy}, 1, 1
         )
         </foreach>
@@ -60,8 +60,8 @@
     <!-- 更新 -->
     <update id="updatePo" parameterType="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.SaleModelPo">
         UPDATE vso_sale_model t SET
-        <if test="saleCode != null and saleCode != ''">
-            t.sale_code = #{saleCode},
+        <if test="saleModelCode != null and saleModelCode != ''">
+            t.sale_code = #{saleModelCode},
         </if>
         <if test="modelName != null and modelName != ''">
             t.model_name = #{modelName},
@@ -141,8 +141,8 @@
         <if test="id != null">
             AND t.id = #{id}
         </if>
-        <if test="saleCode != null and saleCode != ''">
-            AND t.sale_code = #{saleCode}
+        <if test="saleModelCode != null and saleModelCode != ''">
+            AND t.sale_code = #{saleModelCode}
         </if>
         <if test="modelName != null and modelName != ''">
             AND t.model_name = #{modelName}
@@ -197,8 +197,8 @@
         SELECT <include refid="baseColumnList"/>
         FROM vso_sale_model t
         WHERE t.row_valid = 1
-        <if test="saleCode != null and saleCode != ''">
-            AND t.sale_code = #{saleCode}
+        <if test="saleModelCode != null and saleModelCode != ''">
+            AND t.sale_code = #{saleModelCode}
         </if>
         <if test="modelName != null and modelName != ''">
             AND t.model_name LIKE #{modelName}
@@ -212,11 +212,11 @@
         ORDER BY t.sort ASC, t.id DESC
     </select>
 
-    <!-- 通过销售编码查询销售车型信息 -->
-    <select id="selectPoBySaleCode" parameterType="java.util.Map" resultMap="baseResultMap">
+    <!-- 通过销售车型代码查询销售车型信息 -->
+    <select id="selectPoBySaleModelCode" parameterType="java.util.Map" resultMap="baseResultMap">
         SELECT <include refid="baseColumnList"/>
         FROM vso_sale_model t
-        WHERE t.row_valid = 1 AND t.sale_code = #{saleCode}
+        WHERE t.row_valid = 1 AND t.sale_code = #{saleModelCode}
         LIMIT 1
     </select>
 
@@ -225,8 +225,8 @@
         SELECT COUNT(*)
         FROM vso_sale_model t
         WHERE t.row_valid = 1
-        <if test="saleCode != null and saleCode != ''">
-            AND t.sale_code = #{saleCode}
+        <if test="saleModelCode != null and saleModelCode != ''">
+            AND t.sale_code = #{saleModelCode}
         </if>
         <if test="modelName != null and modelName != ''">
             AND t.model_name LIKE #{modelName}

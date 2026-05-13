@@ -22,17 +22,17 @@ public class SaleModelBaseModelRepositoryImpl implements SaleModelBaseModelRepos
     }
 
     @Override
-    public List<SaleModelBaseModelPo> findBySaleCode(String saleCode) {
-        return mapper.selectPoBySaleCode(saleCode);
+    public List<SaleModelBaseModelPo> findBySaleModelCode(String saleModelCode) {
+        return mapper.selectPoBySaleModelCode(saleModelCode);
     }
 
     @Override
-    public Optional<SaleModelBaseModelPo> findBySaleCodeAndBaseModelCode(String saleCode, String baseModelCode) {
-        return Optional.ofNullable(mapper.selectPoBySaleCodeAndBaseModelCode(saleCode, baseModelCode));
+    public Optional<SaleModelBaseModelPo> findBySaleModelCodeAndBaseModelCode(String saleModelCode, String baseModelCode) {
+        return Optional.ofNullable(mapper.selectPoBySaleModelCodeAndBaseModelCode(saleModelCode, baseModelCode));
     }
 
     @Override
-    public Optional<SaleModelBaseModelPo> findBySaleCodeAndBaseModelCodeIncludeDeleted(String saleCode, String baseModelCode) {
+    public Optional<SaleModelBaseModelPo> findBySaleModelCodeAndBaseModelCodeIncludeDeleted(String saleModelCode, String baseModelCode) {
         return Optional.empty();
     }
 
@@ -52,7 +52,7 @@ public class SaleModelBaseModelRepositoryImpl implements SaleModelBaseModelRepos
     }
 
     @Override
-    public int physicalDeleteBySaleCodeAndBaseModelCode(String saleCode, String baseModelCode) {
-        return mapper.physicalDeleteBySaleCodeAndBaseModelCode(saleCode, baseModelCode);
+    public int physicalDeleteBySaleModelCodeAndBaseModelCode(String saleModelCode, String baseModelCode) {
+        return mapper.physicalDeleteBySaleModelCodeAndBaseModelCode(saleModelCode, baseModelCode);
     }
 }

@@ -16,11 +16,11 @@ import java.util.List;
 @Mapper
 public interface SaleModelBaseModelMapper extends BaseDao<SaleModelBaseModelPo, Long> {
 
-    List<SaleModelBaseModelPo> selectPoBySaleCode(String saleCode);
+    List<SaleModelBaseModelPo> selectPoBySaleModelCode(String saleModelCode);
 
-    SaleModelBaseModelPo selectPoBySaleCodeAndBaseModelCode(@Param("saleCode") String saleCode, @Param("baseModelCode") String baseModelCode);
+    SaleModelBaseModelPo selectPoBySaleModelCodeAndBaseModelCode(@Param("saleModelCode") String saleModelCode, @Param("baseModelCode") String baseModelCode);
 
     int physicalDeleteByIds(@Param("ids") List<Long> ids);
 
-    int physicalDeleteBySaleCodeAndBaseModelCode(@Param("saleCode") String saleCode, @Param("baseModelCode") String baseModelCode);
+    int physicalDeleteBySaleModelCodeAndBaseModelCode(@Param("saleModelCode") String saleModelCode, @Param("baseModelCode") String baseModelCode);
 }

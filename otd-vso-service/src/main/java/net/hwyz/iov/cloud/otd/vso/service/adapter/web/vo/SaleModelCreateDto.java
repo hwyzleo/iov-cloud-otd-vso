@@ -11,7 +11,7 @@ import java.util.List;
 @Data
 public class SaleModelCreateDto {
 
-    private String saleCode;
+    private String saleModelCode;
 
     private String modelName;
 

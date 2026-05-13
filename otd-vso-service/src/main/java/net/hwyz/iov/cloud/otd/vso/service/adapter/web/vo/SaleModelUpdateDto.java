@@ -13,7 +13,7 @@ public class SaleModelUpdateDto {
 
     private Long id;
 
-    private String saleCode;
+    private String saleModelCode;
 
     private String modelName;
 

@@ -21,10 +21,10 @@ import java.util.Map;
 public class SelectedSaleModelRequest {
 
     /**
-     * 销售代码
+     * 销售车型代码
      */
-    @NotBlank(message = "销售代码不能为空")
-    private String saleCode;
+    @NotBlank(message = "销售车型代码不能为空")
+    private String saleModelCode;
 
     /**
      * 订单编号

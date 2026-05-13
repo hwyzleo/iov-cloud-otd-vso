@@ -15,7 +15,7 @@ import java.util.Map;
 public class CreateWishlistCmd {
 
     private String accountId;
-    private String saleCode;
+    private String saleModelCode;
     private Map<String, String> featureConfig;
 
 }

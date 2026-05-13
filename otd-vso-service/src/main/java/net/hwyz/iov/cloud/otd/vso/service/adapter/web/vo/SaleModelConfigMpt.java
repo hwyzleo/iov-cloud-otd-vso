@@ -23,9 +23,9 @@ public class SaleModelConfigMpt implements Serializable {
     private Long id;
 
     /**
-     * 销售代码
+     * 销售车型代码
      */
-    private String saleCode;
+    private String saleModelCode;
 
     /**
      * 销售车型配置类型

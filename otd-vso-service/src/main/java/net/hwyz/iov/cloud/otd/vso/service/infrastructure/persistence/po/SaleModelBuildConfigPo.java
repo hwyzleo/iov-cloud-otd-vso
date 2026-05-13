@@ -33,10 +33,10 @@ public class SaleModelBuildConfigPo extends BasePo {
     private Long id;
 
     /**
-     * 销售代码
+     * 销售车型代码
      */
     @TableField("sale_code")
-    private String saleCode;
+    private String saleModelCode;
 
     /**
      * 生产配置代码

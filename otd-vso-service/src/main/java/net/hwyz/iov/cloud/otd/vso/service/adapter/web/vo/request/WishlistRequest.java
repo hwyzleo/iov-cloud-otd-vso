@@ -12,6 +12,6 @@ import lombok.*;
 @AllArgsConstructor
 public class WishlistRequest {
 
-    private String saleCode;
+    private String saleModelCode;
 
 }

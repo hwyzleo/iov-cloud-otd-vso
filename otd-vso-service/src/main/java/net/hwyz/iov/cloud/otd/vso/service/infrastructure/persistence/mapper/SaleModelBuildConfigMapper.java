@@ -20,7 +20,7 @@ public interface SaleModelBuildConfigMapper extends BaseDao<SaleModelBuildConfig
 
     int physicalDeleteByIds(@Param("ids") List<Long> ids);
 
-    int physicalDeleteBySaleCodeAndBuildConfigCode(@Param("saleCode") String saleCode, @Param("buildConfigCode") String buildConfigCode);
+    int physicalDeleteBySaleModelCodeAndBuildConfigCode(@Param("saleModelCode") String saleModelCode, @Param("buildConfigCode") String buildConfigCode);
 
-    int physicalDeleteBySaleCode(@Param("saleCode") String saleCode);
+    int physicalDeleteBySaleModelCode(@Param("saleModelCode") String saleModelCode);
 }

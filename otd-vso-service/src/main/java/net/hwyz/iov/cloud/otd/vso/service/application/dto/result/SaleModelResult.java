@@ -21,7 +21,7 @@ import java.util.List;
 public class SaleModelResult {
 
     private Long id;
-    private String saleCode;
+    private String saleModelCode;
     private String modelName;
     private String parameters;
     private List<String> images;

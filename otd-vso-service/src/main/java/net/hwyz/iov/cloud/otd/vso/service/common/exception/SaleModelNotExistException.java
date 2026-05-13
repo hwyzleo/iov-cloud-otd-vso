@@ -10,9 +10,9 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class SaleModelNotExistException extends VsoBaseException {
 
-    public SaleModelNotExistException(String saleCode) {
+    public SaleModelNotExistException(String saleModelCode) {
         super(ERROR_CODE_SALE_MODEL_NOT_EXIST);
-        log.warn("销售车型[{}]不存在", saleCode);
+        log.warn("销售车型[{}]不存在", saleModelCode);
     }
 
 }

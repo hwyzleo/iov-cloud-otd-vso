@@ -44,18 +44,18 @@ public class WishlistAppService {
     @Transactional(rollbackFor = Exception.class)
     public String createWishlist(CreateWishlistCmd cmd) {
         Map<String, String> featureConfig = cmd.getFeatureConfig();
-        log.info("创建心愿单：accountId={}, saleCode={}, featureConfig={}",
-                cmd.getAccountId(), cmd.getSaleCode(), featureConfig);
+        log.info("创建心愿单：accountId={}, saleModelCode={}, featureConfig={}",
+                cmd.getAccountId(), cmd.getSaleModelCode(), featureConfig);
         // 去除基础车型
         featureConfig.remove("BASE_MODEL");
 
         String buildConfigCode = vmdVehicleModelConfigService.getVehicleBuildConfigCode(featureConfig);
 
         if (buildConfigCode == null || buildConfigCode.isEmpty()) {
-            throw new BuildConfigNotMatchedException(cmd.getSaleCode());
+            throw new BuildConfigNotMatchedException(cmd.getSaleModelCode());
         }
 
-        Wishlist wishlist = Wishlist.create(cmd.getAccountId(), cmd.getSaleCode(), buildConfigCode);
+        Wishlist wishlist = Wishlist.create(cmd.getAccountId(), cmd.getSaleModelCode(), buildConfigCode);
         wishlistRepository.save(wishlist);
         log.info("心愿单创建成功：wishlistId={}, buildConfigCode={}", wishlist.getId(), buildConfigCode);
         return wishlist.getId();
@@ -124,7 +124,7 @@ public class WishlistAppService {
 
         return WishlistListResult.builder()
                 .wishlistId(wishlist.getId())
-                .saleCode(wishlist.getSaleModel())
+                .saleModelCode(wishlist.getSaleModel())
                 .buildConfigCode(wishlist.getBuildConfigCode())
                 .createTime(wishlist.getCreateTime())
                 .modifyTime(wishlist.getModifyTime())
@@ -154,7 +154,7 @@ public class WishlistAppService {
 
         return WishlistDetailResult.builder()
                 .wishlistId(wishlist.getId())
-                .saleCode(wishlist.getSaleModel())
+                .saleModelCode(wishlist.getSaleModel())
                 .buildConfigCode(wishlist.getBuildConfigCode())
                 .createTime(wishlist.getCreateTime())
                 .modifyTime(wishlist.getModifyTime())
@@ -170,7 +170,7 @@ public class WishlistAppService {
     /**
      * 从 SelectedSaleModelResult 构建配置项列表
      */
-    private List<SaleModelConfigItemResult> buildConfigItems(String saleCode, SelectedSaleModelResult selectedModel) {
+    private List<SaleModelConfigItemResult> buildConfigItems(String saleModelCode, SelectedSaleModelResult selectedModel) {
         List<SaleModelConfigItemResult> configItems = new ArrayList<>();
 
         if (selectedModel.getSaleModelConfigType() == null) {
@@ -187,7 +187,7 @@ public class WishlistAppService {
             BigDecimal featurePrice = priceMap != null ? priceMap.getOrDefault(familyCode, BigDecimal.ZERO) : BigDecimal.ZERO;
 
             // 从 featureCode 获取特征族名称（通过调用 VMD 接口获取）
-            String familyName = getFamilyName(saleCode, familyCode);
+            String familyName = getFamilyName(saleModelCode, familyCode);
 
             configItems.add(SaleModelConfigItemResult.builder()
                     .familyCode(familyCode)
@@ -205,17 +205,16 @@ public class WishlistAppService {
     /**
      * 获取特征族名称
      */
-    private String getFamilyName(String saleCode, String familyCode) {
-        // 从 SaleModelAppService 的配置数据中获取特征族名称
+private String getFamilyName(String saleModelCode, String familyCode) {
         try {
-            List<SaleModelConfigFamilyVo> ranges = saleModelAppService.getSaleModelConfigFamilyList(saleCode);
+            List<SaleModelConfigFamilyVo> ranges = saleModelAppService.getSaleModelConfigFamilyList(saleModelCode);
             for (SaleModelConfigFamilyVo range : ranges) {
                 if (range.getFamilyCode().equals(familyCode)) {
                     return range.getFamilyName();
                 }
             }
         } catch (Exception e) {
-            log.warn("获取特征族名称失败: saleCode={}, familyCode={}", saleCode, familyCode, e);
+            log.warn("获取特征族名称失败: saleModelCode={}, familyCode={}", saleModelCode, familyCode, e);
         }
         return familyCode;  // 默认返回代码本身
     }

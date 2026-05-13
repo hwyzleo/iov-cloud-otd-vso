@@ -12,7 +12,7 @@ import lombok.*;
 @AllArgsConstructor
 public class WishlistResponse {
 
-    private String saleCode;
+    private String saleModelCode;
     private String orderNo;
     private String saleModelConfigType;
     private String saleModelConfigName;

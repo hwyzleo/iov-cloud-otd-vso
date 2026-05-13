@@ -44,65 +44,65 @@ public class MobileSaleModelController extends BaseController {
     /**
      * 获取销售车型信息
      *
-     * @param saleCode 销售代码
+     * @param saleModelCode 销售车型代码
      * @return 销售车型信息
      */
-    @GetMapping("/{saleCode}")
-    public ApiResponse<SaleModelMp> getSaleModel(@PathVariable("saleCode") String saleCode) {
-        log.info("手机客户端[{}]获取销售代码[{}]销售车型信息", ParamHelper.getClientAccountInfo(), saleCode);
-        SaleModelResult result = saleModelAppService.getSaleModelByCode(saleCode);
+    @GetMapping("/{saleModelCode}")
+    public ApiResponse<SaleModelMp> getSaleModel(@PathVariable("saleModelCode") String saleModelCode) {
+        log.info("手机客户端[{}]获取销售车型代码[{}]销售车型信息", ParamHelper.getClientAccountInfo(), saleModelCode);
+        SaleModelResult result = saleModelAppService.getSaleModelByCode(saleModelCode);
         return ApiResponse.ok(SaleModelMpAssembler.INSTANCE.toVo(result));
     }
 
     /**
      * 获取销售车型配置列表
      *
-     * @param saleCode 销售代码
+     * @param saleModelCode 销售车型代码
      * @return 销售车型配置列表
      */
-    @GetMapping("/{saleCode}/config")
-    public ApiResponse<List<SaleModelConfigMp>> getSaleModelConfigList(@PathVariable("saleCode") String saleCode) {
-        log.info("手机客户端[{}]获取销售代码[{}]销售车型配置列表", ParamHelper.getClientAccountInfo(), saleCode);
-        List<SaleModelConfigResult> resultList = saleModelAppService.getSaleModelConfigList(saleCode);
+    @GetMapping("/{saleModelCode}/config")
+    public ApiResponse<List<SaleModelConfigMp>> getSaleModelConfigList(@PathVariable("saleModelCode") String saleModelCode) {
+        log.info("手机客户端[{}]获取销售车型代码[{}]销售车型配置列表", ParamHelper.getClientAccountInfo(), saleModelCode);
+        List<SaleModelConfigResult> resultList = saleModelAppService.getSaleModelConfigList(saleModelCode);
         return ApiResponse.ok(SaleModelConfigMpAssembler.INSTANCE.toVoList(resultList));
     }
 
     /**
      * 获取销售车型可选特征值范围（动态配置模式）
      *
-     * @param saleCode 销售代码
+     * @param saleModelCode 销售车型代码
      * @return 特征值范围列表
      */
-    @GetMapping("/{saleCode}/featureCodeRanges")
-    public ApiResponse<List<FeatureCodeRangeVo>> getFeatureCodeRanges(@PathVariable("saleCode") String saleCode) {
-        log.info("手机客户端[{}]获取销售代码[{}]可选特征值范围", ParamHelper.getClientAccountInfo(), saleCode);
-        SaleModelResult model = saleModelAppService.getSaleModelByCode(saleCode);
+    @GetMapping("/{saleModelCode}/featureCodeRanges")
+    public ApiResponse<List<FeatureCodeRangeVo>> getFeatureCodeRanges(@PathVariable("saleModelCode") String saleModelCode) {
+        log.info("手机客户端[{}]获取销售车型代码[{}]可选特征值范围", ParamHelper.getClientAccountInfo(), saleModelCode);
+        SaleModelResult model = saleModelAppService.getSaleModelByCode(saleModelCode);
         return ApiResponse.ok(saleModelAppService.getAggregatedFeatureCodeRanges(model.getId()));
     }
 
     /**
      * 根据选择的特征值获取销售车型信息（动态配置模式）
      *
-     * @param requestVo 包含saleCode和选择的特征值Map
+     * @param requestVo 包含saleModelCode和选择的特征值Map
      * @return 已选择的销售车型及配置
      */
     @PostMapping("/selectedSaleModel")
     public ApiResponse<SelectedSaleModel> getSelectedSaleModel(@RequestBody SelectedSaleModelRequestVo requestVo) {
         log.info("手机客户端[{}]根据特征值获取销售车型信息", ParamHelper.getClientAccountInfo());
         return ApiResponse.ok(SelectedSaleModelAssembler.INSTANCE.toVo(
-                saleModelAppService.getSelectedSaleModelByFeatureCodes(requestVo.getSaleCode(), requestVo.getSaleModelConfigType())));
+                saleModelAppService.getSelectedSaleModelByFeatureCodes(requestVo.getSaleModelCode(), requestVo.getSaleModelConfigType())));
     }
 
     /**
      * 获取销售车型购车权益
      *
-     * @param saleCode 销售代码
+     * @param saleModelCode 销售车型代码
      * @return 销售车型购车权益
      */
-    @GetMapping("/purchaseBenefits/{saleCode}")
-    public ApiResponse<PurchaseBenefits> getPurchaseBenefits(@PathVariable("saleCode") String saleCode) {
-        log.info("手机客户端[{}]获取销售代码[{}]销售车型购车权益", ParamHelper.getClientAccountInfo(), saleCode);
-        return ApiResponse.ok(saleModelAppService.getPurchaseBenefits(saleCode));
+    @GetMapping("/purchaseBenefits/{saleModelCode}")
+    public ApiResponse<PurchaseBenefits> getPurchaseBenefits(@PathVariable("saleModelCode") String saleModelCode) {
+        log.info("手机客户端[{}]获取销售车型代码[{}]销售车型购车权益", ParamHelper.getClientAccountInfo(), saleModelCode);
+        return ApiResponse.ok(saleModelAppService.getPurchaseBenefits(saleModelCode));
     }
 
     /**

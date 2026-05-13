@@ -7,7 +7,7 @@ import lombok.NoArgsConstructor;
 import net.hwyz.iov.cloud.otd.vso.api.enums.PaymentChannel;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 /**
@@ -24,7 +24,7 @@ public class EarnestMoneyOrderResult {
     private String smallOrderNo;
     private BigDecimal earnestMoneyAmount;
     private List<PaymentChannelInfo> paymentChannels;
-    private LocalDateTime expireTime;
+    private Instant expireTime;
 
     @Data
     @Builder

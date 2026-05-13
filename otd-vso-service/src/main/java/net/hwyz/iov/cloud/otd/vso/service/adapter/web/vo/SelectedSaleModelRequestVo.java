@@ -16,9 +16,9 @@ import java.util.Map;
 public class SelectedSaleModelRequestVo {
 
     /**
-     * 销售代码
+     * 销售车型代码
      */
-    private String saleCode;
+    private String saleModelCode;
 
     /**
      * 订单号（可选）

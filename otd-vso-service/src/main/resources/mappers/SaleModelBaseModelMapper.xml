@@ -11,7 +11,7 @@
         <result column="modify_by" property="modifyBy" />
         <result column="row_version" property="rowVersion" />
         <result column="row_valid" property="rowValid" />
-        <result column="sale_code" property="saleCode" />
+        <result column="sale_code" property="saleModelCode" />
         <result column="base_model_code" property="baseModelCode" />
         <result column="base_model_name" property="baseModelName" />
         <result column="base_model_image" property="baseModelImage" />
@@ -33,7 +33,7 @@
             description, create_time, create_by, modify_time, modify_by, row_version, row_valid
         )
         VALUES (
-            #{id}, #{saleCode}, #{baseModelCode}, #{baseModelName}, #{baseModelImage}, #{baseModelPrice}, #{baseModelDesc}, #{baseModelParam}, #{enable}, #{sort},
+            #{id}, #{saleModelCode}, #{baseModelCode}, #{baseModelName}, #{baseModelImage}, #{baseModelPrice}, #{baseModelDesc}, #{baseModelParam}, #{enable}, #{sort},
             #{description}, now(), #{createBy}, now(), #{modifyBy}, 1, 1
         )
     </insert>
@@ -76,18 +76,18 @@
         AND t.row_valid = 1
     </select>
 
-    <select id="selectPoBySaleCode" parameterType="string" resultMap="baseResultMap">
+    <select id="selectPoBySaleModelCode" parameterType="string" resultMap="baseResultMap">
         SELECT <include refid="baseColumnList"/>
         FROM vso_sale_model_base_model t
-        WHERE t.sale_code = #{saleCode}
+        WHERE t.sale_code = #{saleModelCode}
         AND t.row_valid = 1
         ORDER BY t.sort ASC, t.id ASC
     </select>
 
-    <select id="selectPoBySaleCodeAndBaseModelCode" resultMap="baseResultMap">
+    <select id="selectPoBySaleModelCodeAndBaseModelCode" resultMap="baseResultMap">
         SELECT <include refid="baseColumnList"/>
         FROM vso_sale_model_base_model t
-        WHERE t.sale_code = #{saleCode}
+        WHERE t.sale_code = #{saleModelCode}
         AND t.base_model_code = #{baseModelCode}
         AND t.row_valid = 1
     </select>
@@ -100,9 +100,9 @@
         </foreach>
     </delete>
 
-    <delete id="physicalDeleteBySaleCodeAndBaseModelCode">
+    <delete id="physicalDeleteBySaleModelCodeAndBaseModelCode">
         DELETE FROM vso_sale_model_base_model
-        WHERE sale_code = #{saleCode}
+        WHERE sale_code = #{saleModelCode}
         AND base_model_code = #{baseModelCode}
     </delete>
 
@@ -110,8 +110,8 @@
         SELECT <include refid="baseColumnList"/>
         FROM vso_sale_model_base_model t
         WHERE t.row_valid = 1
-        <if test="saleCode != null and saleCode != ''">
-            AND t.sale_code = #{saleCode}
+        <if test="saleModelCode != null and saleModelCode != ''">
+            AND t.sale_code = #{saleModelCode}
         </if>
         <if test="baseModelCode != null and baseModelCode != ''">
             AND t.base_model_code = #{baseModelCode}
@@ -126,8 +126,8 @@
         SELECT COUNT(*)
         FROM vso_sale_model_base_model t
         WHERE t.row_valid = 1
-        <if test="saleCode != null and saleCode != ''">
-            AND t.sale_code = #{saleCode}
+        <if test="saleModelCode != null and saleModelCode != ''">
+            AND t.sale_code = #{saleModelCode}
         </if>
         <if test="baseModelCode != null and baseModelCode != ''">
             AND t.base_model_code = #{baseModelCode}

@@ -30,7 +30,7 @@ public class SaleModelBaseModelPo extends BasePo {
     private Long id;
 
     @TableField("sale_code")
-    private String saleCode;
+    private String saleModelCode;
 
     @TableField("base_model_code")
     private String baseModelCode;

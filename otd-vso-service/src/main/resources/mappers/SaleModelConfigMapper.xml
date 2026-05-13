@@ -12,7 +12,7 @@
         <result column="modify_by" property="modifyBy" />
         <result column="row_version" property="rowVersion" />
         <result column="row_valid" property="rowValid" />
-        <result column="sale_code" property="saleCode" />
+        <result column="sale_code" property="saleModelCode" />
         <result column="type" property="type" />
         <result column="type_code" property="typeCode" />
         <result column="type_name" property="typeName" />
@@ -37,7 +37,7 @@
             description, create_time, create_by, modify_time, modify_by, row_version, row_valid
         )
         VALUES (
-            #{id}, #{saleCode}, #{type}, #{typeCode}, #{typeName}, #{typePrice}, #{typeImage}, #{typeDesc}, #{typeParam}, #{enable}, #{sort}, 
+            #{id}, #{saleModelCode}, #{type}, #{typeCode}, #{typeName}, #{typePrice}, #{typeImage}, #{typeDesc}, #{typeParam}, #{enable}, #{sort}, 
             #{description}, now(), #{createBy}, now(), #{modifyBy}, 1, 1
         )
     </insert>
@@ -51,7 +51,7 @@
         VALUES
         <foreach collection="list" item="item" index="index" separator=",">
         (
-            #{item.id}, #{item.saleCode}, #{item.type}, #{item.typeCode}, #{item.typeName}, #{item.typePrice}, #{item.typeImage}, #{item.typeDesc}, #{item.typeParam}, #{item.enable}, #{item.sort}, 
+            #{item.id}, #{item.saleModelCode}, #{item.type}, #{item.typeCode}, #{item.typeName}, #{item.typePrice}, #{item.typeImage}, #{item.typeDesc}, #{item.typeParam}, #{item.enable}, #{item.sort}, 
             #{item.description}, now(), #{item.createBy}, now(), #{item.modifyBy}, 1, 1
         )
         </foreach>
@@ -60,8 +60,8 @@
     <!-- 更新 -->
     <update id="updatePo" parameterType="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.SaleModelConfigPo">
         UPDATE vso_sale_model_config t SET
-        <if test="saleCode != null and saleCode != ''">
-            t.sale_code = #{saleCode},
+        <if test="saleModelCode != null and saleModelCode != ''">
+            t.sale_code = #{saleModelCode},
         </if>
         <if test="type != null and type != ''">
             t.type = #{type},
@@ -119,7 +119,7 @@
     <!-- 批量物理删除销售车型配置信息 -->
     <delete id="batchPhysicalDeletePo" parameterType="Long">
         DELETE FROM vso_sale_model_config t
-        WHERE t.sale_code = #{saleCode}
+        WHERE t.sale_code = #{saleModelCode}
         <if test="ids != null">
             AND t.id IN
             <foreach collection="ids" item="id" open="(" separator="," close=")">
@@ -144,8 +144,8 @@
         <if test="id != null">
             AND t.id = #{id}
         </if>
-        <if test="saleCode != null and saleCode != ''">
-            AND t.sale_code = #{saleCode}
+        <if test="saleModelCode != null and saleModelCode != ''">
+            AND t.sale_code = #{saleModelCode}
         </if>
         <if test="type != null and type != ''">
             AND t.type = #{type}
@@ -211,19 +211,19 @@
         WHERE t.row_valid = 1
         <!-- 添加自定义条件 -->
     </select>
-    <select id="selectPoBySaleCode" parameterType="string" resultMap="baseResultMap">
+    <select id="selectPoBySaleModelCode" parameterType="string" resultMap="baseResultMap">
         SELECT <include refid="baseColumnList"/>
         FROM vso_sale_model_config t
-        WHERE t.sale_code = #{saleCode}
+        WHERE t.sale_code = #{saleModelCode}
         AND t.row_valid = 1
         ORDER BY t.sort ASC, t.id DESC
     </select>
 
-    <select id="selectPoByIdAndSaleCode" resultMap="baseResultMap">
+    <select id="selectPoByIdAndSaleModelCode" resultMap="baseResultMap">
         SELECT <include refid="baseColumnList"/>
         FROM vso_sale_model_config t
         WHERE t.id = #{id}
-        AND t.sale_code = #{saleCode}
+        AND t.sale_code = #{saleModelCode}
         AND t.row_valid = 1
     </select>
 </mapper>

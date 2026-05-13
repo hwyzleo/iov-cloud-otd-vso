@@ -32,7 +32,7 @@ public class MptSaleModelController extends BaseController {
 
     @GetMapping("/list")
     public ApiResponse<PageResult<SaleModelVo>> list(
-            @RequestParam(required = false) String saleCode,
+            @RequestParam(required = false) String saleModelCode,
             @RequestParam(required = false) String modelName,
             @RequestParam(required = false) Long beginTime,
             @RequestParam(required = false) Long endTime) {
@@ -40,7 +40,7 @@ public class MptSaleModelController extends BaseController {
         Instant end = endTime != null ? Instant.ofEpochSecond(endTime) : null;
         startPage();
         List<SaleModelResult> result = saleModelAppService.search(SaleModelQuery.builder()
-                .saleCode(saleCode)
+                .saleModelCode(saleModelCode)
                 .modelName(modelName)
                 .beginTime(begin)
                 .endTime(end)
@@ -90,16 +90,16 @@ public class MptSaleModelController extends BaseController {
         return ApiResponse.ok();
     }
 
-    @GetMapping("/{saleCode}/config/map")
-    public ApiResponse<java.util.Map<String, SaleModelConfigMpt>> getConfigMap(@PathVariable String saleCode) {
-        return ApiResponse.ok(SaleModelConfigMptAssembler.INSTANCE.toVoMap(saleModelAppService.getSaleModelConfigMap(saleCode)));
+    @GetMapping("/{saleModelCode}/config/map")
+    public ApiResponse<java.util.Map<String, SaleModelConfigMpt>> getConfigMap(@PathVariable String saleModelCode) {
+        return ApiResponse.ok(SaleModelConfigMptAssembler.INSTANCE.toVoMap(saleModelAppService.getSaleModelConfigMap(saleModelCode)));
     }
 
     @GetMapping("/{saleModelId}/buildConfig")
     public ApiResponse<PageResult<SaleModelBuildConfigVo>> listBuildConfigs(@PathVariable Long saleModelId) {
         SaleModelResult model = saleModelAppService.getSaleModelById(saleModelId);
         startPage();
-        List<SaleModelBuildConfigVo> result = saleModelAppService.getBuildConfigPageBySaleCode(model.getSaleCode());
+        List<SaleModelBuildConfigVo> result = saleModelAppService.getBuildConfigPageBySaleCode(model.getSaleModelCode());
         return ApiResponse.ok(getPageResult(result));
     }
 
@@ -133,7 +133,7 @@ public class MptSaleModelController extends BaseController {
     @PostMapping("/{saleModelId}/syncConfigs")
     public ApiResponse<Void> syncConfigs(@PathVariable Long saleModelId) {
         SaleModelResult model = saleModelAppService.getSaleModelById(saleModelId);
-        saleModelAppService.syncSaleModelConfigFromBuildConfigs(model.getSaleCode(), SecurityContextHolder.getUserId());
+        saleModelAppService.syncSaleModelConfigFromBuildConfigs(model.getSaleModelCode(), SecurityContextHolder.getUserId());
         return ApiResponse.ok();
     }
 
@@ -152,7 +152,7 @@ public class MptSaleModelController extends BaseController {
     @PostMapping("/{saleModelId}/syncBaseModels")
     public ApiResponse<Void> syncBaseModels(@PathVariable Long saleModelId) {
         SaleModelResult model = saleModelAppService.getSaleModelById(saleModelId);
-        saleModelAppService.syncBaseModelFromBuildConfigs(model.getSaleCode(), SecurityContextHolder.getUserId());
+        saleModelAppService.syncBaseModelFromBuildConfigs(model.getSaleModelCode(), SecurityContextHolder.getUserId());
         return ApiResponse.ok();
     }
 
