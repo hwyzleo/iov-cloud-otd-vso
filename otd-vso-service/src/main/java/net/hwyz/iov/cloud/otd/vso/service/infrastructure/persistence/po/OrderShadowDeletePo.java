@@ -23,9 +23,6 @@ public class OrderShadowDeletePo implements Serializable {
     @TableField("origin_order_no")
     private String originOrderNo;
 
-    @TableField("origin_small_order_no")
-    private String originSmallOrderNo;
-
     @TableField("delete_approval_id")
     private String deleteApprovalId;
 

@@ -565,7 +565,6 @@ public class OrderPhysicalDeleteService {
         OrderShadowDeletePo shadowPo = new OrderShadowDeletePo();
         shadowPo.setShadowDeleteId("SD" + System.currentTimeMillis());
         shadowPo.setOriginOrderNo(orderNo);
-        shadowPo.setOriginSmallOrderNo(orderNo);
         shadowPo.setDeleteApprovalId(null);
         shadowPo.setDeleteReason(deleteReason);
         shadowPo.setBeforeMainStatus(beforeMainStatus);
