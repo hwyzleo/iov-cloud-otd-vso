@@ -165,7 +165,7 @@ CREATE TABLE `vso_order_party` (
     `order_id` VARCHAR(64) NOT NULL COMMENT '订单业务 ID',
     `party_role` VARCHAR(32) NOT NULL COMMENT '角色：order_user-下单客户，buyer-购车人，invoice_contact-发票联系人，delivery_contact-交付联系人，plate_contact-上牌联系人，emergency_contact-紧急联系人',
     `user_id` VARCHAR(64) DEFAULT NULL COMMENT '平台用户 ID',
-    `name` VARCHAR(64) NOT NULL COMMENT '姓名',
+    `name` VARCHAR(64) DEFAULT NULL COMMENT '姓名',
     `mobile_encrypted` VARCHAR(255) DEFAULT NULL COMMENT '手机号密文',
     `mobile_hash` CHAR(64) DEFAULT NULL COMMENT '手机号哈希',
     `id_no_encrypted` VARCHAR(255) DEFAULT NULL COMMENT '身份证号密文',
