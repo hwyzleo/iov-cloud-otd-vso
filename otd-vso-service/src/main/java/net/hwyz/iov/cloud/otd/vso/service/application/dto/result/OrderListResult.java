@@ -3,6 +3,11 @@ package net.hwyz.iov.cloud.otd.vso.service.application.dto.result;
 import lombok.Builder;
 import lombok.Data;
 
+import java.math.BigDecimal;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+
 /**
  * 订单列表结果
  *
@@ -86,4 +91,39 @@ public class OrderListResult {
      * 展示名称
      */
     private String displayName;
+
+    /**
+     * 销售车型配置类型
+     * key: 销售车型配置类型
+     * value: 销售车型配置代码
+     */
+    private Map<String, String> saleModelConfigType;
+
+    /**
+     * 销售车型配置名称
+     * key: 销售车型配置类型
+     * value: 销售车型配置名称
+     */
+    private Map<String, String> saleModelConfigName;
+
+    /**
+     * 销售车型图片集
+     */
+    private List<String> saleModelImages;
+
+    /**
+     * 总价格
+     */
+    private BigDecimal totalPrice;
+
+    /**
+     * 创建时间
+     */
+    private Date createTime;
+
+    /**
+     * 修改时间
+     */
+    private Date modifyTime;
+
 }

@@ -27,6 +27,8 @@ public interface OrderDtoAssembler {
     @Mapping(target = "saleModel", source = "saleModel")
     @Mapping(target = "regionCode", source = "regionCode")
     @Mapping(target = "buildConfigCode", source = "buildConfigCode")
+    @Mapping(target = "createTime", source = "createTime")
+    @Mapping(target = "modifyTime", source = "modifyTime")
     OrderListResult toOrderListResult(Order order);
 
     List<OrderListResult> toOrderListResultList(List<Order> orders);

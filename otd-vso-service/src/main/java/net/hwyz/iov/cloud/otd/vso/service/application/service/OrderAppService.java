@@ -3,6 +3,7 @@ package net.hwyz.iov.cloud.otd.vso.service.application.service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.hwyz.iov.cloud.edd.vmd.api.service.VmdVehicleModelConfigService;
+import net.hwyz.iov.cloud.edd.vmd.api.vo.response.VmdBuildConfigFeatureCodeResponse;
 import net.hwyz.iov.cloud.edd.vmd.api.vo.response.VmdBuildConfigResponse;
 import net.hwyz.iov.cloud.framework.web.util.PageUtil;
 import net.hwyz.iov.cloud.otd.vso.api.enums.PaymentChannel;
@@ -77,6 +78,7 @@ public class OrderAppService {
     private final PaymentChannelConfig paymentChannelConfig;
     private final SaleModelRepository saleModelRepository;
     private final PaymentRepository paymentRepository;
+    private final SaleModelAppService saleModelAppService;
 
     /**
      * 创建小订单
@@ -335,7 +337,48 @@ public class OrderAppService {
             result.setBrandName(result.getBrandCode());
             result.setSaleModelName(saleModelNameMap.getOrDefault(result.getSaleModel(), ""));
             result.setRegionName(getRegionName(result.getRegionCode()));
+
+            if (StrUtil.isNotBlank(result.getSaleModel()) && StrUtil.isNotBlank(result.getBuildConfigCode())) {
+                try {
+                    Map<String, String> featureCodes = parseBuildConfigToFeatureCodes(result.getBuildConfigCode());
+                    SelectedSaleModelResult selectedModel = saleModelAppService.getSelectedSaleModelByFeatureCodes(
+                            result.getSaleModel(), featureCodes);
+
+                    result.setSaleModelConfigType(selectedModel.getSaleModelConfigType());
+                    result.setSaleModelConfigName(selectedModel.getSaleModelConfigName());
+                    result.setSaleModelImages(selectedModel.getSaleModelImages());
+                    result.setTotalPrice(selectedModel.getTotalPrice());
+                } catch (Exception e) {
+                    log.warn("获取销售车型配置信息失败: saleModel={}, buildConfigCode={}", 
+                            result.getSaleModel(), result.getBuildConfigCode(), e);
+                }
+            }
         }
+    }
+
+    private Map<String, String> parseBuildConfigToFeatureCodes(String buildConfigCode) {
+        Map<String, String> featureCodes = new HashMap<>();
+
+        try {
+            VmdBuildConfigResponse buildConfig = vmdVehicleModelConfigService.getBuildConfigByCode(buildConfigCode);
+
+            if (buildConfig != null && buildConfig.getFeatureCodes() != null) {
+                for (VmdBuildConfigFeatureCodeResponse fc : buildConfig.getFeatureCodes()) {
+                    String familyCode = fc.getFamilyCode();
+                    if (fc.getFeatureCode() != null && fc.getFeatureCode().length > 0) {
+                        featureCodes.put(familyCode, fc.getFeatureCode()[0]);
+                    }
+                }
+
+                if (buildConfig.getBaseModelCode() != null && !buildConfig.getBaseModelCode().isEmpty()) {
+                    featureCodes.put("BASE_MODEL", buildConfig.getBaseModelCode());
+                }
+            }
+        } catch (Exception e) {
+            log.warn("解析生产配置失败: buildConfigCode={}", buildConfigCode, e);
+        }
+
+        return featureCodes;
     }
 
     private String getOrderTypeName(String orderType) {

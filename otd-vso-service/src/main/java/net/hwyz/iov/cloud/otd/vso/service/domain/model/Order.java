@@ -110,6 +110,11 @@ public class Order {
     /** 领域事件 */
     private List<OrderDomainEvent> domainEvents;
 
+    /** 创建时间 */
+    private Date createTime;
+    /** 修改时间 */
+    private Date modifyTime;
+
     public Order(String id, String orderType, String orderSource) {
         this.id = id;
         generateOrderNo();
