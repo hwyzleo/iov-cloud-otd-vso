@@ -44,7 +44,7 @@ class OrderAppServiceEarnestMoneyTest {
         assertNotNull(result.getOrderNo(), "订单号应该不为空");
         
         Wishlist savedWishlist = wishlistRepository.findByWishlistId(wishlist.getId()).orElse(null);
-        assertNotNull(savedWishlist, "心愿单在支付成功前应该还存在");
+        assertNull(savedWishlist, "心愿单在下单成功后应该被删除");
     }
 
     @Test

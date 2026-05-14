@@ -4,8 +4,8 @@ import net.hwyz.iov.cloud.otd.vso.api.enums.PaymentStage;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.Order;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.OrderState;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.event.PaymentSuccessDomainEvent;
+import net.hwyz.iov.cloud.otd.vso.service.domain.repository.AuditRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.OrderRepository;
-import net.hwyz.iov.cloud.otd.vso.service.domain.repository.WishlistRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -28,10 +28,10 @@ class PaymentSuccessEventListenerTest {
     private OrderRepository orderRepository;
 
     @Mock
-    private WishlistRepository wishlistRepository;
+    private TimeoutNotifyService timeoutNotifyService;
 
     @Mock
-    private TimeoutNotifyService timeoutNotifyService;
+    private AuditRepository auditRepository;
 
     @InjectMocks
     private PaymentSuccessEventListener eventListener;
@@ -60,7 +60,7 @@ class PaymentSuccessEventListenerTest {
     }
 
     @Test
-    void testHandlePaymentSuccess_ShouldDeleteWishlist_WhenEarnestMoneyPaid() {
+    void testHandlePaymentSuccess_ShouldUpdateOrderState() {
         when(orderRepository.findByOrderId("order_001")).thenReturn(Optional.of(order));
         when(orderRepository.save(any(Order.class))).thenReturn(order);
 
@@ -69,12 +69,10 @@ class PaymentSuccessEventListenerTest {
         verify(orderRepository).findByOrderId("order_001");
         verify(orderRepository).save(any(Order.class));
         verify(timeoutNotifyService).cancelByOrderIdAndType("order_001", "SMALL_ORDER_PAY_TIMEOUT");
-
-        verify(wishlistRepository).deleteByUserId("user_001");
     }
 
     @Test
-    void testHandlePaymentSuccess_ShouldNotDeleteWishlist_WhenOrderNotFound() {
+    void testHandlePaymentSuccess_ShouldThrowException_WhenOrderNotFound() {
         when(orderRepository.findByOrderId("order_001")).thenReturn(Optional.empty());
 
         try {
@@ -82,7 +80,5 @@ class PaymentSuccessEventListenerTest {
         } catch (RuntimeException e) {
             assertEquals("订单不存在：order_001", e.getMessage());
         }
-
-        verify(wishlistRepository, never()).deleteByUserId(any());
     }
 }

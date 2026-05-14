@@ -595,6 +595,11 @@ public class OrderAppService {
         
         saveOrderParty(order.getId(), cmd.getAccountId(), "order_user");
         
+        if (cmd.getWishlistId() != null && !cmd.getWishlistId().isEmpty()) {
+            wishlistRepository.deleteByUserId(cmd.getAccountId());
+            log.info("意向金下单成功后删除心愿单：accountId={}, orderNo={}", cmd.getAccountId(), order.getOrderNo());
+        }
+        
         timeoutNotifyService.createTimeoutTask(order.getId(), "SMALL_ORDER_PAY_TIMEOUT", "invalid", 
                 paymentChannelConfig.getSmallOrderTimeoutMinutes());
         
@@ -709,10 +714,7 @@ public class OrderAppService {
         order.pay(cmd.getPaymentAmount());
         orderRepository.save(order);
         
-        if (previousState == OrderState.EARNEST_MONEY_UNPAID && order.getOrderState() == OrderState.EARNEST_MONEY_PAID) {
-            wishlistRepository.deleteByUserId(cmd.getAccountId());
-            log.info("支付意向金成功后删除心愿单：accountId={}, orderNo={}", cmd.getAccountId(), cmd.getOrderNo());
-        } else if (previousState == OrderState.DOWN_PAYMENT_UNPAID && order.getOrderState() == OrderState.DOWN_PAYMENT_PAID) {
+        if (previousState == OrderState.DOWN_PAYMENT_UNPAID && order.getOrderState() == OrderState.DOWN_PAYMENT_PAID) {
             wishlistRepository.deleteByUserId(cmd.getAccountId());
             log.info("支付定金成功后删除心愿单：accountId={}, orderNo={}", cmd.getAccountId(), cmd.getOrderNo());
         }
