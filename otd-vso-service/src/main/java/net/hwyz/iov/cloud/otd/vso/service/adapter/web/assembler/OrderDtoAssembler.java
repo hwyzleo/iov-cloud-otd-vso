@@ -35,7 +35,7 @@ public interface OrderDtoAssembler {
 
     @Mapping(target = "orderId", source = "id")
     @Mapping(target = "orderState", expression = "java(order.getOrderState() != null ? order.getOrderState().getValue() : null)")
-    @Mapping(target = "licenseCityCode", source = "licenseCity")
+    @Mapping(target = "licenseCityCode", source = "regionCode")
     @Mapping(target = "dealershipCode", source = "dealership")
     @Mapping(target = "deliveryCenterCode", source = "deliveryCenter")
     OrderDetailResult toOrderDetailResult(Order order);

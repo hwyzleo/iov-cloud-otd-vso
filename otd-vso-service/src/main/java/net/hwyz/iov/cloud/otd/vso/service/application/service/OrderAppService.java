@@ -676,8 +676,8 @@ public class OrderAppService {
             result.setTotalPrice(selectedModel.getTotalPrice());
         }
         
-        if (StrUtil.isNotBlank(order.getLicenseCity())) {
-            result.setLicenseCityName(getCityName(order.getLicenseCity()));
+        if (StrUtil.isNotBlank(order.getRegionCode())) {
+            result.setLicenseCityName(getCityName(order.getRegionCode()));
         }
         
         return result;
