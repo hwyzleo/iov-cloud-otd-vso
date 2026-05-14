@@ -2,6 +2,8 @@ package net.hwyz.iov.cloud.otd.vso.service.application.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import net.hwyz.iov.cloud.edd.dictionary.api.service.DictionaryService;
+import net.hwyz.iov.cloud.edd.dictionary.api.vo.response.DictionaryResponse;
 import net.hwyz.iov.cloud.edd.vmd.api.service.VmdVehicleModelConfigService;
 import net.hwyz.iov.cloud.edd.vmd.api.vo.response.VmdBuildConfigFeatureCodeResponse;
 import net.hwyz.iov.cloud.edd.vmd.api.vo.response.VmdBuildConfigResponse;
@@ -79,6 +81,7 @@ public class OrderAppService {
     private final SaleModelRepository saleModelRepository;
     private final PaymentRepository paymentRepository;
     private final SaleModelAppService saleModelAppService;
+    private final DictionaryService dictionaryService;
 
     /**
      * 创建小订单
@@ -655,7 +658,42 @@ public class OrderAppService {
 
     public OrderDetailResult getUserOrder(String accountId, String orderNo) {
         Order order = findOrderById(accountId, orderNo);
-        return OrderDtoAssembler.INSTANCE.toOrderDetailResult(order);
+        OrderDetailResult result = OrderDtoAssembler.INSTANCE.toOrderDetailResult(order);
+        
+        if (StrUtil.isNotBlank(order.getSaleModel()) && StrUtil.isNotBlank(order.getBuildConfigCode())) {
+            Map<String, String> featureCodes = parseBuildConfigToFeatureCodes(order.getBuildConfigCode());
+            SelectedSaleModelResult selectedModel = saleModelAppService.getSelectedSaleModelByFeatureCodes(
+                    order.getSaleModel(), featureCodes);
+            
+            result.setSaleModelConfigType(selectedModel.getSaleModelConfigType());
+            result.setSaleModelConfigName(selectedModel.getSaleModelConfigName());
+            result.setSaleModelConfigPrice(selectedModel.getSaleModelConfigPrice());
+            result.setSaleModelImages(selectedModel.getSaleModelImages());
+            result.setSaleModelDesc(selectedModel.getSaleModelDesc());
+            result.setTotalPrice(selectedModel.getTotalPrice());
+        }
+        
+        if (StrUtil.isNotBlank(order.getLicenseCity())) {
+            result.setLicenseCityName(getCityName(order.getLicenseCity()));
+        }
+        
+        return result;
+    }
+    
+    private String getCityName(String cityCode) {
+        try {
+            DictionaryResponse city = dictionaryService.getDictionary("city");
+            if (city != null && city.getItems() != null) {
+                for (Map<String, Object> item : city.getItems()) {
+                    if (item.get("code") != null && item.get("code").toString().equals(cityCode)) {
+                        return item.get("name") != null ? item.get("name").toString() : cityCode;
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.warn("获取城市名称失败: cityCode={}", cityCode, e);
+        }
+        return cityCode;
     }
 
     public void cancel(CancelCmd cmd) {

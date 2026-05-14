@@ -5,6 +5,7 @@ import lombok.*;
 import java.math.BigDecimal;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 
 @Data
 @Builder
@@ -25,9 +26,9 @@ public class OrderResponseVo {
     private String dealershipName;
     private String deliveryCenterCode;
     private String deliveryCenterName;
-    private String saleModelConfigType;
-    private String saleModelConfigName;
-    private BigDecimal saleModelConfigPrice;
+    private Map<String, String> saleModelConfigType;
+    private Map<String, String> saleModelConfigName;
+    private Map<String, BigDecimal> saleModelConfigPrice;
     private BigDecimal totalPrice;
     private List<String> saleModelImages;
     private String saleModelDesc;

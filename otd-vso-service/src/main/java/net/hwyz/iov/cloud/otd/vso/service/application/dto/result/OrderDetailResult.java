@@ -7,7 +7,10 @@ import net.hwyz.iov.cloud.otd.vso.service.domain.model.shared.CustomerInfo;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.shared.OrganizationInfo;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.shared.VehicleInfo;
 
+import java.math.BigDecimal;
 import java.util.Date;
+import java.util.List;
+import java.util.Map;
 
 /**
  * 订单详情结果
@@ -94,9 +97,19 @@ public class OrderDetailResult {
     private String licenseCityCode;
 
     /**
+     * 上牌城市名称
+     */
+    private String licenseCityName;
+
+    /**
      * 门店编码
      */
     private String dealershipCode;
+
+    /**
+     * 门店名称
+     */
+    private String dealershipName;
 
     /**
      * 交付中心编码
@@ -104,19 +117,24 @@ public class OrderDetailResult {
     private String deliveryCenterCode;
 
     /**
+     * 交付中心名称
+     */
+    private String deliveryCenterName;
+
+    /**
      * 车型配置类型
      */
-    private String saleModelConfigType;
+    private Map<String, String> saleModelConfigType;
 
     /**
      * 车型配置名称
      */
-    private String saleModelConfigName;
+    private Map<String, String> saleModelConfigName;
 
     /**
      * 车型配置价格
      */
-    private java.math.BigDecimal saleModelConfigPrice;
+    private Map<String, BigDecimal> saleModelConfigPrice;
 
     /**
      * 车型图片列表
