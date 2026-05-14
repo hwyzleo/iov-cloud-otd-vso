@@ -10,6 +10,7 @@ import net.hwyz.iov.cloud.otd.vso.service.domain.model.shared.*;
 import net.hwyz.iov.cloud.otd.vso.service.common.exception.OrderIllegalDeleteException;
 import net.hwyz.iov.cloud.otd.vso.service.common.exception.OrderStateNotAllowedException;
 import net.hwyz.iov.cloud.otd.vso.service.common.exception.SaleModelConfigHasLockedException;
+import net.hwyz.iov.cloud.otd.vso.service.common.util.OrderNoGenerator;
 
 import java.math.BigDecimal;
 import java.util.*;
@@ -169,7 +170,7 @@ public class Order {
      * 生成订单编码
      */
     private void generateOrderNo() {
-        this.orderNo = IdUtil.nanoId(15);
+        this.orderNo = OrderNoGenerator.generate();
     }
 
     /**
