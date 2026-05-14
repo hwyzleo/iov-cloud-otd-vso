@@ -18,6 +18,7 @@ public interface OrderDetailResponseAssembler {
 
     @Mapping(target = "orderId", source = "orderId")
     @Mapping(target = "orderNo", source = "orderNo")
+    @Mapping(target = "createdAtBusiness", source = "orderTime")
     OrderDetailResponse toVo(OrderDetailResult result);
 
 }
