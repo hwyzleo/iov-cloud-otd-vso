@@ -31,7 +31,7 @@ public interface MyVehicleAssembler {
     @Mapping(target = "id", source = "orderNo")
     @Mapping(target = "type", constant = "ORDER")
     @Mapping(target = "state", source = "orderState")
-    @Mapping(target = "displayName", source = "displayName")
+    @Mapping(target = "displayName", source = "orderNo")
     @Mapping(target = "saleModelImages", source = "saleModelImages")
     @Mapping(target = "totalPrice", source = "totalPrice")
     @Mapping(target = "saleModelDesc", source = "saleModelDesc")
