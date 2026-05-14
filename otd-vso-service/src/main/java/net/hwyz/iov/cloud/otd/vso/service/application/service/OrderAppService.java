@@ -595,10 +595,8 @@ public class OrderAppService {
         
         saveOrderParty(order.getId(), cmd.getAccountId(), "order_user");
         
-        if (cmd.getWishlistId() != null && !cmd.getWishlistId().isEmpty()) {
-            wishlistRepository.deleteByUserId(cmd.getAccountId());
-            log.info("意向金下单成功后删除心愿单：accountId={}, orderNo={}", cmd.getAccountId(), order.getOrderNo());
-        }
+        wishlistRepository.deleteByUserId(cmd.getAccountId());
+        log.info("意向金下单成功后删除心愿单：accountId={}, orderNo={}", cmd.getAccountId(), order.getOrderNo());
         
         timeoutNotifyService.createTimeoutTask(order.getId(), "SMALL_ORDER_PAY_TIMEOUT", "invalid", 
                 paymentChannelConfig.getSmallOrderTimeoutMinutes());
