@@ -7,23 +7,30 @@ import net.hwyz.iov.cloud.otd.vso.service.domain.repository.OrderAmountRepositor
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.shared.CustomerInfo;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.shared.VehicleInfo;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.shared.OrganizationInfo;
+import net.hwyz.iov.cloud.otd.vso.service.domain.repository.AuditRepository;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.OrderPo;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.OrderAmountPo;
+import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.OrderTimelinePo;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import cn.hutool.core.util.IdUtil;
+import java.time.LocalDateTime;
 
 /**
  * 订单领域服务
  *
  * @author VSO Team
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class OrderDomainService {
 
     private final OrderRepository orderRepository;
     private final OrderAmountRepository orderAmountRepository;
+    private final AuditRepository auditRepository;
 
     /**
      * 创建小订单
@@ -48,6 +55,10 @@ public class OrderDomainService {
         
         // 保存订单
         saveOrder(order);
+        
+        // 记录时间线
+        saveTimeline(orderId, "ORDER_CREATE", "创建小订单", null, "EARNEST_MONEY_UNPAID",
+                "system", "system", orderSource, null, "success", null, "小订单创建成功");
         
         return order;
     }
@@ -74,6 +85,10 @@ public class OrderDomainService {
         // 保存订单
         saveOrder(order);
         
+        // 记录时间线
+        saveTimeline(orderId, "ORDER_CREATE", "创建正式订单", null, "PENDING_SUBMIT",
+                "system", "system", orderSource, null, "success", null, "正式订单创建成功");
+        
         return order;
     }
 
@@ -83,8 +98,13 @@ public class OrderDomainService {
     @Transactional(rollbackFor = Exception.class)
     public void submitOrder(String orderId) {
         Order order = loadOrder(orderId);
+        String beforeStatus = order.getMainStatus();
         order.submit();
         saveOrder(order);
+        
+        // 记录时间线
+        saveTimeline(orderId, "ORDER_SUBMIT", "提交审核", beforeStatus, "PENDING_AUDIT",
+                "system", "system", "system", null, "success", null, "订单已提交审核");
     }
 
     /**
@@ -93,8 +113,13 @@ public class OrderDomainService {
     @Transactional(rollbackFor = Exception.class)
     public void auditPass(String orderId) {
         Order order = loadOrder(orderId);
+        String beforeStatus = order.getMainStatus();
         order.auditPass();
         saveOrder(order);
+        
+        // 记录时间线
+        saveTimeline(orderId, "AUDIT_PASS", "审核通过", beforeStatus, order.getMainStatus(),
+                "system", "auditor", "system", null, "success", null, "订单审核通过");
     }
 
     /**
@@ -103,8 +128,13 @@ public class OrderDomainService {
     @Transactional(rollbackFor = Exception.class)
     public void auditReject(String orderId, String reason) {
         Order order = loadOrder(orderId);
+        String beforeStatus = order.getMainStatus();
         order.auditReject(reason);
         saveOrder(order);
+        
+        // 记录时间线
+        saveTimeline(orderId, "AUDIT_REJECT", "审核驳回", beforeStatus, order.getMainStatus(),
+                "system", "auditor", "system", null, "success", reason, "订单审核驳回");
     }
 
     /**
@@ -113,8 +143,13 @@ public class OrderDomainService {
     @Transactional(rollbackFor = Exception.class)
     public void lockOrder(String orderId) {
         Order order = loadOrder(orderId);
+        String beforeStatus = order.getMainStatus();
         order.lock();
         saveOrder(order);
+        
+        // 记录时间线
+        saveTimeline(orderId, "ORDER_LOCK", "锁单", beforeStatus, order.getMainStatus(),
+                "system", "system", "system", null, "success", null, "订单已锁单");
     }
 
     /**
@@ -123,8 +158,13 @@ public class OrderDomainService {
     @Transactional(rollbackFor = Exception.class)
     public void cancelOrder(String orderId, String reason) {
         Order order = loadOrder(orderId);
+        String beforeStatus = order.getMainStatus();
         order.cancel(reason);
         saveOrder(order);
+        
+        // 记录时间线
+        saveTimeline(orderId, "ORDER_CANCEL", "取消订单", beforeStatus, "CANCEL",
+                "system", "system", "system", null, "success", reason, "订单已取消");
     }
 
     /**
@@ -133,8 +173,13 @@ public class OrderDomainService {
     @Transactional(rollbackFor = Exception.class)
     public void closeOrder(String orderId, String reason) {
         Order order = loadOrder(orderId);
+        String beforeStatus = order.getMainStatus();
         order.close(reason);
         saveOrder(order);
+        
+        // 记录时间线
+        saveTimeline(orderId, "ORDER_CLOSE", "关闭订单", beforeStatus, "CLOSED",
+                "system", "system", "system", null, "success", reason, "订单已关闭");
     }
 
     /**
@@ -143,8 +188,13 @@ public class OrderDomainService {
     @Transactional(rollbackFor = Exception.class)
     public void completeOrder(String orderId) {
         Order order = loadOrder(orderId);
+        String beforeStatus = order.getMainStatus();
         order.complete();
         saveOrder(order);
+        
+        // 记录时间线
+        saveTimeline(orderId, "ORDER_COMPLETE", "订单完成", beforeStatus, "COMPLETED",
+                "system", "system", "system", null, "success", null, "订单已完成");
     }
 
     /**
@@ -153,8 +203,13 @@ public class OrderDomainService {
     @Transactional(rollbackFor = Exception.class)
     public void invalidateSmallOrder(String orderId) {
         Order order = loadOrder(orderId);
+        String beforeStatus = order.getMainStatus();
         order.invalidate();
         saveOrder(order);
+        
+        // 记录时间线
+        saveTimeline(orderId, "ORDER_INVALIDATE", "小订单失效", beforeStatus, "EXPIRED",
+                "system", "system", "system", null, "success", null, "小订单超时失效");
     }
 
     /**
@@ -238,6 +293,32 @@ public class OrderDomainService {
     private String generateAmountId() {
         // TODO: 实现金额 ID 生成逻辑
         return "AMT" + System.currentTimeMillis();
+    }
+
+    /**
+     * 保存时间线记录
+     */
+    private void saveTimeline(String orderId, String eventType, String eventName,
+                              String beforeStatus, String afterStatus,
+                              String operatorId, String operatorRole, String operateSource,
+                              String relatedDocNo, String result, String failReason, String eventRemark) {
+        OrderTimelinePo timelinePo = new OrderTimelinePo();
+        timelinePo.setTimelineId(IdUtil.fastSimpleUUID());
+        timelinePo.setOrderId(orderId);
+        timelinePo.setEventType(eventType);
+        timelinePo.setEventName(eventName);
+        timelinePo.setBeforeStatus(beforeStatus);
+        timelinePo.setAfterStatus(afterStatus);
+        timelinePo.setOperatorId(operatorId);
+        timelinePo.setOperatorRole(operatorRole);
+        timelinePo.setOperateSource(operateSource);
+        timelinePo.setRelatedDocNo(relatedDocNo);
+        timelinePo.setResult(result);
+        timelinePo.setFailReason(failReason);
+        timelinePo.setEventRemark(eventRemark);
+        timelinePo.setEventTime(LocalDateTime.now());
+        auditRepository.saveTimeline(timelinePo);
+        log.debug("保存时间线记录：orderId={}, eventType={}", orderId, eventType);
     }
 
 }
