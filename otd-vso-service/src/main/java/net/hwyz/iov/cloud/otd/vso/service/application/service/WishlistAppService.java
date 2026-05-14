@@ -133,6 +133,7 @@ public class WishlistAppService {
                 .saleModelConfigName(selectedModel.getSaleModelConfigName())
                 .saleModelImages(selectedModel.getSaleModelImages())
                 .totalPrice(selectedModel.getTotalPrice())
+                .saleModelDesc(selectedModel.getSaleModelDesc())
                 .isValid(checkBuildConfigValid(wishlist.getBuildConfigCode()))
                 .build();
     }

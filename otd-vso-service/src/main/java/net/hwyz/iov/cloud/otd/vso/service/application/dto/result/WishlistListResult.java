@@ -28,6 +28,7 @@ public class WishlistListResult {
     private Map<String, String> saleModelConfigName;
     private List<String> saleModelImages;
     private BigDecimal totalPrice;
+    private String saleModelDesc;
     private Boolean isValid;
 
 }

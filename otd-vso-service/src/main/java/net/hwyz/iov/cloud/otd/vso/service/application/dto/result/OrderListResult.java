@@ -117,6 +117,11 @@ public class OrderListResult {
     private BigDecimal totalPrice;
 
     /**
+     * 销售车型描述
+     */
+    private String saleModelDesc;
+
+    /**
      * 创建时间
      */
     private Date createTime;

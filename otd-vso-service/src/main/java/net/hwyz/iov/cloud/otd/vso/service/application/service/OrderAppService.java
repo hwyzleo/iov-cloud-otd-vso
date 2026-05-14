@@ -348,6 +348,7 @@ public class OrderAppService {
                     result.setSaleModelConfigName(selectedModel.getSaleModelConfigName());
                     result.setSaleModelImages(selectedModel.getSaleModelImages());
                     result.setTotalPrice(selectedModel.getTotalPrice());
+                    result.setSaleModelDesc(selectedModel.getSaleModelDesc());
                 } catch (Exception e) {
                     log.warn("获取销售车型配置信息失败: saleModel={}, buildConfigCode={}", 
                             result.getSaleModel(), result.getBuildConfigCode(), e);

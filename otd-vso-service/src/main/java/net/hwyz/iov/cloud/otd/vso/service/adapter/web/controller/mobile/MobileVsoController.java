@@ -41,10 +41,12 @@ public class MobileVsoController extends BaseController {
         List<OrderListResult> orders = vehicleSaleOrderAppService.search(OrderQuery.builder().type("valid").build());
 
         List<MyVehicleVo> myVehicles = new ArrayList<>();
+        
+        wishlists.sort(Comparator.comparing(WishlistListResult::getModifyTime, Comparator.nullsLast(Comparator.reverseOrder())));
         myVehicles.addAll(MyVehicleAssembler.INSTANCE.fromWishlistList(wishlists));
+        
+        orders.sort(Comparator.comparing(OrderListResult::getModifyTime, Comparator.nullsLast(Comparator.reverseOrder())));
         myVehicles.addAll(MyVehicleAssembler.INSTANCE.fromOrderList(orders));
-
-        myVehicles.sort(Comparator.comparing(MyVehicleVo::getModifyTime, Comparator.nullsLast(Comparator.reverseOrder())));
 
         return ApiResponse.ok(myVehicles);
     }

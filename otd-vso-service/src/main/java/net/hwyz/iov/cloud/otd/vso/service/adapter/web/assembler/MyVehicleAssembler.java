@@ -22,31 +22,19 @@ public interface MyVehicleAssembler {
     @Mapping(target = "id", source = "wishlistId")
     @Mapping(target = "type", constant = "WISHLIST")
     @Mapping(target = "state", expression = "java(100)")
-    @Mapping(target = "createTime", source = "createTime")
-    @Mapping(target = "modifyTime", source = "modifyTime")
     @Mapping(target = "displayName", source = "displayName")
-    @Mapping(target = "saleModelCode", source = "saleModelCode")
-    @Mapping(target = "buildConfigCode", source = "buildConfigCode")
-    @Mapping(target = "saleModelConfigType", source = "saleModelConfigType")
-    @Mapping(target = "saleModelConfigName", source = "saleModelConfigName")
     @Mapping(target = "saleModelImages", source = "saleModelImages")
     @Mapping(target = "totalPrice", source = "totalPrice")
-    @Mapping(target = "isValid", source = "isValid")
+    @Mapping(target = "saleModelDesc", source = "saleModelDesc")
     MyVehicleVo fromWishlist(WishlistListResult wishlist);
 
     @Mapping(target = "id", source = "orderNo")
     @Mapping(target = "type", constant = "ORDER")
     @Mapping(target = "state", source = "orderState")
-    @Mapping(target = "createTime", source = "createTime")
-    @Mapping(target = "modifyTime", source = "modifyTime")
     @Mapping(target = "displayName", source = "displayName")
-    @Mapping(target = "saleModelCode", source = "saleModel")
-    @Mapping(target = "buildConfigCode", source = "buildConfigCode")
-    @Mapping(target = "saleModelConfigType", source = "saleModelConfigType")
-    @Mapping(target = "saleModelConfigName", source = "saleModelConfigName")
     @Mapping(target = "saleModelImages", source = "saleModelImages")
     @Mapping(target = "totalPrice", source = "totalPrice")
-    @Mapping(target = "isValid", expression = "java(true)")
+    @Mapping(target = "saleModelDesc", source = "saleModelDesc")
     MyVehicleVo fromOrder(OrderListResult order);
 
     List<MyVehicleVo> fromWishlistList(List<WishlistListResult> wishlists);
