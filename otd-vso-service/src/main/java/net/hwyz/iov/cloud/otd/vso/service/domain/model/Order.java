@@ -293,7 +293,7 @@ public class Order {
     }
 
     public void earnestMoneyToDownPayment() {
-        this.orderState = OrderState.DOWN_PAYMENT_UNPAID;
+        this.orderState = OrderState.DOWN_PAYMENT_PAID;
         this.orderStateTime = new Date();
     }
 
