@@ -39,6 +39,12 @@ public class OrderPo extends BasePo {
     @TableField("customer_type")
     private String customerType;
 
+    @TableField("payment_method")
+    private String paymentMethod;
+
+    @TableField("license_city")
+    private String licenseCity;
+
     @TableField("main_status")
     private String mainStatus;
 

@@ -91,6 +91,11 @@ private String saleCode;
     private String orderPersonIdNum;
 
     /**
+     * 支付状态
+     */
+    private Integer payState;
+
+    /**
      * 上牌城市编码
      */
     private String licenseCityCode;

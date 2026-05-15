@@ -30,6 +30,7 @@ import net.hwyz.iov.cloud.otd.vso.service.domain.model.shared.CustomerInfo;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.shared.OrganizationInfo;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.shared.VehicleInfo;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.OrderPartyRepository;
+import net.hwyz.iov.cloud.otd.vso.service.domain.repository.OrderAssignmentRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.OrderRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.PaymentRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.SaleModelRepository;
@@ -40,6 +41,7 @@ import net.hwyz.iov.cloud.otd.vso.service.domain.service.OrderPhysicalDeleteServ
 import net.hwyz.iov.cloud.otd.vso.service.domain.service.OrderValidationService;
 import net.hwyz.iov.cloud.otd.vso.service.domain.service.TimeoutNotifyService;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.config.PaymentChannelConfig;
+import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.OrderAssignmentPo;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.OrderPartyPo;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.PaymentPo;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.SaleModelPo;
@@ -50,6 +52,7 @@ import cn.hutool.core.util.IdUtil;
 import cn.hutool.core.util.StrUtil;
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -75,6 +78,7 @@ public class OrderAppService {
     private final TimeoutNotifyService timeoutNotifyService;
     private final OrderRepository orderRepository;
     private final OrderPartyRepository orderPartyRepository;
+    private final OrderAssignmentRepository orderAssignmentRepository;
     private final WishlistRepository wishlistRepository;
     private final VmdVehicleModelConfigService vmdVehicleModelConfigService;
     private final OrderPhysicalDeleteService orderPhysicalDeleteService;
@@ -672,13 +676,29 @@ public class OrderAppService {
         
         order.downPaymentOrder();
         order.saveBuildConfig(buildConfigCode, cmd.getModelConfigMap());
+        
+        if (StrUtil.isNotBlank(cmd.getCustomerType())) {
+            order.saveCustomerType(cmd.getCustomerType());
+        }
+        if (StrUtil.isNotBlank(cmd.getPaymentMethod())) {
+            order.savePaymentMethod(cmd.getPaymentMethod());
+        }
         order.saveOrderPerson(cmd.getAccountId(), cmd.getOrderPersonType(), cmd.getOrderPersonName(),
                 cmd.getOrderPersonIdType(), cmd.getOrderPersonIdNum());
         order.savePurchasePlan(cmd.getPurchasePlan());
         order.saveLicenseCity(cmd.getLicenseCityCode());
-        order.saveDealership(cmd.getDealership());
-        order.saveDeliveryCenter(cmd.getDeliveryCenter());
+        
         orderRepository.save(order);
+        
+        saveOrderParty(order.getId(), cmd.getAccountId(), "order_user");
+        if (StrUtil.isNotBlank(cmd.getOrderPersonName()) && StrUtil.isNotBlank(cmd.getOrderPersonIdNum())) {
+            saveBuyerInfo(order.getId(), cmd.getOrderPersonName(), cmd.getOrderPersonIdNum());
+        }
+        
+        if (StrUtil.isNotBlank(cmd.getDealership()) || StrUtil.isNotBlank(cmd.getDeliveryCenter())) {
+            saveOrderAssignment(order.getId(), cmd.getDealership(), cmd.getDeliveryCenter());
+        }
+        
         log.info("定金下单完成：orderId={}, orderNo={}, saleModel={}, buildConfigCode={}", 
                 order.getId(), order.getOrderNo(), saleModel, buildConfigCode);
         return order.getOrderNo();
@@ -838,6 +858,30 @@ public class OrderAppService {
         orderPartyPo.setAuthorizedFlag(0);
         orderPartyRepository.save(orderPartyPo);
         log.info("保存订单客户信息：orderId={}, userId={}, partyRole={}", orderId, userId, partyRole);
+    }
+
+    private void saveBuyerInfo(String orderId, String buyerName, String buyerIdNo) {
+        OrderPartyPo buyerPo = new OrderPartyPo();
+        buyerPo.setPartyId(IdUtil.nanoId(15));
+        buyerPo.setOrderId(orderId);
+        buyerPo.setPartyRole("buyer");
+        buyerPo.setName(buyerName);
+        buyerPo.setIdNoEncrypted(buyerIdNo);
+        buyerPo.setAuthorizedFlag(0);
+        orderPartyRepository.save(buyerPo);
+        log.info("保存购车人信息：orderId={}, buyerName={}", orderId, buyerName);
+    }
+
+    private void saveOrderAssignment(String orderId, String dealership, String deliveryCenter) {
+        OrderAssignmentPo assignmentPo = new OrderAssignmentPo();
+        assignmentPo.setAssignmentId(IdUtil.nanoId(15));
+        assignmentPo.setOrderId(orderId);
+        assignmentPo.setOrderStoreCode(dealership);
+        assignmentPo.setDeliveryStoreCode(deliveryCenter);
+        assignmentPo.setAssignType("initial");
+        assignmentPo.setAssignTime(LocalDateTime.now());
+        orderAssignmentRepository.save(assignmentPo);
+        log.info("保存订单归属信息：orderId={}, dealership={}, deliveryCenter={}", orderId, dealership, deliveryCenter);
     }
 
     public InitiatePaymentResult initiatePayment(InitiatePaymentCmd cmd) {

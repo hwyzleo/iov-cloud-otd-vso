@@ -37,6 +37,8 @@ public class Order {
     private String orderSource;
     /** 客户类型 */
     private String customerType;
+    /** 付款方式 */
+    private String paymentMethod;
     /** 品牌编码 */
     private String brandCode;
     /** 是否有异常单 */
@@ -312,6 +314,14 @@ public class Order {
 
     public void saveLicenseCity(String licenseCity) {
         this.licenseCity = licenseCity;
+    }
+
+    public void saveCustomerType(String customerType) {
+        this.customerType = customerType;
+    }
+
+    public void savePaymentMethod(String paymentMethod) {
+        this.paymentMethod = paymentMethod;
     }
 
     public void saveDealership(String dealership) {

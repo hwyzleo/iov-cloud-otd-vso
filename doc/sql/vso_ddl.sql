@@ -117,6 +117,8 @@ CREATE TABLE `vso_order` (
     `order_source` VARCHAR(32) NOT NULL COMMENT '订单来源：capp-C 端自主下单，sales-销售代客下单，store-门店代客下单，operation-运营补录，import-外部导入，activity-活动订单，small_to_formal-小订单转正式',
     `source_remark` VARCHAR(255) DEFAULT NULL COMMENT '来源补充说明',
     `customer_type` VARCHAR(32) NOT NULL DEFAULT 'personal' COMMENT '客户类型：personal-个人客户',
+    `payment_method` VARCHAR(32) DEFAULT NULL COMMENT '付款方式：full_payment-全款，loan-贷款',
+    `license_city` VARCHAR(64) DEFAULT NULL COMMENT '上牌城市编码',
     `main_status` VARCHAR(32) NOT NULL COMMENT '主状态：待创建，待提交，待审核，待锁单，已锁单，待配车，已配车，待签约，待付款，待交付，已交付，已完成，已取消，已关闭',
     `end_type` VARCHAR(32) DEFAULT NULL COMMENT '结束语义：cancel-取消，close-关闭，void-作废',
     `previous_main_status` VARCHAR(32) DEFAULT NULL COMMENT '关闭前上一有效状态',
