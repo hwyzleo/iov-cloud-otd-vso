@@ -34,11 +34,10 @@ public class OrderDetailResult {
     /**
      * 销售代码
      */
-    private String saleCode;
+private String saleCode;
 
-    /**
-     * 订单状态
-     */
+    private String saleModelCode;
+
     private Integer orderState;
 
     /**

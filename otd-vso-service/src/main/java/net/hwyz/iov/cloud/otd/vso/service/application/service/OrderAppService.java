@@ -19,6 +19,7 @@ import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.*;
 import net.hwyz.iov.cloud.otd.vso.service.common.exception.BrandCodeNotExistException;
 import net.hwyz.iov.cloud.otd.vso.service.common.exception.BuildConfigNotMatchedException;
 import net.hwyz.iov.cloud.otd.vso.service.common.exception.OrderNotExistException;
+import net.hwyz.iov.cloud.otd.vso.service.common.exception.OrderStateNotAllowedException;
 import net.hwyz.iov.cloud.otd.vso.service.common.exception.PaymentChannelNotAvailableException;
 import net.hwyz.iov.cloud.otd.vso.service.common.exception.WishlistNotExistException;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.Order;
@@ -617,20 +618,44 @@ public class OrderAppService {
     }
 
     public String downPaymentOrder(DownPaymentCmd cmd) {
-        log.info("定金下单：accountId={}, saleModel={}, wishlistId={}", 
-                cmd.getAccountId(), cmd.getSaleModel(), cmd.getWishlistId());
+        log.info("定金下单：accountId={}, orderNo={}, saleModel={}, wishlistId={}", 
+                cmd.getAccountId(), cmd.getOrderNo(), cmd.getSaleModel(), cmd.getWishlistId());
         
-        Order order = createOrFindOrder(cmd.getAccountId(), cmd.getOrderNo());
+        String buildConfigCode;
+        String saleModel;
+        Order order;
         
-        String buildConfigCode = cmd.getBuildConfigCode();
-        String saleModel = cmd.getSaleModel();
+        if (StrUtil.isNotBlank(cmd.getOrderNo())) {
+            Optional<Order> orderOpt = orderRepository.findByOrderNoAndAccountId(cmd.getOrderNo(), cmd.getAccountId());
+            if (orderOpt.isPresent()) {
+                order = orderOpt.get();
+                if (order.getOrderState() == OrderState.EARNEST_MONEY_PAID) {
+                    log.info("意向金转定金：orderNo={}, saleModel={}, buildConfigCode={}", 
+                            order.getOrderNo(), order.getSaleModel(), order.getBuildConfigCode());
+                    saleModel = order.getSaleModel();
+                    buildConfigCode = order.getBuildConfigCode();
+                } else {
+                    log.warn("订单状态不允许定金下单：orderNo={}, orderState={}", 
+                            order.getOrderNo(), order.getOrderState());
+                    throw new OrderStateNotAllowedException(order.getOrderNo(), order.getOrderState(), "DOWN_PAYMENT");
+                }
+            } else {
+                order = Order.fromWishlist(cmd.getAccountId(), null);
+                saleModel = cmd.getSaleModel();
+                buildConfigCode = cmd.getBuildConfigCode();
+            }
+        } else {
+            order = Order.fromWishlist(cmd.getAccountId(), null);
+            saleModel = cmd.getSaleModel();
+            buildConfigCode = cmd.getBuildConfigCode();
+        }
         
-        if (cmd.getWishlistId() != null && !cmd.getWishlistId().isEmpty()) {
+        if (cmd.getWishlistId() != null && !cmd.getWishlistId().isEmpty() && StrUtil.isBlank(order.getOrderNo())) {
             Wishlist wishlist = wishlistRepository.findByWishlistIdAndUserId(cmd.getWishlistId(), cmd.getAccountId())
                 .orElseThrow(() -> new WishlistNotExistException(cmd.getWishlistId()));
             
-            saleModel = cmd.getSaleModel() != null ? cmd.getSaleModel() : wishlist.getSaleModel();
-            buildConfigCode = cmd.getBuildConfigCode() != null ? cmd.getBuildConfigCode() : wishlist.getBuildConfigCode();
+            saleModel = StrUtil.isNotBlank(saleModel) ? saleModel : wishlist.getSaleModel();
+            buildConfigCode = StrUtil.isNotBlank(buildConfigCode) ? buildConfigCode : wishlist.getBuildConfigCode();
             
             order.saveSaleModel(saleModel);
         }
@@ -654,8 +679,8 @@ public class OrderAppService {
         order.saveDealership(cmd.getDealership());
         order.saveDeliveryCenter(cmd.getDeliveryCenter());
         orderRepository.save(order);
-        log.info("定金下单完成：orderId={}, orderNo={}, buildConfigCode={}", 
-                order.getId(), order.getOrderNo(), order.getBuildConfigCode());
+        log.info("定金下单完成：orderId={}, orderNo={}, saleModel={}, buildConfigCode={}", 
+                order.getId(), order.getOrderNo(), saleModel, buildConfigCode);
         return order.getOrderNo();
     }
 

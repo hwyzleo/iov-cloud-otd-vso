@@ -26,6 +26,7 @@ public class OrderResponseVo {
     private String dealershipName;
     private String deliveryCenterCode;
     private String deliveryCenterName;
+    private String saleModelCode;
     private Map<String, String> saleModelConfigType;
     private Map<String, String> saleModelConfigName;
     private Map<String, BigDecimal> saleModelConfigPrice;

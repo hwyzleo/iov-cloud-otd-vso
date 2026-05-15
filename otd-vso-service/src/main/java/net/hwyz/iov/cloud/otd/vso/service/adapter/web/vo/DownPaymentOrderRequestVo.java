@@ -10,7 +10,7 @@ import java.util.Map;
 @AllArgsConstructor
 public class DownPaymentOrderRequestVo {
 
-    private String saleCode;
+    private String saleModelCode;
     private String orderNo;
     private Map<String, String> saleModelConfigType;
     private String licenseCityCode;

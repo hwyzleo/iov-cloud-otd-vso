@@ -38,6 +38,7 @@ public interface OrderDtoAssembler {
     @Mapping(target = "licenseCityCode", source = "regionCode")
     @Mapping(target = "dealershipCode", source = "dealership")
     @Mapping(target = "deliveryCenterCode", source = "deliveryCenter")
+    @Mapping(target = "saleModelCode", source = "saleModel")
     OrderDetailResult toOrderDetailResult(Order order);
 
     WishlistDetailResult toWishlistDetailResult(Order order);
