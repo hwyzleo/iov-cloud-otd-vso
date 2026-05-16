@@ -959,12 +959,25 @@ public class OrderAppService {
     }
 
     private void saveOrderVehicleSnapshot(Order order) {
+        if (StrUtil.isBlank(order.getSaleModel())) {
+            log.warn("订单缺少saleModel，无法生成车型快照：orderNo={}", order.getOrderNo());
+            return;
+        }
+        
         if (StrUtil.isBlank(order.getBuildConfigCode())) {
             log.warn("订单缺少buildConfigCode，无法生成车型快照：orderNo={}", order.getOrderNo());
             return;
         }
         
+        SaleModelResult saleModel = saleModelAppService.getSaleModelByCode(order.getSaleModel());
         VmdBuildConfigResponse buildConfig = vmdVehicleModelConfigService.getBuildConfigByCode(order.getBuildConfigCode());
+        
+        if (saleModel == null) {
+            log.warn("获取saleModel失败，无法生成车型快照：orderNo={}, saleModel={}", 
+                    order.getOrderNo(), order.getSaleModel());
+            return;
+        }
+        
         if (buildConfig == null) {
             log.warn("获取buildConfig失败，无法生成车型快照：orderNo={}, buildConfigCode={}", 
                     order.getOrderNo(), order.getBuildConfigCode());
@@ -974,13 +987,16 @@ public class OrderAppService {
         OrderVehicleSnapshotPo snapshotPo = new OrderVehicleSnapshotPo();
         snapshotPo.setSnapshotId(IdUtil.nanoId(15));
         snapshotPo.setOrderId(order.getId());
-        snapshotPo.setConfigCode(order.getBuildConfigCode());
-        snapshotPo.setConfigName(buildConfig.getName());
+        snapshotPo.setSaleModelCode(saleModel.getSaleModelCode());
+        snapshotPo.setSaleModelName(saleModel.getModelName());
+        snapshotPo.setBuildConfigCode(order.getBuildConfigCode());
+        snapshotPo.setBuildConfigName(buildConfig.getName());
         snapshotPo.setSnapshotVersion(1);
         
         orderVehicleSnapshotRepository.save(snapshotPo);
-        log.info("保存订单车型快照：orderId={}, buildConfigCode={}, buildConfigName={}", 
-                order.getId(), snapshotPo.getConfigCode(), snapshotPo.getConfigName());
+        log.info("保存订单车型快照：orderId={}, saleModelCode={}, saleModelName={}, buildConfigCode={}, buildConfigName={}", 
+                order.getId(), snapshotPo.getSaleModelCode(), snapshotPo.getSaleModelName(),
+                snapshotPo.getBuildConfigCode(), snapshotPo.getBuildConfigName());
     }
 
     public InitiatePaymentResult initiatePayment(InitiatePaymentCmd cmd) {
