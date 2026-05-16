@@ -21,6 +21,7 @@ public class PaymentChannelConfig {
     private List<ChannelInfo> channels = new ArrayList<>();
     private PaymentChannel defaultChannel = PaymentChannel.WECHAT;
     private Integer smallOrderTimeoutMinutes = 30;
+    private Integer downPaymentTimeoutMinutes = 60;
 
     @Data
     public static class ChannelInfo {
