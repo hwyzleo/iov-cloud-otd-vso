@@ -54,6 +54,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import cn.hutool.core.util.IdUtil;
 import cn.hutool.core.util.StrUtil;
+import cn.hutool.json.JSONUtil;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -574,6 +575,10 @@ public class OrderAppService {
             order.saveBrandCode(buildConfig.getBrandCode());
             order.saveRegionCode(cmd.getRegionCode());
             order.saveSaleModel(saleModel);
+            String saleModelName = saleModelRepository.findBySaleModelCode(saleModel)
+                    .map(SaleModelPo::getModelName)
+                    .orElse("");
+            saveOrderVehicleSnapshot(order, saleModel, saleModelName, buildConfig);
         } else {
             if (cmd.getFeatureConfig() != null && !cmd.getFeatureConfig().isEmpty()) {
                 Map<String, String> featureConfig = new HashMap<>(cmd.getFeatureConfig());
@@ -598,6 +603,10 @@ public class OrderAppService {
             order.saveBrandCode(buildConfig.getBrandCode());
             order.saveRegionCode(cmd.getRegionCode());
             order.saveSaleModel(saleModel);
+            String saleModelName = saleModelRepository.findBySaleModelCode(saleModel)
+                    .map(SaleModelPo::getModelName)
+                    .orElse("");
+            saveOrderVehicleSnapshot(order, saleModel, saleModelName, buildConfig);
         }
         
         order.createSmallOrder();
@@ -827,8 +836,6 @@ public class OrderAppService {
                 null, "success", null, 
                 "意向金订单转定金订单");
         
-        saveOrderVehicleSnapshot(order);
-        
         log.info("意向金转定金完成：orderId={}, orderNo={}, orderType={}", 
                 order.getId(), order.getOrderNo(), order.getOrderType());
     }
@@ -958,39 +965,25 @@ public class OrderAppService {
         log.info("保存订单时间线：orderId={}, eventType={}", orderId, eventType);
     }
 
-    private void saveOrderVehicleSnapshot(Order order) {
-        if (StrUtil.isBlank(order.getSaleModel())) {
-            log.warn("订单缺少saleModel，无法生成车型快照：orderNo={}", order.getOrderNo());
+    private void saveOrderVehicleSnapshot(Order order, String saleModelCode, String saleModelName, VmdBuildConfigResponse buildConfig) {
+        if (StrUtil.isBlank(saleModelCode)) {
+            log.warn("订单缺少saleModelCode，无法生成车型快照：orderNo={}", order.getOrderNo());
             return;
         }
         
-        if (StrUtil.isBlank(order.getBuildConfigCode())) {
-            log.warn("订单缺少buildConfigCode，无法生成车型快照：orderNo={}", order.getOrderNo());
-            return;
-        }
-        
-        SaleModelResult saleModel = saleModelAppService.getSaleModelByCode(order.getSaleModel());
-        VmdBuildConfigResponse buildConfig = vmdVehicleModelConfigService.getBuildConfigByCode(order.getBuildConfigCode());
-        
-        if (saleModel == null) {
-            log.warn("获取saleModel失败，无法生成车型快照：orderNo={}, saleModel={}", 
-                    order.getOrderNo(), order.getSaleModel());
-            return;
-        }
-        
-        if (buildConfig == null) {
-            log.warn("获取buildConfig失败，无法生成车型快照：orderNo={}, buildConfigCode={}", 
-                    order.getOrderNo(), order.getBuildConfigCode());
+        if (buildConfig == null || StrUtil.isBlank(buildConfig.getCode())) {
+            log.warn("订单缺少buildConfig，无法生成车型快照：orderNo={}", order.getOrderNo());
             return;
         }
         
         OrderVehicleSnapshotPo snapshotPo = new OrderVehicleSnapshotPo();
         snapshotPo.setSnapshotId(IdUtil.nanoId(15));
         snapshotPo.setOrderId(order.getId());
-        snapshotPo.setSaleModelCode(saleModel.getSaleModelCode());
-        snapshotPo.setSaleModelName(saleModel.getModelName());
-        snapshotPo.setBuildConfigCode(order.getBuildConfigCode());
+        snapshotPo.setSaleModelCode(saleModelCode);
+        snapshotPo.setSaleModelName(saleModelName);
+        snapshotPo.setBuildConfigCode(buildConfig.getCode());
         snapshotPo.setBuildConfigName(buildConfig.getName());
+        snapshotPo.setFeatureConfigSnapshot(JSONUtil.toJsonStr(buildConfig.getFeatureCodes()));
         snapshotPo.setSnapshotVersion(1);
         
         orderVehicleSnapshotRepository.save(snapshotPo);
