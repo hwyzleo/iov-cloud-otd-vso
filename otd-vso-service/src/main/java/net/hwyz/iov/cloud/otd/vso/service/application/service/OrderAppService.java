@@ -638,7 +638,7 @@ public class OrderAppService {
                 .build();
     }
 
-    public String downPaymentOrder(DownPaymentCmd cmd) {
+    public DownPaymentOrderResult downPaymentOrder(DownPaymentCmd cmd) {
         log.info("定金下单：accountId={}, orderNo={}, saleModel={}, wishlistId={}", 
                 cmd.getAccountId(), cmd.getOrderNo(), cmd.getSaleModel(), cmd.getWishlistId());
         
@@ -726,9 +726,19 @@ public class OrderAppService {
             saveOrderAssignment(order.getId(), cmd.getDealership(), cmd.getDeliveryCenter());
         }
         
-        log.info("定金下单完成：orderId={}, orderNo={}, saleModel={}, buildConfigCode={}", 
-                order.getId(), order.getOrderNo(), saleModel, buildConfigCode);
-        return order.getOrderNo();
+        BigDecimal downPaymentAmount = getDownPaymentAmount(saleModel);
+        Instant expireTime = Instant.now().plusSeconds(paymentChannelConfig.getDownPaymentTimeoutMinutes() * 60);
+        List<DownPaymentOrderResult.PaymentChannelInfo> paymentChannels = buildDownPaymentChannelInfoList();
+
+        log.info("定金下单完成：orderId={}, orderNo={}, saleModel={}, buildConfigCode={}, downPaymentAmount={}", 
+                order.getId(), order.getOrderNo(), saleModel, buildConfigCode, downPaymentAmount);
+
+        return DownPaymentOrderResult.builder()
+                .orderNo(order.getOrderNo())
+                .downPaymentAmount(downPaymentAmount)
+                .paymentChannels(paymentChannels)
+                .expireTime(expireTime)
+                .build();
     }
 
     public OrderDetailResult getUserOrder(String accountId, String orderNo) {
@@ -1081,10 +1091,36 @@ public class OrderAppService {
         return saleModel.getEarnestMoneyPrice();
     }
 
+    private BigDecimal getDownPaymentAmount(String saleModelCode) {
+        if (saleModelCode == null || saleModelCode.isEmpty()) {
+            return BigDecimal.ZERO;
+        }
+        Optional<SaleModelPo> saleModelOpt = saleModelRepository.findBySaleModelCode(saleModelCode);
+        if (saleModelOpt.isEmpty()) {
+            return BigDecimal.ZERO;
+        }
+        SaleModelPo saleModel = saleModelOpt.get();
+        if (saleModel.getDownPaymentPrice() == null) {
+            return BigDecimal.ZERO;
+        }
+        return saleModel.getDownPaymentPrice();
+    }
+
     private List<EarnestMoneyOrderResult.PaymentChannelInfo> buildPaymentChannelInfoList() {
         PaymentChannelConfig.ChannelInfo defaultChannel = paymentChannelConfig.getDefaultChannelInfo();
         return paymentChannelConfig.getEnabledChannels().stream()
                 .map(c -> EarnestMoneyOrderResult.PaymentChannelInfo.builder()
+                        .channelCode(c.getCode())
+                        .channelName(c.getName())
+                        .isDefault(c == defaultChannel)
+                        .build())
+                .collect(Collectors.toList());
+    }
+
+    private List<DownPaymentOrderResult.PaymentChannelInfo> buildDownPaymentChannelInfoList() {
+        PaymentChannelConfig.ChannelInfo defaultChannel = paymentChannelConfig.getDefaultChannelInfo();
+        return paymentChannelConfig.getEnabledChannels().stream()
+                .map(c -> DownPaymentOrderResult.PaymentChannelInfo.builder()
                         .channelCode(c.getCode())
                         .channelName(c.getName())
                         .isDefault(c == defaultChannel)
