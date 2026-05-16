@@ -2,6 +2,7 @@ package net.hwyz.iov.cloud.otd.vso.service.domain.policy;
 
 import lombok.RequiredArgsConstructor;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.Order;
+import net.hwyz.iov.cloud.otd.vso.service.domain.model.OrderState;
 import org.springframework.stereotype.Component;
 
 /**
@@ -68,9 +69,8 @@ public class OrderSubmitSpecification implements Specification<Order> {
      * 验证订单状态
      */
     private boolean validateStatus(Order order) {
-        String status = order.getMainStatus();
-        // 只有待创建、待提交状态的订单才能提交
-        return "PENDING_CREATE".equals(status) || "PENDING_SUBMIT".equals(status);
+        OrderState state = order.getOrderState();
+        return state == OrderState.WISHLIST || state == OrderState.EARNEST_MONEY_UNPAID;
     }
 
 }

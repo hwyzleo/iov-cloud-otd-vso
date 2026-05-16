@@ -1,6 +1,7 @@
 package net.hwyz.iov.cloud.otd.vso.service.domain.policy;
 
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.Order;
+import net.hwyz.iov.cloud.otd.vso.service.domain.model.OrderState;
 import net.hwyz.iov.cloud.otd.vso.service.domain.service.OrderStateMachine;
 import org.springframework.stereotype.Component;
 
@@ -26,7 +27,7 @@ public class OrderLockSpecification implements Specification<Order> {
      * 验证订单状态
      */
     private boolean validateStatus(Order order) {
-        return "PENDING_LOCK".equals(order.getMainStatus());
+        return order.getOrderState() == OrderState.ARRANGE_PRODUCTION;
     }
 
     /**

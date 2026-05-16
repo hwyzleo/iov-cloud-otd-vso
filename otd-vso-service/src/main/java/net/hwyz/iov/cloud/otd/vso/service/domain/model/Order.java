@@ -412,8 +412,8 @@ public class Order {
         // TODO: 实现关闭逻辑
     }
 
-    public String getMainStatus() {
-        return this.orderState != null ? this.orderState.name() : null;
+    public Integer getOrderStateValue() {
+        return this.orderState != null ? this.orderState.getValue() : null;
     }
 
     public void complete() {
