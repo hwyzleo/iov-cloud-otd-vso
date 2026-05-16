@@ -29,8 +29,8 @@ public class OrderShadowDeletePo implements Serializable {
     @TableField("delete_reason")
     private String deleteReason;
 
-    @TableField("before_main_status")
-    private String beforeMainStatus;
+    @TableField("before_order_state")
+    private Integer beforeOrderState;
 
     @TableField("compliance_delete_flag")
     private Integer complianceDeleteFlag;

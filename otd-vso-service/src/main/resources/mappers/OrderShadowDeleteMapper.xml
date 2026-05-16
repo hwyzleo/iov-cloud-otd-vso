@@ -8,7 +8,7 @@
         <result column="origin_order_no" property="originOrderNo" />
         <result column="delete_approval_id" property="deleteApprovalId" />
         <result column="delete_reason" property="deleteReason" />
-        <result column="before_main_status" property="beforeMainStatus" />
+        <result column="before_order_state" property="beforeOrderState" />
         <result column="compliance_delete_flag" property="complianceDeleteFlag" />
         <result column="delete_user_id" property="deleteUserId" />
         <result column="delete_time" property="deleteTime" />
@@ -22,7 +22,7 @@
 
     <sql id="baseColumnList">
         t.id, t.shadow_delete_id, t.origin_order_no, t.delete_approval_id,
-        t.delete_reason, t.before_main_status, t.compliance_delete_flag, t.delete_user_id, t.delete_time,
+        t.delete_reason, t.before_order_state, t.compliance_delete_flag, t.delete_user_id, t.delete_time,
         t.create_time, t.create_by, t.modify_time, t.modify_by, t.row_version, t.row_valid
     </sql>
 
@@ -74,12 +74,12 @@
     <insert id="insertPo" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO vso_order_shadow_delete (
             shadow_delete_id, origin_order_no, delete_approval_id, delete_reason,
-            before_main_status, compliance_delete_flag, delete_user_id, delete_time, create_time,
+            before_order_state, compliance_delete_flag, delete_user_id, delete_time, create_time,
             create_by, modify_time, modify_by, row_version, row_valid
         )
         VALUES (
             #{shadowDeleteId}, #{originOrderNo}, #{deleteApprovalId}, #{deleteReason},
-            #{beforeMainStatus}, #{complianceDeleteFlag}, #{deleteUserId}, #{deleteTime}, now(),
+            #{beforeOrderState}, #{complianceDeleteFlag}, #{deleteUserId}, #{deleteTime}, now(),
             #{createBy}, now(), #{modifyBy}, 1, 1
         )
     </insert>
@@ -87,14 +87,14 @@
     <insert id="batchInsertPo">
         INSERT INTO vso_order_shadow_delete (
             shadow_delete_id, origin_order_no, delete_approval_id, delete_reason,
-            before_main_status, compliance_delete_flag, delete_user_id, delete_time, create_time,
+            before_order_state, compliance_delete_flag, delete_user_id, delete_time, create_time,
             create_by, modify_time, modify_by, row_version, row_valid
         )
         VALUES
         <foreach collection="list" item="item" separator=",">
             (
                 #{item.shadowDeleteId}, #{item.originOrderNo}, #{item.deleteApprovalId}, #{item.deleteReason},
-                #{item.beforeMainStatus}, #{item.complianceDeleteFlag}, #{item.deleteUserId}, #{item.deleteTime}, now(),
+                #{item.beforeOrderState}, #{item.complianceDeleteFlag}, #{item.deleteUserId}, #{item.deleteTime}, now(),
                 #{item.createBy}, now(), #{item.modifyBy}, 1, 1
             )
         </foreach>

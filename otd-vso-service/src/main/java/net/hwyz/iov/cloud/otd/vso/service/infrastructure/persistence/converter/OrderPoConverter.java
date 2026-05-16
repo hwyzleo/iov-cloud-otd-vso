@@ -35,13 +35,13 @@ public interface OrderPoConverter {
             @Mapping(target="storeCode", source = "storeCode"),
             @Mapping(target="salesCode", source = "salesCode"),
             @Mapping(target="licenseCity", source = "licenseCity"),
-            @Mapping(target="orderState", expression = "java(orderPo.getMainStatus() != null ? net.hwyz.iov.cloud.otd.vso.service.domain.model.OrderState.valueOf(orderPo.getMainStatus()) : null)"),
+            @Mapping(target="orderState", expression = "java(orderPo.getOrderState() != null ? net.hwyz.iov.cloud.otd.vso.service.domain.model.OrderState.fromValue(orderPo.getOrderState()) : null)"),
             @Mapping(target="hasException", expression = "java(orderPo.getHasException() != null && orderPo.getHasException() == 1)"),
             @Mapping(target="lockedFlag", expression = "java(orderPo.getLockedFlag() != null && orderPo.getLockedFlag() == 1)"),
             @Mapping(target="reopenFlag", expression = "java(orderPo.getReopenFlag() != null && orderPo.getReopenFlag() == 1)"),
             @Mapping(target="orderTime", source = "createdAtBusiness")
     })
-    @org.mapstruct.BeanMapping(ignoreUnmappedSourceProperties = {"mainStatus", "payState", "orderStateTime", "modelConfigType", "modelConfigName", "modelConfigPrice", "modelConfigMap", "modelConfigDesc", "totalPrice", "dealership", "deliveryCenter", "deliveryVin", "orderPersonId", "orderPersonType", "orderPersonName", "orderPersonIdType", "orderPersonIdNum", "purchasePlan", "transportApplyPersonId", "transportApplyPersonName", "deliveryPersonId", "deliveryPersonName", "earnestMoneyTime", "earnestMoneyAmount", "downPaymentTime", "downPaymentAmount", "transportApplyTime", "customerInfo", "organizationInfo", "vehicleInfo", "orderAmount", "orderPersonPhone", "buildConfigLock", "remark", "valid", "domainEvents", "createBy", "modifyBy"})
+    @org.mapstruct.BeanMapping(ignoreUnmappedSourceProperties = {"payState", "orderStateTime", "modelConfigType", "modelConfigName", "modelConfigPrice", "modelConfigMap", "modelConfigDesc", "totalPrice", "dealership", "deliveryCenter", "deliveryVin", "orderPersonId", "orderPersonType", "orderPersonName", "orderPersonIdType", "orderPersonIdNum", "purchasePlan", "transportApplyPersonId", "transportApplyPersonName", "deliveryPersonId", "deliveryPersonName", "earnestMoneyTime", "earnestMoneyAmount", "downPaymentTime", "downPaymentAmount", "transportApplyTime", "customerInfo", "organizationInfo", "vehicleInfo", "orderAmount", "orderPersonPhone", "buildConfigLock", "remark", "valid", "domainEvents", "createBy", "modifyBy"})
     Order toDomain(OrderPo orderPo);
 
     /**
@@ -63,7 +63,7 @@ public interface OrderPoConverter {
             @Mapping(target="storeCode", source = "storeCode"),
             @Mapping(target="salesCode", source = "salesCode"),
             @Mapping(target="licenseCity", source = "licenseCity"),
-            @Mapping(target="mainStatus", expression = "java(order.getOrderState() != null ? order.getOrderState().name() : null)"),
+            @Mapping(target="orderState", expression = "java(order.getOrderState() != null ? order.getOrderState().getValue() : null)"),
             @Mapping(target="hasException", expression = "java(order.getHasException() != null && order.getHasException() ? 1 : 0)"),
             @Mapping(target="lockedFlag", expression = "java(order.getLockedFlag() != null && order.getLockedFlag() ? 1 : 0)"),
             @Mapping(target="reopenFlag", expression = "java(order.getReopenFlag() != null && order.getReopenFlag() ? 1 : 0)"),
