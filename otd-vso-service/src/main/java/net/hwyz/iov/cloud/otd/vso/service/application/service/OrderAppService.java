@@ -8,7 +8,9 @@ import net.hwyz.iov.cloud.edd.vmd.api.service.VmdVehicleModelConfigService;
 import net.hwyz.iov.cloud.edd.vmd.api.vo.response.VmdBuildConfigFeatureCodeResponse;
 import net.hwyz.iov.cloud.edd.vmd.api.vo.response.VmdBuildConfigResponse;
 import net.hwyz.iov.cloud.framework.web.util.PageUtil;
+import net.hwyz.iov.cloud.otd.vso.api.enums.CustomerType;
 import net.hwyz.iov.cloud.otd.vso.api.enums.PaymentChannel;
+import net.hwyz.iov.cloud.otd.vso.api.enums.PaymentMethod;
 import net.hwyz.iov.cloud.otd.vso.api.enums.PaymentStage;
 import net.hwyz.iov.cloud.otd.vso.api.enums.PaymentStatus;
 import net.hwyz.iov.cloud.otd.vso.service.adapter.web.assembler.OrderDtoAssembler;
@@ -107,7 +109,7 @@ public class OrderAppService {
                 cmd.getName(),
                 cmd.getMobileHash(),
                 cmd.getIdNoHash(),
-                "personal"
+                CustomerType.PERSONAL.getCode()
         );
         VehicleInfo vehicleInfo = new VehicleInfo(
                 cmd.getModelCode(),
@@ -141,7 +143,7 @@ public class OrderAppService {
                 cmd.getName(),
                 cmd.getMobileHash(),
                 cmd.getIdNoHash(),
-                "personal"
+                CustomerType.PERSONAL.getCode()
         );
         VehicleInfo vehicleInfo = new VehicleInfo(
                 cmd.getModelCode(),
@@ -794,6 +796,15 @@ public class OrderAppService {
     @Transactional(rollbackFor = Exception.class)
     public void earnestMoneyToDownPayment(EarnestToDownCmd cmd) {
         log.info("意向金转定金：accountId={}, orderNo={}", cmd.getAccountId(), cmd.getOrderNo());
+        
+        if (StrUtil.isNotBlank(cmd.getCustomerType()) && !CustomerType.isValid(cmd.getCustomerType())) {
+            log.warn("客户类型不合法：customerType={}", cmd.getCustomerType());
+            throw new IllegalArgumentException("客户类型不合法，仅支持：personal");
+        }
+        if (StrUtil.isNotBlank(cmd.getPaymentMethod()) && !PaymentMethod.isValid(cmd.getPaymentMethod())) {
+            log.warn("支付方式不合法：paymentMethod={}", cmd.getPaymentMethod());
+            throw new IllegalArgumentException("支付方式不合法，仅支持：full_payment、loan");
+        }
         
         Order order = findOrderById(cmd.getAccountId(), cmd.getOrderNo());
         

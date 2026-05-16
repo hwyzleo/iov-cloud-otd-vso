@@ -1,5 +1,6 @@
 package net.hwyz.iov.cloud.otd.vso.service.domain.model;
 
+import net.hwyz.iov.cloud.otd.vso.api.enums.CustomerType;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -55,7 +56,7 @@ class OrderTest {
         assertEquals(saleModel, order.getSaleModel(), "销售车型应该匹配");
         assertEquals("small", order.getOrderType(), "订单类型应该是small");
         assertEquals("capp", order.getOrderSource(), "订单来源应该是capp");
-        assertEquals("personal", order.getCustomerType(), "客户类型应该是personal");
+        assertEquals(CustomerType.PERSONAL.getCode(), order.getCustomerType(), "客户类型应该是personal");
         assertFalse(order.getHasException(), "不应该有异常");
         assertEquals(Integer.valueOf(1), order.getCurrentVersionNo(), "版本号应该是1");
         assertFalse(order.getLockedFlag(), "不应该锁定");

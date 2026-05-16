@@ -2,6 +2,7 @@ package net.hwyz.iov.cloud.otd.vso.service.domain.model.shared;
 
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import net.hwyz.iov.cloud.otd.vso.api.enums.CustomerType;
 
 /**
  * 客户信息值对象
@@ -42,7 +43,7 @@ public class CustomerInfo {
         this.name = name;
         this.mobileHash = mobileHash;
         this.idNoHash = idNoHash;
-        this.customerType = customerType != null ? customerType : "personal";
+        this.customerType = customerType != null ? customerType : CustomerType.PERSONAL.getCode();
     }
 
     /**

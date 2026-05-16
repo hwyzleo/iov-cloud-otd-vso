@@ -6,6 +6,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import net.hwyz.iov.cloud.otd.vso.api.enums.CustomerType;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.shared.*;
 import net.hwyz.iov.cloud.otd.vso.service.common.exception.OrderIllegalDeleteException;
 import net.hwyz.iov.cloud.otd.vso.service.common.exception.OrderStateNotAllowedException;
@@ -142,7 +143,7 @@ public class Order {
             this.orderSource = "capp";
         }
         if (this.customerType == null) {
-            this.customerType = "personal";
+            this.customerType = CustomerType.PERSONAL.getCode();
         }
         if (this.hasException == null) {
             this.hasException = false;
@@ -444,7 +445,7 @@ public class Order {
         order.id = IdUtil.nanoId(15);
         order.orderType = "small";
         order.orderSource = "capp";
-        order.customerType = "personal";
+        order.customerType = CustomerType.PERSONAL.getCode();
         order.hasException = false;
         order.currentVersionNo = 1;
         order.lockedFlag = false;

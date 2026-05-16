@@ -159,6 +159,8 @@ public class MobileVsoController extends BaseController {
 
     /**
      * 取消订单
+     * <p>
+     * 请求参数说明：仅需 orderNo（订单号）
      */
     @PostMapping("/order/action/cancel")
     public ApiResponse<Void> cancel(@RequestBody @Valid OrderVo order) {
@@ -182,6 +184,8 @@ public class MobileVsoController extends BaseController {
 
     /**
      * 退款订单
+     * <p>
+     * 请求参数说明：仅需 orderNo（订单号）
      */
     @PostMapping("/order/action/requestRefund")
     public ApiResponse<Void> requestRefund(@RequestBody @Valid OrderVo order) {
@@ -193,6 +197,21 @@ public class MobileVsoController extends BaseController {
 
     /**
      * 意向金转定金
+     * <p>
+     * 请求参数说明：
+     * <ul>
+     *     <li>orderNo - 订单号，必填</li>
+     *     <li>customerType - 客户类型，可选</li>
+     *     <li>paymentMethod - 支付方式，可选</li>
+     *     <li>orderPersonType - 订购人类型，可选</li>
+     *     <li>orderPersonName - 订购人姓名，可选</li>
+     *     <li>orderPersonIdType - 订购人证件类型，可选</li>
+     *     <li>orderPersonIdNum - 订购人证件号码，可选</li>
+     *     <li>purchasePlan - 购买计划，可选</li>
+     *     <li>licenseCityCode - 上牌城市代码，可选</li>
+     *     <li>dealership - 门店代码，可选</li>
+     *     <li>deliveryCenter - 交付中心代码，可选</li>
+     * </ul>
      */
     @PostMapping("/order/action/earnestMoneyToDownPayment")
     public ApiResponse<Void> earnestMoneyToDownPayment(@RequestBody @Valid OrderVo order) {
@@ -204,6 +223,8 @@ public class MobileVsoController extends BaseController {
 
     /**
      * 锁定订单
+     * <p>
+     * 请求参数说明：仅需 orderNo（订单号）
      */
     @PostMapping("/order/action/lock")
     public ApiResponse<Void> lock(@RequestBody @Valid OrderVo order) {
