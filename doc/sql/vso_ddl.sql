@@ -119,9 +119,9 @@ CREATE TABLE `vso_order` (
     `customer_type` VARCHAR(32) NOT NULL DEFAULT 'personal' COMMENT '客户类型：personal-个人客户',
     `payment_method` VARCHAR(32) DEFAULT NULL COMMENT '付款方式：full_payment-全款，loan-贷款',
     `license_city` VARCHAR(64) DEFAULT NULL COMMENT '上牌城市编码',
-    `main_status` VARCHAR(32) NOT NULL COMMENT '主状态：待创建，待提交，待审核，待锁单，已锁单，待配车，已配车，待签约，待付款，待交付，已交付，已完成，已取消，已关闭',
+    `order_state` INT NOT NULL COMMENT '订单状态数值',
     `end_type` VARCHAR(32) DEFAULT NULL COMMENT '结束语义：cancel-取消，close-关闭，void-作废',
-    `previous_main_status` VARCHAR(32) DEFAULT NULL COMMENT '关闭前上一有效状态',
+    `previous_order_state` INT DEFAULT NULL COMMENT '关闭前上一有效状态数值',
     `brand_code` VARCHAR(32) NOT NULL DEFAULT 'OPENIOV' COMMENT '品牌编码',
     `region_code` VARCHAR(64) DEFAULT NULL COMMENT '当前归属区域编码',
     `store_code` VARCHAR(64) DEFAULT NULL COMMENT '当前归属门店编码',
@@ -151,8 +151,8 @@ CREATE TABLE `vso_order` (
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_order_id` (`order_id`),
     UNIQUE KEY `uk_order_no_valid` (`order_no`, `row_valid`),
-    KEY `idx_status_time` (`main_status`, `created_at_business`),
-    KEY `idx_store_sales_status` (`store_code`, `sales_code`, `main_status`),
+    KEY `idx_status_time` (`order_state`, `created_at_business`),
+    KEY `idx_store_sales_status` (`store_code`, `sales_code`, `order_state`),
     KEY `idx_lock_time` (`lock_time`),
     KEY `idx_create_time_business` (`created_at_business`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='订单主表';
