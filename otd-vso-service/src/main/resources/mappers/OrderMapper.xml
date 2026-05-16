@@ -11,6 +11,8 @@
         <result column="order_source" property="orderSource" />
         <result column="source_remark" property="sourceRemark" />
         <result column="customer_type" property="customerType" />
+        <result column="payment_method" property="paymentMethod" />
+        <result column="license_city" property="licenseCity" />
         <result column="order_state" property="orderState" />
         <result column="end_type" property="endType" />
         <result column="previous_order_state" property="previousOrderState" />
@@ -47,7 +49,7 @@
     <!-- 通用查询结果列 -->
     <sql id="baseColumnList">
         t.id, t.order_id, t.order_no, t.order_type, t.order_source, t.source_remark,
-        t.customer_type, t.order_state, t.end_type, t.previous_order_state, t.brand_code, t.sale_model,
+        t.customer_type, t.payment_method, t.license_city, t.order_state, t.end_type, t.previous_order_state, t.brand_code, t.sale_model,
         t.build_config_code, t.region_code, t.store_code, t.sales_code, t.vehicle_vin, t.has_exception,
         t.current_version_no, t.locked_flag, t.reopen_flag, t.cancel_reason, t.close_reason, t.void_reason,
         t.created_at_business, t.audit_submit_time, t.audit_pass_time, t.lock_time, t.delivery_finish_time,
@@ -59,7 +61,7 @@
     <insert id="insertPo" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO vso_order (
             id, order_id, order_no, order_type, order_source, source_remark,
-            customer_type, order_state, end_type, previous_order_state, brand_code, sale_model,
+            customer_type, payment_method, license_city, order_state, end_type, previous_order_state, brand_code, sale_model,
             build_config_code, region_code, store_code, sales_code, vehicle_vin, has_exception,
             current_version_no, locked_flag, reopen_flag, cancel_reason, close_reason, void_reason,
             created_at_business, audit_submit_time, audit_pass_time, lock_time, delivery_finish_time,
@@ -68,7 +70,7 @@
         )
         VALUES (
             #{id}, #{orderId}, #{orderNo}, #{orderType}, #{orderSource}, #{sourceRemark},
-            #{customerType}, #{orderState}, #{endType}, #{previousOrderState}, #{brandCode}, #{saleModel},
+            #{customerType}, #{paymentMethod}, #{licenseCity}, #{orderState}, #{endType}, #{previousOrderState}, #{brandCode}, #{saleModel},
             #{buildConfigCode}, #{regionCode}, #{storeCode}, #{salesCode}, #{vehicleVin}, #{hasException},
             #{currentVersionNo}, #{lockedFlag}, #{reopenFlag}, #{cancelReason}, #{closeReason}, #{voidReason},
             #{createdAtBusiness}, #{auditSubmitTime}, #{auditPassTime}, #{lockTime}, #{deliveryFinishTime},
@@ -93,6 +95,12 @@
         </if>
         <if test="customerType != null and customerType != ''">
             t.customer_type = #{customerType},
+        </if>
+        <if test="paymentMethod != null and paymentMethod != ''">
+            t.payment_method = #{paymentMethod},
+        </if>
+        <if test="licenseCity != null and licenseCity != ''">
+            t.license_city = #{licenseCity},
         </if>
         <if test="orderState != null">
             t.order_state = #{orderState},
