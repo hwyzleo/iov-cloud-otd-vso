@@ -17,6 +17,8 @@ public interface DownPaymentOrderRequestVoAssembler {
     DownPaymentOrderRequestVoAssembler INSTANCE = Mappers.getMapper(DownPaymentOrderRequestVoAssembler.class);
 
     @Mapping(target = "accountId", source = "accountId")
+    @Mapping(target = "saleModel", source = "vo.saleModelCode")
+    @Mapping(target = "featureConfig", source = "vo.saleModelConfigType")
     DownPaymentCmd toCmd(String accountId, DownPaymentOrderRequestVo vo);
 
 }

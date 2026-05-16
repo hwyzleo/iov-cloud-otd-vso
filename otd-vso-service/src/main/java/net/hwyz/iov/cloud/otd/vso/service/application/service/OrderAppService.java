@@ -682,6 +682,16 @@ public class OrderAppService {
         }
         
         if (buildConfigCode == null || buildConfigCode.isEmpty()) {
+            if (cmd.getFeatureConfig() != null && !cmd.getFeatureConfig().isEmpty()) {
+                Map<String, String> featureConfig = new HashMap<>(cmd.getFeatureConfig());
+                featureConfig.remove("BASE_MODEL");
+                log.info("调用VMD获取buildConfigCode，featureConfig={}", featureConfig);
+                buildConfigCode = vmdVehicleModelConfigService.getVehicleBuildConfigCode(featureConfig);
+                log.info("VMD返回buildConfigCode={}", buildConfigCode);
+            }
+        }
+        
+        if (buildConfigCode == null || buildConfigCode.isEmpty()) {
             throw new BuildConfigNotMatchedException(saleModel);
         }
         
