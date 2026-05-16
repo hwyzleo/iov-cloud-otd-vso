@@ -1,11 +1,13 @@
 package net.hwyz.iov.cloud.otd.vso.service.domain.service;
 
-import net.hwyz.iov.cloud.otd.vso.api.enums.MainStatus;
+import net.hwyz.iov.cloud.otd.vso.service.domain.model.OrderState;
 
+import java.util.Collections;
 import java.util.EnumSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 /**
  * 订单状态机
@@ -17,7 +19,7 @@ public class OrderStateMachine {
     /**
      * 状态转移规则
      */
-    private static final Map<String, Set<MainStatus>> STATE_TRANSITIONS = new ConcurrentHashMap<>();
+    private static final Map<Integer, Set<OrderState>> STATE_TRANSITIONS = new ConcurrentHashMap<>();
 
     static {
         // 小订单状态转移
@@ -31,89 +33,70 @@ public class OrderStateMachine {
      * 初始化小订单状态转移规则
      */
     private static void initSmallOrderTransitions() {
-        Set<MainStatus> pendingCreateTransitions = EnumSet.of(
-            MainStatus.PENDING_SUBMIT
+        // WISHLIST(100) -> EARNEST_MONEY_UNPAID(200)
+        Set<OrderState> wishlistTransitions = EnumSet.of(OrderState.EARNEST_MONEY_UNPAID);
+        STATE_TRANSITIONS.put(100, wishlistTransitions);
+        
+        // EARNEST_MONEY_UNPAID(200) -> EARNEST_MONEY_PAID(210), DOWN_PAYMENT_UNPAID(300), CANCEL(950), EXPIRED(960)
+        Set<OrderState> earnestUnpaidTransitions = EnumSet.of(
+            OrderState.EARNEST_MONEY_PAID,
+            OrderState.DOWN_PAYMENT_UNPAID,
+            OrderState.CANCEL,
+            OrderState.EXPIRED
         );
-        STATE_TRANSITIONS.put("PENDING_CREATE", pendingCreateTransitions);
-
-        Set<MainStatus> pendingSubmitTransitions = EnumSet.of(
-            MainStatus.PENDING_AUDIT,
-            MainStatus.CANCELLED,
-            MainStatus.CLOSED
-        );
-        STATE_TRANSITIONS.put("PENDING_SUBMIT", pendingSubmitTransitions);
-
-        Set<MainStatus> pendingAuditTransitions = EnumSet.of(
-            MainStatus.PENDING_LOCK,
-            MainStatus.CANCELLED,
-            MainStatus.CLOSED
-        );
-        STATE_TRANSITIONS.put("PENDING_AUDIT", pendingAuditTransitions);
-
-        Set<MainStatus> pendingLockTransitions = EnumSet.of(
-            MainStatus.LOCKED,
-            MainStatus.CANCELLED,
-            MainStatus.CLOSED
-        );
-        STATE_TRANSITIONS.put("PENDING_LOCK", pendingLockTransitions);
-
-        Set<MainStatus> lockedTransitions = EnumSet.of(
-            MainStatus.VEHICLE_ASSIGNED,
-            MainStatus.CANCELLED,
-            MainStatus.CLOSED
-        );
-        STATE_TRANSITIONS.put("LOCKED", lockedTransitions);
-
-        Set<MainStatus> vehicleAssignedTransitions = EnumSet.of(
-            MainStatus.PENDING_CONTRACT,
-            MainStatus.CANCELLED,
-            MainStatus.CLOSED
-        );
-        STATE_TRANSITIONS.put("VEHICLE_ASSIGNED", vehicleAssignedTransitions);
-
-        Set<MainStatus> contractTransitions = EnumSet.of(
-            MainStatus.PENDING_PAYMENT,
-            MainStatus.CANCELLED,
-            MainStatus.CLOSED
-        );
-        STATE_TRANSITIONS.put("PENDING_CONTRACT", contractTransitions);
-
-        Set<MainStatus> pendingPaymentTransitions = EnumSet.of(
-            MainStatus.PENDING_PAYMENT,
-            MainStatus.CANCELLED,
-            MainStatus.CLOSED
-        );
-        STATE_TRANSITIONS.put("PENDING_PAYMENT", pendingPaymentTransitions);
-
-        Set<MainStatus> paidTransitions = EnumSet.of(
-            MainStatus.PENDING_DELIVERY,
-            MainStatus.CANCELLED,
-            MainStatus.CLOSED
-        );
-        STATE_TRANSITIONS.put("PAID", paidTransitions);
-
-        Set<MainStatus> pendingDeliveryTransitions = EnumSet.of(
-            MainStatus.DELIVERED,
-            MainStatus.CANCELLED,
-            MainStatus.CLOSED
-        );
-        STATE_TRANSITIONS.put("PENDING_DELIVERY", pendingDeliveryTransitions);
-
-        Set<MainStatus> deliveredTransitions = EnumSet.of(
-            MainStatus.COMPLETED,
-            MainStatus.CANCELLED,
-            MainStatus.CLOSED
-        );
-        STATE_TRANSITIONS.put("DELIVERED", deliveredTransitions);
-
-        Set<MainStatus> completedTransitions = EnumSet.noneOf(MainStatus.class);
-        STATE_TRANSITIONS.put("COMPLETED", completedTransitions);
-
-        Set<MainStatus> cancelledTransitions = EnumSet.noneOf(MainStatus.class);
-        STATE_TRANSITIONS.put("CANCELLED", cancelledTransitions);
-
-        Set<MainStatus> closedTransitions = EnumSet.noneOf(MainStatus.class);
-        STATE_TRANSITIONS.put("CLOSED", closedTransitions);
+        STATE_TRANSITIONS.put(200, earnestUnpaidTransitions);
+        
+        // EARNEST_MONEY_PAID(210) -> DOWN_PAYMENT_UNPAID(300), CANCEL(950)
+        Set<OrderState> earnestPaidTransitions = EnumSet.of(OrderState.DOWN_PAYMENT_UNPAID, OrderState.CANCEL);
+        STATE_TRANSITIONS.put(210, earnestPaidTransitions);
+        
+        // DOWN_PAYMENT_UNPAID(300) -> DOWN_PAYMENT_PAID(310), CANCEL(950)
+        Set<OrderState> downPaymentUnpaidTransitions = EnumSet.of(OrderState.DOWN_PAYMENT_PAID, OrderState.CANCEL);
+        STATE_TRANSITIONS.put(300, downPaymentUnpaidTransitions);
+        
+        // DOWN_PAYMENT_PAID(310) -> ARRANGE_PRODUCTION(400), CANCEL(950)
+        Set<OrderState> downPaymentPaidTransitions = EnumSet.of(OrderState.ARRANGE_PRODUCTION, OrderState.CANCEL);
+        STATE_TRANSITIONS.put(310, downPaymentPaidTransitions);
+        
+        // ARRANGE_PRODUCTION(400) -> ALLOCATION_VEHICLE(450), CANCEL(950)
+        Set<OrderState> arrangeProductionTransitions = EnumSet.of(OrderState.ALLOCATION_VEHICLE, OrderState.CANCEL);
+        STATE_TRANSITIONS.put(400, arrangeProductionTransitions);
+        
+        // ALLOCATION_VEHICLE(450) -> APPLY_TRANSPORT(470), CANCEL(950)
+        Set<OrderState> allocationVehicleTransitions = EnumSet.of(OrderState.APPLY_TRANSPORT, OrderState.CANCEL);
+        STATE_TRANSITIONS.put(450, allocationVehicleTransitions);
+        
+        // APPLY_TRANSPORT(470) -> PREPARE_TRANSPORT(500), CANCEL(950)
+        Set<OrderState> applyTransportTransitions = EnumSet.of(OrderState.PREPARE_TRANSPORT, OrderState.CANCEL);
+        STATE_TRANSITIONS.put(470, applyTransportTransitions);
+        
+        // PREPARE_TRANSPORT(500) -> TRANSPORTING(550), CANCEL(950)
+        Set<OrderState> prepareTransportTransitions = EnumSet.of(OrderState.TRANSPORTING, OrderState.CANCEL);
+        STATE_TRANSITIONS.put(500, prepareTransportTransitions);
+        
+        // TRANSPORTING(550) -> PREPARE_DELIVER(600), CANCEL(950)
+        Set<OrderState> transportingTransitions = EnumSet.of(OrderState.PREPARE_DELIVER, OrderState.CANCEL);
+        STATE_TRANSITIONS.put(550, transportingTransitions);
+        
+        // PREPARE_DELIVER(600) -> DELIVERED(650), CANCEL(950)
+        Set<OrderState> prepareDeliverTransitions = EnumSet.of(OrderState.DELIVERED, OrderState.CANCEL);
+        STATE_TRANSITIONS.put(600, prepareDeliverTransitions);
+        
+        // DELIVERED(650) -> ACTIVATED(700), CANCEL(950)
+        Set<OrderState> deliveredTransitions = EnumSet.of(OrderState.ACTIVATED, OrderState.CANCEL);
+        STATE_TRANSITIONS.put(650, deliveredTransitions);
+        
+        // ACTIVATED(700) -> 终态，无转移
+        Set<OrderState> activatedTransitions = EnumSet.noneOf(OrderState.class);
+        STATE_TRANSITIONS.put(700, activatedTransitions);
+        
+        // CANCEL(950) -> 终态，无转移
+        Set<OrderState> cancelTransitions = EnumSet.noneOf(OrderState.class);
+        STATE_TRANSITIONS.put(950, cancelTransitions);
+        
+        // EXPIRED(960) -> 终态，无转移
+        Set<OrderState> expiredTransitions = EnumSet.noneOf(OrderState.class);
+        STATE_TRANSITIONS.put(960, expiredTransitions);
     }
 
     /**
@@ -126,44 +109,37 @@ public class OrderStateMachine {
     /**
      * 检查状态转移是否合法
      *
-     * @param fromState 当前状态（字符串）
-     * @param toState 目标状态（字符串或MainStatus枚举）
+     * @param fromStateValue 当前状态值
+     * @param toStateValue 目标状态值
      * @param orderType 订单类型
      * @return 是否合法
      */
-    public static boolean canTransition(String fromState, Object toState, String orderType) {
-        Set<MainStatus> allowedTransitionsSet = STATE_TRANSITIONS.get(fromState);
+    public static boolean canTransition(Integer fromStateValue, Integer toStateValue, String orderType) {
+        Set<OrderState> allowedTransitionsSet = STATE_TRANSITIONS.get(fromStateValue);
         if (allowedTransitionsSet == null) {
             return false;
         }
         
-        String toStateStr = null;
-        if (toState instanceof MainStatus) {
-            toStateStr = ((MainStatus) toState).name();
-        } else if (toState instanceof String) {
-            toStateStr = (String) toState;
+        OrderState toState = OrderState.fromValue(toStateValue);
+        if (toState == null) {
+            return false;
         }
         
-        if (toStateStr == null) {
-            return false; // 如果输入参数类型既不是String也不是MainStatus，则非法
-        }
-        
-        // 遵循枚举实例为标准的判断逻辑
-        return allowedTransitionsSet.contains(MainStatus.valueOf(toStateStr));
+        return allowedTransitionsSet.contains(toState);
     }
 
     /**
      * 验证状态转移
      *
-     * @param fromState 当前状态
-     * @param toState 目标状态
+     * @param fromStateValue 当前状态值
+     * @param toStateValue 目标状态值
      * @param orderType 订单类型
      * @throws IllegalStateException 如果转移不合法
      */
-    public static void validateTransition(String fromState, Object toState, String orderType) {
-        if (!canTransition(fromState, toState, orderType)) {
+    public static void validateTransition(Integer fromStateValue, Integer toStateValue, String orderType) {
+        if (!canTransition(fromStateValue, toStateValue, orderType)) {
             throw new IllegalStateException(
-                String.format("订单状态转移不合法：从 [%s] 无法转移到 [%s]", fromState, toState.toString())
+                String.format("订单状态转移不合法：从 [%d] 无法转移到 [%d]", fromStateValue, toStateValue)
             );
         }
     }
@@ -171,45 +147,36 @@ public class OrderStateMachine {
     /**
      * 获取所有允许的下一状态
      *
-     * @param currentState 当前状态
-     * @return 允许的下一状态集合（字符串形式）
+     * @param currentStateValue 当前状态值
+     * @return 允许的下一状态值集合
      */
-    public static Set<String> getAllowedNextStates(String currentState) {
-        Set<MainStatus> transitions = STATE_TRANSITIONS.get(currentState);
+    public static Set<Integer> getAllowedNextStates(Integer currentStateValue) {
+        Set<OrderState> transitions = STATE_TRANSITIONS.get(currentStateValue);
         if (transitions == null) {
-            return java.util.Collections.emptySet();
+            return Collections.emptySet();
         }
-        return transitions.stream().map(MainStatus::name).collect(java.util.stream.Collectors.toSet());
+        return transitions.stream().map(OrderState::getValue).collect(Collectors.toSet());
     }
 
     /**
      * 检查是否是结束状态
      *
-     * @param state 状态
+     * @param stateValue 状态值
      * @return 是否是结束状态
      */
-    public static boolean isEndState(Object state) {
-        Set<MainStatus> endStates = Set.of(
-            MainStatus.COMPLETED,
-            MainStatus.CANCELLED,
-            MainStatus.CLOSED
-        );
-        
-        if (state instanceof MainStatus) {
-            return endStates.contains(state);
-        } else if (state instanceof String) {
-            return endStates.contains(MainStatus.valueOf((String) state));
-        }
-        return false; // 若输入参数既非MainStatus也不匹配其name，则不是结束状态
+    public static boolean isEndState(Integer stateValue) {
+        Set<OrderState> endStates = Set.of(OrderState.ACTIVATED, OrderState.CANCEL, OrderState.EXPIRED);
+        OrderState state = OrderState.fromValue(stateValue);
+        return state != null && endStates.contains(state);
     }
 
     /**
      * 检查是否是中间状态
      *
-     * @param state 状态
+     * @param stateValue 状态值
      * @return 是否是中间状态
      */
-    public static boolean isIntermediateState(Object state) {
-        return !isEndState(state);
+    public static boolean isIntermediateState(Integer stateValue) {
+        return !isEndState(stateValue);
     }
 }
