@@ -34,7 +34,7 @@ public class PaymentSuccessEventListener {
         Order order = orderRepository.findByOrderId(event.getOrderId())
                 .orElseThrow(() -> new RuntimeException("订单不存在：" + event.getOrderId()));
 
-        String beforeStatus = order.getMainStatus();
+        Integer beforeStatus = order.getOrderState() != null ? order.getOrderState().getValue() : null;
 
         if (event.getPaymentStage() == PaymentStage.EARNEST_MONEY) {
             handleEarnestMoneyPayment(order, event.getPaymentAmount());
@@ -46,7 +46,8 @@ public class PaymentSuccessEventListener {
 
         // 记录时间线
         saveTimeline(event.getOrderId(), "PAYMENT_SUCCESS", "支付成功",
-                beforeStatus, order.getMainStatus(),
+                String.valueOf(beforeStatus), 
+                order.getOrderState() != null ? String.valueOf(order.getOrderState().getValue()) : null,
                 "system", "system", "payment_system",
                 null, "success", null,
                 "支付成功，阶段：" + event.getPaymentStage() + "，金额：" + event.getPaymentAmount());

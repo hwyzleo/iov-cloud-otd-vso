@@ -820,6 +820,13 @@ public class OrderAppService {
             order.saveLicenseCity(cmd.getLicenseCityCode());
         }
         
+        if (StrUtil.isNotBlank(cmd.getDealership())) {
+            order.saveStoreCode(cmd.getDealership());
+            if (cmd.getDealership().length() >= 2) {
+                order.saveRegionCode(cmd.getDealership().substring(0, 2));
+            }
+        }
+        
         orderRepository.save(order);
         
         if (StrUtil.isNotBlank(cmd.getOrderPersonName()) && StrUtil.isNotBlank(cmd.getOrderPersonIdNum())) {

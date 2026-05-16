@@ -98,12 +98,12 @@ public class OrderDomainService {
     @Transactional(rollbackFor = Exception.class)
     public void submitOrder(String orderId) {
         Order order = loadOrder(orderId);
-        String beforeStatus = order.getMainStatus();
+        Integer beforeStatus = order.getOrderState() != null ? order.getOrderState().getValue() : null;
         order.submit();
         saveOrder(order);
         
-        // 记录时间线
-        saveTimeline(orderId, "ORDER_SUBMIT", "提交审核", beforeStatus, "PENDING_AUDIT",
+        saveTimeline(orderId, "ORDER_SUBMIT", "提交审核", 
+                String.valueOf(beforeStatus), "PENDING_AUDIT",
                 "system", "system", "system", null, "success", null, "订单已提交审核");
     }
 
@@ -113,12 +113,13 @@ public class OrderDomainService {
     @Transactional(rollbackFor = Exception.class)
     public void auditPass(String orderId) {
         Order order = loadOrder(orderId);
-        String beforeStatus = order.getMainStatus();
+        Integer beforeStatus = order.getOrderState() != null ? order.getOrderState().getValue() : null;
         order.auditPass();
         saveOrder(order);
         
-        // 记录时间线
-        saveTimeline(orderId, "AUDIT_PASS", "审核通过", beforeStatus, order.getMainStatus(),
+        saveTimeline(orderId, "AUDIT_PASS", "审核通过", 
+                String.valueOf(beforeStatus),
+                order.getOrderState() != null ? String.valueOf(order.getOrderState().getValue()) : null,
                 "system", "auditor", "system", null, "success", null, "订单审核通过");
     }
 
@@ -128,12 +129,13 @@ public class OrderDomainService {
     @Transactional(rollbackFor = Exception.class)
     public void auditReject(String orderId, String reason) {
         Order order = loadOrder(orderId);
-        String beforeStatus = order.getMainStatus();
+        Integer beforeStatus = order.getOrderState() != null ? order.getOrderState().getValue() : null;
         order.auditReject(reason);
         saveOrder(order);
         
-        // 记录时间线
-        saveTimeline(orderId, "AUDIT_REJECT", "审核驳回", beforeStatus, order.getMainStatus(),
+        saveTimeline(orderId, "AUDIT_REJECT", "审核驳回",
+                String.valueOf(beforeStatus),
+                order.getOrderState() != null ? String.valueOf(order.getOrderState().getValue()) : null,
                 "system", "auditor", "system", null, "success", reason, "订单审核驳回");
     }
 
@@ -143,12 +145,13 @@ public class OrderDomainService {
     @Transactional(rollbackFor = Exception.class)
     public void lockOrder(String orderId) {
         Order order = loadOrder(orderId);
-        String beforeStatus = order.getMainStatus();
+        Integer beforeStatus = order.getOrderState() != null ? order.getOrderState().getValue() : null;
         order.lock();
         saveOrder(order);
         
-        // 记录时间线
-        saveTimeline(orderId, "ORDER_LOCK", "锁单", beforeStatus, order.getMainStatus(),
+        saveTimeline(orderId, "ORDER_LOCK", "锁单",
+                String.valueOf(beforeStatus),
+                order.getOrderState() != null ? String.valueOf(order.getOrderState().getValue()) : null,
                 "system", "system", "system", null, "success", null, "订单已锁单");
     }
 
@@ -158,12 +161,13 @@ public class OrderDomainService {
     @Transactional(rollbackFor = Exception.class)
     public void cancelOrder(String orderId, String reason) {
         Order order = loadOrder(orderId);
-        String beforeStatus = order.getMainStatus();
+        Integer beforeStatus = order.getOrderState() != null ? order.getOrderState().getValue() : null;
         order.cancel(reason);
         saveOrder(order);
         
-        // 记录时间线
-        saveTimeline(orderId, "ORDER_CANCEL", "取消订单", beforeStatus, "CANCEL",
+        saveTimeline(orderId, "ORDER_CANCEL", "取消订单",
+                String.valueOf(beforeStatus),
+                order.getOrderState() != null ? String.valueOf(order.getOrderState().getValue()) : null,
                 "system", "system", "system", null, "success", reason, "订单已取消");
     }
 
@@ -173,12 +177,13 @@ public class OrderDomainService {
     @Transactional(rollbackFor = Exception.class)
     public void closeOrder(String orderId, String reason) {
         Order order = loadOrder(orderId);
-        String beforeStatus = order.getMainStatus();
+        Integer beforeStatus = order.getOrderState() != null ? order.getOrderState().getValue() : null;
         order.close(reason);
         saveOrder(order);
         
-        // 记录时间线
-        saveTimeline(orderId, "ORDER_CLOSE", "关闭订单", beforeStatus, "CLOSED",
+        saveTimeline(orderId, "ORDER_CLOSE", "关闭订单",
+                String.valueOf(beforeStatus),
+                order.getOrderState() != null ? String.valueOf(order.getOrderState().getValue()) : null,
                 "system", "system", "system", null, "success", reason, "订单已关闭");
     }
 
@@ -188,12 +193,13 @@ public class OrderDomainService {
     @Transactional(rollbackFor = Exception.class)
     public void completeOrder(String orderId) {
         Order order = loadOrder(orderId);
-        String beforeStatus = order.getMainStatus();
+        Integer beforeStatus = order.getOrderState() != null ? order.getOrderState().getValue() : null;
         order.complete();
         saveOrder(order);
         
-        // 记录时间线
-        saveTimeline(orderId, "ORDER_COMPLETE", "订单完成", beforeStatus, "COMPLETED",
+        saveTimeline(orderId, "ORDER_COMPLETE", "订单完成",
+                String.valueOf(beforeStatus),
+                order.getOrderState() != null ? String.valueOf(order.getOrderState().getValue()) : null,
                 "system", "system", "system", null, "success", null, "订单已完成");
     }
 
@@ -203,12 +209,13 @@ public class OrderDomainService {
     @Transactional(rollbackFor = Exception.class)
     public void invalidateSmallOrder(String orderId) {
         Order order = loadOrder(orderId);
-        String beforeStatus = order.getMainStatus();
+        Integer beforeStatus = order.getOrderState() != null ? order.getOrderState().getValue() : null;
         order.invalidate();
         saveOrder(order);
         
-        // 记录时间线
-        saveTimeline(orderId, "ORDER_INVALIDATE", "小订单失效", beforeStatus, "EXPIRED",
+        saveTimeline(orderId, "ORDER_INVALIDATE", "小订单失效",
+                String.valueOf(beforeStatus),
+                order.getOrderState() != null ? String.valueOf(order.getOrderState().getValue()) : null,
                 "system", "system", "system", null, "success", null, "小订单超时失效");
     }
 
