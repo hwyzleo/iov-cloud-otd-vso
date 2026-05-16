@@ -960,7 +960,7 @@ CREATE TABLE `vso_order_shadow_delete` (
     `origin_order_no` VARCHAR(64) DEFAULT NULL COMMENT '原订单号',
     `delete_approval_id` VARCHAR(64) DEFAULT NULL COMMENT '删除审批业务 ID',
     `delete_reason` VARCHAR(255) DEFAULT NULL COMMENT '删除原因',
-    `before_main_status` VARCHAR(32) DEFAULT NULL COMMENT '删除前主状态',
+    `before_order_state` INT DEFAULT NULL COMMENT '删除前订单状态数值',
     `compliance_delete_flag` TINYINT NOT NULL DEFAULT 0 COMMENT '是否因合规要求删除：0-否，1-是',
     `delete_user_id` VARCHAR(64) DEFAULT NULL COMMENT '删除人 ID',
     `delete_time` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '删除时间',

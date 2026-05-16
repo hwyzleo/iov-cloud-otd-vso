@@ -115,7 +115,7 @@ ALTER TABLE `vso_order` ADD INDEX `idx_store_sales_status` (`store_code`, `sales
 
 -- 6. 同步修改影子删除表
 ALTER TABLE `vso_order_shadow_delete` 
-    ADD COLUMN `before_order_state` INT DEFAULT NULL COMMENT '删除前订单状态数值' AFTER `order_id`;
+    ADD COLUMN `before_order_state` INT DEFAULT NULL COMMENT '删除前订单状态数值' AFTER `delete_reason`;
 
 UPDATE `vso_order_shadow_delete` SET `before_order_state` = CAST(`before_main_status` AS SIGNED);
 
