@@ -6,15 +6,11 @@
         <id column="id" property="id" />
         <result column="snapshot_id" property="snapshotId" />
         <result column="order_id" property="orderId" />
-        <result column="model_code" property="modelCode" />
-        <result column="model_name" property="modelName" />
-        <result column="config_code" property="configCode" />
-        <result column="config_name" property="configName" />
-        <result column="color_code" property="colorCode" />
-        <result column="color_name" property="colorName" />
-        <result column="option_snapshot" property="optionSnapshot" />
-        <result column="sale_scope_code" property="saleScopeCode" />
-        <result column="display_snapshot" property="displaySnapshot" />
+        <result column="sale_model_code" property="saleModelCode" />
+        <result column="sale_model_name" property="saleModelName" />
+        <result column="build_config_code" property="buildConfigCode" />
+        <result column="build_config_name" property="buildConfigName" />
+        <result column="feature_config_snapshot" property="featureConfigSnapshot" />
         <result column="snapshot_version" property="snapshotVersion" />
         <result column="create_time" property="createTime" />
         <result column="create_by" property="createBy" />
@@ -25,9 +21,9 @@
     </resultMap>
 
     <sql id="baseColumnList">
-        t.id, t.snapshot_id, t.order_id, t.model_code, t.model_name, t.config_code, t.config_name,
-        t.color_code, t.color_name, t.option_snapshot, t.sale_scope_code, t.display_snapshot,
-        t.snapshot_version, t.create_time, t.create_by, t.modify_time, t.modify_by, t.row_version, t.row_valid
+        t.id, t.snapshot_id, t.order_id, t.sale_model_code, t.sale_model_name, 
+        t.build_config_code, t.build_config_name, t.feature_config_snapshot, t.snapshot_version,
+        t.create_time, t.create_by, t.modify_time, t.modify_by, t.row_version, t.row_valid
     </sql>
 
     <select id="selectByOrderId" resultMap="baseResultMap">
@@ -54,8 +50,11 @@
         <if test="orderId != null and orderId != ''">
             AND t.order_id = #{orderId}
         </if>
-        <if test="modelCode != null and modelCode != ''">
-            AND t.model_code = #{modelCode}
+        <if test="saleModelCode != null and saleModelCode != ''">
+            AND t.sale_model_code = #{saleModelCode}
+        </if>
+        <if test="buildConfigCode != null and buildConfigCode != ''">
+            AND t.build_config_code = #{buildConfigCode}
         </if>
         ORDER BY t.id DESC
     </select>
@@ -67,8 +66,11 @@
         <if test="params.orderId != null and params.orderId != ''">
             AND t.order_id = #{params.orderId}
         </if>
-        <if test="params.modelCode != null and params.modelCode != ''">
-            AND t.model_code = #{params.modelCode}
+        <if test="params.saleModelCode != null and params.saleModelCode != ''">
+            AND t.sale_model_code = #{params.saleModelCode}
+        </if>
+        <if test="params.buildConfigCode != null and params.buildConfigCode != ''">
+            AND t.build_config_code = #{params.buildConfigCode}
         </if>
         ORDER BY t.id DESC
     </select>
@@ -84,40 +86,33 @@
 
     <insert id="insertPo" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO vso_order_vehicle_snapshot (
-            snapshot_id, order_id, model_code, model_name, config_code, config_name,
-            color_code, color_name, option_snapshot, sale_scope_code, display_snapshot,
-            snapshot_version, create_time, create_by, modify_time, modify_by, row_version, row_valid
+            snapshot_id, order_id, sale_model_code, sale_model_name, build_config_code, build_config_name,
+            feature_config_snapshot, snapshot_version, create_time, create_by, modify_time, modify_by, row_version, row_valid
         )
         VALUES (
-            #{snapshotId}, #{orderId}, #{modelCode}, #{modelName}, #{configCode}, #{configName},
-            #{colorCode}, #{colorName}, #{optionSnapshot}, #{saleScopeCode}, #{displaySnapshot},
-            #{snapshotVersion}, now(), #{createBy}, now(), #{modifyBy}, 1, 1
+            #{snapshotId}, #{orderId}, #{saleModelCode}, #{saleModelName}, #{buildConfigCode}, #{buildConfigName},
+            #{featureConfigSnapshot}, #{snapshotVersion}, now(), #{createBy}, now(), #{modifyBy}, 1, 1
         )
     </insert>
 
     <insert id="batchInsertPo">
         INSERT INTO vso_order_vehicle_snapshot (
-            snapshot_id, order_id, model_code, model_name, config_code, config_name,
-            color_code, color_name, option_snapshot, sale_scope_code, display_snapshot,
-            snapshot_version, create_time, create_by, modify_time, modify_by, row_version, row_valid
+            snapshot_id, order_id, sale_model_code, sale_model_name, build_config_code, build_config_name,
+            feature_config_snapshot, snapshot_version, create_time, create_by, modify_time, modify_by, row_version, row_valid
         )
         VALUES
         <foreach collection="list" item="item" separator=",">
             (
-                #{item.snapshotId}, #{item.orderId}, #{item.modelCode}, #{item.modelName}, #{item.configCode}, #{item.configName},
-                #{item.colorCode}, #{item.colorName}, #{item.optionSnapshot}, #{item.saleScopeCode}, #{item.displaySnapshot},
-                #{item.snapshotVersion}, now(), #{item.createBy}, now(), #{item.modifyBy}, 1, 1
+                #{item.snapshotId}, #{item.orderId}, #{item.saleModelCode}, #{item.saleModelName}, #{item.buildConfigCode}, #{item.buildConfigName},
+                #{item.featureConfigSnapshot}, #{item.snapshotVersion}, now(), #{item.createBy}, now(), #{item.modifyBy}, 1, 1
             )
         </foreach>
     </insert>
 
     <update id="updatePo" parameterType="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.OrderVehicleSnapshotPo">
         UPDATE vso_order_vehicle_snapshot t SET
-        <if test="optionSnapshot != null and optionSnapshot != ''">
-            t.option_snapshot = #{optionSnapshot},
-        </if>
-        <if test="displaySnapshot != null and displaySnapshot != ''">
-            t.display_snapshot = #{displaySnapshot},
+        <if test="featureConfigSnapshot != null and featureConfigSnapshot != ''">
+            t.feature_config_snapshot = #{featureConfigSnapshot},
         </if>
         <if test="snapshotVersion != null">
             t.snapshot_version = #{snapshotVersion},
