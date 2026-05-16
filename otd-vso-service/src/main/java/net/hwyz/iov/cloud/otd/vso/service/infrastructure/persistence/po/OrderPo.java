@@ -45,14 +45,14 @@ public class OrderPo extends BasePo {
     @TableField("license_city")
     private String licenseCity;
 
-    @TableField("main_status")
-    private String mainStatus;
+    @TableField("order_state")
+    private Integer orderState;
 
     @TableField("end_type")
     private String endType;
 
-    @TableField("previous_main_status")
-    private String previousMainStatus;
+    @TableField("previous_order_state")
+    private Integer previousOrderState;
 
     @TableField("brand_code")
     private String brandCode;
