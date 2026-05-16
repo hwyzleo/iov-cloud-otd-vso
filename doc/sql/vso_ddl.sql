@@ -194,15 +194,11 @@ CREATE TABLE `vso_order_vehicle_snapshot` (
     `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键',
     `snapshot_id` VARCHAR(64) NOT NULL COMMENT '快照业务 ID',
     `order_id` VARCHAR(64) NOT NULL COMMENT '订单业务 ID',
-    `model_code` VARCHAR(64) NOT NULL COMMENT '车型编码',
-    `model_name` VARCHAR(128) NOT NULL COMMENT '车型名称',
-    `config_code` VARCHAR(64) NOT NULL COMMENT '配置编码',
-    `config_name` VARCHAR(128) NOT NULL COMMENT '配置名称',
-    `color_code` VARCHAR(64) NOT NULL COMMENT '颜色编码',
-    `color_name` VARCHAR(128) NOT NULL COMMENT '颜色名称',
-    `option_snapshot` TEXT DEFAULT NULL COMMENT '选装项快照',
-    `sale_scope_code` VARCHAR(64) DEFAULT NULL COMMENT '可售口径编码',
-    `display_snapshot` TEXT DEFAULT NULL COMMENT '展示文案快照',
+    `sale_model_code` VARCHAR(64) NOT NULL COMMENT '销售车型代码',
+    `sale_model_name` VARCHAR(128) NOT NULL COMMENT '销售车型名称',
+    `build_config_code` VARCHAR(64) NOT NULL COMMENT '生产配置代码',
+    `build_config_name` VARCHAR(256) NOT NULL COMMENT '生产配置名称',
+    `feature_config_snapshot` JSON NOT NULL COMMENT '特征值选择快照（VMD featureCodes数组）',
     `snapshot_version` INT NOT NULL DEFAULT 1 COMMENT '快照版本号',
     `create_time` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     `create_by` BIGINT DEFAULT NULL COMMENT '创建者',
@@ -213,7 +209,8 @@ CREATE TABLE `vso_order_vehicle_snapshot` (
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_snapshot_id` (`snapshot_id`),
     UNIQUE KEY `uk_order_snapshot_valid` (`order_id`, `row_valid`),
-    KEY `idx_model_config_color` (`model_code`, `config_code`, `color_code`)
+    KEY `idx_sale_model` (`sale_model_code`),
+    KEY `idx_build_config` (`build_config_code`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='订单车型配置快照表';
 
 -- 订单金额口径表
