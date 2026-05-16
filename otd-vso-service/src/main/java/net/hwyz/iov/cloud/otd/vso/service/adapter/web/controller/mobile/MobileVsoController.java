@@ -139,11 +139,11 @@ public class MobileVsoController extends BaseController {
      * 定金下订单
      */
     @PostMapping("/action/downPaymentOrder")
-    public ApiResponse<String> downPaymentOrder(@RequestBody @Valid DownPaymentOrderRequestVo request) {
+    public ApiResponse<DownPaymentOrderResult> downPaymentOrder(@RequestBody @Valid DownPaymentOrderRequestVo request) {
         log.info("手机客户端[{}]定金下订单", ParamHelper.getClientAccountInfo());
         DownPaymentCmd cmd = DownPaymentOrderRequestVoAssembler.INSTANCE.toCmd(SecurityContextHolder.getUserId(), request);
-        String orderNo = vehicleSaleOrderAppService.downPaymentOrder(cmd);
-        return ApiResponse.ok(orderNo);
+        DownPaymentOrderResult result = vehicleSaleOrderAppService.downPaymentOrder(cmd);
+        return ApiResponse.ok(result);
     }
 
     /**
