@@ -35,6 +35,8 @@ import net.hwyz.iov.cloud.otd.vso.service.domain.repository.OrderRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.PaymentRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.SaleModelRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.WishlistRepository;
+import net.hwyz.iov.cloud.otd.vso.service.domain.repository.AuditRepository;
+import net.hwyz.iov.cloud.otd.vso.service.domain.repository.OrderVehicleSnapshotRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.service.OrderDomainService;
 import net.hwyz.iov.cloud.otd.vso.service.domain.service.OrderLockService;
 import net.hwyz.iov.cloud.otd.vso.service.domain.service.OrderPhysicalDeleteService;
@@ -43,6 +45,8 @@ import net.hwyz.iov.cloud.otd.vso.service.domain.service.TimeoutNotifyService;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.config.PaymentChannelConfig;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.OrderAssignmentPo;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.OrderPartyPo;
+import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.OrderTimelinePo;
+import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.OrderVehicleSnapshotPo;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.PaymentPo;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.SaleModelPo;
 import org.springframework.stereotype.Service;
@@ -87,6 +91,8 @@ public class OrderAppService {
     private final PaymentRepository paymentRepository;
     private final SaleModelAppService saleModelAppService;
     private final DictionaryService dictionaryService;
+    private final AuditRepository auditRepository;
+    private final OrderVehicleSnapshotRepository orderVehicleSnapshotRepository;
 
     /**
      * 创建小订单
@@ -776,10 +782,55 @@ public class OrderAppService {
         orderRepository.save(order);
     }
 
+    @Transactional(rollbackFor = Exception.class)
     public void earnestMoneyToDownPayment(EarnestToDownCmd cmd) {
+        log.info("意向金转定金：accountId={}, orderNo={}", cmd.getAccountId(), cmd.getOrderNo());
+        
         Order order = findOrderById(cmd.getAccountId(), cmd.getOrderNo());
+        
+        if (order.getOrderState() != OrderState.EARNEST_MONEY_PAID) {
+            log.warn("订单状态不允许转定金：orderNo={}, orderState={}", 
+                    order.getOrderNo(), order.getOrderState());
+            throw new OrderStateNotAllowedException(order.getOrderNo(), order.getOrderState(), "EARNEST_TO_DOWN_PAYMENT");
+        }
+        
+        OrderState beforeState = order.getOrderState();
+        
         order.earnestMoneyToDownPayment();
+        
+        if (StrUtil.isNotBlank(cmd.getCustomerType())) {
+            order.saveCustomerType(cmd.getCustomerType());
+        }
+        if (StrUtil.isNotBlank(cmd.getPaymentMethod())) {
+            order.savePaymentMethod(cmd.getPaymentMethod());
+        }
+        order.saveOrderPerson(cmd.getAccountId(), cmd.getOrderPersonType(), cmd.getOrderPersonName(),
+                cmd.getOrderPersonIdType(), cmd.getOrderPersonIdNum());
+        order.savePurchasePlan(cmd.getPurchasePlan());
+        if (StrUtil.isNotBlank(cmd.getLicenseCityCode())) {
+            order.saveLicenseCity(cmd.getLicenseCityCode());
+        }
+        
         orderRepository.save(order);
+        
+        if (StrUtil.isNotBlank(cmd.getOrderPersonName()) && StrUtil.isNotBlank(cmd.getOrderPersonIdNum())) {
+            saveBuyerInfo(order.getId(), cmd.getOrderPersonName(), cmd.getOrderPersonIdNum());
+        }
+        
+        if (StrUtil.isNotBlank(cmd.getDealership()) || StrUtil.isNotBlank(cmd.getDeliveryCenter())) {
+            saveOrderAssignment(order.getId(), cmd.getDealership(), cmd.getDeliveryCenter());
+        }
+        
+        saveOrderTimeline(order.getId(), "EARNEST_TO_DOWN_PAYMENT", "意向金转定金",
+                beforeState.getValue().toString(), order.getOrderState().getValue().toString(),
+                cmd.getAccountId(), "order_user", "capp",
+                null, "success", null, 
+                "意向金订单转定金订单");
+        
+        saveOrderVehicleSnapshot(order);
+        
+        log.info("意向金转定金完成：orderId={}, orderNo={}, orderType={}", 
+                order.getId(), order.getOrderNo(), order.getOrderType());
     }
 
     public void lock(LockCmd cmd) {
@@ -882,6 +933,54 @@ public class OrderAppService {
         assignmentPo.setAssignTime(LocalDateTime.now());
         orderAssignmentRepository.save(assignmentPo);
         log.info("保存订单归属信息：orderId={}, dealership={}, deliveryCenter={}", orderId, dealership, deliveryCenter);
+    }
+
+    private void saveOrderTimeline(String orderId, String eventType, String eventName,
+                                   String beforeStatus, String afterStatus,
+                                   String operatorId, String operatorRole, String operateSource,
+                                   String relatedDocNo, String result, String failReason, String eventRemark) {
+        OrderTimelinePo timelinePo = new OrderTimelinePo();
+        timelinePo.setTimelineId(IdUtil.fastSimpleUUID());
+        timelinePo.setOrderId(orderId);
+        timelinePo.setEventType(eventType);
+        timelinePo.setEventName(eventName);
+        timelinePo.setBeforeStatus(beforeStatus);
+        timelinePo.setAfterStatus(afterStatus);
+        timelinePo.setOperatorId(operatorId);
+        timelinePo.setOperatorRole(operatorRole);
+        timelinePo.setOperateSource(operateSource);
+        timelinePo.setRelatedDocNo(relatedDocNo);
+        timelinePo.setResult(result);
+        timelinePo.setFailReason(failReason);
+        timelinePo.setEventRemark(eventRemark);
+        timelinePo.setEventTime(LocalDateTime.now());
+        auditRepository.saveTimeline(timelinePo);
+        log.info("保存订单时间线：orderId={}, eventType={}", orderId, eventType);
+    }
+
+    private void saveOrderVehicleSnapshot(Order order) {
+        if (StrUtil.isBlank(order.getBuildConfigCode())) {
+            log.warn("订单缺少buildConfigCode，无法生成车型快照：orderNo={}", order.getOrderNo());
+            return;
+        }
+        
+        VmdBuildConfigResponse buildConfig = vmdVehicleModelConfigService.getBuildConfigByCode(order.getBuildConfigCode());
+        if (buildConfig == null) {
+            log.warn("获取buildConfig失败，无法生成车型快照：orderNo={}, buildConfigCode={}", 
+                    order.getOrderNo(), order.getBuildConfigCode());
+            return;
+        }
+        
+        OrderVehicleSnapshotPo snapshotPo = new OrderVehicleSnapshotPo();
+        snapshotPo.setSnapshotId(IdUtil.nanoId(15));
+        snapshotPo.setOrderId(order.getId());
+        snapshotPo.setConfigCode(order.getBuildConfigCode());
+        snapshotPo.setConfigName(buildConfig.getName());
+        snapshotPo.setSnapshotVersion(1);
+        
+        orderVehicleSnapshotRepository.save(snapshotPo);
+        log.info("保存订单车型快照：orderId={}, buildConfigCode={}, buildConfigName={}", 
+                order.getId(), snapshotPo.getConfigCode(), snapshotPo.getConfigName());
     }
 
     public InitiatePaymentResult initiatePayment(InitiatePaymentCmd cmd) {

@@ -295,8 +295,11 @@ public class Order {
     }
 
     public void earnestMoneyToDownPayment() {
+        this.orderType = "formal";
         this.orderState = OrderState.DOWN_PAYMENT_PAID;
-        this.orderStateTime = new Date();
+        Date now = new Date();
+        this.orderStateTime = now;
+        this.downPaymentTime = now;
     }
 
     public void saveOrderPerson(String orderPersonId, Integer orderPersonType, String orderPersonName,

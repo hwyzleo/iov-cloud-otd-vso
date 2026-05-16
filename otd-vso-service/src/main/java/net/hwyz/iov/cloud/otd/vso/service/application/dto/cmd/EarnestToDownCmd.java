@@ -14,5 +14,16 @@ public class EarnestToDownCmd {
 
     private String accountId;
     private String orderNo;
+    
+    private String customerType;
+    private String paymentMethod;
+    private Integer orderPersonType;
+    private String orderPersonName;
+    private Integer orderPersonIdType;
+    private String orderPersonIdNum;
+    private Integer purchasePlan;
+    private String licenseCityCode;
+    private String dealership;
+    private String deliveryCenter;
 
 }
