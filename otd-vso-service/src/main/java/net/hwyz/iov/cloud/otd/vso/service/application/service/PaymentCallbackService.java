@@ -86,7 +86,7 @@ public class PaymentCallbackService {
         }
 
         PaymentStage paymentStage = PaymentStage.valOf(cmd.getPaymentStage());
-        if (paymentStage == null || paymentStage != PaymentStage.EARNEST_MONEY) {
+        if (paymentStage == null) {
             log.warn("不支持的支付阶段：paymentStage={}", cmd.getPaymentStage());
             saveCallbackLog(paymentPo.getOrderId(), cmd, idempotentKey, requestBody, "FAIL",
                     "不支持的支付阶段：" + cmd.getPaymentStage());

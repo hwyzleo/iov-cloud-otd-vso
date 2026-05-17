@@ -999,7 +999,8 @@ public class OrderAppService {
         }
         Order order = orderOpt.get();
         
-        if (order.getOrderState() != OrderState.EARNEST_MONEY_UNPAID) {
+        if (order.getOrderState() != OrderState.EARNEST_MONEY_UNPAID 
+                && order.getOrderState() != OrderState.DOWN_PAYMENT_UNPAID) {
             throw new OrderNotExistException("订单状态不允许支付");
         }
         
@@ -1007,15 +1008,23 @@ public class OrderAppService {
             throw new PaymentChannelNotAvailableException(cmd.getPaymentChannel().name());
         }
         
-        BigDecimal earnestMoneyAmount = getEarnestMoneyAmount(order.getSaleModel());
+        PaymentStage paymentStage;
+        BigDecimal paymentAmount;
+        if (order.getOrderState() == OrderState.EARNEST_MONEY_UNPAID) {
+            paymentStage = PaymentStage.EARNEST_MONEY;
+            paymentAmount = getEarnestMoneyAmount(order.getSaleModel());
+        } else {
+            paymentStage = PaymentStage.DOWN_PAYMENT;
+            paymentAmount = getDownPaymentAmount(order.getSaleModel());
+        }
         
         PaymentPo paymentPo = new PaymentPo();
         paymentPo.setPaymentId(IdUtil.nanoId(15));
         paymentPo.setPaymentNo("P" + IdUtil.nanoId(12));
         paymentPo.setOrderId(order.getId());
-        paymentPo.setPaymentStage(PaymentStage.EARNEST_MONEY.name());
+        paymentPo.setPaymentStage(paymentStage.name());
         paymentPo.setPaymentChannel(cmd.getPaymentChannel().name());
-        paymentPo.setPaymentAmount(earnestMoneyAmount);
+        paymentPo.setPaymentAmount(paymentAmount);
         paymentPo.setPaymentStatus(PaymentStatus.PENDING_PAYMENT.name());
         paymentPo.setInitiatorRole("capp_user");
         paymentPo.setInitiatorId(cmd.getAccountId());
@@ -1023,13 +1032,13 @@ public class OrderAppService {
         
         paymentRepository.save(paymentPo);
         
-        log.info("支付记录创建成功：paymentNo={}, orderId={}, paymentAmount={}", 
-                paymentPo.getPaymentNo(), order.getId(), earnestMoneyAmount);
+        log.info("支付记录创建成功：paymentNo={}, orderId={}, paymentStage={}, paymentAmount={}", 
+                paymentPo.getPaymentNo(), order.getId(), paymentStage, paymentAmount);
         
         return InitiatePaymentResult.builder()
                 .paymentNo(paymentPo.getPaymentNo())
                 .paymentChannel(cmd.getPaymentChannel())
-                .paymentAmount(earnestMoneyAmount)
+                .paymentAmount(paymentAmount)
                 .paymentMerchant(null)
                 .paymentReference(null)
                 .build();

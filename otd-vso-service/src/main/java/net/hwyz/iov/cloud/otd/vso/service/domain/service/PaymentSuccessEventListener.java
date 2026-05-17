@@ -36,8 +36,8 @@ public class PaymentSuccessEventListener {
 
         Integer beforeStatus = order.getOrderState() != null ? order.getOrderState().getValue() : null;
 
-        if (event.getPaymentStage() == PaymentStage.EARNEST_MONEY) {
-            handleEarnestMoneyPayment(order, event.getPaymentAmount());
+        if (event.getPaymentStage() == PaymentStage.EARNEST_MONEY || event.getPaymentStage() == PaymentStage.DOWN_PAYMENT) {
+            handlePayment(order, event.getPaymentAmount(), event.getPaymentStage());
         }
 
         timeoutNotifyService.cancelByOrderIdAndType(event.getOrderId(), "SMALL_ORDER_PAY_TIMEOUT");
@@ -55,9 +55,10 @@ public class PaymentSuccessEventListener {
         log.info("支付成功事件处理完成：orderId={}", event.getOrderId());
     }
 
-    private void handleEarnestMoneyPayment(Order order, BigDecimal amount) {
+    private void handlePayment(Order order, BigDecimal amount, PaymentStage paymentStage) {
         order.pay(amount);
-        log.info("意向金支付成功，订单状态更新：orderId={}, newState={}",
+        log.info("{}支付成功，订单状态更新：orderId={}, newState={}",
+                paymentStage == PaymentStage.EARNEST_MONEY ? "意向金" : "定金",
                 order.getId(), order.getOrderState());
     }
 
