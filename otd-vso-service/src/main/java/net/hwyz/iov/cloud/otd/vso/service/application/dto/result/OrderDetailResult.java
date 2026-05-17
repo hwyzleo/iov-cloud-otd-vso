@@ -46,6 +46,16 @@ private String saleCode;
     private Date orderTime;
 
     /**
+     * 客户类型
+     */
+    private String customerType;
+
+    /**
+     * 支付方式
+     */
+    private String paymentMethod;
+
+    /**
      * 购车人信息
      */
     private CustomerInfo customerInfo;
