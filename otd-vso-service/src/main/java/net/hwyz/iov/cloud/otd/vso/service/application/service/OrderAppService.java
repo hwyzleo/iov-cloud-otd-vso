@@ -539,77 +539,41 @@ public class OrderAppService {
     // --- 以下为兼容旧接口的方法 ---
 
     public EarnestMoneyOrderResult earnestMoneyOrder(EarnestMoneyCmd cmd) {
-        log.info("意向金下单：accountId={}, saleModel={}, regionCode={}, featureConfig={}, wishlistId={}", 
-                cmd.getAccountId(), cmd.getSaleModel(), cmd.getRegionCode(), cmd.getFeatureConfig(), cmd.getWishlistId());
+        log.info("意向金下单：accountId={}, saleModel={}, regionCode={}, featureConfig={}", 
+                cmd.getAccountId(), cmd.getSaleModel(), cmd.getRegionCode(), cmd.getFeatureConfig());
         
         Order order = createOrFindOrder(cmd.getAccountId(), cmd.getOrderNo());
         
         String buildConfigCode = null;
         String saleModel = cmd.getSaleModel();
         
-        if (cmd.getWishlistId() != null && !cmd.getWishlistId().isEmpty()) {
-            Wishlist wishlist = wishlistRepository.findByWishlistIdAndUserId(cmd.getWishlistId(), cmd.getAccountId())
-                .orElseThrow(() -> new WishlistNotExistException(cmd.getWishlistId()));
-            
-            saleModel = cmd.getSaleModel() != null ? cmd.getSaleModel() : wishlist.getSaleModel();
-            buildConfigCode = cmd.getBuildConfigCode() != null ? cmd.getBuildConfigCode() : wishlist.getBuildConfigCode();
-            
-            if (buildConfigCode == null || buildConfigCode.isEmpty()) {
-                if (cmd.getFeatureConfig() != null && !cmd.getFeatureConfig().isEmpty()) {
-                    Map<String, String> featureConfig = new HashMap<>(cmd.getFeatureConfig());
-                    featureConfig.remove("BASE_MODEL");
-                    log.info("调用VMD获取buildConfigCode，featureConfig={}", featureConfig);
-                    buildConfigCode = vmdVehicleModelConfigService.getVehicleBuildConfigCode(featureConfig);
-                    log.info("VMD返回buildConfigCode={}", buildConfigCode);
-                }
-            }
-            
-            if (buildConfigCode == null || buildConfigCode.isEmpty()) {
-                throw new BuildConfigNotMatchedException(saleModel);
-            }
-            
-            order.saveBuildConfig(buildConfigCode, cmd.getModelConfigMap());
-            VmdBuildConfigResponse buildConfig = vmdVehicleModelConfigService.getBuildConfigByCode(buildConfigCode);
-            log.info("VMD返回buildConfig详情={}", buildConfig);
-            if (buildConfig == null || buildConfig.getBrandCode() == null) {
-                throw new BrandCodeNotExistException(buildConfigCode);
-            }
-            order.saveBrandCode(buildConfig.getBrandCode());
-            order.saveRegionCode(cmd.getRegionCode());
-            order.saveSaleModel(saleModel);
-            String saleModelName = saleModelRepository.findBySaleModelCode(saleModel)
-                    .map(SaleModelPo::getModelName)
-                    .orElse("");
-            saveOrderVehicleSnapshot(order, saleModel, saleModelName, buildConfig);
-        } else {
-            if (cmd.getFeatureConfig() != null && !cmd.getFeatureConfig().isEmpty()) {
-                Map<String, String> featureConfig = new HashMap<>(cmd.getFeatureConfig());
-                featureConfig.remove("BASE_MODEL");
-                log.info("调用VMD获取buildConfigCode，featureConfig={}", featureConfig);
-                buildConfigCode = vmdVehicleModelConfigService.getVehicleBuildConfigCode(featureConfig);
-                log.info("VMD返回buildConfigCode={}", buildConfigCode);
-            } else if (cmd.getBuildConfigCode() != null) {
-                buildConfigCode = cmd.getBuildConfigCode();
-            }
-            
-            if (buildConfigCode == null || buildConfigCode.isEmpty()) {
-                throw new BuildConfigNotMatchedException(cmd.getSaleModel());
-            }
-            
-            order.saveBuildConfig(buildConfigCode, cmd.getModelConfigMap());
-            VmdBuildConfigResponse buildConfig = vmdVehicleModelConfigService.getBuildConfigByCode(buildConfigCode);
-            log.info("VMD返回buildConfig详情={}", buildConfig);
-            if (buildConfig == null || buildConfig.getBrandCode() == null) {
-                throw new BrandCodeNotExistException(buildConfigCode);
-            }
-            order.saveBrandCode(buildConfig.getBrandCode());
-            order.saveRegionCode(cmd.getRegionCode());
-            order.saveSaleModel(saleModel);
-            String saleModelName = saleModelRepository.findBySaleModelCode(saleModel)
-                    .map(SaleModelPo::getModelName)
-                    .orElse("");
-            saveOrderVehicleSnapshot(order, saleModel, saleModelName, buildConfig);
+        if (cmd.getFeatureConfig() != null && !cmd.getFeatureConfig().isEmpty()) {
+            Map<String, String> featureConfig = new HashMap<>(cmd.getFeatureConfig());
+            featureConfig.remove("BASE_MODEL");
+            log.info("调用VMD获取buildConfigCode，featureConfig={}", featureConfig);
+            buildConfigCode = vmdVehicleModelConfigService.getVehicleBuildConfigCode(featureConfig);
+            log.info("VMD返回buildConfigCode={}", buildConfigCode);
+        } else if (cmd.getBuildConfigCode() != null) {
+            buildConfigCode = cmd.getBuildConfigCode();
         }
+        
+        if (buildConfigCode == null || buildConfigCode.isEmpty()) {
+            throw new BuildConfigNotMatchedException(saleModel);
+        }
+        
+        order.saveBuildConfig(buildConfigCode, cmd.getModelConfigMap());
+        VmdBuildConfigResponse buildConfig = vmdVehicleModelConfigService.getBuildConfigByCode(buildConfigCode);
+        log.info("VMD返回buildConfig详情={}", buildConfig);
+        if (buildConfig == null || buildConfig.getBrandCode() == null) {
+            throw new BrandCodeNotExistException(buildConfigCode);
+        }
+        order.saveBrandCode(buildConfig.getBrandCode());
+        order.saveRegionCode(cmd.getRegionCode());
+        order.saveSaleModel(saleModel);
+        String saleModelName = saleModelRepository.findBySaleModelCode(saleModel)
+                .map(SaleModelPo::getModelName)
+                .orElse("");
+        saveOrderVehicleSnapshot(order, saleModel, saleModelName, buildConfig);
         
         order.earnestMoneyOrder();
         order.saveLicenseCity(cmd.getLicenseCityCode());
@@ -639,8 +603,8 @@ public class OrderAppService {
     }
 
     public DownPaymentOrderResult downPaymentOrder(DownPaymentCmd cmd) {
-        log.info("定金下单：accountId={}, orderNo={}, saleModel={}, wishlistId={}", 
-                cmd.getAccountId(), cmd.getOrderNo(), cmd.getSaleModel(), cmd.getWishlistId());
+        log.info("定金下单：accountId={}, orderNo={}, saleModel={}", 
+                cmd.getAccountId(), cmd.getOrderNo(), cmd.getSaleModel());
         
         String buildConfigCode;
         String saleModel;
@@ -664,20 +628,12 @@ public class OrderAppService {
                 order = Order.fromWishlist(cmd.getAccountId(), null);
                 saleModel = cmd.getSaleModel();
                 buildConfigCode = cmd.getBuildConfigCode();
+                order.saveSaleModel(saleModel);
             }
         } else {
             order = Order.fromWishlist(cmd.getAccountId(), null);
             saleModel = cmd.getSaleModel();
             buildConfigCode = cmd.getBuildConfigCode();
-        }
-        
-        if (cmd.getWishlistId() != null && !cmd.getWishlistId().isEmpty() && StrUtil.isBlank(order.getOrderNo())) {
-            Wishlist wishlist = wishlistRepository.findByWishlistIdAndUserId(cmd.getWishlistId(), cmd.getAccountId())
-                .orElseThrow(() -> new WishlistNotExistException(cmd.getWishlistId()));
-            
-            saleModel = StrUtil.isNotBlank(saleModel) ? saleModel : wishlist.getSaleModel();
-            buildConfigCode = StrUtil.isNotBlank(buildConfigCode) ? buildConfigCode : wishlist.getBuildConfigCode();
-            
             order.saveSaleModel(saleModel);
         }
         
@@ -725,6 +681,9 @@ public class OrderAppService {
         if (StrUtil.isNotBlank(cmd.getDealership()) || StrUtil.isNotBlank(cmd.getDeliveryCenter())) {
             saveOrderAssignment(order.getId(), cmd.getDealership(), cmd.getDeliveryCenter());
         }
+        
+        wishlistRepository.deleteByUserId(cmd.getAccountId());
+        log.info("定金下单成功后删除心愿单：accountId={}, orderNo={}", cmd.getAccountId(), order.getOrderNo());
         
         BigDecimal downPaymentAmount = getDownPaymentAmount(saleModel);
         Instant expireTime = Instant.now().plusSeconds(paymentChannelConfig.getDownPaymentTimeoutMinutes() * 60);

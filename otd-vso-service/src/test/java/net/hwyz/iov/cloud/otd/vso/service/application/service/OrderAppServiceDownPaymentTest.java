@@ -4,7 +4,6 @@ import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.DownPaymentCmd;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.PayCmd;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.DownPaymentOrderResult;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.PayResult;
-import net.hwyz.iov.cloud.otd.vso.service.domain.model.Wishlist;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.WishlistRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,17 +25,14 @@ class OrderAppServiceDownPaymentTest {
     private WishlistRepository wishlistRepository;
 
     @Test
-    void testDownPaymentOrderWithWishlistId() {
+    void testDownPaymentOrder() {
         String userId = "test_user_" + System.currentTimeMillis();
         String saleCode = "TEST_SALE_CODE";
         String buildConfigCode = "TEST_BUILD_CONFIG";
         
-        Wishlist wishlist = Wishlist.create(userId, saleCode, buildConfigCode);
-        wishlistRepository.save(wishlist);
-        
         DownPaymentCmd cmd = DownPaymentCmd.builder()
             .accountId(userId)
-            .wishlistId(wishlist.getId())
+            .saleModel(saleCode)
             .buildConfigCode(buildConfigCode)
             .licenseCityCode("TEST_CITY")
             .build();
@@ -50,9 +46,6 @@ class OrderAppServiceDownPaymentTest {
         assertFalse(result.getPaymentChannels().isEmpty(), "支付渠道列表应该不为空");
         assertNotNull(result.getExpireTime(), "过期时间应该不为空");
         
-        Wishlist wishlistBeforePay = wishlistRepository.findByUserId(userId).stream().findFirst().orElse(null);
-        assertNotNull(wishlistBeforePay, "支付前心愿单应该存在");
-        
         PayCmd payCmd = PayCmd.builder()
             .accountId(userId)
             .orderNo(result.getOrderNo())
@@ -62,8 +55,5 @@ class OrderAppServiceDownPaymentTest {
         PayResult payResult = orderAppService.pay(payCmd);
         
         assertNotNull(payResult, "支付结果应该不为空");
-        
-        Wishlist wishlistAfterPay = wishlistRepository.findByUserId(userId).stream().findFirst().orElse(null);
-        assertNull(wishlistAfterPay, "支付定金成功后心愿单应该被删除");
     }
 }
