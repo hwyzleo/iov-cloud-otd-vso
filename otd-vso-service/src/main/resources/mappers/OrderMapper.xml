@@ -19,8 +19,11 @@
         <result column="brand_code" property="brandCode" />
         <result column="sale_model" property="saleModel" />
         <result column="build_config_code" property="buildConfigCode" />
-        <result column="region_code" property="regionCode" />
-        <result column="store_code" property="storeCode" />
+        <result column="order_store_code" property="orderStoreCode" />
+        <result column="owner_store_code" property="ownerStoreCode" />
+        <result column="owner_region_code" property="ownerRegionCode" />
+        <result column="delivery_store_code" property="deliveryStoreCode" />
+        <result column="delivery_region_code" property="deliveryRegionCode" />
         <result column="sales_code" property="salesCode" />
         <result column="vehicle_vin" property="vehicleVin" />
         <result column="has_exception" property="hasException" />
@@ -50,7 +53,7 @@
     <sql id="baseColumnList">
         t.id, t.order_id, t.order_no, t.order_type, t.order_source, t.source_remark,
         t.customer_type, t.payment_method, t.license_city, t.order_state, t.end_type, t.previous_order_state, t.brand_code, t.sale_model,
-        t.build_config_code, t.region_code, t.store_code, t.sales_code, t.vehicle_vin, t.has_exception,
+        t.build_config_code, t.order_store_code, t.owner_store_code, t.owner_region_code, t.delivery_store_code, t.delivery_region_code, t.sales_code, t.vehicle_vin, t.has_exception,
         t.current_version_no, t.locked_flag, t.reopen_flag, t.cancel_reason, t.close_reason, t.void_reason,
         t.created_at_business, t.audit_submit_time, t.audit_pass_time, t.lock_time, t.delivery_finish_time,
         t.finish_time, t.cancel_time, t.close_time, t.create_time, t.create_by, t.modify_time, t.modify_by,
@@ -62,7 +65,7 @@
         INSERT INTO vso_order (
             id, order_id, order_no, order_type, order_source, source_remark,
             customer_type, payment_method, license_city, order_state, end_type, previous_order_state, brand_code, sale_model,
-            build_config_code, region_code, store_code, sales_code, vehicle_vin, has_exception,
+            build_config_code, order_store_code, owner_store_code, owner_region_code, delivery_store_code, delivery_region_code, sales_code, vehicle_vin, has_exception,
             current_version_no, locked_flag, reopen_flag, cancel_reason, close_reason, void_reason,
             created_at_business, audit_submit_time, audit_pass_time, lock_time, delivery_finish_time,
             finish_time, cancel_time, close_time, create_time, create_by, modify_time, modify_by,
@@ -71,7 +74,7 @@
         VALUES (
             #{id}, #{orderId}, #{orderNo}, #{orderType}, #{orderSource}, #{sourceRemark},
             #{customerType}, #{paymentMethod}, #{licenseCity}, #{orderState}, #{endType}, #{previousOrderState}, #{brandCode}, #{saleModel},
-            #{buildConfigCode}, #{regionCode}, #{storeCode}, #{salesCode}, #{vehicleVin}, #{hasException},
+            #{buildConfigCode}, #{orderStoreCode}, #{ownerStoreCode}, #{ownerRegionCode}, #{deliveryStoreCode}, #{deliveryRegionCode}, #{salesCode}, #{vehicleVin}, #{hasException},
             #{currentVersionNo}, #{lockedFlag}, #{reopenFlag}, #{cancelReason}, #{closeReason}, #{voidReason},
             #{createdAtBusiness}, #{auditSubmitTime}, #{auditPassTime}, #{lockTime}, #{deliveryFinishTime},
             #{finishTime}, #{cancelTime}, #{closeTime}, now(), #{createBy}, now(), #{modifyBy}, 1, 1
@@ -120,11 +123,20 @@
         <if test="buildConfigCode != null and buildConfigCode != ''">
             t.build_config_code = #{buildConfigCode},
         </if>
-        <if test="regionCode != null and regionCode != ''">
-            t.region_code = #{regionCode},
+        <if test="orderStoreCode != null and orderStoreCode != ''">
+            t.order_store_code = #{orderStoreCode},
         </if>
-        <if test="storeCode != null and storeCode != ''">
-            t.store_code = #{storeCode},
+        <if test="ownerStoreCode != null and ownerStoreCode != ''">
+            t.owner_store_code = #{ownerStoreCode},
+        </if>
+        <if test="ownerRegionCode != null and ownerRegionCode != ''">
+            t.owner_region_code = #{ownerRegionCode},
+        </if>
+        <if test="deliveryStoreCode != null and deliveryStoreCode != ''">
+            t.delivery_store_code = #{deliveryStoreCode},
+        </if>
+        <if test="deliveryRegionCode != null and deliveryRegionCode != ''">
+            t.delivery_region_code = #{deliveryRegionCode},
         </if>
         <if test="salesCode != null and salesCode != ''">
             t.sales_code = #{salesCode},
@@ -252,11 +264,20 @@
         <if test="brandCode != null and brandCode != ''">
             AND t.brand_code = #{brandCode}
         </if>
-        <if test="regionCode != null and regionCode != ''">
-            AND t.region_code = #{regionCode}
+        <if test="ownerRegionCode != null and ownerRegionCode != ''">
+            AND t.owner_region_code = #{ownerRegionCode}
         </if>
-        <if test="storeCode != null and storeCode != ''">
-            AND t.store_code = #{storeCode}
+        <if test="orderStoreCode != null and orderStoreCode != ''">
+            AND t.order_store_code = #{orderStoreCode}
+        </if>
+        <if test="ownerStoreCode != null and ownerStoreCode != ''">
+            AND t.owner_store_code = #{ownerStoreCode}
+        </if>
+        <if test="deliveryStoreCode != null and deliveryStoreCode != ''">
+            AND t.delivery_store_code = #{deliveryStoreCode}
+        </if>
+        <if test="deliveryRegionCode != null and deliveryRegionCode != ''">
+            AND t.delivery_region_code = #{deliveryRegionCode}
         </if>
         <if test="salesCode != null and salesCode != ''">
             AND t.sales_code = #{salesCode}
@@ -299,8 +320,11 @@
         <if test="orderNo != null and orderNo != ''">
             AND t.order_no = #{orderNo}
         </if>
-        <if test="storeCode != null and storeCode != ''">
-            AND t.store_code = #{storeCode}
+        <if test="orderStoreCode != null and orderStoreCode != ''">
+            AND t.order_store_code = #{orderStoreCode}
+        </if>
+        <if test="ownerStoreCode != null and ownerStoreCode != ''">
+            AND t.owner_store_code = #{ownerStoreCode}
         </if>
         <if test="salesCode != null and salesCode != ''">
             AND t.sales_code = #{salesCode}
