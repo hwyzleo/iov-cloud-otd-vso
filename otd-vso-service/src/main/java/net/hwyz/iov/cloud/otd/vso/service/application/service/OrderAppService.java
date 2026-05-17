@@ -670,6 +670,20 @@ public class OrderAppService {
         order.savePurchasePlan(cmd.getPurchasePlan());
         order.saveLicenseCity(cmd.getLicenseCityCode());
         
+        if (StrUtil.isNotBlank(cmd.getOrderStoreCode())) {
+            order.saveOrderStoreCode(cmd.getOrderStoreCode());
+            order.saveOwnerStoreCode(cmd.getOrderStoreCode());
+            if (cmd.getOrderStoreCode().length() >= 2) {
+                order.saveOwnerRegionCode(cmd.getOrderStoreCode().substring(0, 2));
+            }
+        }
+        if (StrUtil.isNotBlank(cmd.getDeliveryStoreCode())) {
+            order.saveDeliveryStoreCode(cmd.getDeliveryStoreCode());
+            if (cmd.getDeliveryStoreCode().length() >= 2) {
+                order.saveDeliveryRegionCode(cmd.getDeliveryStoreCode().substring(0, 2));
+            }
+        }
+        
         orderRepository.save(order);
         
         saveOrderParty(order.getId(), cmd.getAccountId(), "order_user");
