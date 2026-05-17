@@ -1,5 +1,6 @@
 package net.hwyz.iov.cloud.otd.vso.service.application.service;
 
+import net.hwyz.iov.cloud.otd.vso.api.enums.OrderType;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.query.OrderQuery;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.OrderListResult;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.Order;
@@ -37,7 +38,7 @@ class OrderAppServiceSearchTest {
         Order order = Order.builder()
                 .id("test_order_" + System.currentTimeMillis())
                 .orderNo("TEST_ORDER_NO_" + System.currentTimeMillis())
-                .orderType("small")
+                .orderType(OrderType.SMALL)
                 .orderSource("capp")
                 .brandCode("BRAND001")
                 .saleModel("SALE_MODEL_001")
@@ -58,7 +59,7 @@ class OrderAppServiceSearchTest {
         
         OrderListResult result = results.get(0);
         assertEquals(order.getOrderNo(), result.getOrderNo(), "订单号应该匹配");
-        assertEquals(order.getOrderType(), result.getOrderType(), "订单类型编码应该匹配");
+        assertEquals(order.getOrderType().name().toLowerCase(), result.getOrderType(), "订单类型编码应该匹配");
         assertEquals("小订单", result.getOrderTypeName(), "订单类型名称应该是小订单");
         assertEquals(order.getOrderSource(), result.getOrderSource(), "订单来源编码应该匹配");
         assertEquals("C端自主下单", result.getOrderSourceName(), "订单来源名称应该是C端自主下单");
@@ -73,7 +74,7 @@ class OrderAppServiceSearchTest {
         Order order = Order.builder()
                 .id("test_order_formal_" + System.currentTimeMillis())
                 .orderNo("FORMAL_ORDER_NO_" + System.currentTimeMillis())
-                .orderType("formal")
+                .orderType(OrderType.FORMAL)
                 .orderSource("sales")
                 .orderState(OrderState.DOWN_PAYMENT_UNPAID)
                 .build();

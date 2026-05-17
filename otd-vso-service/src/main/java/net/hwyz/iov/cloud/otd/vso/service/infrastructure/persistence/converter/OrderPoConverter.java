@@ -1,5 +1,6 @@
 package net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.converter;
 
+import net.hwyz.iov.cloud.otd.vso.api.enums.OrderType;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.Order;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.OrderPo;
 import org.mapstruct.Mapper;
@@ -26,7 +27,7 @@ public interface OrderPoConverter {
     @Mappings({
             @Mapping(target="orderNo", source = "orderNo"),
             @Mapping(target="id", source = "orderId"),
-            @Mapping(target="orderType", source = "orderType"),
+            @Mapping(target="orderType", expression = "java(orderPo.getOrderType() != null ? net.hwyz.iov.cloud.otd.vso.api.enums.OrderType.valueOf(orderPo.getOrderType().toUpperCase()) : null)"),
             @Mapping(target="orderSource", source = "orderSource"),
             @Mapping(target="brandCode", source = "brandCode"),
             @Mapping(target="buildConfigCode", source = "buildConfigCode"),
@@ -54,7 +55,7 @@ public interface OrderPoConverter {
             @Mapping(target="id", ignore = true),
             @Mapping(target="orderNo", source = "orderNo"),
             @Mapping(target="orderId", source = "id"),
-            @Mapping(target="orderType", source = "orderType"),
+            @Mapping(target="orderType", expression = "java(order.getOrderType() != null ? order.getOrderType().name().toLowerCase() : null)"),
             @Mapping(target="orderSource", source = "orderSource"),
             @Mapping(target="brandCode", source = "brandCode"),
             @Mapping(target="buildConfigCode", source = "buildConfigCode"),

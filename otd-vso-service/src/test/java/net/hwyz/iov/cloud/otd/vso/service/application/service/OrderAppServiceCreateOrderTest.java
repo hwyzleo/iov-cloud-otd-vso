@@ -1,5 +1,6 @@
 package net.hwyz.iov.cloud.otd.vso.service.application.service;
 
+import net.hwyz.iov.cloud.otd.vso.api.enums.OrderType;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.CreateSmallOrderCmd;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.CreateFormalOrderCmd;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.OrderCreateResult;
@@ -154,7 +155,7 @@ class OrderAppServiceCreateOrderTest {
         assertTrue(formalOrder.isPresent(), "正式订单应该能通过orderNo查询到");
         
         // 验证订单类型正确
-        assertEquals("small", smallOrder.get().getOrderType(), "小订单类型应该是small");
-        assertEquals("formal", formalOrder.get().getOrderType(), "正式订单类型应该是formal");
+        assertEquals(OrderType.SMALL, smallOrder.get().getOrderType(), "小订单类型应该是SMALL");
+        assertEquals(OrderType.FORMAL, formalOrder.get().getOrderType(), "正式订单类型应该是FORMAL");
     }
 }

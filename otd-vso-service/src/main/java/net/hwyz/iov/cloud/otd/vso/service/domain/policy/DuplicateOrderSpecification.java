@@ -1,6 +1,7 @@
 package net.hwyz.iov.cloud.otd.vso.service.domain.policy;
 
 import lombok.RequiredArgsConstructor;
+import net.hwyz.iov.cloud.otd.vso.api.enums.OrderType;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.Order;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.OrderRepository;
 import org.springframework.stereotype.Component;
@@ -31,7 +32,7 @@ public class DuplicateOrderSpecification implements Specification<Order> {
     /**
      * 订单类型
      */
-    private String orderType;
+    private OrderType orderType;
 
     @Override
     public boolean isSatisfiedBy(Order candidate) {
@@ -42,13 +43,13 @@ public class DuplicateOrderSpecification implements Specification<Order> {
             return true; // 无法识别客户，认为不重复
         }
 
-        if ("SMALL".equals(orderType)) {
+        if (orderType == OrderType.SMALL) {
             // 小订单：同客户同车型重复控制
             this.modelCode = candidate.getVehicleInfo() != null 
                 ? candidate.getVehicleInfo().getModelCode() 
                 : null;
             return !existsSmallOrder();
-        } else if ("FORMAL".equals(orderType)) {
+        } else if (orderType == OrderType.FORMAL) {
             // 正式订单：客户维度重复控制
             return !existsFormalOrder();
         }
@@ -97,7 +98,7 @@ public class DuplicateOrderSpecification implements Specification<Order> {
     /**
      * 设置订单类型
      */
-    public DuplicateOrderSpecification withOrderType(String orderType) {
+    public DuplicateOrderSpecification withOrderType(OrderType orderType) {
         this.orderType = orderType;
         return this;
     }

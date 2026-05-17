@@ -611,7 +611,7 @@ public class OrderAppService {
             saveOrderVehicleSnapshot(order, saleModel, saleModelName, buildConfig);
         }
         
-        order.createSmallOrder();
+        order.earnestMoneyOrder();
         order.saveLicenseCity(cmd.getLicenseCityCode());
         orderRepository.save(order);
         

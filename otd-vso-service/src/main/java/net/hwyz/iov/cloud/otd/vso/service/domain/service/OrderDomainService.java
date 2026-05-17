@@ -248,7 +248,7 @@ public class OrderDomainService {
         OrderPo po = new OrderPo();
         po.setOrderId(order.getId());
         po.setOrderNo(order.getOrderNo());
-        po.setOrderType(order.getOrderType());
+        po.setOrderType(order.getOrderType() != null ? order.getOrderType().name().toLowerCase() : null);
         po.setOrderSource(order.getOrderSource());
         po.setRowValid(order.getValid() != null && order.getValid());
         return po;

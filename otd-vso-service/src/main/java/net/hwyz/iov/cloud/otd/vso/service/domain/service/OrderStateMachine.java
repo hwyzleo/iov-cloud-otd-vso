@@ -1,5 +1,6 @@
 package net.hwyz.iov.cloud.otd.vso.service.domain.service;
 
+import net.hwyz.iov.cloud.otd.vso.api.enums.OrderType;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.OrderState;
 
 import java.util.Collections;
@@ -114,7 +115,7 @@ public class OrderStateMachine {
      * @param orderType 订单类型
      * @return 是否合法
      */
-    public static boolean canTransition(Integer fromStateValue, Integer toStateValue, String orderType) {
+    public static boolean canTransition(Integer fromStateValue, Integer toStateValue, OrderType orderType) {
         Set<OrderState> allowedTransitionsSet = STATE_TRANSITIONS.get(fromStateValue);
         if (allowedTransitionsSet == null) {
             return false;
@@ -136,7 +137,7 @@ public class OrderStateMachine {
      * @param orderType 订单类型
      * @throws IllegalStateException 如果转移不合法
      */
-    public static void validateTransition(Integer fromStateValue, Integer toStateValue, String orderType) {
+    public static void validateTransition(Integer fromStateValue, Integer toStateValue, OrderType orderType) {
         if (!canTransition(fromStateValue, toStateValue, orderType)) {
             throw new IllegalStateException(
                 String.format("订单状态转移不合法：从 [%d] 无法转移到 [%d]", fromStateValue, toStateValue)

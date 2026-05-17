@@ -22,6 +22,12 @@ public enum OrderState {
     DOWN_PAYMENT_UNPAID(300),
     /** 定金已付款 **/
     DOWN_PAYMENT_PAID(310),
+    /** 待审核 **/
+    PENDING_AUDIT(350),
+    /** 审核通过 **/
+    AUDIT_PASSED(360),
+    /** 审核驳回 **/
+    AUDIT_REJECTED(370),
     /** 已锁单，安排生产 **/
     ARRANGE_PRODUCTION(400),
     /** 已分配车辆 **/
@@ -50,6 +56,8 @@ public enum OrderState {
     RETURN_AUDIT(840),
     /** 退车完成 **/
     RETURN_COMPLETED(860),
+    /** 已完成（正常结束） **/
+    COMPLETED(900),
     /** 退款申请 **/
     REFUND_APPLY(920),
     /** 退款完成 **/
@@ -57,7 +65,9 @@ public enum OrderState {
     /** 已取消 **/
     CANCEL(950),
     /** 已失效（小订单超时） **/
-    EXPIRED(960);
+    EXPIRED(960),
+    /** 已关闭 **/
+    CLOSED(970);
 
     public final Integer value;
 
