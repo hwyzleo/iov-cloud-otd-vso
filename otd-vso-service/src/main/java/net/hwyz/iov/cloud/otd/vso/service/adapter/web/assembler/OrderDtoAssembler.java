@@ -29,6 +29,7 @@ public interface OrderDtoAssembler {
     @Mapping(target = "buildConfigCode", source = "buildConfigCode")
     @Mapping(target = "createTime", source = "createTime")
     @Mapping(target = "modifyTime", source = "modifyTime")
+    @Mapping(target = "licenseCity", source = "licenseCity")
     OrderListResult toOrderListResult(Order order);
 
     List<OrderListResult> toOrderListResultList(List<Order> orders);
@@ -36,7 +37,7 @@ public interface OrderDtoAssembler {
     @Mapping(target = "orderId", source = "id")
     @Mapping(target = "orderState", expression = "java(order.getOrderState() != null ? order.getOrderState().getValue() : null)")
     @Mapping(target = "payState", expression = "java(order.getPayState() != null ? order.getPayState().value : null)")
-    @Mapping(target = "licenseCityCode", source = "regionCode")
+    @Mapping(target = "licenseCityCode", source = "licenseCity")
     @Mapping(target = "dealershipCode", source = "dealership")
     @Mapping(target = "deliveryCenterCode", source = "deliveryCenter")
     @Mapping(target = "saleModelCode", source = "saleModel")

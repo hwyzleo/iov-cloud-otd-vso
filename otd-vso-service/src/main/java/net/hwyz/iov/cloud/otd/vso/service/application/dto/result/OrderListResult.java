@@ -131,4 +131,9 @@ public class OrderListResult {
      */
     private Date modifyTime;
 
+    /**
+     * 上牌城市
+     */
+    private String licenseCity;
+
 }

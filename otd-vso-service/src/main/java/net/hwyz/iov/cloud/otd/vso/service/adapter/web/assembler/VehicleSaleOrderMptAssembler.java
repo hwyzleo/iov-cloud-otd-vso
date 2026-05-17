@@ -27,6 +27,7 @@ public interface VehicleSaleOrderMptAssembler {
 
     @Mapping(target = "orderId", source = "orderId")
     @Mapping(target = "orderNo", source = "orderNo")
+    @Mapping(target = "licenseCity", source = "licenseCityCode")
     VehicleSaleOrderMpt toVo(OrderDetailResult result);
 
 }
