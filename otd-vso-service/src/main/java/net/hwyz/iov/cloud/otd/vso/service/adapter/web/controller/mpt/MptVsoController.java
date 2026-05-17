@@ -1,11 +1,12 @@
 package net.hwyz.iov.cloud.otd.vso.service.adapter.web.controller.mpt;
 
+import cn.hutool.core.util.ObjUtil;
 import cn.hutool.core.util.StrUtil;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-//import net.hwyz.iov.cloud.dms.org.api.contract.DealershipExService;
-//import net.hwyz.iov.cloud.dms.org.api.feign.service.ExDealershipService;
+import net.hwyz.iov.cloud.edd.org.api.service.OrgDealershipService;
+import net.hwyz.iov.cloud.edd.org.api.vo.DealershipExService;
 import net.hwyz.iov.cloud.framework.audit.annotation.Log;
 import net.hwyz.iov.cloud.framework.audit.enums.BusinessType;
 import net.hwyz.iov.cloud.framework.common.bean.ApiResponse;
@@ -19,23 +20,13 @@ import net.hwyz.iov.cloud.framework.web.util.PageUtil;
 import net.hwyz.iov.cloud.otd.vso.api.vo.mpt.DeliveryCenterStaffMpt;
 import net.hwyz.iov.cloud.otd.vso.api.vo.mpt.TransportOrderMpt;
 import net.hwyz.iov.cloud.otd.vso.api.vo.mpt.VehicleSaleOrderMpt;
-import net.hwyz.iov.cloud.otd.vso.service.adapter.web.vo.DeleteOrderRequestVo;
-import net.hwyz.iov.cloud.otd.vso.service.adapter.web.vo.PhysicalDeleteResponseVo;
 import net.hwyz.iov.cloud.otd.vso.api.vo.mpt.request.ApplyTransportRequest;
 import net.hwyz.iov.cloud.otd.vso.api.vo.mpt.request.AssignDeliveryPersonRequest;
 import net.hwyz.iov.cloud.otd.vso.api.vo.mpt.request.AssignVehicleRequest;
-import net.hwyz.iov.cloud.otd.vso.service.adapter.web.assembler.DeliveryCenterStaffMptAssembler;
-import net.hwyz.iov.cloud.otd.vso.service.adapter.web.assembler.DeleteOrderRequestVoAssembler;
-import net.hwyz.iov.cloud.otd.vso.service.adapter.web.assembler.PhysicalDeleteResponseVoAssembler;
-import net.hwyz.iov.cloud.otd.vso.service.adapter.web.assembler.TransportOrderMptAssembler;
-import net.hwyz.iov.cloud.otd.vso.service.adapter.web.assembler.VehicleSaleOrderMptAssembler;
-import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.AuditOrderCmd;
-import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.CancelOrderCmd;
-import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.DeleteOrderCmd;
-import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.LockOrderCmd;
-import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.AssignDeliveryPersonCmd;
-import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.AssignVehicleCmd;
-import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.ApplyTransportCmd;
+import net.hwyz.iov.cloud.otd.vso.service.adapter.web.assembler.*;
+import net.hwyz.iov.cloud.otd.vso.service.adapter.web.vo.DeleteOrderRequestVo;
+import net.hwyz.iov.cloud.otd.vso.service.adapter.web.vo.PhysicalDeleteResponseVo;
+import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.*;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.query.OrderQuery;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.DeliveryStaffResult;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.OrderDetailResult;
@@ -62,7 +53,7 @@ import java.util.Map;
 public class MptVsoController extends BaseController {
 
     private final OrderAppService vehicleSaleOrderAppService;
-//    private final ExDealershipService exDealershipService;
+    private final OrgDealershipService orgDealershipService;
 
     /**
      * 分页查询车辆销售订单信息
@@ -141,10 +132,10 @@ public class MptVsoController extends BaseController {
         List<VehicleSaleOrderMpt> voList = PageUtil.convert(result, VehicleSaleOrderMptAssembler.INSTANCE::toVo);
         for (VehicleSaleOrderMpt vo : voList) {
             if (StrUtil.isNotBlank(vo.getDeliveryCenter())) {
-//                DealershipExService dealership = exDealershipService.getByCode(vo.getDeliveryCenter());
-//                if (ObjUtil.isNotNull(dealership)) {
-//                    vo.setDeliveryCenterName(dealership.getName());
-//                }
+                DealershipExService dealership = orgDealershipService.getByCode(vo.getDeliveryCenter());
+                if (ObjUtil.isNotNull(dealership)) {
+                    vo.setDeliveryCenterName(dealership.getName());
+                }
             }
         }
         return ApiResponse.ok(getPageResult(voList));
@@ -211,10 +202,10 @@ public class MptVsoController extends BaseController {
         List<TransportOrderMpt> voList = PageUtil.convert(result, TransportOrderMptAssembler.INSTANCE::toVo);
         for (TransportOrderMpt vo : voList) {
             if (StrUtil.isNotBlank(vo.getDeliveryCenter())) {
-//                DealershipExService dealership = exDealershipService.getByCode(vo.getDeliveryCenter());
-//                if (ObjUtil.isNotNull(dealership)) {
-//                    vo.setDeliveryCenterName(dealership.getName());
-//                }
+                DealershipExService dealership = orgDealershipService.getByCode(vo.getDeliveryCenter());
+                if (ObjUtil.isNotNull(dealership)) {
+                    vo.setDeliveryCenterName(dealership.getName());
+                }
             }
         }
         return ApiResponse.ok(getPageResult(voList));
@@ -302,9 +293,9 @@ public class MptVsoController extends BaseController {
      */
     @PostMapping("/{orderId}/audit/pass")
     public ApiResponse<Void> auditPass(@PathVariable String orderId,
-                                         @RequestHeader("X-Operator-Id") String operatorId) {
+                                       @RequestHeader("X-Operator-Id") String operatorId) {
         log.info("管理后台审核通过：orderId={}, operatorId={}", orderId, operatorId);
-        
+
         try {
             vehicleSaleOrderAppService.auditPass(AuditOrderCmd.builder()
                     .orderId(orderId)
@@ -322,10 +313,10 @@ public class MptVsoController extends BaseController {
      */
     @PostMapping("/{orderId}/audit/reject")
     public ApiResponse<Void> auditReject(@PathVariable String orderId,
-                                           @RequestParam String reason,
-                                           @RequestHeader("X-Operator-Id") String operatorId) {
+                                         @RequestParam String reason,
+                                         @RequestHeader("X-Operator-Id") String operatorId) {
         log.info("管理后台审核驳回：orderId={}, operatorId={}, reason={}", orderId, operatorId, reason);
-        
+
         try {
             vehicleSaleOrderAppService.auditReject(AuditOrderCmd.builder()
                     .orderId(orderId)
@@ -344,9 +335,9 @@ public class MptVsoController extends BaseController {
      */
     @PostMapping("/{orderId}/lock")
     public ApiResponse<Void> lockOrder(@PathVariable String orderId,
-                                         @RequestHeader("X-Operator-Id") String operatorId) {
+                                       @RequestHeader("X-Operator-Id") String operatorId) {
         log.info("管理后台锁单：orderId={}, operatorId={}", orderId, operatorId);
-        
+
         try {
             vehicleSaleOrderAppService.lockOrder(LockOrderCmd.builder()
                     .orderId(orderId)
@@ -364,10 +355,10 @@ public class MptVsoController extends BaseController {
      */
     @PostMapping("/{orderId}/close")
     public ApiResponse<Void> closeOrder(@PathVariable String orderId,
-                                          @RequestParam String reason,
-                                          @RequestHeader("X-Operator-Id") String operatorId) {
+                                        @RequestParam String reason,
+                                        @RequestHeader("X-Operator-Id") String operatorId) {
         log.info("管理后台关闭订单：orderId={}, operatorId={}, reason={}", orderId, operatorId, reason);
-        
+
         try {
             vehicleSaleOrderAppService.cancelOrder(CancelOrderCmd.builder()
                     .orderId(orderId)
@@ -387,12 +378,12 @@ public class MptVsoController extends BaseController {
      */
     @GetMapping
     public ApiResponse<PageResult<VehicleSaleOrderMpt>> listOrders(@RequestParam(required = false) String status,
-                                       @RequestParam(required = false) String startDate,
-                                       @RequestParam(required = false) String endDate,
-                                       @RequestParam(defaultValue = "1") Integer page,
-                                       @RequestParam(defaultValue = "20") Integer size) {
+                                                                   @RequestParam(required = false) String startDate,
+                                                                   @RequestParam(required = false) String endDate,
+                                                                   @RequestParam(defaultValue = "1") Integer page,
+                                                                   @RequestParam(defaultValue = "20") Integer size) {
         log.info("管理后台查询订单列表：status={}, page={}, size={}", status, page, size);
-        
+
         try {
             // TODO: 实现订单列表查询
             return ApiResponse.ok(new PageResult<>());

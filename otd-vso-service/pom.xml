@@ -47,11 +47,11 @@
             <version>${dictionary.version}</version>
         </dependency>
 
-<!--        <dependency>-->
-<!--            <groupId>net.hwyz.iov.cloud.dms</groupId>-->
-<!--            <artifactId>org-api</artifactId>-->
-<!--            <version>${org.version}</version>-->
-<!--        </dependency>-->
+        <dependency>
+            <groupId>net.hwyz.iov.cloud.edd</groupId>
+            <artifactId>edd-org-api</artifactId>
+            <version>${org.version}</version>
+        </dependency>
 
         <!-- 框架: MySQL -->
         <dependency>
