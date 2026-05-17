@@ -47,7 +47,6 @@ class OrderAppServiceEarnestMoneyTest {
             .accountId(userId)
             .saleModel("DIRECT_SALE_CODE")
             .buildConfigCode("DIRECT_BUILD_CONFIG")
-            .regionCode("TEST_REGION")
             .licenseCityCode("TEST_CITY")
             .build();
         
