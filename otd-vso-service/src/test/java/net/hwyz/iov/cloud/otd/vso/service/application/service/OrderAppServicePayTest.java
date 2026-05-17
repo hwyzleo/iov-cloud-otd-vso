@@ -30,7 +30,6 @@ class OrderAppServicePayTest {
             .accountId(userId)
             .saleModel(saleCode)
             .buildConfigCode(buildConfigCode)
-            .regionCode("TEST_REGION")
             .licenseCityCode("TEST_CITY")
             .build();
         

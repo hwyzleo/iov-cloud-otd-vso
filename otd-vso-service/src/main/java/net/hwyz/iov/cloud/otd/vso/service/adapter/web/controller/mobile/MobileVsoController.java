@@ -137,6 +137,23 @@ public class MobileVsoController extends BaseController {
 
     /**
      * 定金下订单
+     * <p>
+     * 请求参数说明：
+     * <ul>
+     *     <li>saleModelCode - 销售车型代码，必填（意向金下单参数）</li>
+     *     <li>orderNo - 订单号，可选（意向金下单参数，用于从意向金订单转定金）</li>
+     *     <li>saleModelConfigType - 特征配置，必填（意向金下单参数）</li>
+     *     <li>customerType - 客户类型，可选（意向金转定金参数）</li>
+     *     <li>paymentMethod - 支付方式，可选（意向金转定金参数）</li>
+     *     <li>orderPersonType - 订购人类型，可选（意向金转定金参数）</li>
+     *     <li>orderPersonName - 订购人姓名，可选（意向金转定金参数）</li>
+     *     <li>orderPersonIdType - 订购人证件类型，可选（意向金转定金参数）</li>
+     *     <li>orderPersonIdNum - 订购人证件号码，可选（意向金转定金参数）</li>
+     *     <li>purchasePlan - 购买计划，可选（意向金转定金参数）</li>
+     *     <li>licenseCityCode - 上牌城市代码，可选（意向金下单+意向金转定金参数）</li>
+     *     <li>dealership - 门店代码，可选（意向金转定金参数）</li>
+     *     <li>deliveryCenter - 交付中心代码，可选（意向金转定金参数）</li>
+     * </ul>
      */
     @PostMapping("/action/downPaymentOrder")
     public ApiResponse<DownPaymentOrderResult> downPaymentOrder(@RequestBody @Valid DownPaymentOrderRequestVo request) {
@@ -232,38 +249,6 @@ public class MobileVsoController extends BaseController {
         LockCmd cmd = OrderVoAssembler.INSTANCE.toLockCmd(SecurityContextHolder.getUserId(), order);
         vehicleSaleOrderAppService.lock(cmd);
         return ApiResponse.ok();
-    }
-
-    /**
-     * 创建小订单
-     */
-    @PostMapping("/small")
-    public ApiResponse<OrderCreateResult> createSmallOrder(@RequestBody @Valid CreateSmallOrderRequest request) {
-        log.info("C 端创建小订单：userId={}", request.getUserId());
-
-        try {
-            OrderCreateResult result = vehicleSaleOrderAppService.createSmallOrder(CreateSmallOrderCmd.builder()
-                    .orderSource(request.getOrderSource())
-                    .userId(request.getUserId())
-                    .name(request.getName())
-                    .mobileHash(request.getMobileHash())
-                    .idNoHash(request.getIdNoHash())
-                    .modelCode(request.getModelCode())
-                    .modelName(request.getModelName())
-                    .configCode(request.getConfigCode())
-                    .configName(request.getConfigName())
-                    .colorCode(request.getColorCode())
-                    .colorName(request.getColorName())
-                    .build());
-
-            return ApiResponse.ok(result);
-        } catch (IllegalArgumentException e) {
-            log.warn("创建小订单失败：{}", e.getMessage());
-            return ApiResponse.fail(e.getMessage());
-        } catch (Exception e) {
-            log.error("创建小订单异常", e);
-            return ApiResponse.fail("系统繁忙，请稍后再试");
-        }
     }
 
     /**

@@ -30,7 +30,6 @@ class OrderAppServiceEarnestMoneyTest {
             .accountId(userId)
             .saleModel(saleModel)
             .buildConfigCode(buildConfigCode)
-            .regionCode("TEST_REGION")
             .licenseCityCode("TEST_CITY")
             .build();
         

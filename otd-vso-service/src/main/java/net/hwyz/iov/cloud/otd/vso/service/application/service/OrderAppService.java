@@ -539,8 +539,8 @@ public class OrderAppService {
     // --- 以下为兼容旧接口的方法 ---
 
     public EarnestMoneyOrderResult earnestMoneyOrder(EarnestMoneyCmd cmd) {
-        log.info("意向金下单：accountId={}, saleModel={}, regionCode={}, featureConfig={}", 
-                cmd.getAccountId(), cmd.getSaleModel(), cmd.getRegionCode(), cmd.getFeatureConfig());
+        log.info("意向金下单：accountId={}, saleModel={}, featureConfig={}", 
+                cmd.getAccountId(), cmd.getSaleModel(), cmd.getFeatureConfig());
         
         Order order = createOrFindOrder(cmd.getAccountId(), cmd.getOrderNo());
         
@@ -568,7 +568,6 @@ public class OrderAppService {
             throw new BrandCodeNotExistException(buildConfigCode);
         }
         order.saveBrandCode(buildConfig.getBrandCode());
-        order.saveRegionCode(cmd.getRegionCode());
         order.saveSaleModel(saleModel);
         String saleModelName = saleModelRepository.findBySaleModelCode(saleModel)
                 .map(SaleModelPo::getModelName)
@@ -591,8 +590,8 @@ public class OrderAppService {
         Instant expireTime = Instant.now().plusSeconds(paymentChannelConfig.getSmallOrderTimeoutMinutes() * 60);
         List<EarnestMoneyOrderResult.PaymentChannelInfo> paymentChannels = buildPaymentChannelInfoList();
         
-        log.info("意向金下单完成：orderId={}, orderNo={}, buildConfigCode={}, regionCode={}, earnestMoneyAmount={}", 
-                order.getId(), order.getOrderNo(), order.getBuildConfigCode(), order.getRegionCode(), earnestMoneyAmount);
+        log.info("意向金下单完成：orderId={}, orderNo={}, buildConfigCode={}, earnestMoneyAmount={}", 
+                order.getId(), order.getOrderNo(), order.getBuildConfigCode(), earnestMoneyAmount);
         
         return EarnestMoneyOrderResult.builder()
                 .orderNo(order.getOrderNo())
