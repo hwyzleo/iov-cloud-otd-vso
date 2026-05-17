@@ -55,14 +55,29 @@ public class OrderDetailResponse implements Serializable {
     private String brandCode;
 
     /**
-     * 区域编码
+     * 下单门店编码
      */
-    private String regionCode;
+    private String orderStoreCode;
 
     /**
-     * 门店编码
+     * 归属门店编码
      */
-    private String storeCode;
+    private String ownerStoreCode;
+
+    /**
+     * 归属区域编码
+     */
+    private String ownerRegionCode;
+
+    /**
+     * 交付门店编码
+     */
+    private String deliveryStoreCode;
+
+    /**
+     * 交付区域编码
+     */
+    private String deliveryRegionCode;
 
     /**
      * 销售顾问编码

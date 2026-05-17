@@ -29,8 +29,8 @@ public class DownPaymentCmd {
     private String orderPersonIdNum;
     private Integer purchasePlan;
     private String licenseCityCode;
-    private String dealership;
-    private String deliveryCenter;
+    private String orderStoreCode;
+    private String deliveryStoreCode;
     private String wishlistId;
 
 }

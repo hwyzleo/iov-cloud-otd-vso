@@ -131,10 +131,10 @@ public class MptVsoController extends BaseController {
                 .build());
         List<VehicleSaleOrderMpt> voList = PageUtil.convert(result, VehicleSaleOrderMptAssembler.INSTANCE::toVo);
         for (VehicleSaleOrderMpt vo : voList) {
-            if (StrUtil.isNotBlank(vo.getDeliveryCenter())) {
-                DealershipExService dealership = orgDealershipService.getByCode(vo.getDeliveryCenter());
+            if (StrUtil.isNotBlank(vo.getDeliveryStoreCode())) {
+                DealershipExService dealership = orgDealershipService.getByCode(vo.getDeliveryStoreCode());
                 if (ObjUtil.isNotNull(dealership)) {
-                    vo.setDeliveryCenterName(dealership.getName());
+                    vo.setDeliveryStoreName(dealership.getName());
                 }
             }
         }
@@ -201,10 +201,10 @@ public class MptVsoController extends BaseController {
                 .build());
         List<TransportOrderMpt> voList = PageUtil.convert(result, TransportOrderMptAssembler.INSTANCE::toVo);
         for (TransportOrderMpt vo : voList) {
-            if (StrUtil.isNotBlank(vo.getDeliveryCenter())) {
-                DealershipExService dealership = orgDealershipService.getByCode(vo.getDeliveryCenter());
+            if (StrUtil.isNotBlank(vo.getDeliveryStoreCode())) {
+                DealershipExService dealership = orgDealershipService.getByCode(vo.getDeliveryStoreCode());
                 if (ObjUtil.isNotNull(dealership)) {
-                    vo.setDeliveryCenterName(dealership.getName());
+                    vo.setDeliveryStoreName(dealership.getName());
                 }
             }
         }

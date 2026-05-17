@@ -154,10 +154,10 @@ public class OrderAppService {
                 cmd.getColorName()
         );
         OrganizationInfo orgInfo = new OrganizationInfo(
-                cmd.getRegionCode(),
-                cmd.getRegionName(),
-                cmd.getStoreCode(),
-                cmd.getStoreName(),
+                cmd.getOwnerRegionCode(),
+                cmd.getOwnerRegionName(),
+                cmd.getOwnerStoreCode(),
+                cmd.getOwnerStoreName(),
                 cmd.getSalesCode(),
                 cmd.getSalesName()
         );
@@ -353,7 +353,7 @@ public class OrderAppService {
             result.setOrderSourceName(getOrderSourceName(result.getOrderSource()));
             result.setBrandName(result.getBrandCode());
             result.setSaleModelName(saleModelNameMap.getOrDefault(result.getSaleModel(), ""));
-            result.setRegionName(getRegionName(result.getRegionCode()));
+            result.setOwnerRegionName(getRegionName(result.getOwnerRegionCode()));
 
             if (StrUtil.isNotBlank(result.getSaleModel()) && StrUtil.isNotBlank(result.getBuildConfigCode())) {
                 try {
@@ -677,8 +677,8 @@ public class OrderAppService {
             saveBuyerInfo(order.getId(), cmd.getOrderPersonName(), cmd.getOrderPersonIdNum());
         }
         
-        if (StrUtil.isNotBlank(cmd.getDealership()) || StrUtil.isNotBlank(cmd.getDeliveryCenter())) {
-            saveOrderAssignment(order.getId(), cmd.getDealership(), cmd.getDeliveryCenter());
+        if (StrUtil.isNotBlank(cmd.getOrderStoreCode()) || StrUtil.isNotBlank(cmd.getDeliveryStoreCode())) {
+            saveOrderAssignment(order.getId(), cmd.getOrderStoreCode(), cmd.getDeliveryStoreCode());
         }
         
         wishlistRepository.deleteByUserId(cmd.getAccountId());
@@ -716,8 +716,8 @@ public class OrderAppService {
             result.setTotalPrice(selectedModel.getTotalPrice());
         }
         
-        if (StrUtil.isNotBlank(order.getRegionCode())) {
-            result.setLicenseCityName(getCityName(order.getRegionCode()));
+        if (StrUtil.isNotBlank(order.getOwnerRegionCode())) {
+            result.setLicenseCityName(getCityName(order.getOwnerRegionCode()));
         }
         
         return result;
@@ -809,10 +809,18 @@ public class OrderAppService {
             order.saveLicenseCity(cmd.getLicenseCityCode());
         }
         
-        if (StrUtil.isNotBlank(cmd.getDealership())) {
-            order.saveStoreCode(cmd.getDealership());
-            if (cmd.getDealership().length() >= 2) {
-                order.saveRegionCode(cmd.getDealership().substring(0, 2));
+        if (StrUtil.isNotBlank(cmd.getOrderStoreCode())) {
+            order.saveOrderStoreCode(cmd.getOrderStoreCode());
+            order.saveOwnerStoreCode(cmd.getOrderStoreCode());
+            if (cmd.getOrderStoreCode().length() >= 2) {
+                order.saveOwnerRegionCode(cmd.getOrderStoreCode().substring(0, 2));
+            }
+        }
+        
+        if (StrUtil.isNotBlank(cmd.getDeliveryStoreCode())) {
+            order.saveDeliveryStoreCode(cmd.getDeliveryStoreCode());
+            if (cmd.getDeliveryStoreCode().length() >= 2) {
+                order.saveDeliveryRegionCode(cmd.getDeliveryStoreCode().substring(0, 2));
             }
         }
         
@@ -822,8 +830,8 @@ public class OrderAppService {
             saveBuyerInfo(order.getId(), cmd.getOrderPersonName(), cmd.getOrderPersonIdNum());
         }
         
-        if (StrUtil.isNotBlank(cmd.getDealership()) || StrUtil.isNotBlank(cmd.getDeliveryCenter())) {
-            saveOrderAssignment(order.getId(), cmd.getDealership(), cmd.getDeliveryCenter());
+        if (StrUtil.isNotBlank(cmd.getOrderStoreCode()) || StrUtil.isNotBlank(cmd.getDeliveryStoreCode())) {
+            saveOrderAssignment(order.getId(), cmd.getOrderStoreCode(), cmd.getDeliveryStoreCode());
         }
         
         saveOrderTimeline(order.getId(), "EARNEST_TO_DOWN_PAYMENT", "意向金转定金",

@@ -68,24 +68,24 @@ public class CreateFormalOrderCmd {
     private String colorName;
 
     /**
-     * 区域编码
+     * 归属区域编码
      */
-    private String regionCode;
+    private String ownerRegionCode;
 
     /**
-     * 区域名称
+     * 归属区域名称
      */
-    private String regionName;
+    private String ownerRegionName;
 
     /**
-     * 门店编码
+     * 归属门店编码
      */
-    private String storeCode;
+    private String ownerStoreCode;
 
     /**
-     * 门店名称
+     * 归属门店名称
      */
-    private String storeName;
+    private String ownerStoreName;
 
     /**
      * 销售顾问编码

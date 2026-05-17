@@ -72,14 +72,14 @@ public class TransportOrderMpt implements Serializable {
     private String deliveryVin;
 
     /**
-     * 交付中心
+     * 交付门店编码
      */
-    private String deliveryCenter;
+    private String deliveryStoreCode;
 
     /**
-     * 交付中心名称
+     * 交付门店名称
      */
-    private String deliveryCenterName;
+    private String deliveryStoreName;
 
     /**
      * 运输申请人员ID

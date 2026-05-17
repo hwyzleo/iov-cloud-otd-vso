@@ -83,14 +83,49 @@ public class VehicleSaleOrderMpt implements Serializable {
     private String saleModelName;
 
     /**
+     * 下单门店编码
+     */
+    private String orderStoreCode;
+
+    /**
+     * 归属门店编码
+     */
+    private String ownerStoreCode;
+
+    /**
+     * 归属门店名称
+     */
+    private String ownerStoreName;
+
+    /**
      * 归属区域编码
      */
-    private String regionCode;
+    private String ownerRegionCode;
 
     /**
      * 归属区域名称
      */
-    private String regionName;
+    private String ownerRegionName;
+
+    /**
+     * 交付门店编码
+     */
+    private String deliveryStoreCode;
+
+    /**
+     * 交付门店名称
+     */
+    private String deliveryStoreName;
+
+    /**
+     * 交付区域编码
+     */
+    private String deliveryRegionCode;
+
+    /**
+     * 交付区域名称
+     */
+    private String deliveryRegionName;
 
     /**
      * 生产配置编码
@@ -156,16 +191,6 @@ public class VehicleSaleOrderMpt implements Serializable {
      * 交付车辆
      */
     private String deliveryVin;
-
-    /**
-     * 交付中心
-     */
-    private String deliveryCenter;
-
-    /**
-     * 交付中心名称
-     */
-    private String deliveryCenterName;
 
     /**
      * 交付人员ID

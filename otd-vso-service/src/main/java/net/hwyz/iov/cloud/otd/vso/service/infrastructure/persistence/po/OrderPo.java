@@ -57,11 +57,20 @@ public class OrderPo extends BasePo {
     @TableField("brand_code")
     private String brandCode;
 
-    @TableField("region_code")
-    private String regionCode;
+    @TableField("order_store_code")
+    private String orderStoreCode;
 
-    @TableField("store_code")
-    private String storeCode;
+    @TableField("owner_store_code")
+    private String ownerStoreCode;
+
+    @TableField("owner_region_code")
+    private String ownerRegionCode;
+
+    @TableField("delivery_store_code")
+    private String deliveryStoreCode;
+
+    @TableField("delivery_region_code")
+    private String deliveryRegionCode;
 
     @TableField("sales_code")
     private String salesCode;

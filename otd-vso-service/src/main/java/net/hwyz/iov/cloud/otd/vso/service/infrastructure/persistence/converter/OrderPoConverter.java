@@ -32,8 +32,11 @@ public interface OrderPoConverter {
             @Mapping(target="brandCode", source = "brandCode"),
             @Mapping(target="buildConfigCode", source = "buildConfigCode"),
             @Mapping(target="saleModel", source = "saleModel"),
-            @Mapping(target="regionCode", source = "regionCode"),
-            @Mapping(target="storeCode", source = "storeCode"),
+            @Mapping(target="orderStoreCode", source = "orderStoreCode"),
+            @Mapping(target="ownerStoreCode", source = "ownerStoreCode"),
+            @Mapping(target="ownerRegionCode", source = "ownerRegionCode"),
+            @Mapping(target="deliveryStoreCode", source = "deliveryStoreCode"),
+            @Mapping(target="deliveryRegionCode", source = "deliveryRegionCode"),
             @Mapping(target="salesCode", source = "salesCode"),
             @Mapping(target="licenseCity", source = "licenseCity"),
             @Mapping(target="orderState", expression = "java(orderPo.getOrderState() != null ? net.hwyz.iov.cloud.otd.vso.service.domain.model.OrderState.fromValue(orderPo.getOrderState()) : null)"),
@@ -42,7 +45,7 @@ public interface OrderPoConverter {
             @Mapping(target="reopenFlag", expression = "java(orderPo.getReopenFlag() != null && orderPo.getReopenFlag() == 1)"),
             @Mapping(target="orderTime", source = "createdAtBusiness")
     })
-    @org.mapstruct.BeanMapping(ignoreUnmappedSourceProperties = {"payState", "orderStateTime", "modelConfigType", "modelConfigName", "modelConfigPrice", "modelConfigMap", "modelConfigDesc", "totalPrice", "dealership", "deliveryCenter", "deliveryVin", "orderPersonId", "orderPersonType", "orderPersonName", "orderPersonIdType", "orderPersonIdNum", "purchasePlan", "transportApplyPersonId", "transportApplyPersonName", "deliveryPersonId", "deliveryPersonName", "earnestMoneyTime", "earnestMoneyAmount", "downPaymentTime", "downPaymentAmount", "transportApplyTime", "customerInfo", "organizationInfo", "vehicleInfo", "orderAmount", "orderPersonPhone", "buildConfigLock", "remark", "valid", "domainEvents", "createBy", "modifyBy"})
+    @org.mapstruct.BeanMapping(ignoreUnmappedSourceProperties = {"payState", "orderStateTime", "modelConfigType", "modelConfigName", "modelConfigPrice", "modelConfigMap", "modelConfigDesc", "totalPrice", "deliveryVin", "orderPersonId", "orderPersonType", "orderPersonName", "orderPersonIdType", "orderPersonIdNum", "purchasePlan", "transportApplyPersonId", "transportApplyPersonName", "deliveryPersonId", "deliveryPersonName", "earnestMoneyTime", "earnestMoneyAmount", "downPaymentTime", "downPaymentAmount", "transportApplyTime", "customerInfo", "organizationInfo", "vehicleInfo", "orderAmount", "orderPersonPhone", "buildConfigLock", "remark", "valid", "domainEvents", "createBy", "modifyBy"})
     Order toDomain(OrderPo orderPo);
 
     /**
@@ -60,8 +63,11 @@ public interface OrderPoConverter {
             @Mapping(target="brandCode", source = "brandCode"),
             @Mapping(target="buildConfigCode", source = "buildConfigCode"),
             @Mapping(target="saleModel", source = "saleModel"),
-            @Mapping(target="regionCode", source = "regionCode"),
-            @Mapping(target="storeCode", source = "storeCode"),
+            @Mapping(target="orderStoreCode", source = "orderStoreCode"),
+            @Mapping(target="ownerStoreCode", source = "ownerStoreCode"),
+            @Mapping(target="ownerRegionCode", source = "ownerRegionCode"),
+            @Mapping(target="deliveryStoreCode", source = "deliveryStoreCode"),
+            @Mapping(target="deliveryRegionCode", source = "deliveryRegionCode"),
             @Mapping(target="salesCode", source = "salesCode"),
             @Mapping(target="licenseCity", source = "licenseCity"),
             @Mapping(target="orderState", expression = "java(order.getOrderState() != null ? order.getOrderState().getValue() : null)"),
@@ -70,7 +76,7 @@ public interface OrderPoConverter {
             @Mapping(target="reopenFlag", expression = "java(order.getReopenFlag() != null && order.getReopenFlag() ? 1 : 0)"),
             @Mapping(target="createdAtBusiness", source = "orderTime")
     })
-    @org.mapstruct.BeanMapping(ignoreUnmappedSourceProperties = {"earnestMoneyTime", "earnestMoneyAmount", "downPaymentTime", "downPaymentAmount", "transportApplyTime", "customerInfo", "organizationInfo", "vehicleInfo", "orderAmount", "orderPersonPhone", "buildConfigLock", "remark", "valid", "domainEvents", "payState", "orderState", "orderStateTime", "modelConfigType", "modelConfigName", "modelConfigPrice", "modelConfigMap", "modelConfigDesc", "totalPrice", "dealership", "deliveryCenter", "deliveryVin", "orderPersonId", "orderPersonType", "orderPersonName", "orderPersonIdType", "orderPersonIdNum", "purchasePlan", "transportApplyPersonId", "transportApplyPersonName", "deliveryPersonId", "deliveryPersonName", "sourceRemark", "endType", "vehicleVin", "cancelReason", "closeReason", "voidReason", "auditSubmitTime", "auditPassTime", "deliveryFinishTime", "finishTime", "cancelTime", "closeTime", "createTime", "createBy", "modifyTime", "modifyBy"})
+    @org.mapstruct.BeanMapping(ignoreUnmappedSourceProperties = {"earnestMoneyTime", "earnestMoneyAmount", "downPaymentTime", "downPaymentAmount", "transportApplyTime", "customerInfo", "organizationInfo", "vehicleInfo", "orderAmount", "orderPersonPhone", "buildConfigLock", "remark", "valid", "domainEvents", "payState", "orderState", "orderStateTime", "modelConfigType", "modelConfigName", "modelConfigPrice", "modelConfigMap", "modelConfigDesc", "totalPrice", "deliveryVin", "orderPersonId", "orderPersonType", "orderPersonName", "orderPersonIdType", "orderPersonIdNum", "purchasePlan", "transportApplyPersonId", "transportApplyPersonName", "deliveryPersonId", "deliveryPersonName", "sourceRemark", "endType", "vehicleVin", "cancelReason", "closeReason", "voidReason", "auditSubmitTime", "auditPassTime", "deliveryFinishTime", "finishTime", "cancelTime", "closeTime", "createTime", "createBy", "modifyTime", "modifyBy"})
     OrderPo fromDomain(Order order);
 
 }

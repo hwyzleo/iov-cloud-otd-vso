@@ -20,8 +20,8 @@ import lombok.*;
  *             <li>orderPersonIdNum - 订购人证件号码</li>
  *             <li>purchasePlan - 购买计划</li>
  *             <li>licenseCityCode - 上牌城市代码</li>
- *             <li>dealership - 门店代码</li>
- *             <li>deliveryCenter - 交付中心代码</li>
+ *             <li>orderStoreCode - 下单门店代码</li>
+ *             <li>deliveryStoreCode - 交付门店代码</li>
  *         </ul>
  *     </li>
  * </ul>
@@ -105,13 +105,13 @@ public class OrderVo {
     private String licenseCityCode;
 
     /**
-     * 门店代码
+     * 下单门店代码
      */
-    private String dealership;
+    private String orderStoreCode;
 
     /**
-     * 交付中心代码
+     * 交付门店代码
      */
-    private String deliveryCenter;
+    private String deliveryStoreCode;
 
 }

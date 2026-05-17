@@ -149,11 +149,20 @@ public class Order {
     /** 生产配置代码，对应VMD系统的buildConfig */
     private String buildConfigCode;
 
-    /** 归属区域编码 */
-    private String regionCode;
+    /** 下单门店编码 */
+    private String orderStoreCode;
 
-    /** 门店编码 */
-    private String storeCode;
+    /** 归属门店编码 */
+    private String ownerStoreCode;
+
+    /** 归属区域编码 */
+    private String ownerRegionCode;
+
+    /** 交付门店编码 */
+    private String deliveryStoreCode;
+
+    /** 交付区域编码 */
+    private String deliveryRegionCode;
 
     /** 销售顾问编码 */
     private String salesCode;
@@ -165,12 +174,6 @@ public class Order {
 
     /** 上牌城市编码 */
     private String licenseCity;
-
-    /** 经销商编码 */
-    private String dealership;
-
-    /** 交付中心编码 */
-    private String deliveryCenter;
 
     /** 发运申请人ID */
     private String transportApplyPersonId;
@@ -303,13 +306,6 @@ public class Order {
     }
 
     /**
-     * 保存归属区域编码
-     */
-    public void saveRegionCode(String regionCode) {
-        this.regionCode = regionCode;
-    }
-
-    /**
      * 保存销售车型编码
      */
     public void saveSaleModel(String saleModel) {
@@ -317,10 +313,38 @@ public class Order {
     }
 
     /**
-     * 保存门店编码
+     * 保存下单门店编码
      */
-    public void saveStoreCode(String storeCode) {
-        this.storeCode = storeCode;
+    public void saveOrderStoreCode(String orderStoreCode) {
+        this.orderStoreCode = orderStoreCode;
+    }
+
+    /**
+     * 保存归属门店编码
+     */
+    public void saveOwnerStoreCode(String ownerStoreCode) {
+        this.ownerStoreCode = ownerStoreCode;
+    }
+
+    /**
+     * 保存归属区域编码
+     */
+    public void saveOwnerRegionCode(String ownerRegionCode) {
+        this.ownerRegionCode = ownerRegionCode;
+    }
+
+    /**
+     * 保存交付门店编码
+     */
+    public void saveDeliveryStoreCode(String deliveryStoreCode) {
+        this.deliveryStoreCode = deliveryStoreCode;
+    }
+
+    /**
+     * 保存交付区域编码
+     */
+    public void saveDeliveryRegionCode(String deliveryRegionCode) {
+        this.deliveryRegionCode = deliveryRegionCode;
     }
 
     /**
@@ -374,20 +398,6 @@ public class Order {
      */
     public void savePaymentMethod(String paymentMethod) {
         this.paymentMethod = paymentMethod;
-    }
-
-    /**
-     * 保存经销商
-     */
-    public void saveDealership(String dealership) {
-        this.dealership = dealership;
-    }
-
-    /**
-     * 保存交付中心
-     */
-    public void saveDeliveryCenter(String deliveryCenter) {
-        this.deliveryCenter = deliveryCenter;
     }
 
     /**

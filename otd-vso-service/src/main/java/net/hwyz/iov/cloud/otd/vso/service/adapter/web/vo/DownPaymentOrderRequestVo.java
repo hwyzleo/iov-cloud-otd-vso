@@ -11,7 +11,7 @@ import java.util.Map;
  * <ul>
  *     <li>意向金下单参数：saleModelCode、orderNo、saleModelConfigType、licenseCityCode</li>
  *     <li>意向金转定金参数：customerType、paymentMethod、orderPersonType、orderPersonName、
- *         orderPersonIdType、orderPersonIdNum、purchasePlan、dealership、deliveryCenter</li>
+ *         orderPersonIdType、orderPersonIdNum、purchasePlan、orderStoreCode、deliveryStoreCode</li>
  * </ul>
  *
  * @author VSO Team
@@ -113,17 +113,17 @@ public class DownPaymentOrderRequestVo {
     private String orderPersonIdNum;
 
     /**
-     * 门店代码，可选
+     * 下单门店代码，可选
      * <p>
      * 来自意向金转定金参数
      */
-    private String dealership;
+    private String orderStoreCode;
 
     /**
-     * 交付中心代码，可选
+     * 交付门店代码，可选
      * <p>
      * 来自意向金转定金参数
      */
-    private String deliveryCenter;
+    private String deliveryStoreCode;
 
 }

@@ -13,24 +13,24 @@ import lombok.NoArgsConstructor;
 public class OrganizationInfo {
 
     /**
-     * 区域编码
+     * 归属区域编码
      */
-    private String regionCode;
+    private String ownerRegionCode;
 
     /**
-     * 区域名称
+     * 归属区域名称
      */
-    private String regionName;
+    private String ownerRegionName;
 
     /**
-     * 门店编码
+     * 归属门店编码
      */
-    private String storeCode;
+    private String ownerStoreCode;
 
     /**
-     * 门店名称
+     * 归属门店名称
      */
-    private String storeName;
+    private String ownerStoreName;
 
     /**
      * 销售顾问编码
@@ -42,12 +42,12 @@ public class OrganizationInfo {
      */
     private String salesName;
 
-    public OrganizationInfo(String regionCode, String regionName, String storeCode, 
-                           String storeName, String salesCode, String salesName) {
-        this.regionCode = regionCode;
-        this.regionName = regionName;
-        this.storeCode = storeCode;
-        this.storeName = storeName;
+    public OrganizationInfo(String ownerRegionCode, String ownerRegionName, String ownerStoreCode, 
+                           String ownerStoreName, String salesCode, String salesName) {
+        this.ownerRegionCode = ownerRegionCode;
+        this.ownerRegionName = ownerRegionName;
+        this.ownerStoreCode = ownerStoreCode;
+        this.ownerStoreName = ownerStoreName;
         this.salesCode = salesCode;
         this.salesName = salesName;
     }
@@ -56,7 +56,7 @@ public class OrganizationInfo {
      * 验证归属信息完整性
      */
     public boolean isComplete() {
-        return regionCode != null && storeCode != null && salesCode != null;
+        return ownerRegionCode != null && ownerStoreCode != null && salesCode != null;
     }
 
 }

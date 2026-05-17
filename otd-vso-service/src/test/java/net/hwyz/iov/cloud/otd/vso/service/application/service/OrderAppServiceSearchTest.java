@@ -42,7 +42,7 @@ class OrderAppServiceSearchTest {
                 .orderSource("capp")
                 .brandCode("BRAND001")
                 .saleModel("SALE_MODEL_001")
-                .regionCode("REGION001")
+                .ownerRegionCode("REGION001")
                 .buildConfigCode("BUILD_CONFIG_001")
                 .orderState(OrderState.EARNEST_MONEY_UNPAID)
                 .build();
@@ -65,7 +65,7 @@ class OrderAppServiceSearchTest {
         assertEquals("C端自主下单", result.getOrderSourceName(), "订单来源名称应该是C端自主下单");
         assertEquals(order.getBrandCode(), result.getBrandCode(), "品牌编码应该匹配");
         assertEquals(order.getSaleModel(), result.getSaleModel(), "销售车型编码应该匹配");
-        assertEquals(order.getRegionCode(), result.getRegionCode(), "归属区域编码应该匹配");
+        assertEquals(order.getOwnerRegionCode(), result.getOwnerRegionCode(), "归属区域编码应该匹配");
         assertEquals(order.getBuildConfigCode(), result.getBuildConfigCode(), "生产配置编码应该匹配");
     }
 

@@ -106,24 +106,54 @@ private String saleCode;
     private String licenseCityName;
 
     /**
-     * 门店编码
+     * 下单门店编码
      */
-    private String dealershipCode;
+    private String orderStoreCode;
 
     /**
-     * 门店名称
+     * 下单门店名称
      */
-    private String dealershipName;
+    private String orderStoreName;
 
     /**
-     * 交付中心编码
+     * 归属门店编码
      */
-    private String deliveryCenterCode;
+    private String ownerStoreCode;
 
     /**
-     * 交付中心名称
+     * 归属门店名称
      */
-    private String deliveryCenterName;
+    private String ownerStoreName;
+
+    /**
+     * 归属区域编码
+     */
+    private String ownerRegionCode;
+
+    /**
+     * 归属区域名称
+     */
+    private String ownerRegionName;
+
+    /**
+     * 交付门店编码
+     */
+    private String deliveryStoreCode;
+
+    /**
+     * 交付门店名称
+     */
+    private String deliveryStoreName;
+
+    /**
+     * 交付区域编码
+     */
+    private String deliveryRegionCode;
+
+    /**
+     * 交付区域名称
+     */
+    private String deliveryRegionName;
 
     /**
      * 车型配置类型

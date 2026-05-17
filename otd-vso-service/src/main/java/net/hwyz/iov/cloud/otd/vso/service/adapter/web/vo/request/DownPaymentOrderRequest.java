@@ -51,14 +51,14 @@ public class DownPaymentOrderRequest extends SelectedSaleModelRequest {
     @NotBlank(message = "上牌城市代码不能为空")
     private String licenseCityCode;
     /**
-     * 销售门店
+     * 下单门店
      */
-    @NotBlank(message = "销售门店不能为空")
-    private String dealership;
+    @NotBlank(message = "下单门店不能为空")
+    private String orderStoreCode;
     /**
-     * 交付中心
+     * 交付门店
      */
-    @NotBlank(message = "交付中心不能为空")
-    private String deliveryCenter;
+    @NotBlank(message = "交付门店不能为空")
+    private String deliveryStoreCode;
 
 }
