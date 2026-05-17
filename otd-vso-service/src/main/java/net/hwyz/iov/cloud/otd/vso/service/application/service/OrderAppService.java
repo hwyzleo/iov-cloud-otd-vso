@@ -691,7 +691,8 @@ public class OrderAppService {
         
         saveOrderParty(order.getId(), cmd.getAccountId(), "order_user");
         if (StrUtil.isNotBlank(cmd.getOrderPersonName()) && StrUtil.isNotBlank(cmd.getOrderPersonIdNum())) {
-            saveBuyerInfo(order.getId(), cmd.getOrderPersonName(), cmd.getOrderPersonIdNum());
+            saveBuyerInfo(order.getId(), cmd.getOrderPersonType(), cmd.getOrderPersonName(),
+                    cmd.getOrderPersonIdType(), cmd.getOrderPersonIdNum());
         }
         
         if (StrUtil.isNotBlank(cmd.getOrderStoreCode()) || StrUtil.isNotBlank(cmd.getDeliveryStoreCode())) {
@@ -743,6 +744,15 @@ public class OrderAppService {
         
         if (StrUtil.isNotBlank(order.getDeliveryStoreCode())) {
             result.setDeliveryStoreName(getDealershipName(order.getDeliveryStoreCode()));
+        }
+        
+        Optional<OrderPartyPo> buyerOpt = orderPartyRepository.findByOrderIdAndRole(order.getId(), "buyer");
+        if (buyerOpt.isPresent()) {
+            OrderPartyPo buyer = buyerOpt.get();
+            result.setOrderPersonType(buyer.getPersonType());
+            result.setOrderPersonName(buyer.getName());
+            result.setOrderPersonIdType(buyer.getIdType());
+            result.setOrderPersonIdNum(buyer.getIdNoEncrypted());
         }
         
         return result;
@@ -864,7 +874,8 @@ public class OrderAppService {
         orderRepository.save(order);
         
         if (StrUtil.isNotBlank(cmd.getOrderPersonName()) && StrUtil.isNotBlank(cmd.getOrderPersonIdNum())) {
-            saveBuyerInfo(order.getId(), cmd.getOrderPersonName(), cmd.getOrderPersonIdNum());
+            saveBuyerInfo(order.getId(), cmd.getOrderPersonType(), cmd.getOrderPersonName(),
+                    cmd.getOrderPersonIdType(), cmd.getOrderPersonIdNum());
         }
         
         if (StrUtil.isNotBlank(cmd.getOrderStoreCode()) || StrUtil.isNotBlank(cmd.getDeliveryStoreCode())) {
@@ -959,16 +970,19 @@ public class OrderAppService {
         log.info("保存订单客户信息：orderId={}, userId={}, partyRole={}", orderId, userId, partyRole);
     }
 
-    private void saveBuyerInfo(String orderId, String buyerName, String buyerIdNo) {
+    private void saveBuyerInfo(String orderId, Integer personType, String buyerName,
+                                Integer idType, String buyerIdNo) {
         OrderPartyPo buyerPo = new OrderPartyPo();
         buyerPo.setPartyId(IdUtil.nanoId(15));
         buyerPo.setOrderId(orderId);
         buyerPo.setPartyRole("buyer");
+        buyerPo.setPersonType(personType);
         buyerPo.setName(buyerName);
+        buyerPo.setIdType(idType);
         buyerPo.setIdNoEncrypted(buyerIdNo);
         buyerPo.setAuthorizedFlag(0);
         orderPartyRepository.save(buyerPo);
-        log.info("保存购车人信息：orderId={}, buyerName={}", orderId, buyerName);
+        log.info("保存购车人信息：orderId={}, personType={}, buyerName={}, idType={}", orderId, personType, buyerName, idType);
     }
 
     private void saveOrderAssignment(String orderId, String dealership, String deliveryCenter) {

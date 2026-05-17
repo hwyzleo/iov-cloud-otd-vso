@@ -41,6 +41,12 @@ public class OrderPartyPo implements Serializable {
     private String partyRole;
 
     /**
+     * 订购人类型：1-本人、2-代理人等
+     */
+    @TableField("person_type")
+    private Integer personType;
+
+    /**
      * 平台用户 ID
      */
     @TableField("user_id")
@@ -65,13 +71,19 @@ public class OrderPartyPo implements Serializable {
     private String mobileHash;
 
     /**
-     * 身份证号密文
+     * 证件类型：1-身份证、2-护照、3-营业执照、4-组织机构代码等
+     */
+    @TableField("id_type")
+    private Integer idType;
+
+    /**
+     * 证件号码密文
      */
     @TableField("id_no_encrypted")
     private String idNoEncrypted;
 
     /**
-     * 身份证号哈希
+     * 证件号码哈希
      */
     @TableField("id_no_hash")
     private String idNoHash;
