@@ -18,6 +18,10 @@ public interface OrderResponseVoAssembler {
 
     OrderResponseVoAssembler INSTANCE = Mappers.getMapper(OrderResponseVoAssembler.class);
 
+    @Mapping(target = "dealershipCode", source = "orderStoreCode")
+    @Mapping(target = "dealershipName", source = "orderStoreName")
+    @Mapping(target = "deliveryCenterCode", source = "deliveryStoreCode")
+    @Mapping(target = "deliveryCenterName", source = "deliveryStoreName")
     OrderResponseVo toVo(OrderDetailResult result);
 
     @Mapping(target = "accountId", source = "accountId")

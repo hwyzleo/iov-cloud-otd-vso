@@ -4,6 +4,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.hwyz.iov.cloud.edd.dictionary.api.service.DictionaryService;
 import net.hwyz.iov.cloud.edd.dictionary.api.vo.response.DictionaryResponse;
+import net.hwyz.iov.cloud.edd.org.api.service.OrgDealershipService;
+import net.hwyz.iov.cloud.edd.org.api.vo.DealershipExService;
 import net.hwyz.iov.cloud.edd.vmd.api.service.VmdVehicleModelConfigService;
 import net.hwyz.iov.cloud.edd.vmd.api.vo.response.VmdBuildConfigFeatureCodeResponse;
 import net.hwyz.iov.cloud.edd.vmd.api.vo.response.VmdBuildConfigResponse;
@@ -94,6 +96,7 @@ public class OrderAppService {
     private final PaymentRepository paymentRepository;
     private final SaleModelAppService saleModelAppService;
     private final DictionaryService dictionaryService;
+    private final OrgDealershipService orgDealershipService;
     private final AuditRepository auditRepository;
     private final OrderVehicleSnapshotRepository orderVehicleSnapshotRepository;
 
@@ -730,11 +733,31 @@ public class OrderAppService {
             result.setTotalPrice(selectedModel.getTotalPrice());
         }
         
-        if (StrUtil.isNotBlank(order.getOwnerRegionCode())) {
-            result.setLicenseCityName(getCityName(order.getOwnerRegionCode()));
+        if (StrUtil.isNotBlank(order.getLicenseCity())) {
+            result.setLicenseCityName(getCityName(order.getLicenseCity()));
+        }
+        
+        if (StrUtil.isNotBlank(order.getOrderStoreCode())) {
+            result.setOrderStoreName(getDealershipName(order.getOrderStoreCode()));
+        }
+        
+        if (StrUtil.isNotBlank(order.getDeliveryStoreCode())) {
+            result.setDeliveryStoreName(getDealershipName(order.getDeliveryStoreCode()));
         }
         
         return result;
+    }
+    
+    private String getDealershipName(String dealershipCode) {
+        try {
+            DealershipExService dealership = orgDealershipService.getByCode(dealershipCode);
+            if (dealership != null && StrUtil.isNotBlank(dealership.getName())) {
+                return dealership.getName();
+            }
+        } catch (Exception e) {
+            log.warn("获取门店名称失败: dealershipCode={}", dealershipCode, e);
+        }
+        return dealershipCode;
     }
     
     private String getCityName(String cityCode) {
