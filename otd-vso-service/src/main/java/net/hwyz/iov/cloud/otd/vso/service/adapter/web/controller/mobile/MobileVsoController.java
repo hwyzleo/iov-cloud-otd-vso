@@ -151,8 +151,8 @@ public class MobileVsoController extends BaseController {
      *     <li>orderPersonIdNum - 订购人证件号码，可选（意向金转定金参数）</li>
      *     <li>purchasePlan - 购买计划，可选（意向金转定金参数）</li>
      *     <li>licenseCityCode - 上牌城市代码，可选（意向金下单+意向金转定金参数）</li>
-     *     <li>dealership - 门店代码，可选（意向金转定金参数）</li>
-     *     <li>deliveryCenter - 交付中心代码，可选（意向金转定金参数）</li>
+     *     <li>orderStoreCode - 下单门店编码，可选（意向金转定金参数）</li>
+     *     <li>deliveryStoreCode - 交付门店编码，可选（意向金转定金参数）</li>
      * </ul>
      */
     @PostMapping("/action/downPaymentOrder")
@@ -226,8 +226,8 @@ public class MobileVsoController extends BaseController {
      *     <li>orderPersonIdNum - 订购人证件号码，可选</li>
      *     <li>purchasePlan - 购买计划，可选</li>
      *     <li>licenseCityCode - 上牌城市代码，可选</li>
-     *     <li>dealership - 门店代码，可选</li>
-     *     <li>deliveryCenter - 交付中心代码，可选</li>
+     *     <li>orderStoreCode - 下单门店编码，可选</li>
+     *     <li>deliveryStoreCode - 交付门店编码，可选</li>
      * </ul>
      */
     @PostMapping("/order/action/earnestMoneyToDownPayment")
