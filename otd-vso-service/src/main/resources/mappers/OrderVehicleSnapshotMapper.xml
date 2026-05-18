@@ -150,7 +150,15 @@
         SELECT MAX(t.snapshot_version)
         FROM vso_order_vehicle_snapshot t
         WHERE t.order_id = #{orderId}
-        AND t.row_valid = 1
     </select>
+
+    <update id="logicalDeleteByOrderId">
+        UPDATE vso_order_vehicle_snapshot t SET
+        t.row_version = t.row_version + 1,
+        t.modify_time = now(),
+        t.row_valid = 0
+        WHERE t.order_id = #{orderId}
+        AND t.row_valid = 1
+    </update>
 
 </mapper>

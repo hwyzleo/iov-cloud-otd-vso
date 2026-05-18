@@ -970,6 +970,8 @@ public class OrderAppService {
             return;
         }
         
+        orderVehicleSnapshotRepository.logicalDeleteByOrderId(order.getId());
+        
         Integer currentVersion = orderVehicleSnapshotRepository.findMaxVersionByOrderId(order.getId());
         Integer newVersion = currentVersion + 1;
         

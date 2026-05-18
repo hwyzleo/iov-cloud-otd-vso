@@ -52,4 +52,10 @@ public class OrderVehicleSnapshotRepositoryImpl implements OrderVehicleSnapshotR
         return maxVersion != null ? maxVersion : 0;
     }
 
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void logicalDeleteByOrderId(String orderId) {
+        orderVehicleSnapshotMapper.logicalDeleteByOrderId(orderId);
+    }
+
 }

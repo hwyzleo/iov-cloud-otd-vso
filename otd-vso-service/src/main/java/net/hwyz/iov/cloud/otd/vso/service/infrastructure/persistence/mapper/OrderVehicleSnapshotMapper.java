@@ -44,4 +44,6 @@ public interface OrderVehicleSnapshotMapper extends BaseDao<OrderVehicleSnapshot
 
     Integer selectMaxVersionByOrderId(@Param("orderId") String orderId);
 
+    int logicalDeleteByOrderId(@Param("orderId") String orderId);
+
 }
