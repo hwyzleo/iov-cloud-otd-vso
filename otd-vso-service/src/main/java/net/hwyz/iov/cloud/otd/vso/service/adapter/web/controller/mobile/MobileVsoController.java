@@ -304,21 +304,4 @@ public class MobileVsoController extends BaseController {
         }
     }
 
-    @Data
-    @Builder
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class CreateSmallOrderRequest {
-        private String orderSource;
-        private String userId;
-        private String name;
-        private String mobileHash;
-        private String idNoHash;
-        private String modelCode;
-        private String modelName;
-        private String configCode;
-        private String configName;
-        private String colorCode;
-        private String colorName;
-    }
 }
