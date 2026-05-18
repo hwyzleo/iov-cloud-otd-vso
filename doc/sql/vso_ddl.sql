@@ -208,7 +208,7 @@ CREATE TABLE `vso_order_vehicle_snapshot` (
     `row_valid` TINYINT DEFAULT 1 COMMENT '是否有效',
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_snapshot_id` (`snapshot_id`),
-    UNIQUE KEY `uk_order_snapshot_valid` (`order_id`, `row_valid`),
+    UNIQUE KEY `uk_order_snapshot_version` (`order_id`, `snapshot_version`),
     KEY `idx_sale_model` (`sale_model_code`),
     KEY `idx_build_config` (`build_config_code`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='订单车型配置快照表';
