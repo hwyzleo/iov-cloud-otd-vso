@@ -898,6 +898,96 @@ public class OrderAppService {
         orderRepository.save(order);
     }
 
+    @Transactional(rollbackFor = Exception.class)
+    public void modifyConfig(ModifyOrderConfigCmd cmd) {
+        log.info("修改订单配置：accountId={}, orderNo={}, featureConfig={}", 
+                cmd.getAccountId(), cmd.getOrderNo(), cmd.getFeatureConfig());
+        
+        Order order = findOrderById(cmd.getAccountId(), cmd.getOrderNo());
+        
+        validateOrderStateForModifyConfig(order);
+        
+        String newBuildConfigCode = getBuildConfigCodeFromFeatureConfig(cmd.getFeatureConfig());
+        if (newBuildConfigCode == null || newBuildConfigCode.isEmpty()) {
+            throw new BuildConfigNotMatchedException(order.getSaleModel());
+        }
+        
+        VmdBuildConfigResponse buildConfig = vmdVehicleModelConfigService.getBuildConfigByCode(newBuildConfigCode);
+        if (buildConfig == null || buildConfig.getBrandCode() == null) {
+            throw new BrandCodeNotExistException(newBuildConfigCode);
+        }
+        
+        String oldBuildConfigCode = order.getBuildConfigCode();
+        
+        order.saveBuildConfig(newBuildConfigCode, null);
+        order.saveBrandCode(buildConfig.getBrandCode());
+        
+        String saleModelName = saleModelRepository.findBySaleModelCode(order.getSaleModel())
+                .map(SaleModelPo::getModelName)
+                .orElse("");
+        
+        saveOrderVehicleSnapshotWithVersionIncrement(order, order.getSaleModel(), saleModelName, buildConfig);
+        
+        orderRepository.save(order);
+        
+        saveOrderTimeline(order.getId(), "MODIFY_CONFIG", "修改订单配置",
+                oldBuildConfigCode, newBuildConfigCode,
+                cmd.getAccountId(), "order_user", "capp",
+                null, "success", null, 
+                "用户修改订单车辆配置");
+        
+        log.info("修改订单配置完成：orderId={}, orderNo={}, oldBuildConfig={}, newBuildConfig={}", 
+                order.getId(), order.getOrderNo(), oldBuildConfigCode, newBuildConfigCode);
+    }
+
+    private void validateOrderStateForModifyConfig(Order order) {
+        OrderState state = order.getOrderState();
+        if (state != OrderState.EARNEST_MONEY_PAID 
+                && state != OrderState.DOWN_PAYMENT_UNPAID 
+                && state != OrderState.DOWN_PAYMENT_PAID) {
+            throw new OrderStateNotAllowedException(order.getOrderNo(), state, "MODIFY_CONFIG");
+        }
+    }
+
+    private String getBuildConfigCodeFromFeatureConfig(Map<String, String> featureConfig) {
+        if (featureConfig == null || featureConfig.isEmpty()) {
+            return null;
+        }
+        Map<String, String> config = new HashMap<>(featureConfig);
+        config.remove("BASE_MODEL");
+        return vmdVehicleModelConfigService.getVehicleBuildConfigCode(config);
+    }
+
+    private void saveOrderVehicleSnapshotWithVersionIncrement(Order order, String saleModelCode, 
+            String saleModelName, VmdBuildConfigResponse buildConfig) {
+        if (StrUtil.isBlank(saleModelCode)) {
+            log.warn("订单缺少saleModelCode，无法生成车型快照：orderNo={}", order.getOrderNo());
+            return;
+        }
+        
+        if (buildConfig == null || StrUtil.isBlank(buildConfig.getCode())) {
+            log.warn("订单缺少buildConfig，无法生成车型快照：orderNo={}", order.getOrderNo());
+            return;
+        }
+        
+        Integer currentVersion = orderVehicleSnapshotRepository.findMaxVersionByOrderId(order.getId());
+        Integer newVersion = currentVersion + 1;
+        
+        OrderVehicleSnapshotPo snapshotPo = new OrderVehicleSnapshotPo();
+        snapshotPo.setSnapshotId(IdUtil.nanoId(15));
+        snapshotPo.setOrderId(order.getId());
+        snapshotPo.setSaleModelCode(saleModelCode);
+        snapshotPo.setSaleModelName(saleModelName);
+        snapshotPo.setBuildConfigCode(buildConfig.getCode());
+        snapshotPo.setBuildConfigName(buildConfig.getName());
+        snapshotPo.setFeatureConfigSnapshot(JSONUtil.toJsonStr(buildConfig.getFeatureCodes()));
+        snapshotPo.setSnapshotVersion(newVersion);
+        
+        orderVehicleSnapshotRepository.save(snapshotPo);
+        log.info("保存订单车型快照(新版本)：orderId={}, version={}, buildConfigCode={}", 
+                order.getId(), newVersion, buildConfig.getCode());
+    }
+
     public void prepareTransport(PrepareTransportCmd cmd) {
         Order order = findOrderByOrderNo(cmd.getOrderNo());
         order.prepareTransport();

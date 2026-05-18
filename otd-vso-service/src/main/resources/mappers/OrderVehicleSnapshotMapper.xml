@@ -146,4 +146,11 @@
         </foreach>
     </delete>
 
+    <select id="selectMaxVersionByOrderId" resultType="java.lang.Integer">
+        SELECT MAX(t.snapshot_version)
+        FROM vso_order_vehicle_snapshot t
+        WHERE t.order_id = #{orderId}
+        AND t.row_valid = 1
+    </select>
+
 </mapper>

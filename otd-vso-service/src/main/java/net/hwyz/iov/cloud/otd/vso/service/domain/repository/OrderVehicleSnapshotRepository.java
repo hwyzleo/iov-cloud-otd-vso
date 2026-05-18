@@ -15,4 +15,6 @@ public interface OrderVehicleSnapshotRepository {
 
     void delete(String snapshotId);
 
+    Integer findMaxVersionByOrderId(String orderId);
+
 }

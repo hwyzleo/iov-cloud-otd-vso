@@ -252,6 +252,17 @@ public class MobileVsoController extends BaseController {
     }
 
     /**
+     * 修改订单配置
+     */
+    @PostMapping("/order/action/modifyConfig")
+    public ApiResponse<Void> modifyConfig(@RequestBody @Valid ModifyOrderConfigRequestVo request) {
+        log.info("手机客户端[{}]修改订单[{}]配置", ParamHelper.getClientAccountInfo(), request.getOrderNo());
+        ModifyOrderConfigCmd cmd = ModifyOrderConfigRequestVoAssembler.INSTANCE.toCmd(SecurityContextHolder.getUserId(), request);
+        vehicleSaleOrderAppService.modifyConfig(cmd);
+        return ApiResponse.ok();
+    }
+
+    /**
      * 查询订单详情
      */
     @GetMapping("/{orderId}")

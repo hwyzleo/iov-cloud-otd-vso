@@ -46,4 +46,10 @@ public class OrderVehicleSnapshotRepositoryImpl implements OrderVehicleSnapshotR
         }
     }
 
+    @Override
+    public Integer findMaxVersionByOrderId(String orderId) {
+        Integer maxVersion = orderVehicleSnapshotMapper.selectMaxVersionByOrderId(orderId);
+        return maxVersion != null ? maxVersion : 0;
+    }
+
 }

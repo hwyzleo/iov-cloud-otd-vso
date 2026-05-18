@@ -42,4 +42,6 @@ public interface OrderVehicleSnapshotMapper extends BaseDao<OrderVehicleSnapshot
 
     List<OrderVehicleSnapshotPo> selectPoByExample(OrderVehicleSnapshotPo example);
 
+    Integer selectMaxVersionByOrderId(@Param("orderId") String orderId);
+
 }
