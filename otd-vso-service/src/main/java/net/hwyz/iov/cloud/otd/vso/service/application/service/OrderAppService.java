@@ -130,6 +130,9 @@ public class OrderAppService {
 
         Order order = orderDomainService.createSmallOrder(cmd.getOrderSource(), customerInfo, vehicleInfo);
 
+        wishlistRepository.deleteByUserId(cmd.getUserId());
+        log.info("小订单创建成功后删除心愿单：userId={}, orderNo={}", cmd.getUserId(), order.getOrderNo());
+
         timeoutNotifyService.createTimeoutTask(order.getId(), "SMALL_ORDER_PAY_TIMEOUT", "invalid", 30);
 
         log.info("小订单创建成功：orderId={}", order.getId());
@@ -239,6 +242,7 @@ public class OrderAppService {
             Order order = orderDomainService.loadOrder(cmd.getOrderId());
             orderValidationService.validateForLock(order);
             orderDomainService.lockOrder(cmd.getOrderId());
+            timeoutNotifyService.createTimeoutTask(cmd.getOrderId(), "LOCK_TIMEOUT", "remind", 2880);
         });
 
         log.info("订单锁单成功：orderId={}", cmd.getOrderId());
@@ -848,6 +852,7 @@ public class OrderAppService {
             Order order = findOrderById(cmd.getAccountId(), cmd.getOrderNo());
             order.requestRefund();
             orderRepository.save(order);
+            log.info("创建退款任务：orderId={}", order.getId());
         });
     }
 
