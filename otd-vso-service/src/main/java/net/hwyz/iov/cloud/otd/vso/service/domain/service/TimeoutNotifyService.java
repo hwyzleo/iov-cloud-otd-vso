@@ -1,27 +1,39 @@
 package net.hwyz.iov.cloud.otd.vso.service.domain.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.TimeoutTask;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.NotifyTask;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 超时与通知服务
  *
  * @author VSO Team
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class TimeoutNotifyService {
 
+    private static final String TIMEOUT_TASK_PREFIX = "vso:timeout:task:";
+
+    private final StringRedisTemplate redisTemplate;
+    private final ObjectMapper objectMapper;
+
     /**
-     * 待触发的超时任务（内存缓存，生产环境应使用 Redis/DB）
+     * 待触发的超时任务（本地缓存，主存储为 Redis）
      */
     private final Map<String, TimeoutTask> pendingTasks = new ConcurrentHashMap<>();
 
@@ -43,7 +55,13 @@ public class TimeoutNotifyService {
                                    String triggerStrategy, Integer thresholdMinutes) {
         String taskId = "TK" + System.currentTimeMillis();
         TimeoutTask task = new TimeoutTask(taskId, orderId, taskType, triggerStrategy, thresholdMinutes);
+        
+        // 保存到本地缓存
         pendingTasks.put(taskId, task);
+        
+        // 保存到 Redis，TTL 为阈值 + 5 分钟
+        saveToRedis(task, thresholdMinutes + 5);
+        
         return taskId;
     }
 
@@ -57,6 +75,7 @@ public class TimeoutNotifyService {
         if (task != null) {
             task.cancel();
             pendingTasks.remove(taskId);
+            deleteFromRedis(taskId);
         }
     }
 
@@ -72,6 +91,7 @@ public class TimeoutNotifyService {
                 .forEach(task -> {
                     task.cancel();
                     pendingTasks.remove(task.getTaskId());
+                    deleteFromRedis(task.getTaskId());
                 });
     }
 
@@ -85,6 +105,7 @@ public class TimeoutNotifyService {
         if (task != null) {
             task.complete();
             pendingTasks.remove(taskId);
+            deleteFromRedis(taskId);
         }
     }
 
@@ -95,12 +116,92 @@ public class TimeoutNotifyService {
      */
     public List<TimeoutTask> getExpiredTasks() {
         List<TimeoutTask> expired = new ArrayList<>();
+        
+        // 先从本地缓存获取
         for (TimeoutTask task : pendingTasks.values()) {
             if (task.isExpired()) {
                 expired.add(task);
             }
         }
+        
+        // 从 Redis 获取（处理服务重启场景）
+        try {
+            Set<String> keys = redisTemplate.keys(TIMEOUT_TASK_PREFIX + "*");
+            if (keys != null) {
+                for (String key : keys) {
+                    String taskId = key.replace(TIMEOUT_TASK_PREFIX, "");
+                    // 跳过已在本地缓存中的任务
+                    if (pendingTasks.containsKey(taskId)) {
+                        continue;
+                    }
+                    TimeoutTask task = loadFromRedis(taskId);
+                    if (task != null && task.isExpired()) {
+                        expired.add(task);
+                        // 加入本地缓存
+                        pendingTasks.put(taskId, task);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.warn("从 Redis 获取超时任务失败，降级使用本地缓存", e);
+        }
+        
         return expired;
+    }
+
+    /**
+     * 保存超时任务到 Redis
+     *
+     * @param task 超时任务
+     * @param ttlMinutes TTL（分钟）
+     */
+    private void saveToRedis(TimeoutTask task, int ttlMinutes) {
+        try {
+            String key = TIMEOUT_TASK_PREFIX + task.getTaskId();
+            String json = objectMapper.writeValueAsString(task);
+            redisTemplate.opsForValue().set(key, json, ttlMinutes, TimeUnit.MINUTES);
+            log.debug("超时任务已保存到 Redis: taskId={}", task.getTaskId());
+        } catch (JsonProcessingException e) {
+            log.warn("序列化超时任务失败: taskId={}", task.getTaskId(), e);
+        } catch (Exception e) {
+            log.warn("保存超时任务到 Redis 失败，降级使用本地缓存: taskId={}", task.getTaskId(), e);
+        }
+    }
+
+    /**
+     * 从 Redis 加载超时任务
+     *
+     * @param taskId 任务 ID
+     * @return 超时任务，不存在则返回 null
+     */
+    private TimeoutTask loadFromRedis(String taskId) {
+        try {
+            String key = TIMEOUT_TASK_PREFIX + taskId;
+            String json = redisTemplate.opsForValue().get(key);
+            if (json != null) {
+                return objectMapper.readValue(json, TimeoutTask.class);
+            }
+        } catch (JsonProcessingException e) {
+            log.warn("反序列化超时任务失败: taskId={}", taskId, e);
+        } catch (Exception e) {
+            log.warn("从 Redis 加载超时任务失败: taskId={}", taskId, e);
+        }
+        return null;
+    }
+
+    /**
+     * 从 Redis 删除超时任务
+     *
+     * @param taskId 任务 ID
+     */
+    private void deleteFromRedis(String taskId) {
+        try {
+            String key = TIMEOUT_TASK_PREFIX + taskId;
+            redisTemplate.delete(key);
+            log.debug("超时任务已从 Redis 删除: taskId={}", taskId);
+        } catch (Exception e) {
+            log.warn("从 Redis 删除超时任务失败: taskId={}", taskId, e);
+        }
     }
 
     /**
@@ -176,6 +277,27 @@ public class TimeoutNotifyService {
         
         createNotifyTask(orderId, notifyType, "customer", receiverId, 
                         "STATUS_CHANGE", params);
+    }
+
+    /**
+     * 发送超时任务告警
+     *
+     * @param orderId 订单 ID
+     * @param timeoutType 超时类型
+     * @param taskId 任务 ID
+     */
+    public void sendTimeoutAlert(String orderId, String timeoutType, String taskId) {
+        String notifyType = "TIMEOUT_ALERT";
+        Map<String, Object> params = new ConcurrentHashMap<>();
+        params.put("orderId", orderId);
+        params.put("timeoutType", timeoutType);
+        params.put("taskId", taskId);
+        params.put("retryExceeded", true);
+        params.put("time", LocalDateTime.now());
+        
+        createNotifyTask(orderId, notifyType, "system", "SYSTEM_ADMIN", 
+                        "TIMEOUT_ALERT", params);
+        log.error("超时任务告警：orderId={}, timeoutType={}, taskId={}", orderId, timeoutType, taskId);
     }
 
 }

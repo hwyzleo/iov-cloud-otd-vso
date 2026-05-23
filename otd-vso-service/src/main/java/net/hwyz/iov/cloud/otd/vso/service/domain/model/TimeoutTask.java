@@ -2,6 +2,7 @@ package net.hwyz.iov.cloud.otd.vso.service.domain.model;
 
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.time.LocalDateTime;
 
@@ -11,6 +12,7 @@ import java.time.LocalDateTime;
  * @author VSO Team
  */
 @Getter
+@Setter
 @NoArgsConstructor
 public class TimeoutTask {
 
@@ -93,11 +95,16 @@ public class TimeoutTask {
     }
 
     /**
-     * 标记为失败
+     * 标记为失败，支持重试
      */
     public void fail() {
-        this.taskStatus = "FAILED";
         this.retryCount++;
+        if (this.retryCount < 3) {
+            this.taskStatus = "PENDING";
+            this.planTriggerTime = LocalDateTime.now().plusMinutes(1);
+        } else {
+            this.taskStatus = "FAILED";
+        }
     }
 
     /**
@@ -118,7 +125,7 @@ public class TimeoutTask {
      * 是否可重试
      */
     public boolean canRetry() {
-        return this.retryCount < 3 && "FAILED".equals(this.taskStatus);
+        return this.retryCount < 3;
     }
 
 }

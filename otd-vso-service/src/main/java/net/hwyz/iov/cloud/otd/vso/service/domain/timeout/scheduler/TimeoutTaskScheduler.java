@@ -63,10 +63,14 @@ public class TimeoutTaskScheduler {
                 break;
                 
             case "close":
-                // 自动关闭订单
-                // TODO: 调用订单服务关闭订单
                 log.info("自动关闭订单：orderId={}", task.getOrderId());
-                task.complete();
+                try {
+                    orderDomainService.closeOrder(task.getOrderId(), "超时自动关闭");
+                    task.complete();
+                } catch (Exception e) {
+                    log.error("自动关闭订单失败：orderId={}", task.getOrderId(), e);
+                    task.fail();
+                }
                 break;
                 
             case "invalid":
@@ -77,13 +81,12 @@ public class TimeoutTaskScheduler {
                 break;
                 
             case "retry_and_alert":
-                // 重试并告警
                 if (task.canRetry()) {
                     log.warn("任务重试：taskId={}, retryCount={}", task.getTaskId(), task.getRetryCount());
                     task.fail();
                 } else {
                     log.error("任务重试超过限制，发送告警：taskId={}", task.getTaskId());
-                    // TODO: 发送告警通知
+                    timeoutNotifyService.sendTimeoutAlert(task.getOrderId(), task.getTaskType(), task.getTaskId());
                     task.complete();
                 }
                 break;
