@@ -5,7 +5,15 @@ import net.hwyz.iov.cloud.otd.vso.service.domain.model.Order;
 import net.hwyz.iov.cloud.otd.vso.service.domain.policy.DuplicateOrderSpecification;
 import net.hwyz.iov.cloud.otd.vso.service.domain.policy.OrderLockSpecification;
 import net.hwyz.iov.cloud.otd.vso.service.domain.policy.OrderSubmitSpecification;
+import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.mapper.OrderMapper;
+import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.mapper.VehicleAssignmentMapper;
+import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.OrderPo;
+import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.VehicleAssignmentPo;
 import org.springframework.stereotype.Service;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * 订单校验服务
@@ -19,6 +27,8 @@ public class OrderValidationService {
     private final OrderSubmitSpecification submitSpecification;
     private final OrderLockSpecification lockSpecification;
     private final DuplicateOrderSpecification duplicateSpecification;
+    private final VehicleAssignmentMapper vehicleAssignmentMapper;
+    private final OrderMapper orderMapper;
 
     /**
      * 校验订单是否可以提交
@@ -104,6 +114,32 @@ public class OrderValidationService {
         if (order.getOrderAmount().getDealPriceTotal() == null 
             || order.getOrderAmount().getDealPriceTotal().getAmount().compareTo(java.math.BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException("成交总价必须大于 0");
+        }
+    }
+
+    /**
+     * 校验 VIN 是否已被其他订单占用
+     *
+     * @param vin 车辆识别码
+     * @param currentOrderNo 当前订单号（排除自身）
+     * @throws IllegalArgumentException 校验失败时抛出
+     */
+    public void validateVinAvailable(String vin, String currentOrderNo) {
+        Map<String, Object> params = new HashMap<>();
+        params.put("vin", vin);
+        params.put("rowValid", 1);
+        List<VehicleAssignmentPo> assignments = vehicleAssignmentMapper.selectPoByMap(params);
+        if (assignments.isEmpty()) {
+            return;
+        }
+        OrderPo currentOrderPo = orderMapper.selectByOrderNo(currentOrderNo);
+        if (currentOrderPo == null) {
+            return;
+        }
+        for (VehicleAssignmentPo assignment : assignments) {
+            if (!assignment.getOrderId().equals(currentOrderPo.getOrderId())) {
+                throw new IllegalArgumentException("VIN [" + vin + "] 已被其他订单占用");
+            }
         }
     }
 

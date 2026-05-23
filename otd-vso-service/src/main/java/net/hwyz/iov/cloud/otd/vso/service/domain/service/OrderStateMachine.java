@@ -48,7 +48,11 @@ public class OrderStateMachine {
         STATE_TRANSITIONS.put(200, earnestUnpaidTransitions);
         
         // EARNEST_MONEY_PAID(210) -> DOWN_PAYMENT_UNPAID(300), CANCEL(950)
-        Set<OrderState> earnestPaidTransitions = EnumSet.of(OrderState.DOWN_PAYMENT_UNPAID, OrderState.CANCEL);
+        Set<OrderState> earnestPaidTransitions = EnumSet.of(
+            OrderState.DOWN_PAYMENT_UNPAID,
+            OrderState.CANCEL,
+            OrderState.REFUND_APPLY
+        );
         STATE_TRANSITIONS.put(210, earnestPaidTransitions);
         
         // DOWN_PAYMENT_UNPAID(300) -> DOWN_PAYMENT_PAID(310), CANCEL(950)
@@ -56,7 +60,11 @@ public class OrderStateMachine {
         STATE_TRANSITIONS.put(300, downPaymentUnpaidTransitions);
         
         // DOWN_PAYMENT_PAID(310) -> ARRANGE_PRODUCTION(400), CANCEL(950)
-        Set<OrderState> downPaymentPaidTransitions = EnumSet.of(OrderState.ARRANGE_PRODUCTION, OrderState.CANCEL);
+        Set<OrderState> downPaymentPaidTransitions = EnumSet.of(
+            OrderState.ARRANGE_PRODUCTION,
+            OrderState.CANCEL,
+            OrderState.REFUND_APPLY
+        );
         STATE_TRANSITIONS.put(310, downPaymentPaidTransitions);
         
         // ARRANGE_PRODUCTION(400) -> ALLOCATION_VEHICLE(450), CANCEL(950)
@@ -98,6 +106,10 @@ public class OrderStateMachine {
         // EXPIRED(960) -> 终态，无转移
         Set<OrderState> expiredTransitions = EnumSet.noneOf(OrderState.class);
         STATE_TRANSITIONS.put(960, expiredTransitions);
+
+        // CLOSED(970) -> 终态，无转移
+        Set<OrderState> closedTransitions = EnumSet.noneOf(OrderState.class);
+        STATE_TRANSITIONS.put(970, closedTransitions);
     }
 
     /**
@@ -166,7 +178,7 @@ public class OrderStateMachine {
      * @return 是否是结束状态
      */
     public static boolean isEndState(Integer stateValue) {
-        Set<OrderState> endStates = Set.of(OrderState.ACTIVATED, OrderState.CANCEL, OrderState.EXPIRED);
+        Set<OrderState> endStates = Set.of(OrderState.ACTIVATED, OrderState.CANCEL, OrderState.EXPIRED, OrderState.CLOSED);
         OrderState state = OrderState.fromValue(stateValue);
         return state != null && endStates.contains(state);
     }

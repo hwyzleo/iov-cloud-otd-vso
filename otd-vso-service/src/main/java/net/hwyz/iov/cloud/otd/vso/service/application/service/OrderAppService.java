@@ -503,6 +503,7 @@ public class OrderAppService {
     @Transactional(rollbackFor = Exception.class)
     public void assignVehicle(AssignVehicleCmd cmd) {
         log.info("分派车辆：orderId={}, vin={}", cmd.getOrderNo(), cmd.getVin());
+        orderValidationService.validateVinAvailable(cmd.getVin(), cmd.getOrderNo());
         Order order = orderDomainService.loadOrder(cmd.getOrderNo());
         order.saveDeliveryVehicle(cmd.getVin());
         orderRepository.save(order);

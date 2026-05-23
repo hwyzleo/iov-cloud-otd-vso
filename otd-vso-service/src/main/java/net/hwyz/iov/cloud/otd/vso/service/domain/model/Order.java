@@ -13,6 +13,7 @@ import net.hwyz.iov.cloud.otd.vso.service.common.exception.OrderIllegalDeleteExc
 import net.hwyz.iov.cloud.otd.vso.service.common.exception.OrderStateNotAllowedException;
 import net.hwyz.iov.cloud.otd.vso.service.common.exception.SaleModelConfigHasLockedException;
 import net.hwyz.iov.cloud.otd.vso.service.common.util.OrderNoGenerator;
+import net.hwyz.iov.cloud.otd.vso.service.domain.service.OrderStateMachine;
 
 import java.math.BigDecimal;
 import java.util.*;
@@ -455,9 +456,7 @@ public class Order {
      * @throws OrderStateNotAllowedException 当前状态不允许锁单时抛出
      */
     public void lock() {
-        if (this.orderState != OrderState.DOWN_PAYMENT_PAID) {
-            throw new OrderStateNotAllowedException(this.orderNo, this.orderState, "LOCK");
-        }
+        OrderStateMachine.validateTransition(this.orderState.getValue(), OrderState.ARRANGE_PRODUCTION.getValue(), this.orderType);
         this.buildConfigLock = true;
         this.orderState = OrderState.ARRANGE_PRODUCTION;
         Date now = new Date();
@@ -472,6 +471,7 @@ public class Order {
      * 将订单状态置为已取消
      */
     public void cancel() {
+        OrderStateMachine.validateTransition(this.orderState.getValue(), OrderState.CANCEL.getValue(), this.orderType);
         this.orderState = OrderState.CANCEL;
         this.orderStateTime = new Date();
     }
@@ -483,6 +483,7 @@ public class Order {
      * @param reason 取消原因
      */
     public void cancel(String reason) {
+        OrderStateMachine.validateTransition(this.orderState.getValue(), OrderState.CANCEL.getValue(), this.orderType);
         this.orderState = OrderState.CANCEL;
         this.orderStateTime = new Date();
         this.remark = reason;
@@ -518,6 +519,7 @@ public class Order {
      * @param reason 关闭原因
      */
     public void close(String reason) {
+        OrderStateMachine.validateTransition(this.orderState.getValue(), OrderState.CLOSED.getValue(), this.orderType);
         this.orderState = OrderState.CLOSED;
         this.orderStateTime = new Date();
         this.remark = reason;
@@ -539,6 +541,7 @@ public class Order {
      * 将订单状态置为退款申请状态
      */
     public void requestRefund() {
+        OrderStateMachine.validateTransition(this.orderState.getValue(), OrderState.REFUND_APPLY.getValue(), this.orderType);
         this.orderState = OrderState.REFUND_APPLY;
         this.orderStateTime = new Date();
     }
@@ -551,6 +554,7 @@ public class Order {
      * 用于意向金已支付后补交定金的场景
      */
     public void earnestMoneyToDownPayment() {
+        OrderStateMachine.validateTransition(this.orderState.getValue(), OrderState.DOWN_PAYMENT_PAID.getValue(), this.orderType);
         this.orderType = OrderType.FORMAL;
         this.orderState = OrderState.DOWN_PAYMENT_PAID;
         Date now = new Date();
@@ -578,6 +582,7 @@ public class Order {
      * 将订单状态置为准备发运
      */
     public void prepareTransport() {
+        OrderStateMachine.validateTransition(this.orderState.getValue(), OrderState.PREPARE_TRANSPORT.getValue(), this.orderType);
         this.orderState = OrderState.PREPARE_TRANSPORT;
         this.orderStateTime = new Date();
     }
@@ -587,6 +592,7 @@ public class Order {
      * 将订单状态置为发运中
      */
     public void transporting() {
+        OrderStateMachine.validateTransition(this.orderState.getValue(), OrderState.TRANSPORTING.getValue(), this.orderType);
         this.orderState = OrderState.TRANSPORTING;
         this.orderStateTime = new Date();
     }
@@ -596,6 +602,7 @@ public class Order {
      * 将订单状态置为准备交付
      */
     public void prepareDelivery() {
+        OrderStateMachine.validateTransition(this.orderState.getValue(), OrderState.PREPARE_DELIVER.getValue(), this.orderType);
         this.orderState = OrderState.PREPARE_DELIVER;
         this.orderStateTime = new Date();
     }
@@ -605,6 +612,7 @@ public class Order {
      * 将订单状态置为已交付，完成订单交付流程
      */
     public void delivered() {
+        OrderStateMachine.validateTransition(this.orderState.getValue(), OrderState.DELIVERED.getValue(), this.orderType);
         this.orderState = OrderState.DELIVERED;
         this.orderStateTime = new Date();
     }
@@ -625,6 +633,7 @@ public class Order {
      * 将订单状态置为审核通过，订单可继续后续流程
      */
     public void auditPass() {
+        OrderStateMachine.validateTransition(this.orderState.getValue(), OrderState.AUDIT_PASSED.getValue(), this.orderType);
         this.orderState = OrderState.AUDIT_PASSED;
         this.orderStateTime = new Date();
     }
@@ -636,6 +645,7 @@ public class Order {
      * @param reason 驳回原因
      */
     public void auditReject(String reason) {
+        OrderStateMachine.validateTransition(this.orderState.getValue(), OrderState.AUDIT_REJECTED.getValue(), this.orderType);
         this.orderState = OrderState.AUDIT_REJECTED;
         this.orderStateTime = new Date();
         this.remark = reason;

@@ -395,6 +395,131 @@ sequenceDiagram
     PCS-->>OC: success
 ```
 
+### 4.5 超时任务调度流程（US-019）
+
+```mermaid
+sequenceDiagram
+    participant SCH as TimeoutTaskScheduler
+    participant TNS as TimeoutNotifyService
+    participant ODS as OrderDomainService
+    participant DB as TimeoutTask (内存)
+    participant EB as EventBus
+
+    Note over SCH: @Scheduled(fixedRate = 60000)<br/>每 60 秒扫描一次
+
+    SCH->>TNS: getExpiredTasks()
+    TNS->>DB: 遍历 pendingTasks
+    DB-->>TNS: 过期任务列表（planTriggerTime < now）
+
+    loop 每个过期任务
+        SCH->>SCH: handleExpiredTask(task)
+        SCH->>DB: task.trigger() [PENDING → TRIGGERED]
+
+        alt triggerStrategy == "invalid"
+            SCH->>ODS: invalidateSmallOrder(orderId)
+            ODS->>ODS: order.invalidate() [→ EXPIRED]
+            ODS->>ODS: saveOrder() + saveTimeline()
+            SCH->>DB: task.complete() [→ DONE]
+
+        else triggerStrategy == "remind"
+            SCH->>TNS: sendTimeoutReminder(orderId, type, "SYSTEM")
+            SCH->>DB: task.complete() [→ DONE]
+
+        else triggerStrategy == "retry_and_alert"
+            alt task.canRetry() (retryCount < 3)
+                SCH->>DB: task.fail() [→ FAILED, retryCount++]
+            else 超过重试限制
+                SCH->>SCH: 发送告警通知
+                SCH->>DB: task.complete() [→ DONE]
+            end
+        end
+    end
+```
+
+**关键设计决策**：
+
+| 维度 | 决策 | 理由 |
+|------|------|------|
+| 调度方式 | Spring `@Scheduled(fixedRate)` 定时扫描 | 简单可靠，无需引入延迟队列中间件 |
+| 扫描频率 | 60 秒（1 分钟） | 分钟级精度满足业务需求，避免过于频繁的 DB/内存扫描 |
+| 最大延迟 | 1 分钟（扫描周期内） | 可接受的精度范围，30 分钟阈值下误差 <3.3% |
+| 超时阈值 | 分钟级配置（`thresholdMinutes`） | 来源 `paymentChannelConfig`，支持动态配置 |
+| 任务存储 | 内存 `ConcurrentHashMap`（当前） | 当前单实例可用，多实例需迁移至 Redis/DB |
+| 补偿策略 | 最多重试 3 次 + 告警 | `retry_and_alert` 策略，超过限制发告警通知 |
+| 任务取消 | 支付成功事件触发取消 | `PaymentSuccessEventListener` 调用 `cancelByOrderIdAndType` |
+
+**超时任务类型**：
+
+| 任务类型 | 阈值 | 触发策略 | 关联订单状态 |
+|----------|------|----------|-------------|
+| `SMALL_ORDER_PAY_TIMEOUT` | 30 min（可配置） | `invalid` → 自动 EXPIRED | EARNEST_MONEY_UNPAID |
+| `FORMAL_ORDER_AUDIT_TIMEOUT` | 1440 min（24h，可配置） | `remind` → 发送提醒 | 待审核 |
+| `AUDIT_TIMEOUT` | 1440 min（24h，可配置） | `remind` → 发送提醒 | 待审核 |
+| `LOCK_TIMEOUT` | 2880 min（48h，可配置） | `remind` → 发送提醒 | ARRANGE_PRODUCTION |
+
+**任务状态机**：
+
+```
+PENDING → TRIGGERED → DONE（正常完成）
+PENDING → TRIGGERED → FAILED → TRIGGERED → FAILED → ... → DONE（重试后完成/告警）
+PENDING → CANCELLED（支付成功等事件触发取消）
+```
+
+### 4.6 分布式锁并发控制设计（US-020）
+
+```mermaid
+sequenceDiagram
+    participant Caller as 调用方
+    participant OLS as OrderLockService
+    participant Redis as Redis
+    participant Action as 业务操作
+
+    Caller->>OLS: executeWithLock(orderId, operatorId, lockScene, action)
+    OLS->>Redis: SETNX order:lock:{orderId} {operatorId}:{scene}:{ts} EX 30
+
+    alt 获取锁失败
+        Redis-->>OLS: false
+        OLS-->>Caller: throw IllegalStateException("订单正在处理中")
+    end
+
+    Redis-->>OLS: true（获取成功）
+    OLS->>Action: 执行业务操作
+    Action-->>OLS: 操作完成
+
+    OLS->>Redis: EXPIRE order:lock:{orderId} 5（续期 5s）
+    OLS->>Redis: DEL order:lock:{orderId}（释放锁）
+    OLS-->>Caller: 返回结果
+```
+
+**锁参数**：
+
+| 参数 | 值 | 说明 |
+|------|-----|------|
+| 锁键格式 | `order:lock:{orderId}` | 每个订单独立锁 |
+| 锁值格式 | `{operatorId}:{lockScene}:{timestamp}` | 标识持锁人和场景 |
+| 默认 TTL | 30 秒 | `DEFAULT_EXPIRE_SECONDS = 30` |
+| 操作后续期 | 5 秒 | `renewLock(orderId, operatorId, 5)` |
+| 获取方式 | `setIfAbsent`（SETNX） | 原子操作，无竞态条件 |
+| 释放条件 | 锁值前缀匹配 operatorId | 只有持锁人才能释放 |
+
+**锁场景标识**：
+
+| 场景 | lockScene | 关联操作 |
+|------|-----------|----------|
+| 支付 | `payment` | US-005 |
+| 锁单 | `lockOrder` | US-009 |
+| 取消 | `cancel` | US-008 |
+| 退款 | `refund` | US-008 |
+| 绑车 | `bindVehicle` | US-011 |
+| 改配 | `modifyConfig` | US-007 |
+| 转定金 | `convert` | US-006 |
+
+**锁安全保障**：
+- **互斥性**：同一订单同一时刻只有一个操作持有锁
+- **防误释放**：释放前校验锁值前缀是否匹配 operatorId
+- **防死锁**：TTL 30s 自动过期，即使异常未释放也不会永久阻塞
+- **操作续期**：操作完成后续期 5s 再释放，防止操作接近 TTL 边界时锁提前过期
+
 ## 5. API Contracts
 
 ### 5.1 Mobile Sale Model APIs
@@ -510,7 +635,25 @@ sequenceDiagram
 - Request: `PaymentCallbackRequest`
 - Response: void
 
-### 5.6 Error Codes
+### 5.6 响应时间 SLA
+
+| API 类别 | 接口 | SLA | 说明 |
+|----------|------|-----|------|
+| 车型查询 | 列表/配置/权益 | <500ms | 走缓存，无外部调用 |
+| 车型查询 | 特征码范围 | <2s | 依赖 VMD 服务，超时返回降级提示 |
+| 车型查询 | 特征码解析 | <1s | 本地计算 |
+| 车型查询 | 上牌地区 | <200ms | 字典服务缓存 |
+| 心愿单 | CRUD | <500ms | 本地 DB 操作 |
+| 下单 | 小定/大定 | <1s | 含 VMD 校验 + 分布式锁 |
+| 支付 | 发起支付 | <2s | 含分布式锁获取 |
+| 支付 | 回调处理 | <2s | 含签名验证 + 状态流转 |
+| 订单操作 | 改配 | <2s | 含 VMD 调用 + 快照创建 |
+| 订单操作 | 锁单/取消/退款/转定金 | <1s | 本地状态流转 |
+| 订单操作 | 物理删除 | <5s | 级联删除多表 |
+| 订单查询 | 列表 | <1s | 分页查询 |
+| 订单查询 | 详情 | <500ms | 单订单全量数据 |
+
+### 5.7 Error Codes
 
 | Code | Name | Description | HTTP Status |
 |------|------|-------------|-------------|
@@ -527,6 +670,10 @@ sequenceDiagram
 | 301011 | PAYMENT_CHANNEL_NOT_AVAILABLE | 支付渠道不可用 | 400 |
 | 301012 | PAYMENT_NOT_EXIST | 支付单不存在 | 404 |
 | 301013 | PAYMENT_STATUS_MISMATCH | 支付单状态不匹配 | 409 |
+| 301014 | BRAND_CODE_NOT_EXIST | 品牌编码不存在 | 400 |
+| 301015 | CONCURRENT_CONFLICT | 并发冲突（分布式锁获取失败） | 409 |
+| 301016 | VIN_ALREADY_ASSIGNED | VIN 已被其他订单占用 | 409 |
+| 301017 | SIGNATURE_INVALID | 回调签名校验失败 | 403 |
 
 ## 6. Coverage Mapping
 
@@ -571,7 +718,7 @@ sequenceDiagram
 |---|------|------|
 | 1 | EsignAdapter、FinanceAdapter 接口已定义但未实现，合同签署和金融流程何时接入？ | 待定 |
 | 2 | 退款流程的具体金额计算规则（部分退款 vs 全额退款）未在代码中明确 | 待定 |
-| 3 | 订单超时任务的调度频率和补偿机制细节 | 待定 |
+| 3 | 订单超时任务的调度频率和补偿机制细节 | 已解决 → §4.5 |
 | 4 | 物理删除的权限校验具体实现（当前仅预留权限标识） | 待定 |
 | 5 | 多维度状态表(vso_order_status_dimension)与主状态的同步策略 | 待定 |
 
@@ -580,3 +727,4 @@ sequenceDiagram
 | Date | Change ID | Type | Description |
 |------|-----------|------|-------------|
 | 2026-05-23 | CR-001 | Added | 基于现有代码逆向生成初始设计文档 |
+| 2026-05-23 | CR-002 | Added | 新增 §4.5 超时任务调度流程、§4.6 分布式锁并发控制设计、§5.6 响应时间 SLA；补充 4 个错误码（301014~301017）；关闭 Open Question #3 |
