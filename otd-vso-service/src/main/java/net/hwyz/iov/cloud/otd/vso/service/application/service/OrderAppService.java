@@ -69,6 +69,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 /**
@@ -99,6 +100,10 @@ public class OrderAppService {
     private final OrgDealershipService orgDealershipService;
     private final AuditRepository auditRepository;
     private final OrderVehicleSnapshotRepository orderVehicleSnapshotRepository;
+
+    private final Map<String, String> cityNameCache = new ConcurrentHashMap<>();
+    private volatile long cityNameCacheLastRefresh = 0;
+    private static final long CITY_CACHE_TTL_MS = 5 * 60 * 1000;
 
     /**
      * 创建小订单
@@ -327,15 +332,15 @@ public class OrderAppService {
                 .filter(StrUtil::isNotBlank)
                 .collect(Collectors.toSet());
 
-        Map<String, String> buildConfigNameMap = new HashMap<>();
+        Map<String, VmdBuildConfigResponse> buildConfigMap = new HashMap<>();
         for (String code : buildConfigCodes) {
             try {
                 VmdBuildConfigResponse buildConfig = vmdVehicleModelConfigService.getBuildConfigByCode(code);
                 if (buildConfig != null) {
-                    buildConfigNameMap.put(code, buildConfig.getName());
+                    buildConfigMap.put(code, buildConfig);
                 }
             } catch (Exception e) {
-                log.warn("获取生产配置名称失败: buildConfigCode={}", code);
+                log.warn("获取生产配置失败: buildConfigCode={}", code);
             }
         }
 
@@ -360,7 +365,8 @@ public class OrderAppService {
 
             if (StrUtil.isNotBlank(result.getSaleModel()) && StrUtil.isNotBlank(result.getBuildConfigCode())) {
                 try {
-                    Map<String, String> featureCodes = parseBuildConfigToFeatureCodes(result.getBuildConfigCode());
+                    VmdBuildConfigResponse buildConfig = buildConfigMap.get(result.getBuildConfigCode());
+                    Map<String, String> featureCodes = parseBuildConfigToFeatureCodes(buildConfig);
                     SelectedSaleModelResult selectedModel = saleModelAppService.getSelectedSaleModelByFeatureCodes(
                             result.getSaleModel(), featureCodes);
 
@@ -377,26 +383,20 @@ public class OrderAppService {
         }
     }
 
-    private Map<String, String> parseBuildConfigToFeatureCodes(String buildConfigCode) {
+    private Map<String, String> parseBuildConfigToFeatureCodes(VmdBuildConfigResponse buildConfig) {
         Map<String, String> featureCodes = new HashMap<>();
 
-        try {
-            VmdBuildConfigResponse buildConfig = vmdVehicleModelConfigService.getBuildConfigByCode(buildConfigCode);
-
-            if (buildConfig != null && buildConfig.getFeatureCodes() != null) {
-                for (VmdBuildConfigFeatureCodeResponse fc : buildConfig.getFeatureCodes()) {
-                    String familyCode = fc.getFamilyCode();
-                    if (fc.getFeatureCode() != null && fc.getFeatureCode().length > 0) {
-                        featureCodes.put(familyCode, fc.getFeatureCode()[0]);
-                    }
-                }
-
-                if (buildConfig.getBaseModelCode() != null && !buildConfig.getBaseModelCode().isEmpty()) {
-                    featureCodes.put("BASE_MODEL", buildConfig.getBaseModelCode());
+        if (buildConfig != null && buildConfig.getFeatureCodes() != null) {
+            for (VmdBuildConfigFeatureCodeResponse fc : buildConfig.getFeatureCodes()) {
+                String familyCode = fc.getFamilyCode();
+                if (fc.getFeatureCode() != null && fc.getFeatureCode().length > 0) {
+                    featureCodes.put(familyCode, fc.getFeatureCode()[0]);
                 }
             }
-        } catch (Exception e) {
-            log.warn("解析生产配置失败: buildConfigCode={}", buildConfigCode, e);
+
+            if (buildConfig.getBaseModelCode() != null && !buildConfig.getBaseModelCode().isEmpty()) {
+                featureCodes.put("BASE_MODEL", buildConfig.getBaseModelCode());
+            }
         }
 
         return featureCodes;
@@ -725,7 +725,8 @@ public class OrderAppService {
         OrderDetailResult result = OrderDtoAssembler.INSTANCE.toOrderDetailResult(order);
         
         if (StrUtil.isNotBlank(order.getSaleModel()) && StrUtil.isNotBlank(order.getBuildConfigCode())) {
-            Map<String, String> featureCodes = parseBuildConfigToFeatureCodes(order.getBuildConfigCode());
+            VmdBuildConfigResponse buildConfig = vmdVehicleModelConfigService.getBuildConfigByCode(order.getBuildConfigCode());
+            Map<String, String> featureCodes = parseBuildConfigToFeatureCodes(buildConfig);
             SelectedSaleModelResult selectedModel = saleModelAppService.getSelectedSaleModelByFeatureCodes(
                     order.getSaleModel(), featureCodes);
             
@@ -774,19 +775,44 @@ public class OrderAppService {
     }
     
     private String getCityName(String cityCode) {
+        if (StrUtil.isBlank(cityCode)) {
+            return "";
+        }
+        if (System.currentTimeMillis() - cityNameCacheLastRefresh < CITY_CACHE_TTL_MS) {
+            String cached = cityNameCache.get(cityCode);
+            if (cached != null) {
+                return cached;
+            }
+        }
+        try {
+            refreshCityNameCache();
+            return cityNameCache.getOrDefault(cityCode, cityCode);
+        } catch (Exception e) {
+            log.warn("获取城市名称失败: cityCode={}", cityCode, e);
+            return cityCode;
+        }
+    }
+
+    private synchronized void refreshCityNameCache() {
+        if (System.currentTimeMillis() - cityNameCacheLastRefresh < CITY_CACHE_TTL_MS) {
+            return;
+        }
         try {
             DictionaryResponse city = dictionaryService.getDictionary("city");
             if (city != null && city.getItems() != null) {
+                Map<String, String> newCache = new HashMap<>();
                 for (Map<String, Object> item : city.getItems()) {
-                    if (item.get("code") != null && item.get("code").toString().equals(cityCode)) {
-                        return item.get("name") != null ? item.get("name").toString() : cityCode;
+                    if (item.get("code") != null && item.get("name") != null) {
+                        newCache.put(item.get("code").toString(), item.get("name").toString());
                     }
                 }
+                cityNameCache.clear();
+                cityNameCache.putAll(newCache);
+                cityNameCacheLastRefresh = System.currentTimeMillis();
             }
         } catch (Exception e) {
-            log.warn("获取城市名称失败: cityCode={}", cityCode, e);
+            log.error("刷新城市名称缓存失败", e);
         }
-        return cityCode;
     }
 
     public void cancel(CancelCmd cmd) {
