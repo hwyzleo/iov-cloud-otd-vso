@@ -185,7 +185,7 @@ public class OrderAppService {
     public void submitOrder(SubmitOrderCmd cmd) {
         log.info("提交订单：orderId={}, operatorId={}", cmd.getOrderId(), cmd.getOperatorId());
 
-        orderLockService.executeWithLock(cmd.getOrderId(), cmd.getOperatorId(), "SUBMIT", () -> {
+        orderLockService.executeWithLock(cmd.getOrderId(), cmd.getOperatorId(), "submit", () -> {
             Order order = orderDomainService.loadOrder(cmd.getOrderId());
             orderValidationService.validateForSubmit(order);
             orderDomainService.submitOrder(cmd.getOrderId());
@@ -230,7 +230,7 @@ public class OrderAppService {
     public void lockOrder(LockOrderCmd cmd) {
         log.info("锁单：orderId={}, operatorId={}", cmd.getOrderId(), cmd.getOperatorId());
 
-        orderLockService.executeWithLock(cmd.getOrderId(), cmd.getOperatorId(), "LOCK", () -> {
+        orderLockService.executeWithLock(cmd.getOrderId(), cmd.getOperatorId(), "lockOrder", () -> {
             Order order = orderDomainService.loadOrder(cmd.getOrderId());
             orderValidationService.validateForLock(order);
             orderDomainService.lockOrder(cmd.getOrderId());
@@ -248,9 +248,9 @@ public class OrderAppService {
                 cmd.getOrderId(), cmd.getOperatorId(), cmd.getReason(), cmd.getOperateType());
 
         orderLockService.executeWithLock(cmd.getOrderId(), cmd.getOperatorId(), cmd.getOperateType(), () -> {
-            if ("CANCEL".equals(cmd.getOperateType())) {
+            if ("cancel".equals(cmd.getOperateType())) {
                 orderDomainService.cancelOrder(cmd.getOrderId(), cmd.getReason());
-            } else if ("CLOSE".equals(cmd.getOperateType())) {
+            } else if ("close".equals(cmd.getOperateType())) {
                 orderDomainService.closeOrder(cmd.getOrderId(), cmd.getReason());
             }
         });
@@ -265,7 +265,7 @@ public class OrderAppService {
     public void completeOrder(CompleteOrderCmd cmd) {
         log.info("完成订单：orderId={}, operatorId={}", cmd.getOrderId(), cmd.getOperatorId());
 
-        orderLockService.executeWithLock(cmd.getOrderId(), cmd.getOperatorId(), "COMPLETE", () -> {
+        orderLockService.executeWithLock(cmd.getOrderId(), cmd.getOperatorId(), "complete", () -> {
             orderDomainService.completeOrder(cmd.getOrderId());
         });
 
@@ -503,10 +503,12 @@ public class OrderAppService {
     @Transactional(rollbackFor = Exception.class)
     public void assignVehicle(AssignVehicleCmd cmd) {
         log.info("分派车辆：orderId={}, vin={}", cmd.getOrderNo(), cmd.getVin());
-        orderValidationService.validateVinAvailable(cmd.getVin(), cmd.getOrderNo());
-        Order order = orderDomainService.loadOrder(cmd.getOrderNo());
-        order.saveDeliveryVehicle(cmd.getVin());
-        orderRepository.save(order);
+        orderLockService.executeWithLock(cmd.getOrderNo(), cmd.getVin(), "bindVehicle", () -> {
+            orderValidationService.validateVinAvailable(cmd.getVin(), cmd.getOrderNo());
+            Order order = orderDomainService.loadOrder(cmd.getOrderNo());
+            order.saveDeliveryVehicle(cmd.getVin());
+            orderRepository.save(order);
+        });
     }
 
     /**
@@ -788,9 +790,11 @@ public class OrderAppService {
     }
 
     public void cancel(CancelCmd cmd) {
-        Order order = findOrderById(cmd.getAccountId(), cmd.getOrderNo());
-        order.cancel();
-        orderRepository.save(order);
+        orderLockService.executeWithLock(cmd.getOrderNo(), cmd.getAccountId(), "cancel", () -> {
+            Order order = findOrderById(cmd.getAccountId(), cmd.getOrderNo());
+            order.cancel();
+            orderRepository.save(order);
+        });
     }
 
     public PayResult pay(PayCmd cmd) {
@@ -814,9 +818,11 @@ public class OrderAppService {
     }
 
     public void requestRefund(RequestRefundCmd cmd) {
-        Order order = findOrderById(cmd.getAccountId(), cmd.getOrderNo());
-        order.requestRefund();
-        orderRepository.save(order);
+        orderLockService.executeWithLock(cmd.getOrderNo(), cmd.getAccountId(), "refund", () -> {
+            Order order = findOrderById(cmd.getAccountId(), cmd.getOrderNo());
+            order.requestRefund();
+            orderRepository.save(order);
+        });
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -832,65 +838,67 @@ public class OrderAppService {
             throw new IllegalArgumentException("支付方式不合法，仅支持：full_payment、loan");
         }
         
-        Order order = findOrderById(cmd.getAccountId(), cmd.getOrderNo());
-        
-        if (order.getOrderState() != OrderState.EARNEST_MONEY_PAID) {
-            log.warn("订单状态不允许转定金：orderNo={}, orderState={}", 
-                    order.getOrderNo(), order.getOrderState());
-            throw new OrderStateNotAllowedException(order.getOrderNo(), order.getOrderState(), "EARNEST_TO_DOWN_PAYMENT");
-        }
-        
-        OrderState beforeState = order.getOrderState();
-        
-        order.earnestMoneyToDownPayment();
-        
-        if (StrUtil.isNotBlank(cmd.getCustomerType())) {
-            order.saveCustomerType(cmd.getCustomerType());
-        }
-        if (StrUtil.isNotBlank(cmd.getPaymentMethod())) {
-            order.savePaymentMethod(cmd.getPaymentMethod());
-        }
-        order.saveOrderPerson(cmd.getAccountId(), cmd.getOrderPersonType(), cmd.getOrderPersonName(),
-                cmd.getOrderPersonIdType(), cmd.getOrderPersonIdNum());
-        order.savePurchasePlan(cmd.getPurchasePlan());
-        if (StrUtil.isNotBlank(cmd.getLicenseCityCode())) {
-            order.saveLicenseCity(cmd.getLicenseCityCode());
-        }
-        
-        if (StrUtil.isNotBlank(cmd.getOrderStoreCode())) {
-            order.saveOrderStoreCode(cmd.getOrderStoreCode());
-            order.saveOwnerStoreCode(cmd.getOrderStoreCode());
-            if (cmd.getOrderStoreCode().length() >= 2) {
-                order.saveOwnerRegionCode(cmd.getOrderStoreCode().substring(0, 2));
+        orderLockService.executeWithLock(cmd.getOrderNo(), cmd.getAccountId(), "convert", () -> {
+            Order order = findOrderById(cmd.getAccountId(), cmd.getOrderNo());
+            
+            if (order.getOrderState() != OrderState.EARNEST_MONEY_PAID) {
+                log.warn("订单状态不允许转定金：orderNo={}, orderState={}", 
+                        order.getOrderNo(), order.getOrderState());
+                throw new OrderStateNotAllowedException(order.getOrderNo(), order.getOrderState(), "EARNEST_TO_DOWN_PAYMENT");
             }
-        }
-        
-        if (StrUtil.isNotBlank(cmd.getDeliveryStoreCode())) {
-            order.saveDeliveryStoreCode(cmd.getDeliveryStoreCode());
-            if (cmd.getDeliveryStoreCode().length() >= 2) {
-                order.saveDeliveryRegionCode(cmd.getDeliveryStoreCode().substring(0, 2));
+            
+            OrderState beforeState = order.getOrderState();
+            
+            order.earnestMoneyToDownPayment();
+            
+            if (StrUtil.isNotBlank(cmd.getCustomerType())) {
+                order.saveCustomerType(cmd.getCustomerType());
             }
-        }
-        
-        orderRepository.save(order);
-        
-        if (StrUtil.isNotBlank(cmd.getOrderPersonName()) && StrUtil.isNotBlank(cmd.getOrderPersonIdNum())) {
-            saveBuyerInfo(order.getId(), cmd.getOrderPersonType(), cmd.getOrderPersonName(),
+            if (StrUtil.isNotBlank(cmd.getPaymentMethod())) {
+                order.savePaymentMethod(cmd.getPaymentMethod());
+            }
+            order.saveOrderPerson(cmd.getAccountId(), cmd.getOrderPersonType(), cmd.getOrderPersonName(),
                     cmd.getOrderPersonIdType(), cmd.getOrderPersonIdNum());
-        }
-        
-        if (StrUtil.isNotBlank(cmd.getOrderStoreCode()) || StrUtil.isNotBlank(cmd.getDeliveryStoreCode())) {
-            saveOrderAssignment(order.getId(), cmd.getOrderStoreCode(), cmd.getDeliveryStoreCode());
-        }
-        
-        saveOrderTimeline(order.getId(), "EARNEST_TO_DOWN_PAYMENT", "意向金转定金",
-                beforeState.getValue().toString(), order.getOrderState().getValue().toString(),
-                cmd.getAccountId(), "order_user", "capp",
-                null, "success", null, 
-                "意向金订单转定金订单");
-        
-        log.info("意向金转定金完成：orderId={}, orderNo={}, orderType={}", 
-                order.getId(), order.getOrderNo(), order.getOrderType());
+            order.savePurchasePlan(cmd.getPurchasePlan());
+            if (StrUtil.isNotBlank(cmd.getLicenseCityCode())) {
+                order.saveLicenseCity(cmd.getLicenseCityCode());
+            }
+            
+            if (StrUtil.isNotBlank(cmd.getOrderStoreCode())) {
+                order.saveOrderStoreCode(cmd.getOrderStoreCode());
+                order.saveOwnerStoreCode(cmd.getOrderStoreCode());
+                if (cmd.getOrderStoreCode().length() >= 2) {
+                    order.saveOwnerRegionCode(cmd.getOrderStoreCode().substring(0, 2));
+                }
+            }
+            
+            if (StrUtil.isNotBlank(cmd.getDeliveryStoreCode())) {
+                order.saveDeliveryStoreCode(cmd.getDeliveryStoreCode());
+                if (cmd.getDeliveryStoreCode().length() >= 2) {
+                    order.saveDeliveryRegionCode(cmd.getDeliveryStoreCode().substring(0, 2));
+                }
+            }
+            
+            orderRepository.save(order);
+            
+            if (StrUtil.isNotBlank(cmd.getOrderPersonName()) && StrUtil.isNotBlank(cmd.getOrderPersonIdNum())) {
+                saveBuyerInfo(order.getId(), cmd.getOrderPersonType(), cmd.getOrderPersonName(),
+                        cmd.getOrderPersonIdType(), cmd.getOrderPersonIdNum());
+            }
+            
+            if (StrUtil.isNotBlank(cmd.getOrderStoreCode()) || StrUtil.isNotBlank(cmd.getDeliveryStoreCode())) {
+                saveOrderAssignment(order.getId(), cmd.getOrderStoreCode(), cmd.getDeliveryStoreCode());
+            }
+            
+            saveOrderTimeline(order.getId(), "EARNEST_TO_DOWN_PAYMENT", "意向金转定金",
+                    beforeState.getValue().toString(), order.getOrderState().getValue().toString(),
+                    cmd.getAccountId(), "order_user", "capp",
+                    null, "success", null, 
+                    "意向金订单转定金订单");
+            
+            log.info("意向金转定金完成：orderId={}, orderNo={}, orderType={}", 
+                    order.getId(), order.getOrderNo(), order.getOrderType());
+        });
     }
 
     public void lock(LockCmd cmd) {
@@ -904,41 +912,43 @@ public class OrderAppService {
         log.info("修改订单配置：accountId={}, orderNo={}, featureConfig={}", 
                 cmd.getAccountId(), cmd.getOrderNo(), cmd.getFeatureConfig());
         
-        Order order = findOrderById(cmd.getAccountId(), cmd.getOrderNo());
-        
-        validateOrderStateForModifyConfig(order);
-        
-        String newBuildConfigCode = getBuildConfigCodeFromFeatureConfig(cmd.getFeatureConfig());
-        if (newBuildConfigCode == null || newBuildConfigCode.isEmpty()) {
-            throw new BuildConfigNotMatchedException(order.getSaleModel());
-        }
-        
-        VmdBuildConfigResponse buildConfig = vmdVehicleModelConfigService.getBuildConfigByCode(newBuildConfigCode);
-        if (buildConfig == null || buildConfig.getBrandCode() == null) {
-            throw new BrandCodeNotExistException(newBuildConfigCode);
-        }
-        
-        String oldBuildConfigCode = order.getBuildConfigCode();
-        
-        order.saveBuildConfig(newBuildConfigCode, null);
-        order.saveBrandCode(buildConfig.getBrandCode());
-        
-        String saleModelName = saleModelRepository.findBySaleModelCode(order.getSaleModel())
-                .map(SaleModelPo::getModelName)
-                .orElse("");
-        
-        saveOrderVehicleSnapshotWithVersionIncrement(order, order.getSaleModel(), saleModelName, buildConfig);
-        
-        orderRepository.save(order);
-        
-        saveOrderTimeline(order.getId(), "MODIFY_CONFIG", "修改订单配置",
-                oldBuildConfigCode, newBuildConfigCode,
-                cmd.getAccountId(), "order_user", "capp",
-                null, "success", null, 
-                "用户修改订单车辆配置");
-        
-        log.info("修改订单配置完成：orderId={}, orderNo={}, oldBuildConfig={}, newBuildConfig={}", 
-                order.getId(), order.getOrderNo(), oldBuildConfigCode, newBuildConfigCode);
+        orderLockService.executeWithLock(cmd.getOrderNo(), cmd.getAccountId(), "modifyConfig", () -> {
+            Order order = findOrderById(cmd.getAccountId(), cmd.getOrderNo());
+            
+            validateOrderStateForModifyConfig(order);
+            
+            String newBuildConfigCode = getBuildConfigCodeFromFeatureConfig(cmd.getFeatureConfig());
+            if (newBuildConfigCode == null || newBuildConfigCode.isEmpty()) {
+                throw new BuildConfigNotMatchedException(order.getSaleModel());
+            }
+            
+            VmdBuildConfigResponse buildConfig = vmdVehicleModelConfigService.getBuildConfigByCode(newBuildConfigCode);
+            if (buildConfig == null || buildConfig.getBrandCode() == null) {
+                throw new BrandCodeNotExistException(newBuildConfigCode);
+            }
+            
+            String oldBuildConfigCode = order.getBuildConfigCode();
+            
+            order.saveBuildConfig(newBuildConfigCode, null);
+            order.saveBrandCode(buildConfig.getBrandCode());
+            
+            String saleModelName = saleModelRepository.findBySaleModelCode(order.getSaleModel())
+                    .map(SaleModelPo::getModelName)
+                    .orElse("");
+            
+            saveOrderVehicleSnapshotWithVersionIncrement(order, order.getSaleModel(), saleModelName, buildConfig);
+            
+            orderRepository.save(order);
+            
+            saveOrderTimeline(order.getId(), "MODIFY_CONFIG", "修改订单配置",
+                    oldBuildConfigCode, newBuildConfigCode,
+                    cmd.getAccountId(), "order_user", "capp",
+                    null, "success", null, 
+                    "用户修改订单车辆配置");
+            
+            log.info("修改订单配置完成：orderId={}, orderNo={}, oldBuildConfig={}, newBuildConfig={}", 
+                    order.getId(), order.getOrderNo(), oldBuildConfigCode, newBuildConfigCode);
+        });
     }
 
     private void validateOrderStateForModifyConfig(Order order) {
@@ -1144,55 +1154,57 @@ public class OrderAppService {
         log.info("发起支付：accountId={}, orderNo={}, paymentChannel={}", 
                 cmd.getAccountId(), cmd.getOrderNo(), cmd.getPaymentChannel());
         
-        Optional<Order> orderOpt = orderRepository.findByOrderNo(cmd.getOrderNo());
-        if (orderOpt.isEmpty()) {
-            throw new OrderNotExistException(cmd.getOrderNo());
-        }
-        Order order = orderOpt.get();
-        
-        if (order.getOrderState() != OrderState.EARNEST_MONEY_UNPAID 
-                && order.getOrderState() != OrderState.DOWN_PAYMENT_UNPAID) {
-            throw new OrderNotExistException("订单状态不允许支付");
-        }
-        
-        if (!paymentChannelConfig.isChannelEnabled(cmd.getPaymentChannel())) {
-            throw new PaymentChannelNotAvailableException(cmd.getPaymentChannel().name());
-        }
-        
-        PaymentStage paymentStage;
-        BigDecimal paymentAmount;
-        if (order.getOrderState() == OrderState.EARNEST_MONEY_UNPAID) {
-            paymentStage = PaymentStage.EARNEST_MONEY;
-            paymentAmount = getEarnestMoneyAmount(order.getSaleModel());
-        } else {
-            paymentStage = PaymentStage.DOWN_PAYMENT;
-            paymentAmount = getDownPaymentAmount(order.getSaleModel());
-        }
-        
-        PaymentPo paymentPo = new PaymentPo();
-        paymentPo.setPaymentId(IdUtil.nanoId(15));
-        paymentPo.setPaymentNo("P" + IdUtil.nanoId(12));
-        paymentPo.setOrderId(order.getId());
-        paymentPo.setPaymentStage(paymentStage.name());
-        paymentPo.setPaymentChannel(cmd.getPaymentChannel().name());
-        paymentPo.setPaymentAmount(paymentAmount);
-        paymentPo.setPaymentStatus(PaymentStatus.PENDING_PAYMENT.name());
-        paymentPo.setInitiatorRole("capp_user");
-        paymentPo.setInitiatorId(cmd.getAccountId());
-        paymentPo.setAuthorizedFlag(0);
-        
-        paymentRepository.save(paymentPo);
-        
-        log.info("支付记录创建成功：paymentNo={}, orderId={}, paymentStage={}, paymentAmount={}", 
-                paymentPo.getPaymentNo(), order.getId(), paymentStage, paymentAmount);
-        
-        return InitiatePaymentResult.builder()
-                .paymentNo(paymentPo.getPaymentNo())
-                .paymentChannel(cmd.getPaymentChannel())
-                .paymentAmount(paymentAmount)
-                .paymentMerchant(null)
-                .paymentReference(null)
-                .build();
+        return orderLockService.executeWithLock(cmd.getOrderNo(), cmd.getAccountId(), "payment", () -> {
+            Optional<Order> orderOpt = orderRepository.findByOrderNo(cmd.getOrderNo());
+            if (orderOpt.isEmpty()) {
+                throw new OrderNotExistException(cmd.getOrderNo());
+            }
+            Order order = orderOpt.get();
+            
+            if (order.getOrderState() != OrderState.EARNEST_MONEY_UNPAID 
+                    && order.getOrderState() != OrderState.DOWN_PAYMENT_UNPAID) {
+                throw new OrderNotExistException("订单状态不允许支付");
+            }
+            
+            if (!paymentChannelConfig.isChannelEnabled(cmd.getPaymentChannel())) {
+                throw new PaymentChannelNotAvailableException(cmd.getPaymentChannel().name());
+            }
+            
+            PaymentStage paymentStage;
+            BigDecimal paymentAmount;
+            if (order.getOrderState() == OrderState.EARNEST_MONEY_UNPAID) {
+                paymentStage = PaymentStage.EARNEST_MONEY;
+                paymentAmount = getEarnestMoneyAmount(order.getSaleModel());
+            } else {
+                paymentStage = PaymentStage.DOWN_PAYMENT;
+                paymentAmount = getDownPaymentAmount(order.getSaleModel());
+            }
+            
+            PaymentPo paymentPo = new PaymentPo();
+            paymentPo.setPaymentId(IdUtil.nanoId(15));
+            paymentPo.setPaymentNo("P" + IdUtil.nanoId(12));
+            paymentPo.setOrderId(order.getId());
+            paymentPo.setPaymentStage(paymentStage.name());
+            paymentPo.setPaymentChannel(cmd.getPaymentChannel().name());
+            paymentPo.setPaymentAmount(paymentAmount);
+            paymentPo.setPaymentStatus(PaymentStatus.PENDING_PAYMENT.name());
+            paymentPo.setInitiatorRole("capp_user");
+            paymentPo.setInitiatorId(cmd.getAccountId());
+            paymentPo.setAuthorizedFlag(0);
+            
+            paymentRepository.save(paymentPo);
+            
+            log.info("支付记录创建成功：paymentNo={}, orderId={}, paymentStage={}, paymentAmount={}", 
+                    paymentPo.getPaymentNo(), order.getId(), paymentStage, paymentAmount);
+            
+            return InitiatePaymentResult.builder()
+                    .paymentNo(paymentPo.getPaymentNo())
+                    .paymentChannel(cmd.getPaymentChannel())
+                    .paymentAmount(paymentAmount)
+                    .paymentMerchant(null)
+                    .paymentReference(null)
+                    .build();
+        });
     }
 
     private BigDecimal getEarnestMoneyAmount(String saleModelCode) {

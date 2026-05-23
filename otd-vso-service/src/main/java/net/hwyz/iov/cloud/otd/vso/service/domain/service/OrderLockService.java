@@ -128,8 +128,6 @@ public class OrderLockService {
         try {
             return action.get();
         } finally {
-            // 续期锁，确保操作完成
-            renewLock(orderId, operatorId, 5);
             unlock(orderId, operatorId);
         }
     }
