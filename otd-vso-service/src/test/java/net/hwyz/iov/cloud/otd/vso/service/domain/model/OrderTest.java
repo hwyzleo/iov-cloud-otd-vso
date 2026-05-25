@@ -1,5 +1,6 @@
 package net.hwyz.iov.cloud.otd.vso.service.domain.model;
 
+import net.hwyz.iov.cloud.otd.vso.api.enums.OrderType;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.shared.Money;
 import org.junit.jupiter.api.Test;
 
@@ -49,9 +50,19 @@ class OrderTest {
     }
 
     private Order createOrderWithState(OrderState state) {
-        Order order = new Order();
-        order.setOrderState(state);
-        order.setOrderType(OrderType.FORMAL);
-        return order;
+        Money price = Money.of(new BigDecimal("100000"), "CNY");
+
+        OrderAmount orderAmount = new OrderAmount("test-amount-id");
+        orderAmount.setVehiclePrice(price);
+        orderAmount.setOptionPrice(Money.ZERO_CNY);
+        orderAmount.setPaidTotal(Money.of(new BigDecimal("10000"), "CNY"));
+
+        return Order.builder()
+                .id("test-order-id")
+                .orderNo("TEST000001")
+                .orderType(OrderType.FORMAL)
+                .orderState(state)
+                .orderAmount(orderAmount)
+                .build();
     }
 }
