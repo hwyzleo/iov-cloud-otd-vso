@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.mapper.ConfigChangeRefundMapper">
+
+    <resultMap id="baseResultMap" type="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.ConfigChangeRefundPo">
+        <id column="id" property="id" />
+        <result column="refund_task_no" property="refundTaskNo" />
+        <result column="order_id" property="orderId" />
+        <result column="refund_amount" property="refundAmount" />
+        <result column="currency" property="currency" />
+        <result column="refund_status" property="refundStatus" />
+        <result column="config_version_no" property="configVersionNo" />
+        <result column="refund_id" property="refundId" />
+        <result column="fail_reason" property="failReason" />
+        <result column="manual_audit_status" property="manualAuditStatus" />
+        <result column="create_time" property="createTime" />
+        <result column="create_by" property="createBy" />
+        <result column="update_time" property="updateTime" />
+        <result column="update_by" property="updateBy" />
+    </resultMap>
+
+    <sql id="baseColumnList">
+        t.id, t.refund_task_no, t.order_id, t.refund_amount, t.currency,
+        t.refund_status, t.config_version_no, t.refund_id, t.fail_reason,
+        t.manual_audit_status, t.create_time, t.create_by, t.update_time, t.update_by
+    </sql>
+
+    <select id="selectByRefundTaskNo" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_config_change_refund t
+        WHERE t.refund_task_no = #{refundTaskNo}
+    </select>
+
+    <select id="selectPoById" parameterType="Long" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_config_change_refund t
+        WHERE t.id = #{value}
+    </select>
+
+    <select id="selectPoByExample" parameterType="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.ConfigChangeRefundPo" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_config_change_refund t
+        WHERE 1=1
+        <if test="id != null">
+            AND t.id = #{id}
+        </if>
+        <if test="refundTaskNo != null and refundTaskNo != ''">
+            AND t.refund_task_no = #{refundTaskNo}
+        </if>
+        <if test="orderId != null and orderId != ''">
+            AND t.order_id = #{orderId}
+        </if>
+        <if test="refundStatus != null and refundStatus != ''">
+            AND t.refund_status = #{refundStatus}
+        </if>
+        ORDER BY t.id DESC
+    </select>
+
+    <select id="selectPoByMap" parameterType="java.util.Map" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_config_change_refund t
+        WHERE 1=1
+        <if test="params.refundTaskNo != null and params.refundTaskNo != ''">
+            AND t.refund_task_no = #{params.refundTaskNo}
+        </if>
+        <if test="params.orderId != null and params.orderId != ''">
+            AND t.order_id = #{params.orderId}
+        </if>
+        <if test="params.refundStatus != null and params.refundStatus != ''">
+            AND t.refund_status = #{params.refundStatus}
+        </if>
+        ORDER BY t.id DESC
+    </select>
+
+    <select id="countPoByMap" parameterType="java.util.Map" resultType="int">
+        SELECT COUNT(*)
+        FROM vso_config_change_refund t
+        WHERE 1=1
+        <if test="params.orderId != null and params.orderId != ''">
+            AND t.order_id = #{params.orderId}
+        </if>
+        <if test="params.refundStatus != null and params.refundStatus != ''">
+            AND t.refund_status = #{params.refundStatus}
+        </if>
+    </select>
+
+    <insert id="insertPo" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO vso_config_change_refund (
+            refund_task_no, order_id, refund_amount, currency,
+            refund_status, config_version_no, refund_id, fail_reason,
+            manual_audit_status, create_time, create_by, update_time, update_by
+        )
+        VALUES (
+            #{refundTaskNo}, #{orderId}, #{refundAmount}, #{currency},
+            #{refundStatus}, #{configVersionNo}, #{refundId}, #{failReason},
+            #{manualAuditStatus}, now(), #{createBy}, now(), #{updateBy}
+        )
+    </insert>
+
+    <insert id="batchInsertPo">
+        INSERT INTO vso_config_change_refund (
+            refund_task_no, order_id, refund_amount, currency,
+            refund_status, config_version_no, refund_id, fail_reason,
+            manual_audit_status, create_time, create_by, update_time, update_by
+        )
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (
+                #{item.refundTaskNo}, #{item.orderId}, #{item.refundAmount}, #{item.currency},
+                #{item.refundStatus}, #{item.configVersionNo}, #{item.refundId}, #{item.failReason},
+                #{item.manualAuditStatus}, now(), #{item.createBy}, now(), #{item.updateBy}
+            )
+        </foreach>
+    </insert>
+
+    <update id="updatePo" parameterType="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.ConfigChangeRefundPo">
+        UPDATE vso_config_change_refund t SET
+        <if test="refundStatus != null and refundStatus != ''">
+            t.refund_status = #{refundStatus},
+        </if>
+        <if test="refundId != null">
+            t.refund_id = #{refundId},
+        </if>
+        <if test="failReason != null">
+            t.fail_reason = #{failReason},
+        </if>
+        <if test="manualAuditStatus != null">
+            t.manual_audit_status = #{manualAuditStatus},
+        </if>
+        <if test="updateBy != null">
+            t.update_by = #{updateBy},
+        </if>
+        t.update_time = now()
+        WHERE t.id = #{id}
+    </update>
+
+    <update id="logicalDeletePo" parameterType="Long">
+        UPDATE vso_config_change_refund t SET
+        t.update_time = now()
+        WHERE t.id = #{value}
+    </update>
+
+    <delete id="physicalDeletePo" parameterType="Long">
+        DELETE FROM vso_config_change_refund
+        WHERE id = #{value}
+    </delete>
+
+    <delete id="batchPhysicalDeletePo">
+        DELETE FROM vso_config_change_refund
+        WHERE id IN
+        <foreach collection="array" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+</mapper>

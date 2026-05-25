@@ -88,13 +88,33 @@
 
 ### US-007: 订单改配
 
-**As a** C 端用户, **I want** 在锁单前修改订单的车辆配置, **so that** 我能调整车辆选装方案。
+**As a** C 端用户, **I want** 在锁单前修改订单的车辆配置, **so that** 我能调整车辆选装方案并处理价格差异。
 
 **Acceptance Criteria** (EARS 语法):
+
+#### 配置变更
 - WHERE 订单状态为 EARNEST_MONEY_PAID、DOWN_PAYMENT_UNPAID 或 DOWN_PAYMENT_PAID、buildConfigLock=false、获取分布式锁成功 WHEN 用户提交改配请求（含新的特征码组合） THE SYSTEM SHALL 在 2s 内解析新的 buildConfigCode、创建新版本车辆配置快照、记录时间线事件；若解析失败返回 BuildConfigNotMatchedException
 - IF 订单状态不在允许改配的状态范围内 THEN THE SYSTEM SHALL 拒绝改配并返回状态不合法错误
 - IF 订单已锁单（buildConfigLock=true） THEN THE SYSTEM SHALL 拒绝改配并返回 SaleModelConfigHasLockedException
 - IF 获取分布式锁失败 THEN THE SYSTEM SHALL 返回并发冲突错误
+
+#### 价格重算与差额处理
+- WHERE 改配成功、新配置价格可获取 THE SYSTEM SHALL 计算价格差额（新配置价格 - 原配置价格），并记录到订单金额明细
+- IF 差额 > 0 THEN THE SYSTEM SHALL 创建补款任务，状态为 PENDING，并通过领域事件通知用户补款
+- IF 差额 < 0 THEN THE SYSTEM SHALL 创建退款任务，状态为 PENDING，退款金额 = |差额|，并通过领域事件通知用户退款
+- IF 差额 = 0 THEN THE SYSTEM SHALL 仅更新配置快照，不创建补款/退款任务
+
+#### 补款流程
+- WHERE 存在待支付的补款任务、订单状态允许支付 WHEN 用户发起补款支付 THE SYSTEM SHALL 调用支付网关创建支付订单，支付成功后更新补款任务状态为 COMPLETED
+- IF 补款任务超过 30 分钟未支付 THEN THE SYSTEM SHALL 自动取消补款任务并记录超时事件
+
+#### 退款流程
+- WHERE 存在待处理的退款任务 WHEN 退款任务创建成功 THE SYSTEM SHALL 在 1s 内调用退款接口发起退款，退款金额 = |差额|
+- WHERE 退款处理中 WHEN 支付网关回调退款成功 THE SYSTEM SHALL 更新退款任务状态为 COMPLETED 并记录退款流水号
+- IF 退款失败 THEN THE SYSTEM SHALL 标记退款任务为 FAILED 并触发人工审核流程
+
+#### 幂等性
+- WHEN 用户重复提交相同配置的改配请求 THE SYSTEM SHALL 通过幂等键（订单号+配置版本号）保证不重复处理，直接返回上次改配结果
 
 ### US-008: 订单取消与退款
 

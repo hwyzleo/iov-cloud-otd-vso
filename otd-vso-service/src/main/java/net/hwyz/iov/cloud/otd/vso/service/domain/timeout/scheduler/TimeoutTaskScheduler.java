@@ -1,13 +1,20 @@
 package net.hwyz.iov.cloud.otd.vso.service.domain.timeout.scheduler;
 
+import cn.hutool.core.util.IdUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import net.hwyz.iov.cloud.otd.vso.api.enums.SupplementaryPaymentStatus;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.TimeoutTask;
+import net.hwyz.iov.cloud.otd.vso.service.domain.repository.AuditRepository;
+import net.hwyz.iov.cloud.otd.vso.service.domain.repository.SupplementaryPaymentRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.service.OrderDomainService;
 import net.hwyz.iov.cloud.otd.vso.service.domain.service.TimeoutNotifyService;
+import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.OrderTimelinePo;
+import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.SupplementaryPaymentPo;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -22,6 +29,8 @@ public class TimeoutTaskScheduler {
 
     private final TimeoutNotifyService timeoutNotifyService;
     private final OrderDomainService orderDomainService;
+    private final SupplementaryPaymentRepository supplementaryPaymentRepository;
+    private final AuditRepository auditRepository;
 
     /**
      * 每分钟检查一次过期任务
@@ -95,6 +104,40 @@ public class TimeoutTaskScheduler {
                 log.warn("未知的触发策略：strategy={}", task.getTriggerStrategy());
                 task.complete();
         }
+    }
+
+    /**
+     * 扫描过期的补款任务
+     * 每分钟执行一次
+     */
+    @Scheduled(fixedRate = 60000)
+    public void scanExpiredSupplementaryPayments() {
+        LocalDateTime now = LocalDateTime.now();
+        List<SupplementaryPaymentPo> expiredTasks = supplementaryPaymentRepository.findExpiredPendingTasks(now);
+
+        for (SupplementaryPaymentPo task : expiredTasks) {
+            try {
+                supplementaryPaymentRepository.updateStatus(task.getSupplementaryNo(), SupplementaryPaymentStatus.EXPIRED, null);
+                log.info("补款任务过期自动取消: supplementaryNo={}", task.getSupplementaryNo());
+
+                saveOrderTimeline(task.getOrderId(), "SUPPLEMENT_EXPIRED", "补款任务过期",
+                        String.format("补款单号: %s, 金额: %s", task.getSupplementaryNo(), task.getSupplementaryAmount()));
+            } catch (Exception e) {
+                log.error("处理过期补款任务异常: supplementaryNo={}", task.getSupplementaryNo(), e);
+            }
+        }
+    }
+
+    private void saveOrderTimeline(String orderId, String eventType, String eventName, String eventRemark) {
+        OrderTimelinePo timelinePo = new OrderTimelinePo();
+        timelinePo.setTimelineId(IdUtil.fastSimpleUUID());
+        timelinePo.setOrderId(orderId);
+        timelinePo.setEventType(eventType);
+        timelinePo.setEventName(eventName);
+        timelinePo.setEventRemark(eventRemark);
+        timelinePo.setEventTime(LocalDateTime.now());
+        auditRepository.saveTimeline(timelinePo);
+        log.info("保存订单时间线：orderId={}, eventType={}", orderId, eventType);
     }
 
 }

@@ -24,6 +24,11 @@ public class VsoBaseException extends BaseException {
     protected static final int ERROR_CODE_PAYMENT_CHANNEL_NOT_AVAILABLE = 301011;
     protected static final int ERROR_CODE_PAYMENT_NOT_EXIST = 301012;
     protected static final int ERROR_CODE_PAYMENT_STATUS_MISMATCH = 301013;
+    protected static final int ERROR_CODE_SUPPLEMENT_PAYMENT_NOT_EXIST = 301020;
+    protected static final int ERROR_CODE_SUPPLEMENT_PAYMENT_STATUS_NOT_ALLOWED = 301021;
+    protected static final int ERROR_CODE_SUPPLEMENT_PAYMENT_EXPIRED = 301022;
+    protected static final int ERROR_CODE_CONFIG_CHANGE_REFUND_NOT_EXIST = 301023;
+    protected static final int ERROR_CODE_CONFIG_CHANGE_REFUND_FAILED = 301024;
 
     public VsoBaseException(String message) {
         super(ERROR_CODE, message);

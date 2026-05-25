@@ -700,6 +700,31 @@ public class Order {
         this.remark = reason;
     }
 
+    // ==================== 改配价格方法 ====================
+
+    /**
+     * 获取当前配置的车辆价格
+     */
+    public Money getCurrentVehiclePrice() {
+        return this.orderAmount.getVehiclePrice();
+    }
+
+    /**
+     * 获取当前配置的选装价格
+     */
+    public Money getCurrentOptionPrice() {
+        return this.orderAmount.getOptionPrice();
+    }
+
+    /**
+     * 更新订单金额（改配后）
+     */
+    public void updateAmountForConfigChange(Money newVehiclePrice, Money newOptionPrice) {
+        this.orderAmount.setVehiclePrice(newVehiclePrice);
+        this.orderAmount.setOptionPrice(newOptionPrice);
+        this.orderAmount.recalculate();
+    }
+
     // ==================== 值对象设置方法 ====================
 
     /**

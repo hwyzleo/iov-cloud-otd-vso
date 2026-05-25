@@ -56,8 +56,22 @@ import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.PaymentP
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.RefundPo;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.SaleModelPo;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.RefundRepository;
+import net.hwyz.iov.cloud.otd.vso.service.domain.repository.SupplementaryPaymentRepository;
+import net.hwyz.iov.cloud.otd.vso.service.domain.repository.ConfigChangeRefundRepository;
+import net.hwyz.iov.cloud.otd.vso.service.domain.event.ConfigChangePriceDiffEvent;
+import net.hwyz.iov.cloud.otd.vso.service.domain.gateway.PaymentAdapter;
+import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.SupplementaryPaymentPo;
+import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.ConfigChangeRefundPo;
+import net.hwyz.iov.cloud.otd.vso.api.enums.SupplementaryPaymentStatus;
+import net.hwyz.iov.cloud.otd.vso.api.enums.ConfigChangeRefundStatus;
+import net.hwyz.iov.cloud.otd.vso.api.vo.SupplementaryPaymentVo;
+import net.hwyz.iov.cloud.otd.vso.service.common.exception.SupplementPaymentNotExistException;
+import net.hwyz.iov.cloud.otd.vso.service.common.exception.SupplementPaymentStatusException;
+import net.hwyz.iov.cloud.otd.vso.service.common.exception.SupplementPaymentExpiredException;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.scheduling.annotation.Async;
 
 import cn.hutool.core.util.IdUtil;
 import cn.hutool.core.util.StrUtil;
@@ -104,6 +118,10 @@ public class OrderAppService {
     private final OrgDealershipService orgDealershipService;
     private final AuditRepository auditRepository;
     private final OrderVehicleSnapshotRepository orderVehicleSnapshotRepository;
+    private final SupplementaryPaymentRepository supplementaryPaymentRepository;
+    private final ConfigChangeRefundRepository configChangeRefundRepository;
+    private final ApplicationEventPublisher eventPublisher;
+    private final PaymentAdapter paymentAdapter;
 
     private final Map<String, String> cityNameCache = new ConcurrentHashMap<>();
     private volatile long cityNameCacheLastRefresh = 0;
@@ -984,47 +1002,99 @@ public class OrderAppService {
         orderRepository.save(order);
     }
 
+    /**
+     * 修改订单配置（改配）
+     * 支持价格重算与差额补/退
+     */
     @Transactional(rollbackFor = Exception.class)
     public void modifyConfig(ModifyOrderConfigCmd cmd) {
         log.info("修改订单配置：accountId={}, orderNo={}, featureConfig={}", 
                 cmd.getAccountId(), cmd.getOrderNo(), cmd.getFeatureConfig());
         
         orderLockService.executeWithLock(cmd.getOrderNo(), cmd.getAccountId(), "modifyConfig", () -> {
+            // 1. 查找订单
             Order order = findOrderById(cmd.getAccountId(), cmd.getOrderNo());
-            
+
+            // 2. 校验订单状态
             validateOrderStateForModifyConfig(order);
-            
+
+            // 3. 获取新的 buildConfigCode
             String newBuildConfigCode = getBuildConfigCodeFromFeatureConfig(cmd.getFeatureConfig());
             if (newBuildConfigCode == null || newBuildConfigCode.isEmpty()) {
                 throw new BuildConfigNotMatchedException(order.getSaleModel());
             }
-            
+
+            // 4. 获取 buildConfig 详情
             VmdBuildConfigResponse buildConfig = vmdVehicleModelConfigService.getBuildConfigByCode(newBuildConfigCode);
             if (buildConfig == null || buildConfig.getBrandCode() == null) {
                 throw new BrandCodeNotExistException(newBuildConfigCode);
             }
-            
+
+            // 5. 保存旧配置信息用于价格比较
             String oldBuildConfigCode = order.getBuildConfigCode();
-            
+            Money oldVehiclePrice = order.getCurrentVehiclePrice();
+            Money oldOptionPrice = order.getCurrentOptionPrice();
+            Money oldTotalPrice = oldVehiclePrice.add(oldOptionPrice);
+
+            // 6. 获取新配置的价格（通过销售车型配置服务）
+            Map<String, String> featureCodes = parseBuildConfigToFeatureCodes(buildConfig);
+            SelectedSaleModelResult selectedModel = saleModelAppService.getSelectedSaleModelByFeatureCodes(
+                    order.getSaleModel(), featureCodes);
+            BigDecimal newTotalPriceAmount = selectedModel.getTotalPrice() != null ? selectedModel.getTotalPrice() : BigDecimal.ZERO;
+            Money newTotalPrice = Money.of(newTotalPriceAmount, "CNY");
+
+            // 7. 计算价格差额
+            Money priceDifference = newTotalPrice.subtract(oldTotalPrice);
+
+            // 8. 更新订单配置
             order.saveBuildConfig(newBuildConfigCode, null);
             order.saveBrandCode(buildConfig.getBrandCode());
-            
+
+            // 9. 保存新的车型快照
             String saleModelName = saleModelRepository.findBySaleModelCode(order.getSaleModel())
                     .map(SaleModelPo::getModelName)
                     .orElse("");
-            
             saveOrderVehicleSnapshotWithVersionIncrement(order, order.getSaleModel(), saleModelName, buildConfig);
-            
+
+            // 10. 更新订单金额（将新总价分配到车辆价格，选装价格设为0）
+            order.updateAmountForConfigChange(newTotalPrice, Money.ZERO_CNY);
+
+            // 11. 持久化订单
             orderRepository.save(order);
-            
+
+            // 12. 处理价格差额
+            String supplementaryNo = null;
+            String refundTaskNo = null;
+
+            if (priceDifference.isGreaterThan(Money.ZERO_CNY)) {
+                // 差额 > 0：创建补款任务
+                supplementaryNo = createSupplementaryPaymentTask(order, priceDifference);
+                log.info("改配成功，创建补款任务: orderNo={}, amount={}", order.getOrderNo(), priceDifference);
+            } else if (priceDifference.isLessThan(Money.ZERO_CNY)) {
+                // 差额 < 0：创建退款任务
+                refundTaskNo = createConfigChangeRefundTask(order, priceDifference.abs());
+                log.info("改配成功，创建退款任务: orderNo={}, amount={}", order.getOrderNo(), priceDifference.abs());
+            } else {
+                log.info("改配成功，无价格差额: orderNo={}", order.getOrderNo());
+            }
+
+            // 13. 发布领域事件
+            eventPublisher.publishEvent(ConfigChangePriceDiffEvent.builder()
+                    .orderId(order.getId())
+                    .orderNo(order.getOrderNo())
+                    .accountId(cmd.getAccountId())
+                    .priceDifference(priceDifference.getAmount())
+                    .newConfigVersionNo(order.getCurrentVersionNo())
+                    .supplementaryNo(supplementaryNo)
+                    .refundTaskNo(refundTaskNo)
+                    .build());
+
+            // 14. 记录操作时间线
             saveOrderTimeline(order.getId(), "MODIFY_CONFIG", "修改订单配置",
                     oldBuildConfigCode, newBuildConfigCode,
                     cmd.getAccountId(), "order_user", "capp",
-                    null, "success", null, 
-                    "用户修改订单车辆配置");
-            
-            log.info("修改订单配置完成：orderId={}, orderNo={}, oldBuildConfig={}, newBuildConfig={}", 
-                    order.getId(), order.getOrderNo(), oldBuildConfigCode, newBuildConfigCode);
+                    null, "success", null,
+                    String.format("旧配置: %s, 新配置: %s, 价格差额: %s", oldBuildConfigCode, newBuildConfigCode, priceDifference));
         });
     }
 
@@ -1334,6 +1404,154 @@ public class OrderAppService {
                         .isDefault(c == defaultChannel)
                         .build())
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * 创建补款任务
+     */
+    private String createSupplementaryPaymentTask(Order order, Money amount) {
+        String supplementaryNo = generateSupplementaryNo();
+        LocalDateTime expireTime = LocalDateTime.now().plusMinutes(30);
+
+        SupplementaryPaymentPo po = SupplementaryPaymentPo.builder()
+                .supplementaryNo(supplementaryNo)
+                .orderId(order.getId())
+                .supplementaryAmount(amount.getAmount())
+                .currency(amount.getCurrency())
+                .supplementaryStatus(SupplementaryPaymentStatus.PENDING.getValue())
+                .configVersionNo(order.getCurrentVersionNo())
+                .expireTime(expireTime)
+                .build();
+
+        supplementaryPaymentRepository.save(po);
+        return supplementaryNo;
+    }
+
+    /**
+     * 创建改配退款任务
+     */
+    private String createConfigChangeRefundTask(Order order, Money amount) {
+        String refundTaskNo = generateRefundTaskNo();
+
+        ConfigChangeRefundPo po = ConfigChangeRefundPo.builder()
+                .refundTaskNo(refundTaskNo)
+                .orderId(order.getId())
+                .refundAmount(amount.getAmount())
+                .currency(amount.getCurrency())
+                .refundStatus(ConfigChangeRefundStatus.PENDING.getValue())
+                .configVersionNo(order.getCurrentVersionNo())
+                .build();
+
+        configChangeRefundRepository.save(po);
+
+        // 异步发起退款
+        asyncProcessConfigChangeRefund(refundTaskNo);
+
+        return refundTaskNo;
+    }
+
+    /**
+     * 异步处理改配退款
+     */
+    @Async
+    public void asyncProcessConfigChangeRefund(String refundTaskNo) {
+        try {
+            ConfigChangeRefundPo refundPo = configChangeRefundRepository.findByRefundTaskNo(refundTaskNo)
+                    .orElseThrow(() -> new RuntimeException("退款任务不存在: " + refundTaskNo));
+
+            // 更新状态为处理中
+            configChangeRefundRepository.updateStatus(refundTaskNo, ConfigChangeRefundStatus.PROCESSING, null, null);
+
+            // 调用支付网关发起退款
+            String refundId = paymentAdapter.refund(refundPo.getOrderId(), refundPo.getRefundAmount(), "改配价格差额退款");
+
+            configChangeRefundRepository.updateStatus(refundTaskNo, ConfigChangeRefundStatus.COMPLETED, refundId, null);
+            log.info("改配退款成功: refundTaskNo={}", refundTaskNo);
+        } catch (Exception e) {
+            log.error("处理改配退款异常: refundTaskNo={}", refundTaskNo, e);
+            configChangeRefundRepository.updateStatus(refundTaskNo, ConfigChangeRefundStatus.FAILED, null, e.getMessage());
+        }
+    }
+
+    /**
+     * 生成补款单号
+     */
+    private String generateSupplementaryNo() {
+        return "SUP" + System.currentTimeMillis() + String.format("%04d", new java.util.Random().nextInt(10000));
+    }
+
+    /**
+     * 生成退款任务单号
+     */
+    private String generateRefundTaskNo() {
+        return "CCR" + System.currentTimeMillis() + String.format("%04d", new java.util.Random().nextInt(10000));
+    }
+
+    /**
+     * 获取订单的补款任务列表
+     */
+    public List<SupplementaryPaymentVo> getSupplementaryPayments(String accountId, String orderNo) {
+        Order order = findOrderById(accountId, orderNo);
+        List<SupplementaryPaymentPo> list = supplementaryPaymentRepository.findByOrderId(order.getId());
+        return list.stream().map(this::toSupplementaryPaymentVo).collect(Collectors.toList());
+    }
+
+    /**
+     * 发起补款支付
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void initiateSupplementPayment(String accountId, String supplementaryNo, String paymentChannel) {
+        SupplementaryPaymentPo supplementPo = supplementaryPaymentRepository.findBySupplementaryNo(supplementaryNo)
+                .orElseThrow(() -> new SupplementPaymentNotExistException(supplementaryNo));
+
+        if (!SupplementaryPaymentStatus.PENDING.getValue().equals(supplementPo.getSupplementaryStatus())) {
+            throw new SupplementPaymentStatusException(supplementaryNo, supplementPo.getSupplementaryStatus());
+        }
+
+        if (LocalDateTime.now().isAfter(supplementPo.getExpireTime())) {
+            supplementaryPaymentRepository.updateStatus(supplementaryNo, SupplementaryPaymentStatus.EXPIRED, null);
+            throw new SupplementPaymentExpiredException(supplementaryNo);
+        }
+
+        Order order = orderRepository.findByOrderId(supplementPo.getOrderId())
+                .orElseThrow(() -> new OrderNotExistException(supplementPo.getOrderId()));
+
+        PaymentPo paymentPo = new PaymentPo();
+        paymentPo.setPaymentId(IdUtil.nanoId(15));
+        paymentPo.setPaymentNo("P" + IdUtil.nanoId(12));
+        paymentPo.setOrderId(order.getId());
+        paymentPo.setPaymentStage(PaymentStage.DOWN_PAYMENT.name());
+        paymentPo.setPaymentChannel(paymentChannel);
+        paymentPo.setPaymentAmount(supplementPo.getSupplementaryAmount());
+        paymentPo.setPaymentStatus(PaymentStatus.PENDING_PAYMENT.name());
+        paymentPo.setInitiatorRole("capp_user");
+        paymentPo.setInitiatorId(accountId);
+        paymentPo.setAuthorizedFlag(0);
+
+        paymentRepository.save(paymentPo);
+
+        supplementPo.setPaymentId(paymentPo.getPaymentNo());
+        supplementaryPaymentRepository.save(supplementPo);
+
+        paymentAdapter.createPayment(order.getId(), supplementPo.getSupplementaryAmount(), paymentChannel);
+
+        log.info("发起补款支付: supplementaryNo={}, paymentNo={}", supplementaryNo, paymentPo.getPaymentNo());
+    }
+
+    /**
+     * 转换为 SupplementaryPaymentVo
+     */
+    private SupplementaryPaymentVo toSupplementaryPaymentVo(SupplementaryPaymentPo po) {
+        return SupplementaryPaymentVo.builder()
+                .supplementaryNo(po.getSupplementaryNo())
+                .orderNo(orderRepository.findByOrderId(po.getOrderId()).map(Order::getOrderNo).orElse(""))
+                .supplementaryAmount(po.getSupplementaryAmount())
+                .currency(po.getCurrency())
+                .supplementaryStatus(po.getSupplementaryStatus())
+                .configVersionNo(po.getConfigVersionNo())
+                .expireTime(po.getExpireTime())
+                .createTime(po.getCreateTime())
+                .build();
     }
 
 }

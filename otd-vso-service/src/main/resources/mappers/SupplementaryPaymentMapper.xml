@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.mapper.SupplementaryPaymentMapper">
+
+    <resultMap id="baseResultMap" type="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.SupplementaryPaymentPo">
+        <id column="id" property="id" />
+        <result column="supplementary_no" property="supplementaryNo" />
+        <result column="order_id" property="orderId" />
+        <result column="supplementary_amount" property="supplementaryAmount" />
+        <result column="currency" property="currency" />
+        <result column="supplementary_status" property="supplementaryStatus" />
+        <result column="config_version_no" property="configVersionNo" />
+        <result column="payment_id" property="paymentId" />
+        <result column="expire_time" property="expireTime" />
+        <result column="create_time" property="createTime" />
+        <result column="create_by" property="createBy" />
+        <result column="update_time" property="updateTime" />
+        <result column="update_by" property="updateBy" />
+    </resultMap>
+
+    <sql id="baseColumnList">
+        t.id, t.supplementary_no, t.order_id, t.supplementary_amount, t.currency,
+        t.supplementary_status, t.config_version_no, t.payment_id, t.expire_time,
+        t.create_time, t.create_by, t.update_time, t.update_by
+    </sql>
+
+    <select id="selectBySupplementaryNo" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_supplementary_payment t
+        WHERE t.supplementary_no = #{supplementaryNo}
+    </select>
+
+    <select id="selectPoById" parameterType="Long" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_supplementary_payment t
+        WHERE t.id = #{value}
+    </select>
+
+    <select id="selectPoByExample" parameterType="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.SupplementaryPaymentPo" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_supplementary_payment t
+        WHERE 1=1
+        <if test="id != null">
+            AND t.id = #{id}
+        </if>
+        <if test="supplementaryNo != null and supplementaryNo != ''">
+            AND t.supplementary_no = #{supplementaryNo}
+        </if>
+        <if test="orderId != null and orderId != ''">
+            AND t.order_id = #{orderId}
+        </if>
+        <if test="supplementaryStatus != null and supplementaryStatus != ''">
+            AND t.supplementary_status = #{supplementaryStatus}
+        </if>
+        ORDER BY t.id DESC
+    </select>
+
+    <select id="selectPoByMap" parameterType="java.util.Map" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_supplementary_payment t
+        WHERE 1=1
+        <if test="params.supplementaryNo != null and params.supplementaryNo != ''">
+            AND t.supplementary_no = #{params.supplementaryNo}
+        </if>
+        <if test="params.orderId != null and params.orderId != ''">
+            AND t.order_id = #{params.orderId}
+        </if>
+        <if test="params.supplementaryStatus != null and params.supplementaryStatus != ''">
+            AND t.supplementary_status = #{params.supplementaryStatus}
+        </if>
+        <if test="params.expireTimeLessThan != null">
+            AND t.expire_time &lt; #{params.expireTimeLessThan}
+        </if>
+        ORDER BY t.id DESC
+    </select>
+
+    <select id="countPoByMap" parameterType="java.util.Map" resultType="int">
+        SELECT COUNT(*)
+        FROM vso_supplementary_payment t
+        WHERE 1=1
+        <if test="params.orderId != null and params.orderId != ''">
+            AND t.order_id = #{params.orderId}
+        </if>
+        <if test="params.supplementaryStatus != null and params.supplementaryStatus != ''">
+            AND t.supplementary_status = #{params.supplementaryStatus}
+        </if>
+    </select>
+
+    <insert id="insertPo" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO vso_supplementary_payment (
+            supplementary_no, order_id, supplementary_amount, currency,
+            supplementary_status, config_version_no, payment_id, expire_time,
+            create_time, create_by, update_time, update_by
+        )
+        VALUES (
+            #{supplementaryNo}, #{orderId}, #{supplementaryAmount}, #{currency},
+            #{supplementaryStatus}, #{configVersionNo}, #{paymentId}, #{expireTime},
+            now(), #{createBy}, now(), #{updateBy}
+        )
+    </insert>
+
+    <insert id="batchInsertPo">
+        INSERT INTO vso_supplementary_payment (
+            supplementary_no, order_id, supplementary_amount, currency,
+            supplementary_status, config_version_no, payment_id, expire_time,
+            create_time, create_by, update_time, update_by
+        )
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (
+                #{item.supplementaryNo}, #{item.orderId}, #{item.supplementaryAmount}, #{item.currency},
+                #{item.supplementaryStatus}, #{item.configVersionNo}, #{item.paymentId}, #{item.expireTime},
+                now(), #{item.createBy}, now(), #{item.updateBy}
+            )
+        </foreach>
+    </insert>
+
+    <update id="updatePo" parameterType="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.SupplementaryPaymentPo">
+        UPDATE vso_supplementary_payment t SET
+        <if test="supplementaryStatus != null and supplementaryStatus != ''">
+            t.supplementary_status = #{supplementaryStatus},
+        </if>
+        <if test="paymentId != null">
+            t.payment_id = #{paymentId},
+        </if>
+        <if test="updateBy != null">
+            t.update_by = #{updateBy},
+        </if>
+        t.update_time = now()
+        WHERE t.id = #{id}
+    </update>
+
+    <update id="logicalDeletePo" parameterType="Long">
+        UPDATE vso_supplementary_payment t SET
+        t.update_time = now()
+        WHERE t.id = #{value}
+    </update>
+
+    <delete id="physicalDeletePo" parameterType="Long">
+        DELETE FROM vso_supplementary_payment
+        WHERE id = #{value}
+    </delete>
+
+    <delete id="batchPhysicalDeletePo">
+        DELETE FROM vso_supplementary_payment
+        WHERE id IN
+        <foreach collection="array" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+</mapper>

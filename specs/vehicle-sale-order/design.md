@@ -234,6 +234,8 @@ classDiagram
 | `vso_callback_log` | 回调日志 | US-018 |
 | `vso_order_version` | 订单版本历史 | US-007 |
 | `vso_order_timeline` | 业务时间线 | US-007 |
+| `vso_supplementary_payment` | 改配补款记录 | US-007 |
+| `vso_config_change_refund` | 改配退款记录 | US-007 |
 | `vso_config_timeout` | 超时配置 | US-019 |
 | `vso_order_shadow_delete` | 物理删除影子审计 | US-015 |
 
@@ -354,10 +356,14 @@ sequenceDiagram
     participant VMD as VMD Service
     participant O as Order Aggregate
     participant SR as SnapshotRepository
+    participant AR as AmountRepository
+    participant PR as PaymentRepository
+    participant RR as RefundRepository
+    participant EB as EventBus
 
     U->>MC: POST /order/action/modifyConfig
     MC->>OAS: modifyOrderConfig(cmd)
-    OAS->>OLS: executeWithLock(orderNo)
+    OAS->>OLS: executeWithLock(orderNo, operatorId, "modifyConfig", action)
     OAS->>O: load(orderNo)
     OAS->>OAS: validate state ∈ {EARNEST_MONEY_PAID, DOWN_PAYMENT_UNPAID, DOWN_PAYMENT_PAID}
     OAS->>OAS: validate buildConfigLock == false
@@ -368,6 +374,21 @@ sequenceDiagram
 
     OAS->>VMD: getVehicleBuildConfigCode(newFeatures)
     VMD-->>OAS: newBuildConfigCode
+    OAS->>VMD: getBuildConfigPrice(newBuildConfigCode)
+    VMD-->>OAS: newConfigPrice
+
+    OAS->>OAS: calculatePriceDifference(newConfigPrice, currentConfigPrice)
+
+    alt 差额 > 0
+        OAS->>OAS: createSupplementaryPaymentTask(orderId, difference)
+        OAS->>EB: publish(ConfigChangeSupplementEvent)
+    else 差额 < 0
+        OAS->>OAS: createRefundTask(orderId, |difference|)
+        OAS->>EB: publish(ConfigChangeRefundEvent)
+    else 差额 = 0
+        OAS->>OAS: 仅更新配置快照
+    end
+
     OAS->>SR: softDelete(currentSnapshot)
     OAS->>SR: createSnapshot(newConfig, version+1)
     OAS->>O: updateBuildConfigCode(newCode)
@@ -601,6 +622,156 @@ flowchart TD
 | 退款回调 | 复用支付回调机制 | 统一处理支付和退款回调 |
 | 状态流转 | REFUND_APPLY → REFUND_COMPLETE | 退款申请到退款完成 |
 
+### 4.8 改配补款流程设计（US-007）
+
+```mermaid
+sequenceDiagram
+    participant U as C端用户
+    participant MC as MobileVsoController
+    participant OAS as OrderAppService
+    participant OLS as OrderLockService
+    participant O as Order Aggregate
+    participant SPR as SupplementaryPaymentRepository
+    participant PR as PaymentRepository
+    participant PGW as Payment Gateway
+    participant EB as EventBus
+
+    Note over OAS: 改配成功后，差额 > 0
+
+    OAS->>SPR: createSupplementaryPayment(orderId, difference, PENDING)
+    OAS->>EB: publish(ConfigChangeSupplementEvent)
+
+    EB->>U: 通知用户补款
+
+    U->>MC: POST /order/action/initiateSupplementPayment
+    MC->>OAS: initiateSupplementPayment(cmd)
+    OAS->>OLS: executeWithLock(orderNo, operatorId, "payment", action)
+    OAS->>SPR: findByOrderIdAndStatus(orderId, PENDING)
+
+    alt 补款任务不存在或已过期
+        OAS-->>MC: throw SupplementaryPaymentNotFoundException
+    end
+
+    OAS->>PR: createPayment(supplementAmount, PENDING_PAYMENT)
+    OAS->>PGW: createPaymentOrder(paymentInfo)
+    PGW-->>OAS: payment凭证
+    OAS-->>MC: InitiatePaymentResult
+
+    PGW->>OC: POST /payment (callback)
+    OC->>PCS: handlePaymentCallback(request)
+    PCS->>PR: findByPaymentNo(paymentNo)
+    PCS->>PCS: validate(status=PENDING, amount match)
+    PCS->>PR: updateStatus(PAID)
+    PCS->>SPR: updateStatus(COMPLETED)
+    PCS->>EB: publish(SupplementPaymentSuccessEvent)
+```
+
+**补款任务数据结构**（`vso_supplementary_payment` 表）：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| id | BIGINT | 主键 ID |
+| supplementary_no | VARCHAR(64) | 补款单号 |
+| order_id | VARCHAR(64) | 关联订单 ID |
+| supplementary_amount | DECIMAL(18,2) | 补款金额 |
+| supplementary_status | VARCHAR(32) | 补款状态（pending / completed / cancelled / expired） |
+| config_version_no | INTEGER | 触发补款的配置版本号 |
+| payment_id | VARCHAR(64) | 关联支付 ID |
+| expire_time | TIMESTAMP | 补款过期时间（30 分钟） |
+| create_time | TIMESTAMP | 创建时间 |
+| update_time | TIMESTAMP | 更新时间 |
+
+**补款状态机**：
+
+```
+PENDING → COMPLETED（支付成功）
+PENDING → CANCELLED（用户取消）
+PENDING → EXPIRED（超时自动取消，30 分钟）
+```
+
+**关键设计决策**：
+
+| 维度 | 决策 | 理由 |
+|------|------|------|
+| 补款时效 | 30 分钟 | 与 US-005 支付超时一致，避免长期挂起 |
+| 超时处理 | 自动取消 | 超时后补款任务失效，需重新改配 |
+| 幂等性 | 订单号+配置版本号 | 防止重复创建补款任务 |
+| 支付方式 | 复用支付网关 | 统一支付入口，复用现有支付流程 |
+
+### 4.9 改配退款流程设计（US-007）
+
+```mermaid
+sequenceDiagram
+    participant OAS as OrderAppService
+    participant O as Order Aggregate
+    participant RFR as RefundTaskRepository
+    participant RR as RefundRepository
+    participant PA as PaymentAdapter
+    participant PGW as Payment Gateway
+    participant EB as EventBus
+
+    Note over OAS: 改配成功后，差额 < 0
+
+    OAS->>RFR: createRefundTask(orderId, |difference|, PENDING)
+    OAS->>EB: publish(ConfigChangeRefundEvent)
+
+    RFR->>RR: createRefundRecord(refundAmount, config_change_refund)
+    RR->>PA: refund(refundInfo)
+    PA->>PGW: 发起退款请求
+    PGW-->>PA: 退款受理成功
+    PA-->>RR: 更新退款状态为 PROCESSING
+
+    PGW->>OC: POST /refund (callback)
+    OC->>PCS: handleRefundCallback(request)
+    PCS->>RR: findByRefundNo(refundNo)
+    PCS->>RR: updateStatus(COMPLETED)
+    PCS->>RFR: updateRefundTaskStatus(COMPLETED)
+    PCS->>EB: publish(RefundSuccessEvent)
+
+    alt 退款失败
+        PGW->>OC: POST /refund (callback, failed)
+        OC->>PCS: handleRefundCallback(request, failed)
+        PCS->>RR: updateStatus(FAILED)
+        PCS->>RFR: updateRefundTaskStatus(FAILED)
+        PCS->>EB: publish(RefundFailedEvent)
+        EB->>OAS: 触发人工审核流程
+    end
+```
+
+**退款任务数据结构**（`vso_config_change_refund` 表）：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| id | BIGINT | 主键 ID |
+| refund_task_no | VARCHAR(64) | 退款任务单号 |
+| order_id | VARCHAR(64) | 关联订单 ID |
+| refund_amount | DECIMAL(18,2) | 退款金额 |
+| refund_status | VARCHAR(32) | 退款状态（pending / processing / completed / failed） |
+| config_version_no | INTEGER | 触发退款的配置版本号 |
+| refund_id | VARCHAR(64) | 关联退款记录 ID |
+| fail_reason | VARCHAR(255) | 退款失败原因 |
+| manual_audit_status | VARCHAR(32) | 人工审核状态（pending / approved / rejected） |
+| create_time | TIMESTAMP | 创建时间 |
+| update_time | TIMESTAMP | 更新时间 |
+
+**退款状态机**：
+
+```
+PENDING → PROCESSING → COMPLETED（退款成功）
+PENDING → PROCESSING → FAILED（退款失败，触发人工审核）
+FAILED → APPROVED（人工审核通过，重新发起退款）
+FAILED → REJECTED（人工审核驳回）
+```
+
+**关键设计决策**：
+
+| 维度 | 决策 | 理由 |
+|------|------|------|
+| 退款发起 | 自动发起 | 改配成功后立即调用退款接口 |
+| 失败处理 | 触发人工审核 | 退款失败需人工介入确认 |
+| 退款场景 | config_change_refund | 新增退款场景，区别于订单取消退款 |
+| 审核流程 | 复用审批模块 | 与 US-010 审核流程保持一致 |
+
 ### 5.1 Mobile Sale Model APIs
 
 **GET** `/api/mobile/saleModel/v1`
@@ -764,7 +935,7 @@ flowchart TD
 | US-004 | §3.1(Order), §4.1, §5.2(downPaymentOrder) | 大定下单 |
 | US-005 | §4.1, §4.4, §5.2(initiatePayment), §5.5 | 支付发起+回调，领域事件驱动 |
 | US-006 | §4.2, §5.2(earnestMoneyToDownPayment) | 状态机 EARNEST_MONEY_PAID→DOWN_PAYMENT_PAID |
-| US-007 | §4.3, §3.2(vso_order_vehicle_snapshot), §5.2(modifyConfig) | 改配，版本化快照 |
+| US-007 | §4.3, §4.8, §4.9, §3.2(vso_order_vehicle_snapshot, vso_supplementary_payment, vso_config_change_refund), §5.2(modifyConfig) | 改配，版本化快照，价格重算与差额补/退 |
 | US-008 | §4.2, §5.2(cancel/requestRefund) | 取消/退款状态流转 |
 | US-009 | §4.2, §5.2(lock), §5.3(lock) | 锁单，buildConfigLock=true |
 | US-010 | §5.3(audit/pass, audit/reject) | 审核通过/驳回 |
@@ -809,3 +980,4 @@ flowchart TD
 | 2026-05-23 | CR-002 | Added | 新增 §4.5 超时任务调度流程、§4.6 分布式锁并发控制设计、§5.6 响应时间 SLA；补充 4 个错误码（301014~301017）；关闭 Open Question #3 |
 | 2026-05-23 | CR-003 | Fixed | 代码实现与设计对齐：分布式锁场景统一、超时任务 Redis 持久化、N+1 查询修复、状态机校验接入 |
 | 2026-05-25 | CR-004 | Added | 新增 §4.7 退款金额计算流程：按订单状态分层退款规则（未锁单前全额退款、锁单后扣 5% 手续费、生产中/已发运不退款）、退款记录数据结构、退款场景枚举；更新状态机图添加退款注释；关闭 Open Question #2 |
+| 2026-05-25 | CR-005 | Added | 新增 §4.8 改配补款流程设计、§4.9 改配退款流程设计：改配成功后实时结算差额，差额>0 创建补款任务（30 分钟超时自动取消），差额<0 自动发起退款（失败触发人工审核）；新增 vso_supplementary_payment、vso_config_change_refund 两张表；更新 §4.3 改配流程增加价格重算逻辑；更新 §6 Coverage Mapping |

@@ -15,6 +15,11 @@ import java.math.BigDecimal;
 public class Money {
 
     /**
+     * 零金额常量（人民币）
+     */
+    public static final Money ZERO_CNY = new Money(BigDecimal.ZERO, "CNY");
+
+    /**
      * 金额值
      */
     private BigDecimal amount;
@@ -29,11 +34,22 @@ public class Money {
     }
 
     public Money(BigDecimal amount, String currency) {
-        if (amount == null || amount.compareTo(BigDecimal.ZERO) < 0) {
-            throw new IllegalArgumentException("金额不能为负数");
+        if (amount == null) {
+            throw new IllegalArgumentException("金额不能为null");
         }
         this.amount = amount;
         this.currency = currency != null ? currency : "CNY";
+    }
+
+    /**
+     * 创建金额实例
+     *
+     * @param amount   金额值
+     * @param currency 币种
+     * @return 金额实例
+     */
+    public static Money of(BigDecimal amount, String currency) {
+        return new Money(amount, currency);
     }
 
     /**
@@ -75,6 +91,13 @@ public class Money {
      */
     public boolean isLessThan(Money other) {
         return this.amount.compareTo(other.amount) < 0;
+    }
+
+    /**
+     * 获取绝对值
+     */
+    public Money abs() {
+        return new Money(this.amount.abs(), this.currency);
     }
 
     @Override

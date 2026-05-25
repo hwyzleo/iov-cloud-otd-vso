@@ -7,14 +7,17 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.hwyz.iov.cloud.otd.vso.api.enums.PaymentStage;
 import net.hwyz.iov.cloud.otd.vso.api.enums.PaymentStatus;
+import net.hwyz.iov.cloud.otd.vso.api.enums.SupplementaryPaymentStatus;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.PaymentCallbackCmd;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.enums.PaymentCallbackResultCode;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.PaymentCallbackResult;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.event.PaymentSuccessDomainEvent;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.CallbackLogRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.PaymentRepository;
+import net.hwyz.iov.cloud.otd.vso.service.domain.repository.SupplementaryPaymentRepository;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.CallbackLogPo;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.PaymentPo;
+import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.SupplementaryPaymentPo;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,6 +32,7 @@ public class PaymentCallbackService {
 
     private final PaymentRepository paymentRepository;
     private final CallbackLogRepository callbackLogRepository;
+    private final SupplementaryPaymentRepository supplementaryPaymentRepository;
     private final ApplicationEventPublisher eventPublisher;
     private final ObjectMapper objectMapper;
 
@@ -101,6 +105,22 @@ public class PaymentCallbackService {
 
         paymentRepository.updateStatus(cmd.getPaymentNo(), PaymentStatus.PAID.name(),
                 cmd.getExternalTradeNo(), cmd.getPayTime());
+
+        Optional<SupplementaryPaymentPo> supplementOpt = supplementaryPaymentRepository.findByPaymentId(cmd.getPaymentNo());
+        if (supplementOpt.isPresent()) {
+            SupplementaryPaymentPo supplementPo = supplementOpt.get();
+            supplementaryPaymentRepository.updateStatus(supplementPo.getSupplementaryNo(), SupplementaryPaymentStatus.COMPLETED, cmd.getPaymentNo());
+            log.info("补款支付成功：supplementaryNo={}, paymentNo={}", supplementPo.getSupplementaryNo(), cmd.getPaymentNo());
+
+            callbackLog.setProcessResult("SUCCESS");
+            callbackLog.setProcessTime(LocalDateTime.now());
+            callbackLogRepository.save(callbackLog);
+
+            return PaymentCallbackResult.builder()
+                    .code(PaymentCallbackResultCode.SUCCESS)
+                    .message("补款回调处理成功")
+                    .build();
+        }
 
         PaymentSuccessDomainEvent event = PaymentSuccessDomainEvent.builder()
                 .orderId(paymentPo.getOrderId())

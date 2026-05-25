@@ -181,7 +181,7 @@ public class OrderAmount {
         BigDecimal unpaid = netReceivableTotal.getAmount()
                 .subtract(paidTotal.getAmount())
                 .add(refundTotal.getAmount());
-        this.unpaidTotal = new Money(unpaid.compareTo(BigDecimal.ZERO) < 0 ? BigDecimal.ZERO : unpaid);
+        this.unpaidTotal = new Money(unpaid.max(BigDecimal.ZERO));
     }
 
     /**
@@ -277,6 +277,32 @@ public class OrderAmount {
             default:
                 throw new IllegalStateException("订单状态 [" + orderState + "] 不支持退款");
         }
+    }
+
+    /**
+     * 计算价格差额
+     * @param newVehiclePrice 新配置的车辆价格
+     * @param newOptionPrice 新配置的选装价格
+     * @return 价格差额（正数表示需要补款，负数表示需要退款）
+     */
+    public Money calculatePriceDifference(Money newVehiclePrice, Money newOptionPrice) {
+        Money currentTotal = this.vehiclePrice.add(this.optionPrice);
+        Money newTotal = newVehiclePrice.add(newOptionPrice);
+        return newTotal.subtract(currentTotal);
+    }
+
+    /**
+     * 设置车辆价格
+     */
+    public void setVehiclePrice(Money vehiclePrice) {
+        this.vehiclePrice = vehiclePrice;
+    }
+
+    /**
+     * 设置选装价格
+     */
+    public void setOptionPrice(Money optionPrice) {
+        this.optionPrice = optionPrice;
     }
 
 }
