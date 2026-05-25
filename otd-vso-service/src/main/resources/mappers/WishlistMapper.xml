@@ -125,4 +125,33 @@
         WHERE user_id = #{userId}
     </delete>
 
+    <select id="countByUserId" parameterType="string" resultType="long">
+        SELECT COUNT(*)
+        FROM vso_wishlist t
+        WHERE t.user_id = #{userId}
+        AND t.status = 'ACTIVE'
+        AND t.row_valid = 1
+    </select>
+
+    <select id="selectByUserIdAndBuildConfigCode" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_wishlist t
+        WHERE t.user_id = #{userId}
+        AND t.build_config_code = #{buildConfigCode}
+        AND t.status = 'ACTIVE'
+        AND t.row_valid = 1
+        LIMIT 1
+    </select>
+
+    <select id="selectByUserIdAndBuildConfigCodeExcluding" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_wishlist t
+        WHERE t.user_id = #{userId}
+        AND t.build_config_code = #{buildConfigCode}
+        AND t.wishlist_id != #{excludeWishlistId}
+        AND t.status = 'ACTIVE'
+        AND t.row_valid = 1
+        LIMIT 1
+    </select>
+
 </mapper>

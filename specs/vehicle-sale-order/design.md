@@ -966,6 +966,60 @@ WHERE order_state IN (200, 300);
 
 > 注：MySQL 8.0 不支持条件唯一索引（Partial Index），实际实现采用应用层校验 + 唯一索引组合（user_id + order_state）或应用层分布式锁保证一致性。
 
+### 4.12 心愿单业务规则校验设计（US-002）
+
+```mermaid
+flowchart TD
+    A[用户提交创建/修改心愿单请求] --> B{数量上限校验}
+    B -->|已达上限 5 个| C[返回 301026 WISHLIST_LIMIT_EXCEEDED]
+    B -->|未达上限| D{唯一性校验}
+    D --> E[查询用户相同 buildConfigCode 心愿单]
+    E --> F{存在?}
+    F -->|是| G[返回 301027 DUPLICATE_WISHLIST]
+    F -->|否| H{buildConfig 校验}
+    H -->|失败| I[返回 400 BUILD_CONFIG_NOT_MATCHED]
+    H -->|成功| J[创建/修改心愿单]
+    J --> K[返回心愿单 ID]
+```
+
+**校验规则**：
+
+| 维度 | 校验逻辑 | 查询条件 |
+|------|----------|----------|
+| 数量上限 | 用户有效心愿单数 < 5 | `SELECT COUNT(*) FROM vso_wishlist WHERE user_id = ? AND status = 'active'` |
+| 配置唯一性 | 同一 buildConfigCode 有效心愿单数 = 0（排除当前心愿单） | `SELECT COUNT(*) FROM vso_wishlist WHERE user_id = ? AND build_config_code = ? AND status = 'active' AND wishlist_id != ?` |
+
+**有效状态定义**：
+- `status = 'active'` — 有效心愿单（未删除）
+
+**实现组件**：
+
+| 组件 | 职责 | 位置 |
+|------|------|------|
+| `WishlistAppService` | 应用服务，封装校验逻辑 | Application Layer |
+| `WishlistRepository.countByUserId()` | 查询用户有效心愿单数量 | Infrastructure Layer |
+| `WishlistRepository.existsByUserIdAndBuildConfigCode()` | 查询用户相同配置心愿单 | Infrastructure Layer |
+
+**关键设计决策**：
+
+| 维度 | 决策 | 理由 |
+|------|------|------|
+| 数量上限 | 5 个 | 汽车为大额商品，用户选择有限；避免数据冗余 |
+| 校验时机 | 创建/修改前 | 尽早拦截，减少无效数据库写入 |
+| 校验方式 | 应用层校验 | 灵活、可扩展 |
+| 修改场景唯一性校验 | 排除当前心愿单 | 允许用户修改为已存在的配置（前提是当前心愿单本身就是该配置） |
+| 数据库约束 | 应用层校验 + 唯一索引 | 应用层灵活校验，DB 层兜底防并发 |
+
+**数据库索引**（防并发兜底）：
+
+```sql
+-- 用户+配置维度：同一用户同一配置最多一个有效心愿单
+CREATE UNIQUE INDEX uk_user_build_config_wishlist ON vso_wishlist (user_id, build_config_code)
+WHERE status = 'active';
+```
+
+> 注：MySQL 8.0 不支持条件唯一索引（Partial Index），实际实现采用应用层校验 + 普通唯一索引或应用层分布式锁保证一致性。
+
 ### 5.1 Mobile Sale Model APIs
 
 **GET** `/api/mobile/saleModel/v1`
@@ -1134,13 +1188,15 @@ WHERE order_state IN (200, 300);
 | 301023 | CONFIG_CHANGE_REFUND_NOT_EXIST | 改配退款记录不存在 | 404 |
 | 301024 | CONFIG_CHANGE_REFUND_FAILED | 改配退款失败 | 409 |
 | 301025 | DUPLICATE_UNPAID_ORDER | 同一用户或手机号存在未完成订单，禁止重复下单 | 409 |
+| 301026 | WISHLIST_LIMIT_EXCEEDED | 心愿单已达上限（5个），禁止继续创建 | 409 |
+| 301027 | DUPLICATE_WISHLIST | 同一用户已存在相同配置的心愿单，禁止重复创建 | 409 |
 
 ## 6. Coverage Mapping
 
 | US-ID | Design Section | Note |
 |-------|----------------|------|
 | US-001 | §3.2(tb_sale_model/config/benefits), §5.1 | 销售车型浏览，Feign 调用 VMD |
-| US-002 | §3.1(Wishlist), §3.2(无独立表,复用order体系) | 心愿单 CRUD |
+| US-002 | §3.1(Wishlist), §3.2(心愿单唯一索引), §4.12, §5.2(wishlist APIs) | 心愿单 CRUD，含数量上限+唯一性校验 |
 | US-003 | §3.1(Order), §3.2(防刷单唯一索引), §4.1, §4.11, §5.2(earnestMoneyOrder) | 小定下单，含 VMD 校验 + 防刷单校验 |
 | US-004 | §3.1(Order), §3.2(防刷单唯一索引), §4.1, §4.11, §5.2(downPaymentOrder) | 大定下单，含防刷单校验 |
 | US-005 | §4.1, §4.4, §5.2(initiatePayment), §5.5 | 支付发起+回调，领域事件驱动 |
@@ -1193,3 +1249,4 @@ WHERE order_state IN (200, 300);
 | 2026-05-25 | CR-005 | Added | 新增 §4.9 改配补款流程设计、§4.10 改配退款流程设计：改配成功后实时结算差额，差额>0 创建补款任务（30 分钟超时自动取消），差额<0 自动发起退款（失败触发人工审核）；新增 vso_supplementary_payment、vso_config_change_refund 两张表；更新 §4.3 改配流程增加价格重算逻辑；更新 §6 Coverage Mapping |
 | 2026-05-25 | CR-006 | Added | 新增 §4.6 意向金转定金差额支付流程：差额>0 时创建差额支付任务（复用 vso_supplementary_payment 表，新增 supplementary_scene 字段区分场景），用户完成差额支付后触发订单状态转换；差额<=0 时直接转换；更新 §4.2 状态机图增加差额支付分支；更新 §5.2 API 定义补充转定金请求参数和差额支付接口；新增 5 个错误码（301018~301022）；更新 §5.6 SLA 补充差额支付接口；更新 §6 Coverage Mapping 补充 US-006 设计章节引用 |
 | 2026-05-25 | CR-007 | Added | US-003/US-004 防刷单设计：新增 §4.11 防刷单/黄牛设计（DuplicateOrderSpecification 规约模式、用户/手机号维度校验、校验流程图）；更新 §4.1 下单流程增加 DuplicateOrderSpecification 校验步骤；更新 §3.2 补充防刷单唯一索引说明；新增错误码 301025 DUPLICATE_UNPAID_ORDER；更新 §6 Coverage Mapping 补充 US-003/US-004 防刷单设计引用 |
+| 2026-05-25 | CR-008 | Added | US-002 心愿单数量上限与唯一性约束：新增 §4.12 心愿单业务规则校验设计（数量上限 5 个、buildConfigCode 维度唯一性校验）；更新 §3.2 补充心愿单唯一索引说明；新增错误码 301026 WISHLIST_LIMIT_EXCEEDED、301027 DUPLICATE_WISHLIST；更新 §6 Coverage Mapping 补充 US-002 设计章节引用 |

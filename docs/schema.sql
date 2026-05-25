@@ -147,6 +147,11 @@ CREATE TABLE IF NOT EXISTS `vso_wishlist` (
     KEY `idx_user_status` (`user_id`, `status`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='心愿单表';
 
+-- 心愿单唯一性约束说明：
+-- MySQL 不支持条件唯一索引（Partial Index），无法直接创建 (user_id, build_config_code) WHERE status='active' 的唯一索引
+-- 实际实现采用应用层校验（WishlistAppService.validateDuplicateWishlist）保证同一用户同一配置最多一个有效心愿单
+-- 若需 DB 层兜底防并发，可考虑使用分布式锁或应用层唯一性校验 + 事务控制
+
 -- ============================================================
 -- 二、订单核心表
 -- ============================================================

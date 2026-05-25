@@ -26,4 +26,10 @@ public interface WishlistMapper extends BaseDao<WishlistPo, Long> {
 
     void deleteByUserId(@Param("userId") String userId);
 
+    long countByUserId(@Param("userId") String userId);
+
+    WishlistPo selectByUserIdAndBuildConfigCode(@Param("userId") String userId, @Param("buildConfigCode") String buildConfigCode);
+
+    WishlistPo selectByUserIdAndBuildConfigCodeExcluding(@Param("userId") String userId, @Param("buildConfigCode") String buildConfigCode, @Param("excludeWishlistId") String excludeWishlistId);
+
 }

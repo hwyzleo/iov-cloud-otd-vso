@@ -38,7 +38,10 @@
 
 **Acceptance Criteria** (EARS 语法):
 - WHERE 用户已登录且 buildConfigCode 有效 WHEN 用户提交创建心愿单请求（含车型编码和特征码） THE SYSTEM SHALL 在 500ms 内校验 buildConfigCode 有效性后创建心愿单并返回心愿单 ID；若 buildConfigCode 无效返回参数错误
+- WHERE 用户已登录 WHEN 用户提交创建心愿单请求 THE SYSTEM SHALL 校验用户当前有效心愿单数量，若已达上限（5 个）则拒绝并返回 WishlistLimitExceededException（错误码 301026），提示"心愿单已达上限（5个），请删除后再创建"
+- WHERE 用户已存在相同 buildConfigCode 的有效心愿单 WHEN 用户提交创建心愿单请求 THE SYSTEM SHALL 拒绝并返回 DuplicateWishlistException（错误码 301027），提示"该配置已存在心愿单，请勿重复添加"
 - WHERE 心愿单存在且属于当前用户 WHEN 用户提交修改心愿单请求 THE SYSTEM SHALL 更新心愿单的配置信息；若心愿单不存在返回 404
+- WHERE 心愿单存在且属于当前用户 WHEN 用户提交修改心愿单请求（buildConfigCode 与其他心愿单重复） THE SYSTEM SHALL 拒绝并返回 DuplicateWishlistException（错误码 301027）
 - WHERE 心愿单存在且属于当前用户 WHEN 用户提交删除心愿单请求 THE SYSTEM SHALL 逻辑删除指定心愿单；若心愿单不存在返回 404
 - WHERE 心愿单存在 WHEN 用户请求心愿单详情 THE SYSTEM SHALL 返回心愿单信息并实时校验 buildConfig 是否仍启用，标注配置有效性状态
 - WHERE 用户已登录 WHEN 用户请求"我的车辆"列表 THE SYSTEM SHALL 合并返回用户的心愿单和订单列表，按创建时间倒序分页
@@ -332,3 +335,4 @@
 | 2026-05-23 | CR-003 | Fixed | 代码实现与需求对齐：接入状态机校验、补充分布式锁覆盖、修复超时任务重试逻辑、性能优化（N+1 查询+缓存）、功能补全（退款任务+心愿单删除+锁单超时） |
 | 2026-05-25 | CR-004 | Added | US-006 意向金转定金需求补齐：新增补充信息采集（客户类型/支付方式/订购人信息等 10 个可选字段）、差额支付流程（意向金<定金时创建差额支付任务，30 分钟超时自动取消）、支付记录与回调处理、失败回滚机制（异常回滚至 EARNEST_MONEY_PAID）、幂等性控制（订单号作幂等键）、并发控制（分布式锁场景 convert/payment） |
 | 2026-05-25 | CR-005 | Added | US-003/US-004 防刷单规则补齐：新增用户维度和手机号维度的未完成订单唯一性校验（订单状态为 EARNEST_MONEY_UNPAID 或 DOWN_PAYMENT_UNPAID 时禁止重复下单），错误码 301025 DUPLICATE_UNPAID_ORDER |
+| 2026-05-25 | CR-006 | Added | US-002 心愿单数量上限与唯一性约束：新增数量上限（5个）校验、buildConfigCode 维度唯一性校验（创建/修改时均校验），错误码 301026 WISHLIST_LIMIT_EXCEEDED、301027 DUPLICATE_WISHLIST |

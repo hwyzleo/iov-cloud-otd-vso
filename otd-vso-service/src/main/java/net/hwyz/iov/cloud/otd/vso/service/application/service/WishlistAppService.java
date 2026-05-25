@@ -14,6 +14,8 @@ import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.SelectedSaleMod
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.WishlistDetailResult;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.WishlistListResult;
 import net.hwyz.iov.cloud.otd.vso.service.common.exception.BuildConfigNotMatchedException;
+import net.hwyz.iov.cloud.otd.vso.service.common.exception.DuplicateWishlistException;
+import net.hwyz.iov.cloud.otd.vso.service.common.exception.WishlistLimitExceededException;
 import net.hwyz.iov.cloud.otd.vso.service.common.exception.WishlistNotExistException;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.Wishlist;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.WishlistRepository;
@@ -46,7 +48,9 @@ public class WishlistAppService {
         Map<String, String> featureConfig = cmd.getFeatureConfig();
         log.info("创建心愿单：accountId={}, saleModelCode={}, featureConfig={}",
                 cmd.getAccountId(), cmd.getSaleModelCode(), featureConfig);
-        // 去除基础车型
+
+        validateWishlistLimit(cmd.getAccountId());
+
         featureConfig.remove("BASE_MODEL");
 
         String buildConfigCode = vmdVehicleModelConfigService.getVehicleBuildConfigCode(featureConfig);
@@ -54,6 +58,8 @@ public class WishlistAppService {
         if (buildConfigCode == null || buildConfigCode.isEmpty()) {
             throw new BuildConfigNotMatchedException(cmd.getSaleModelCode());
         }
+
+        validateDuplicateWishlist(cmd.getAccountId(), buildConfigCode, null);
 
         Wishlist wishlist = Wishlist.create(cmd.getAccountId(), cmd.getSaleModelCode(), buildConfigCode);
         wishlistRepository.save(wishlist);
@@ -66,16 +72,18 @@ public class WishlistAppService {
         Map<String, String> featureConfig = cmd.getFeatureConfig();
         log.info("修改心愿单：wishlistId={}, accountId={}, featureConfig={}",
                 cmd.getWishlistId(), cmd.getAccountId(), featureConfig);
-        // 去除基础车型
-        featureConfig.remove("BASE_MODEL");
 
         Wishlist wishlist = findWishlistById(cmd.getAccountId(), cmd.getWishlistId());
+
+        featureConfig.remove("BASE_MODEL");
 
         String buildConfigCode = vmdVehicleModelConfigService.getVehicleBuildConfigCode(featureConfig);
 
         if (buildConfigCode == null || buildConfigCode.isEmpty()) {
             throw new BuildConfigNotMatchedException(wishlist.getSaleModel());
         }
+
+        validateDuplicateWishlist(cmd.getAccountId(), buildConfigCode, cmd.getWishlistId());
 
         wishlist.modify(buildConfigCode);
         wishlistRepository.save(wishlist);
@@ -252,6 +260,25 @@ private String getFamilyName(String saleModelCode, String familyCode) {
         } catch (Exception e) {
             log.warn("检查生产配置有效性失败: buildConfigCode={}", buildConfigCode, e);
             return false;
+        }
+    }
+
+    private void validateWishlistLimit(String userId) {
+        long count = wishlistRepository.countByUserId(userId);
+        if (count >= WishlistLimitExceededException.WISHLIST_LIMIT) {
+            throw new WishlistLimitExceededException(userId);
+        }
+    }
+
+    private void validateDuplicateWishlist(String userId, String buildConfigCode, String excludeWishlistId) {
+        boolean exists;
+        if (excludeWishlistId == null || excludeWishlistId.isEmpty()) {
+            exists = wishlistRepository.existsByUserIdAndBuildConfigCode(userId, buildConfigCode);
+        } else {
+            exists = wishlistRepository.existsByUserIdAndBuildConfigCodeExcluding(userId, buildConfigCode, excludeWishlistId);
+        }
+        if (exists) {
+            throw new DuplicateWishlistException(userId, buildConfigCode);
         }
     }
 

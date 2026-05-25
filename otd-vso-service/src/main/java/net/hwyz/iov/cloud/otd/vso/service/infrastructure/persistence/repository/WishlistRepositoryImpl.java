@@ -60,4 +60,19 @@ public class WishlistRepositoryImpl implements WishlistRepository {
         wishlistMapper.deleteByUserId(userId);
     }
 
+    @Override
+    public long countByUserId(String userId) {
+        return wishlistMapper.countByUserId(userId);
+    }
+
+    @Override
+    public boolean existsByUserIdAndBuildConfigCode(String userId, String buildConfigCode) {
+        return wishlistMapper.selectByUserIdAndBuildConfigCode(userId, buildConfigCode) != null;
+    }
+
+    @Override
+    public boolean existsByUserIdAndBuildConfigCodeExcluding(String userId, String buildConfigCode, String excludeWishlistId) {
+        return wishlistMapper.selectByUserIdAndBuildConfigCodeExcluding(userId, buildConfigCode, excludeWishlistId) != null;
+    }
+
 }

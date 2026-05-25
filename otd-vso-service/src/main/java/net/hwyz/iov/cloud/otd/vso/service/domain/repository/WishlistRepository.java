@@ -22,4 +22,10 @@ public interface WishlistRepository {
 
     void deleteByUserId(String userId);
 
+    long countByUserId(String userId);
+
+    boolean existsByUserIdAndBuildConfigCode(String userId, String buildConfigCode);
+
+    boolean existsByUserIdAndBuildConfigCodeExcluding(String userId, String buildConfigCode, String excludeWishlistId);
+
 }

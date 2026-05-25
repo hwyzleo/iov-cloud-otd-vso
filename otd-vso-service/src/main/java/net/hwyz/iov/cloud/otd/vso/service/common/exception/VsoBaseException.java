@@ -30,6 +30,8 @@ public class VsoBaseException extends BaseException {
     protected static final int ERROR_CODE_CONFIG_CHANGE_REFUND_NOT_EXIST = 301023;
     protected static final int ERROR_CODE_CONFIG_CHANGE_REFUND_FAILED = 301024;
     protected static final int ERROR_CODE_DUPLICATE_UNPAID_ORDER = 301025;
+    protected static final int ERROR_CODE_WISHLIST_LIMIT_EXCEEDED = 301026;
+    protected static final int ERROR_CODE_DUPLICATE_WISHLIST = 301027;
 
     public VsoBaseException(String message) {
         super(ERROR_CODE, message);
