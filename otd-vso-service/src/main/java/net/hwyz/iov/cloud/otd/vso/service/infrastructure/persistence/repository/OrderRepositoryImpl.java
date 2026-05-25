@@ -116,8 +116,17 @@ public class OrderRepositoryImpl implements OrderRepository {
 
     @Override
     public List<Order> findByAccountId(String accountId, String type) {
-        // TODO: 需要通过 vso_order_party 表关联查询
         throw new UnsupportedOperationException("待通过 vso_order_party 表关联查询实现");
+    }
+
+    @Override
+    public boolean existsUnpaidOrderByUserId(String userId) {
+        return orderMapper.existsUnpaidOrderByUserId(userId) > 0;
+    }
+
+    @Override
+    public boolean existsUnpaidOrderByMobileHash(String mobileHash) {
+        return orderMapper.existsUnpaidOrderByMobileHash(mobileHash) > 0;
     }
 
 }

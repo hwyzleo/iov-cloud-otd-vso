@@ -37,17 +37,6 @@ public class OrderValidationService {
      * @throws IllegalArgumentException 校验失败时抛出
      */
     public void validateForSubmit(Order order) {
-        // 校验重复订单
-        boolean notDuplicate = duplicateSpecification
-            .withOrderType(order.getOrderType())
-            .withModelCode(order.getVehicleInfo() != null ? order.getVehicleInfo().getModelCode() : null)
-            .isSatisfiedBy(order);
-        
-        if (!notDuplicate) {
-            throw new IllegalArgumentException("存在重复订单，无法提交");
-        }
-
-        // 校验提交条件
         if (!submitSpecification.isSatisfiedBy(order)) {
             throw new IllegalArgumentException("订单不满足提交条件，请检查客户信息、车辆信息、归属信息、金额等是否完整");
         }

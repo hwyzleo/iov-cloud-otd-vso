@@ -49,6 +49,8 @@
 
 **Acceptance Criteria** (EARS 语法):
 - WHERE 用户已登录、buildConfigCode 有效、品牌编码存在 WHEN 用户提交意向金下单请求（含车型编码、特征码、客户信息） THE SYSTEM SHALL 在 1s 内生成唯一订单号、创建 SMALL 类型订单、状态设为 EARNEST_MONEY_UNPAID、创建车辆配置快照（版本 1），并通过分布式锁保证同一用户并发下单互斥
+- WHERE 用户已存在未完成订单（订单状态为 EARNEST_MONEY_UNPAID 或 DOWN_PAYMENT_UNPAID） WHEN 用户提交意向金下单请求 THE SYSTEM SHALL 拒绝下单并返回 DuplicateUnpaidOrderException（错误码 301025），提示"您有未完成的订单，请先完成支付或取消后再下单"
+- WHERE 手机号已关联其他用户的未完成订单（订单状态为 EARNEST_MONEY_UNPAID 或 DOWN_PAYMENT_UNPAID） WHEN 用户提交意向金下单请求 THE SYSTEM SHALL 拒绝下单并返回 DuplicateUnpaidOrderException（错误码 301025），提示"该手机号存在未完成的订单，请先完成支付或取消后再下单"
 - WHEN 意向金订单创建成功 THE SYSTEM SHALL 自动删除该用户的所有心愿单（在同一事务内）
 - WHEN 意向金订单创建成功 THE SYSTEM SHALL 返回支付渠道信息和支付过期时间（基于 paymentChannelConfig.smallOrderTimeoutMinutes 配置，默认 30 分钟）
 - IF buildConfigCode 无法从特征码解析 THEN THE SYSTEM SHALL 拒绝下单并返回 BuildConfigNotMatchedException
@@ -60,6 +62,8 @@
 
 **Acceptance Criteria** (EARS 语法):
 - WHERE 用户已登录、buildConfigCode 有效 WHEN 用户提交定金下单请求 THE SYSTEM SHALL 在 1s 内生成唯一订单号、创建 FORMAL 类型订单、状态设为 DOWN_PAYMENT_UNPAID、创建车辆配置快照（版本 1），并通过分布式锁保证同一用户并发下单互斥
+- WHERE 用户已存在未完成订单（订单状态为 EARNEST_MONEY_UNPAID 或 DOWN_PAYMENT_UNPAID） WHEN 用户提交定金下单请求 THE SYSTEM SHALL 拒绝下单并返回 DuplicateUnpaidOrderException（错误码 301025），提示"您有未完成的订单，请先完成支付或取消后再下单"
+- WHERE 手机号已关联其他用户的未完成订单（订单状态为 EARNEST_MONEY_UNPAID 或 DOWN_PAYMENT_UNPAID） WHEN 用户提交定金下单请求 THE SYSTEM SHALL 拒绝下单并返回 DuplicateUnpaidOrderException（错误码 301025），提示"该手机号存在未完成的订单，请先完成支付或取消后再下单"
 - WHEN 定金订单创建成功 THE SYSTEM SHALL 自动删除该用户的所有心愿单（在同一事务内）
 - WHEN 定金订单创建成功 THE SYSTEM SHALL 返回支付渠道信息和支付过期时间（基于 paymentChannelConfig.downPaymentTimeoutMinutes 配置）
 - IF buildConfigCode 无法从特征码解析 THEN THE SYSTEM SHALL 拒绝下单并返回 BuildConfigNotMatchedException
@@ -327,3 +331,4 @@
 | 2026-05-23 | CR-002 | Fixed | 修复 EARS 语法不严谨问题：为所有 AC 添加 WHERE 前置条件、量化响应时间指标、明确分布式锁 TTL/重试策略/补偿机制；US-019 补充精度（分钟级）、调度方式（定时扫描 60s）、补偿（最多重试 3 次）、时钟漂移说明；US-020 补充锁实现细节、场景标识、续期策略 |
 | 2026-05-23 | CR-003 | Fixed | 代码实现与需求对齐：接入状态机校验、补充分布式锁覆盖、修复超时任务重试逻辑、性能优化（N+1 查询+缓存）、功能补全（退款任务+心愿单删除+锁单超时） |
 | 2026-05-25 | CR-004 | Added | US-006 意向金转定金需求补齐：新增补充信息采集（客户类型/支付方式/订购人信息等 10 个可选字段）、差额支付流程（意向金<定金时创建差额支付任务，30 分钟超时自动取消）、支付记录与回调处理、失败回滚机制（异常回滚至 EARNEST_MONEY_PAID）、幂等性控制（订单号作幂等键）、并发控制（分布式锁场景 convert/payment） |
+| 2026-05-25 | CR-005 | Added | US-003/US-004 防刷单规则补齐：新增用户维度和手机号维度的未完成订单唯一性校验（订单状态为 EARNEST_MONEY_UNPAID 或 DOWN_PAYMENT_UNPAID 时禁止重复下单），错误码 301025 DUPLICATE_UNPAID_ORDER |

@@ -61,6 +61,7 @@ import net.hwyz.iov.cloud.otd.vso.service.domain.repository.SupplementaryPayment
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.ConfigChangeRefundRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.event.ConfigChangePriceDiffEvent;
 import net.hwyz.iov.cloud.otd.vso.service.domain.gateway.PaymentAdapter;
+import net.hwyz.iov.cloud.otd.vso.service.domain.policy.DuplicateOrderSpecification;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.SupplementaryPaymentPo;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.ConfigChangeRefundPo;
 import net.hwyz.iov.cloud.otd.vso.api.enums.SupplementaryPaymentStatus;
@@ -124,6 +125,7 @@ public class OrderAppService {
     private final ConfigChangeRefundRepository configChangeRefundRepository;
     private final ApplicationEventPublisher eventPublisher;
     private final PaymentAdapter paymentAdapter;
+    private final DuplicateOrderSpecification duplicateOrderSpecification;
 
     private final Map<String, String> cityNameCache = new ConcurrentHashMap<>();
     private volatile long cityNameCacheLastRefresh = 0;
@@ -576,6 +578,8 @@ public class OrderAppService {
         log.info("意向金下单：accountId={}, saleModel={}, featureConfig={}", 
                 cmd.getAccountId(), cmd.getSaleModel(), cmd.getFeatureConfig());
         
+        duplicateOrderSpecification.check(cmd.getAccountId(), null);
+        
         Order order = createOrFindOrder(cmd.getAccountId(), cmd.getOrderNo());
         
         String buildConfigCode = null;
@@ -638,6 +642,8 @@ public class OrderAppService {
     public DownPaymentOrderResult downPaymentOrder(DownPaymentCmd cmd) {
         log.info("定金下单：accountId={}, orderNo={}, saleModel={}", 
                 cmd.getAccountId(), cmd.getOrderNo(), cmd.getSaleModel());
+        
+        duplicateOrderSpecification.check(cmd.getAccountId(), null);
         
         String buildConfigCode;
         String saleModel;

@@ -79,4 +79,8 @@ public interface OrderRepository {
 
     List<Order> findByAccountId(String accountId, String type);
 
+    boolean existsUnpaidOrderByUserId(String userId);
+
+    boolean existsUnpaidOrderByMobileHash(String mobileHash);
+
 }

@@ -29,6 +29,7 @@ public class VsoBaseException extends BaseException {
     protected static final int ERROR_CODE_SUPPLEMENT_PAYMENT_EXPIRED = 301022;
     protected static final int ERROR_CODE_CONFIG_CHANGE_REFUND_NOT_EXIST = 301023;
     protected static final int ERROR_CODE_CONFIG_CHANGE_REFUND_FAILED = 301024;
+    protected static final int ERROR_CODE_DUPLICATE_UNPAID_ORDER = 301025;
 
     public VsoBaseException(String message) {
         super(ERROR_CODE, message);

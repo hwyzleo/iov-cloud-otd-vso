@@ -239,6 +239,15 @@ classDiagram
 | `vso_config_timeout` | 超时配置 | US-019 |
 | `vso_order_shadow_delete` | 物理删除影子审计 | US-015 |
 
+**防刷单唯一索引**（US-003, US-004）：
+
+| 索引名 | 表 | 字段 | 说明 |
+|--------|------|------|------|
+| `uk_user_unpaid_order` | `vso_order` | `user_id` + `order_state` | 同一用户未完成订单唯一性（应用层校验） |
+| `uk_mobile_unpaid_order` | `vso_order` | `mobile_hash` + `order_state` | 同一手机号未完成订单唯一性（应用层校验） |
+
+> 注：MySQL 8.0 不支持条件唯一索引（Partial Index），实际实现采用应用层校验 + 分布式锁保证一致性。上述索引为逻辑设计，物理实现需根据数据库能力调整。
+
 ### 3.3 订单状态枚举
 
 ```
@@ -262,6 +271,7 @@ sequenceDiagram
     participant U as C端用户
     participant MC as MobileVsoController
     participant OAS as OrderAppService
+    participant DOS as DuplicateOrderSpecification
     participant VMD as VMD Service
     participant O as Order Aggregate
     participant WR as WishlistRepository
@@ -271,6 +281,17 @@ sequenceDiagram
 
     U->>MC: POST /earnestMoneyOrder
     MC->>OAS: createSmallOrder(cmd)
+    OAS->>DOS: isSatisfiedBy(userId, mobileHash)
+    DOS->>OR: existsUnpaidOrderByUserId(userId)
+    OR-->>DOS: true/false
+    DOS->>OR: existsUnpaidOrderByMobileHash(mobileHash)
+    OR-->>DOS: true/false
+
+    alt 存在未完成订单
+        DOS-->>OAS: false (DuplicateUnpaidOrderException)
+        OAS-->>MC: 409 DUPLICATE_UNPAID_ORDER
+    end
+
     OAS->>VMD: getVehicleBuildConfigCode(features)
     VMD-->>OAS: buildConfigCode
     OAS->>VMD: getBuildConfigByCode(code)
@@ -881,6 +902,70 @@ FAILED → REJECTED（人工审核驳回）
 | 退款场景 | config_change_refund | 新增退款场景，区别于订单取消退款 |
 | 审核流程 | 复用审批模块 | 与 US-010 审核流程保持一致 |
 
+### 4.11 防刷单/黄牛设计（US-003, US-004）
+
+```mermaid
+flowchart TD
+    A[用户提交下单请求] --> B{获取分布式锁}
+    B -->|失败| C[返回并发冲突 409]
+    B -->|成功| D{DuplicateOrderSpecification}
+    D --> E[查询用户维度未完成订单]
+    D --> F[查询手机号维度未完成订单]
+    E --> G{存在?}
+    F --> H{存在?}
+    G -->|是| I[返回 301023 DUPLICATE_UNPAID_ORDER]
+    H -->|是| I
+    G -->|否| J{buildConfig 校验}
+    H -->|否| J
+    J -->|失败| K[返回 400 BUILD_CONFIG_NOT_MATCHED]
+    J -->|成功| L[创建订单]
+    L --> M[删除心愿单]
+    M --> N[返回下单结果]
+```
+
+**校验规则**：
+
+| 维度 | 校验逻辑 | 查询条件 |
+|------|----------|----------|
+| 用户维度 | 同一 userId 未完成订单数 = 0 | `SELECT COUNT(*) FROM vso_order WHERE user_id = ? AND order_state IN (200, 300)` |
+| 手机号维度 | 同一 mobileHash 未完成订单数 = 0 | `SELECT COUNT(*) FROM vso_order WHERE mobile_hash = ? AND order_state IN (200, 300)` |
+
+**未完成状态定义**：
+- `EARNEST_MONEY_UNPAID(200)` — 小定待支付
+- `DOWN_PAYMENT_UNPAID(300)` — 大定待支付
+
+**实现组件**：
+
+| 组件 | 职责 | 位置 |
+|------|------|------|
+| `DuplicateOrderSpecification` | 领域规约，封装防刷单校验逻辑 | Domain Layer |
+| `OrderRepository.existsUnpaidByUserId()` | 查询用户维度未完成订单 | Infrastructure Layer |
+| `OrderRepository.existsUnpaidByMobileHash()` | 查询手机号维度未完成订单 | Infrastructure Layer |
+
+**关键设计决策**：
+
+| 维度 | 决策 | 理由 |
+|------|------|------|
+| 校验时机 | 下单前（创建订单前） | 尽早拦截，减少无效数据库写入 |
+| 校验方式 | 规约模式（Specification） | 领域逻辑内聚，可复用、可测试 |
+| 手机号存储 | 存储 mobileHash（哈希值） | 隐私保护，避免明文存储敏感信息 |
+| 状态范围 | 仅校验未支付状态 | 已支付订单不影响再次下单 |
+| 数据库约束 | 应用层校验 + 部分索引 | 应用层灵活校验，DB 层兜底防并发 |
+
+**数据库索引**（防并发兜底）：
+
+```sql
+-- 用户维度：同一用户同一时间最多一个未完成订单
+CREATE UNIQUE INDEX uk_user_unpaid_order ON vso_order (user_id, order_state)
+WHERE order_state IN (200, 300);
+
+-- 手机号维度：同一手机号同一时间最多一个未完成订单
+CREATE UNIQUE INDEX uk_mobile_unpaid_order ON vso_order (mobile_hash, order_state)
+WHERE order_state IN (200, 300);
+```
+
+> 注：MySQL 8.0 不支持条件唯一索引（Partial Index），实际实现采用应用层校验 + 唯一索引组合（user_id + order_state）或应用层分布式锁保证一致性。
+
 ### 5.1 Mobile Sale Model APIs
 
 **GET** `/api/mobile/saleModel/v1`
@@ -1046,6 +1131,9 @@ FAILED → REJECTED（人工审核驳回）
 | 301020 | SUPPLEMENTARY_PAYMENT_FAILED | 差额支付失败 | 409 |
 | 301021 | CUSTOMER_TYPE_INVALID | 客户类型不合法，仅支持 personal | 400 |
 | 301022 | PAYMENT_METHOD_INVALID | 支付方式不合法，仅支持 full_payment、loan | 400 |
+| 301023 | CONFIG_CHANGE_REFUND_NOT_EXIST | 改配退款记录不存在 | 404 |
+| 301024 | CONFIG_CHANGE_REFUND_FAILED | 改配退款失败 | 409 |
+| 301025 | DUPLICATE_UNPAID_ORDER | 同一用户或手机号存在未完成订单，禁止重复下单 | 409 |
 
 ## 6. Coverage Mapping
 
@@ -1053,8 +1141,8 @@ FAILED → REJECTED（人工审核驳回）
 |-------|----------------|------|
 | US-001 | §3.2(tb_sale_model/config/benefits), §5.1 | 销售车型浏览，Feign 调用 VMD |
 | US-002 | §3.1(Wishlist), §3.2(无独立表,复用order体系) | 心愿单 CRUD |
-| US-003 | §3.1(Order), §4.1, §5.2(earnestMoneyOrder) | 小定下单，含 VMD 校验 |
-| US-004 | §3.1(Order), §4.1, §5.2(downPaymentOrder) | 大定下单 |
+| US-003 | §3.1(Order), §3.2(防刷单唯一索引), §4.1, §4.11, §5.2(earnestMoneyOrder) | 小定下单，含 VMD 校验 + 防刷单校验 |
+| US-004 | §3.1(Order), §3.2(防刷单唯一索引), §4.1, §4.11, §5.2(downPaymentOrder) | 大定下单，含防刷单校验 |
 | US-005 | §4.1, §4.4, §5.2(initiatePayment), §5.5 | 支付发起+回调，领域事件驱动 |
 | US-006 | §4.2, §4.6, §5.2(earnestMoneyToDownPayment) | 状态机 EARNEST_MONEY_PAID→DOWN_PAYMENT_PAID，差额支付流程 |
 | US-007 | §4.3, §4.9, §4.10, §3.2(vso_order_vehicle_snapshot, vso_supplementary_payment, vso_config_change_refund), §5.2(modifyConfig) | 改配，版本化快照，价格重算与差额补/退 |
@@ -1104,3 +1192,4 @@ FAILED → REJECTED（人工审核驳回）
 | 2026-05-25 | CR-004 | Added | 新增 §4.7 退款金额计算流程：按订单状态分层退款规则（未锁单前全额退款、锁单后扣 5% 手续费、生产中/已发运不退款）、退款记录数据结构、退款场景枚举；更新状态机图添加退款注释；关闭 Open Question #2 |
 | 2026-05-25 | CR-005 | Added | 新增 §4.9 改配补款流程设计、§4.10 改配退款流程设计：改配成功后实时结算差额，差额>0 创建补款任务（30 分钟超时自动取消），差额<0 自动发起退款（失败触发人工审核）；新增 vso_supplementary_payment、vso_config_change_refund 两张表；更新 §4.3 改配流程增加价格重算逻辑；更新 §6 Coverage Mapping |
 | 2026-05-25 | CR-006 | Added | 新增 §4.6 意向金转定金差额支付流程：差额>0 时创建差额支付任务（复用 vso_supplementary_payment 表，新增 supplementary_scene 字段区分场景），用户完成差额支付后触发订单状态转换；差额<=0 时直接转换；更新 §4.2 状态机图增加差额支付分支；更新 §5.2 API 定义补充转定金请求参数和差额支付接口；新增 5 个错误码（301018~301022）；更新 §5.6 SLA 补充差额支付接口；更新 §6 Coverage Mapping 补充 US-006 设计章节引用 |
+| 2026-05-25 | CR-007 | Added | US-003/US-004 防刷单设计：新增 §4.11 防刷单/黄牛设计（DuplicateOrderSpecification 规约模式、用户/手机号维度校验、校验流程图）；更新 §4.1 下单流程增加 DuplicateOrderSpecification 校验步骤；更新 §3.2 补充防刷单唯一索引说明；新增错误码 301025 DUPLICATE_UNPAID_ORDER；更新 §6 Coverage Mapping 补充 US-003/US-004 防刷单设计引用 |

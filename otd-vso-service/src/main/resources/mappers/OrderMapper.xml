@@ -377,4 +377,28 @@
             #{id}
         </foreach>
     </delete>
+
+    <!-- 检查用户维度是否存在未完成订单 -->
+    <select id="existsUnpaidOrderByUserId" resultType="int">
+        SELECT COUNT(1)
+        FROM vso_order o
+        INNER JOIN vso_order_party p ON o.order_id = p.order_id
+        WHERE p.user_id = #{userId}
+        AND p.party_role = 'order_user'
+        AND o.order_state IN (200, 300)
+        AND o.row_valid = 1
+        AND p.row_valid = 1
+    </select>
+
+    <!-- 检查手机号维度是否存在未完成订单 -->
+    <select id="existsUnpaidOrderByMobileHash" resultType="int">
+        SELECT COUNT(1)
+        FROM vso_order o
+        INNER JOIN vso_order_party p ON o.order_id = p.order_id
+        WHERE p.mobile_hash = #{mobileHash}
+        AND p.party_role = 'order_user'
+        AND o.order_state IN (200, 300)
+        AND o.row_valid = 1
+        AND p.row_valid = 1
+    </select>
 </mapper>

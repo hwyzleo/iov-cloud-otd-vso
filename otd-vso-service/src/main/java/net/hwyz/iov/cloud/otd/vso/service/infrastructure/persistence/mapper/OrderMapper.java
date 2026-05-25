@@ -85,4 +85,8 @@ public interface OrderMapper extends BaseDao<OrderPo, Long> {
      * @return 订单 PO
      */
     OrderPo selectByOrderNoAndAccountId(@Param("orderNo") String orderNo, @Param("accountId") String accountId);
+
+    int existsUnpaidOrderByUserId(@Param("userId") String userId);
+
+    int existsUnpaidOrderByMobileHash(@Param("mobileHash") String mobileHash);
 }
