@@ -1020,6 +1020,149 @@ WHERE status = 'active';
 
 > 注：MySQL 8.0 不支持条件唯一索引（Partial Index），实际实现采用应用层校验 + 普通唯一索引或应用层分布式锁保证一致性。
 
+### 4.13 配车流程设计（US-011）
+
+```mermaid
+flowchart TD
+    subgraph 配车绑定
+        A[运营提交配车请求] --> B{获取分布式锁}
+        B -->|失败| C[返回并发冲突错误]
+        B -->|成功| D{订单状态校验}
+        D -->|非 ARRANGE_PRODUCTION| E[返回状态不合法错误]
+        D -->|ARRANGE_PRODUCTION| F{VIN 来源校验}
+        F -->|VIN 不存在/不可用| G[返回 VIN 无效错误 301031]
+        F -->|校验通过| H{VIN 冲突检测}
+        H -->|已被占用| I[返回 VIN 冲突错误 301030]
+        H -->|可用| J[绑定 VIN]
+        J --> K[更新订单状态为 ALLOCATION_VEHICLE]
+        K --> L[创建配车记录]
+        L --> M[设置占用过期时间]
+        M --> N[调用库存服务更新车辆状态]
+        N --> O[记录时间线事件]
+        O --> P[释放分布式锁]
+    end
+
+    subgraph 换绑VIN
+        Q[运营提交换绑请求] --> R{获取分布式锁}
+        R -->|失败| S[返回并发冲突错误]
+        R -->|成功| T{订单状态校验}
+        T -->|非 ALLOCATION_VEHICLE| U[返回状态不合法错误]
+        T -->|ALLOCATION_VEHICLE| V{新 VIN 校验}
+        V -->|VIN 不存在/不可用| W[返回 VIN 无效错误]
+        V -->|校验通过| X{新 VIN 冲突检测}
+        X -->|已被占用| Y[返回 VIN 冲突错误，旧 VIN 保持绑定]
+        X -->|可用| Z[解绑旧 VIN]
+        Z --> AA[绑定新 VIN]
+        AA --> AB[更新占用过期时间]
+        AB --> AC[调用库存服务更新车辆状态]
+        AC --> AD[记录时间线事件]
+        AD --> AE[释放分布式锁]
+    end
+
+    subgraph VIN超时释放
+        AF[定时任务扫描超时 VIN] --> AG{扫描条件}
+        AG -->|occupy_expire_time < NOW| AH{获取分布式锁}
+        AH -->|失败| AF
+        AH -->|成功| AI[更新配车状态为 EXPIRED]
+        AI --> AJ[订单状态回退至 ARRANGE_PRODUCTION]
+        AJ --> AK[调用库存服务释放车辆]
+        AK --> AL[记录时间线事件]
+        AL --> AM[发送通知给订单归属运营]
+        AM --> AN[释放分布式锁]
+    end
+
+    subgraph 订单取消释放VIN
+        AO[订单取消/退款完成] --> AP{订单是否绑定 VIN}
+        AP -->|是| AQ[更新配车状态为 RELEASED]
+        AQ --> AR[记录释放时间]
+        AR --> AS[调用库存服务释放车辆]
+        AS --> AT[记录时间线事件]
+        AP -->|否| AU[无操作]
+    end
+
+    subgraph 主动解绑
+        AV[运营提交解绑请求] --> AW{获取分布式锁}
+        AW -->|失败| AX[返回并发冲突错误]
+        AW -->|成功| AY{订单状态校验}
+        AY -->|非 ALLOCATION_VEHICLE| AZ[返回状态不合法错误]
+        AY -->|ALLOCATION_VEHICLE| BA[更新配车状态为 UNBOUND]
+        BA --> BB[记录解绑原因]
+        BB --> BC[订单状态回退至 ARRANGE_PRODUCTION]
+        BC --> BD[调用库存服务释放车辆]
+        BD --> BE[记录时间线事件]
+        BE --> BF[释放分布式锁]
+    end
+```
+
+**配车状态机**：
+
+```
+ASSIGNED（已分配）→ BOUND（已绑定）→ RELEASED（已释放）
+                                    ↘ EXPIRED（已过期）
+                                    ↘ UNBOUND（已解绑）
+```
+
+| 状态 | 说明 | 触发条件 |
+|------|------|----------|
+| ASSIGNED | 已分配 | 配车成功，VIN 已绑定 |
+| BOUND | 已绑定 | 订单进入发运流程（APPLY_TRANSPORT） |
+| RELEASED | 已释放 | 订单取消或退款完成 |
+| EXPIRED | 已过期 | VIN 占用超时自动释放 |
+| UNBOUND | 已解绑 | 运营主动解绑 |
+
+**VIN 唯一性保障**：
+
+| 层级 | 机制 | 说明 |
+|------|------|------|
+| 应用层 | 分布式锁 | 防止并发请求同时分配同一 VIN |
+| 数据库层 | 唯一索引 | `uk_vin_assign (vin) WHERE assign_status IN ('ASSIGNED', 'BOUND')` |
+| 库存服务 | 车辆状态校验 | 配车前校验车辆状态为 IN_STOCK 或 ALLOCATED |
+
+**配车记录数据结构**（`vso_vehicle_assignment` 表）：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| vehicle_assignment_id | VARCHAR(64) | 配车业务 ID |
+| order_id | VARCHAR(64) | 订单业务 ID |
+| assignment_type | VARCHAR(32) | 动作类型（ASSIGN/REASSIGN/UNBIND/RELEASE/EXPIRE） |
+| vehicle_source_type | VARCHAR(32) | 车源类型 |
+| vin | VARCHAR(32) | VIN |
+| vehicle_id | VARCHAR(64) | 车辆业务 ID |
+| assign_status | VARCHAR(32) | 配车状态（ASSIGNED/BOUND/RELEASED/EXPIRED/UNBOUND） |
+| manual_assign_flag | TINYINT | 是否人工指定 |
+| manual_assign_reason | VARCHAR(255) | 人工指定原因 |
+| unbind_reason | VARCHAR(255) | 解绑原因 |
+| occupy_expire_time | TIMESTAMP | 占用到期时间 |
+| assign_time | TIMESTAMP | 配车时间 |
+| bind_time | TIMESTAMP | 绑车时间（进入发运流程时更新） |
+| release_time | TIMESTAMP | 释放车源时间 |
+
+**VIN 占用有效期配置**（`vso_config_vehicle_occupancy` 表）：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| config_id | VARCHAR(64) | 配置 ID |
+| occupancy_hours | INT | 占用有效期（小时），默认 24 |
+| enabled | TINYINT | 是否启用 |
+
+**关键设计决策**：
+
+| 维度 | 决策 | 理由 |
+|------|------|------|
+| VIN 唯一性 | 分布式锁 + 数据库唯一索引 + 库存服务校验三重保障 | 确保同一 VIN 不会被多次分配 |
+| 占用过期 | 定时任务扫描 + 自动释放 | 防止 VIN 长期被无效订单占用 |
+| 换绑策略 | 先解绑后绑定，失败保持原状 | 保证数据一致性 |
+| 订单取消处理 | 自动释放 VIN | 订单取消后释放资源供其他订单使用 |
+| 库存服务集成 | 配车前校验 + 配车后更新状态 | 与车辆库存系统保持数据一致 |
+| 并发控制 | 分布式锁 TTL 30s | 防止死锁，保证操作原子性 |
+
+**错误码定义**：
+
+| 错误码 | 说明 |
+|--------|------|
+| 301030 | VIN 冲突，已被其他订单占用 |
+| 301031 | VIN 无效，不存在或状态不可用 |
+
 ### 5.1 Mobile Sale Model APIs
 
 **GET** `/api/mobile/saleModel/v1`
@@ -1082,8 +1225,30 @@ WHERE status = 'active';
 - Response: `PageResult<VehicleSaleOrderMpt>`
 
 **POST** `/api/mpt/vso/v1/action/assignVehicle`
+- Header: `X-Operator-Id`
 - Request: `{ orderNo, vin }`
 - Response: void
+
+**POST** `/api/mpt/vso/v1/action/reassignVehicle`
+- Header: `X-Operator-Id`
+- Request: `{ orderNo, newVin }`
+- Response: void
+- 说明：换绑 VIN，先解绑旧 VIN 后绑定新 VIN
+
+**POST** `/api/mpt/vso/v1/action/unbindVehicle`
+- Header: `X-Operator-Id`
+- Request: `{ orderNo, unbindReason }`
+- Response: void
+- 说明：主动解绑 VIN，订单状态回退至 ARRANGE_PRODUCTION
+
+**GET** `/api/mpt/vso/v1/vehicleAssignment/list`
+- Query: `{ orderNo, assignStatus, page, size }`
+- Response: `PageResult<VehicleAssignmentVo>`
+- 说明：查询配车记录列表
+
+**GET** `/api/mpt/vso/v1/vehicleAssignment/{orderNo}`
+- Response: `VehicleAssignmentVo`
+- 说明：查询订单当前配车信息
 
 **POST** `/api/mpt/vso/v1/action/assignDeliveryPerson`
 - Request: `{ orderNo, deliveryPersonId, deliveryPersonName }`
@@ -1190,6 +1355,8 @@ WHERE status = 'active';
 | 301025 | DUPLICATE_UNPAID_ORDER | 同一用户或手机号存在未完成订单，禁止重复下单 | 409 |
 | 301026 | WISHLIST_LIMIT_EXCEEDED | 心愿单已达上限（5个），禁止继续创建 | 409 |
 | 301027 | DUPLICATE_WISHLIST | 同一用户已存在相同配置的心愿单，禁止重复创建 | 409 |
+| 301030 | VIN_CONFLICT | VIN 冲突，已被其他订单占用 | 409 |
+| 301031 | VIN_INVALID | VIN 无效，不存在或状态不可用 | 400 |
 
 ## 6. Coverage Mapping
 
@@ -1202,10 +1369,10 @@ WHERE status = 'active';
 | US-005 | §4.1, §4.4, §5.2(initiatePayment), §5.5 | 支付发起+回调，领域事件驱动 |
 | US-006 | §4.2, §4.6, §5.2(earnestMoneyToDownPayment) | 状态机 EARNEST_MONEY_PAID→DOWN_PAYMENT_PAID，差额支付流程 |
 | US-007 | §4.3, §4.9, §4.10, §3.2(vso_order_vehicle_snapshot, vso_supplementary_payment, vso_config_change_refund), §5.2(modifyConfig) | 改配，版本化快照，价格重算与差额补/退 |
-| US-008 | §4.2, §4.8, §5.2(cancel/requestRefund) | 取消/退款状态流转，退款金额计算 |
+| US-008 | §4.2, §4.8, §5.2(cancel/requestRefund) | 取消/退款状态流转，退款金额计算，含 VIN 释放逻辑 |
 | US-009 | §4.2, §5.2(lock), §5.3(lock) | 锁单，buildConfigLock=true |
 | US-010 | §5.3(audit/pass, audit/reject) | 审核通过/驳回 |
-| US-011 | §3.2(vso_vehicle_assignment), §5.3(assignVehicle) | 配车绑定 VIN |
+| US-011 | §3.2(vso_vehicle_assignment, vso_config_vehicle_occupancy), §4.13, §5.3(assignVehicle/reassignVehicle/unbindVehicle), §7.错误码(301030/301031) | 配车绑定/换绑/解绑 VIN，含超时释放、订单取消释放、库存服务集成 |
 | US-012 | §4.2, §5.3(applyTransport), §5.4 | 发运状态流转 |
 | US-013 | §4.2, §5.3(assignDeliveryPerson), §5.4 | 交付流程 |
 | US-014 | §4.2, §5.3(close) | 关闭订单 |
@@ -1250,3 +1417,4 @@ WHERE status = 'active';
 | 2026-05-25 | CR-006 | Added | 新增 §4.6 意向金转定金差额支付流程：差额>0 时创建差额支付任务（复用 vso_supplementary_payment 表，新增 supplementary_scene 字段区分场景），用户完成差额支付后触发订单状态转换；差额<=0 时直接转换；更新 §4.2 状态机图增加差额支付分支；更新 §5.2 API 定义补充转定金请求参数和差额支付接口；新增 5 个错误码（301018~301022）；更新 §5.6 SLA 补充差额支付接口；更新 §6 Coverage Mapping 补充 US-006 设计章节引用 |
 | 2026-05-25 | CR-007 | Added | US-003/US-004 防刷单设计：新增 §4.11 防刷单/黄牛设计（DuplicateOrderSpecification 规约模式、用户/手机号维度校验、校验流程图）；更新 §4.1 下单流程增加 DuplicateOrderSpecification 校验步骤；更新 §3.2 补充防刷单唯一索引说明；新增错误码 301025 DUPLICATE_UNPAID_ORDER；更新 §6 Coverage Mapping 补充 US-003/US-004 防刷单设计引用 |
 | 2026-05-25 | CR-008 | Added | US-002 心愿单数量上限与唯一性约束：新增 §4.12 心愿单业务规则校验设计（数量上限 5 个、buildConfigCode 维度唯一性校验）；更新 §3.2 补充心愿单唯一索引说明；新增错误码 301026 WISHLIST_LIMIT_EXCEEDED、301027 DUPLICATE_WISHLIST；更新 §6 Coverage Mapping 补充 US-002 设计章节引用 |
+| 2026-05-25 | CR-009 | Added | US-011 配车业务规则补全：新增 §4.13 配车流程设计（配车绑定、换绑 VIN、VIN 超时释放、订单取消释放 VIN、主动解绑、配车状态机、VIN 唯一性保障）；新增 4 个 MPT API（reassignVehicle、unbindVehicle、vehicleAssignment/list、vehicleAssignment/{orderNo}）；新增 vso_config_vehicle_occupancy 配置表；新增错误码 301030 VIN_CONFLICT、301031 VIN_INVALID；更新 §6 Coverage Mapping 补充 US-008/US-011 设计章节引用；更新 requirements.md US-011 补全 Acceptance Criteria |

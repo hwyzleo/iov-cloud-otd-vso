@@ -192,10 +192,51 @@
 **As a** B 端运营人员, **I want** 为订单分配具体车辆（VIN）, **so that** 将生产出的车辆与订单绑定。
 
 **Acceptance Criteria** (EARS 语法):
-- WHERE 订单状态允许配车、VIN 未被其他订单占用、获取分布式锁成功 WHEN 运营人员提交配车请求（含订单号和 VIN） THE SYSTEM SHALL 在 2s 内将 VIN 绑定到订单并更新订单状态为 ALLOCATION_VEHICLE
-- WHEN 配车成功 THE SYSTEM SHALL 创建车辆分配记录（含占用过期时间，默认 72 小时）
-- IF VIN 已被其他订单占用 THEN THE SYSTEM SHALL 拒绝配车并返回 VIN 冲突错误
+
+**配车绑定**
+- WHERE 订单状态允许配车（ARRANGE_PRODUCTION）、VIN 未被其他订单占用、获取分布式锁成功 WHEN 运营人员提交配车请求（含订单号和 VIN） THE SYSTEM SHALL 在 2s 内将 VIN 绑定到订单并更新订单状态为 ALLOCATION_VEHICLE
+- WHEN 配车成功 THE SYSTEM SHALL 创建车辆分配记录（含占用过期时间，从 vso_config_vehicle_occupancy 读取配置，默认 24 小时）
+- IF VIN 已被其他订单占用 THEN THE SYSTEM SHALL 拒绝配车并返回 VIN 冲突错误（错误码 301030）
 - IF 获取分布式锁失败 THEN THE SYSTEM SHALL 返回并发冲突错误
+- WHERE 订单已绑定 VIN、订单状态为 ALLOCATION_VEHICLE、获取分布式锁成功 WHEN 运营人员提交换绑请求（含订单号和新 VIN） THE SYSTEM SHALL 解绑旧 VIN 后绑定新 VIN，并更新占用过期时间
+- IF 换绑时新 VIN 已被其他订单占用 THEN THE SYSTEM SHALL 拒绝换绑并返回 VIN 冲突错误，旧 VIN 保持绑定状态
+
+**VIN 冲突检测**
+- WHEN 配车或换绑请求处理 THE SYSTEM SHALL 通过数据库唯一索引（VIN + assign_status IN ('ASSIGNED', 'BOUND')）+ 分布式锁双重保障 VIN 唯一性
+- IF 同一 VIN 被并发请求分配 THEN THE SYSTEM SHALL 保证只有一个请求成功，其他请求返回 VIN 冲突错误
+
+**VIN 超时释放**
+- IF VIN 占用超过配置的过期时间（从 vso_config_vehicle_occupancy 读取，默认 24 小时）THEN THE SYSTEM SHALL 自动释放 VIN 并更新配车状态为 EXPIRED，订单状态回退至 ARRANGE_PRODUCTION
+- WHEN VIN 超时释放 THE SYSTEM SHALL 记录时间线事件（类型：VEHICLE_ASSIGNMENT_EXPIRED）并发送通知给订单归属运营人员
+- WHERE 订单状态为 ALLOCATION_VEHICLE 且配车状态为 ASSIGNED/BOUND WHEN VIN 超时释放任务执行 THE SYSTEM SHALL 先获取分布式锁再执行释放操作
+
+**订单取消/退款时 VIN 释放**
+- WHERE 订单已绑定 VIN WHEN 订单取消或退款完成 THE SYSTEM SHALL 释放已绑定的 VIN 并更新配车状态为 RELEASED，记录释放时间为当前时间
+- WHEN VIN 因订单取消释放 THE SYSTEM SHALL 记录时间线事件（类型：VEHICLE_ASSIGNMENT_RELEASED，原因：ORDER_CANCELLED/REFUND_COMPLETED）
+
+**主动解绑 VIN**
+- WHERE 订单状态为 ALLOCATION_VEHICLE、解绑原因非空、获取分布式锁成功 WHEN 运营人员提交解绑请求 THE SYSTEM SHALL 释放 VIN 并更新配车状态为 UNBOUND，订单状态回退至 ARRANGE_PRODUCTION
+- WHEN 主动解绑成功 THE SYSTEM SHALL 记录时间线事件（类型：VEHICLE_ASSIGNMENT_UNBOUND，含解绑原因）
+- IF 订单状态不是 ALLOCATION_VEHICLE THEN THE SYSTEM SHALL 拒绝解绑并返回状态不合法错误
+
+**配车状态机**
+- 配车记录状态（assign_status）状态机：ASSIGNED（已分配）→ BOUND（已绑定）→ RELEASED/EXPIRED/UNBOUND（已释放/过期/解绑）
+- WHERE 配车状态为 ASSIGNED WHEN 订单进入发运流程 THE SYSTEM SHALL 更新配车状态为 BOUND
+- IF 配车状态为 RELEASED/EXPIRED/UNBOUND THEN THE SYSTEM SHALL 不再占用该 VIN
+
+**VIN 来源校验**
+- WHEN 配车请求处理 THE SYSTEM SHALL 调用车辆库存服务校验 VIN 是否存在且状态可用（状态为 IN_STOCK 或 ALLOCATED）
+- IF VIN 不存在或状态不可用 THEN THE SYSTEM SHALL 拒绝配车并返回 VIN 无效错误（错误码 301031）
+- WHEN 配车成功 THE SYSTEM SHALL 调用车辆库存服务更新车辆状态为 ALLOCATED
+
+**并发控制**
+- WHILE 配车/换绑/解绑操作执行中 THE SYSTEM SHALL 持有该订单的分布式锁（场景 `bindVehicle`，TTL 30s）
+
+**幂等性**
+- WHEN 运营人员重复提交相同 VIN 的配车请求 THE SYSTEM SHALL 通过幂等键（订单号 + VIN）保证不重复处理，直接返回上次配车结果
+
+**查询可配车订单**
+- WHEN 运营人员查询可配车订单列表 THE SYSTEM SHALL 仅返回状态为 ARRANGE_PRODUCTION 的订单
 
 ### US-012: 发运管理
 
@@ -336,3 +377,4 @@
 | 2026-05-25 | CR-004 | Added | US-006 意向金转定金需求补齐：新增补充信息采集（客户类型/支付方式/订购人信息等 10 个可选字段）、差额支付流程（意向金<定金时创建差额支付任务，30 分钟超时自动取消）、支付记录与回调处理、失败回滚机制（异常回滚至 EARNEST_MONEY_PAID）、幂等性控制（订单号作幂等键）、并发控制（分布式锁场景 convert/payment） |
 | 2026-05-25 | CR-005 | Added | US-003/US-004 防刷单规则补齐：新增用户维度和手机号维度的未完成订单唯一性校验（订单状态为 EARNEST_MONEY_UNPAID 或 DOWN_PAYMENT_UNPAID 时禁止重复下单），错误码 301025 DUPLICATE_UNPAID_ORDER |
 | 2026-05-25 | CR-006 | Added | US-002 心愿单数量上限与唯一性约束：新增数量上限（5个）校验、buildConfigCode 维度唯一性校验（创建/修改时均校验），错误码 301026 WISHLIST_LIMIT_EXCEEDED、301027 DUPLICATE_WISHLIST |
+| 2026-05-25 | CR-007 | Added | US-011 配车业务规则补全：补全配车绑定、换绑 VIN、VIN 冲突检测、VIN 超时释放（72小时自动释放）、订单取消/退款时 VIN 释放、主动解绑 VIN、配车状态机、VIN 来源校验、并发控制、幂等性等业务规则；新增错误码 301030 VIN_CONFLICT、301031 VIN_INVALID |
