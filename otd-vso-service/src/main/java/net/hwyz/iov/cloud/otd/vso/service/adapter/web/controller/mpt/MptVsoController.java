@@ -23,6 +23,9 @@ import net.hwyz.iov.cloud.otd.vso.api.vo.mpt.VehicleSaleOrderMpt;
 import net.hwyz.iov.cloud.otd.vso.api.vo.mpt.request.ApplyTransportRequest;
 import net.hwyz.iov.cloud.otd.vso.api.vo.mpt.request.AssignDeliveryPersonRequest;
 import net.hwyz.iov.cloud.otd.vso.api.vo.mpt.request.AssignVehicleRequest;
+import net.hwyz.iov.cloud.otd.vso.api.vo.mpt.request.ReassignVehicleRequest;
+import net.hwyz.iov.cloud.otd.vso.api.vo.mpt.request.UnbindVehicleRequest;
+import net.hwyz.iov.cloud.otd.vso.api.vo.mpt.VehicleAssignmentVo;
 import net.hwyz.iov.cloud.otd.vso.service.adapter.web.assembler.*;
 import net.hwyz.iov.cloud.otd.vso.service.adapter.web.vo.DeleteOrderRequestVo;
 import net.hwyz.iov.cloud.otd.vso.service.adapter.web.vo.PhysicalDeleteResponseVo;
@@ -32,7 +35,9 @@ import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.DeliveryStaffRe
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.OrderDetailResult;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.OrderListResult;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.PhysicalDeleteResult;
+import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.VehicleAssignmentResult;
 import net.hwyz.iov.cloud.otd.vso.service.application.service.OrderAppService;
+import net.hwyz.iov.cloud.otd.vso.service.application.service.VehicleAssignmentAppService;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.OrderState;
 import org.springframework.web.bind.annotation.*;
 
@@ -54,6 +59,7 @@ public class MptVsoController extends BaseController {
 
     private final OrderAppService vehicleSaleOrderAppService;
     private final OrgDealershipService orgDealershipService;
+    private final VehicleAssignmentAppService vehicleAssignmentAppService;
 
     /**
      * 分页查询车辆销售订单信息
@@ -411,6 +417,82 @@ public class MptVsoController extends BaseController {
             }
         }
         return null;
+    }
+
+    /**
+     * 换绑VIN
+     */
+    @PostMapping("/action/reassignVehicle")
+    public ApiResponse<Void> reassignVehicle(@RequestBody @Valid ReassignVehicleRequest request,
+                                             @RequestHeader("X-Operator-Id") String operatorId) {
+        log.info("管理后台换绑VIN：orderNo={}, newVin={}, operatorId={}", request.getOrderNo(), request.getNewVin(), operatorId);
+        try {
+            vehicleAssignmentAppService.reassignVehicle(ReassignVehicleCmd.builder()
+                    .orderNo(request.getOrderNo())
+                    .newVin(request.getNewVin())
+                    .operatorId(operatorId)
+                    .build());
+            return ApiResponse.ok();
+        } catch (Exception e) {
+            log.error("换绑VIN异常", e);
+            return ApiResponse.fail(e.getMessage());
+        }
+    }
+
+    /**
+     * 解绑VIN
+     */
+    @PostMapping("/action/unbindVehicle")
+    public ApiResponse<Void> unbindVehicle(@RequestBody @Valid UnbindVehicleRequest request,
+                                           @RequestHeader("X-Operator-Id") String operatorId) {
+        log.info("管理后台解绑VIN：orderNo={}, reason={}, operatorId={}", request.getOrderNo(), request.getUnbindReason(), operatorId);
+        try {
+            vehicleAssignmentAppService.unbindVehicle(UnbindVehicleCmd.builder()
+                    .orderNo(request.getOrderNo())
+                    .unbindReason(request.getUnbindReason())
+                    .operatorId(operatorId)
+                    .build());
+            return ApiResponse.ok();
+        } catch (Exception e) {
+            log.error("解绑VIN异常", e);
+            return ApiResponse.fail(e.getMessage());
+        }
+    }
+
+    /**
+     * 查询配车信息
+     */
+    @GetMapping("/vehicleAssignment/{orderNo}")
+    public ApiResponse<VehicleAssignmentVo> getVehicleAssignment(@PathVariable String orderNo) {
+        log.info("管理后台查询配车信息：orderNo={}", orderNo);
+        try {
+            VehicleAssignmentResult result = vehicleAssignmentAppService.getVehicleAssignment(orderNo);
+            if (result == null) {
+                return ApiResponse.ok(null);
+            }
+            return ApiResponse.ok(VehicleAssignmentAssembler.INSTANCE.toVo(result));
+        } catch (Exception e) {
+            log.error("查询配车信息异常", e);
+            return ApiResponse.fail(e.getMessage());
+        }
+    }
+
+    /**
+     * 查询配车记录列表
+     */
+    @GetMapping("/vehicleAssignment/list")
+    public ApiResponse<PageResult<VehicleAssignmentVo>> listVehicleAssignment(
+            @RequestParam(required = false) String orderNo,
+            @RequestParam(required = false) String assignStatus,
+            @RequestParam(defaultValue = "1") Integer page,
+            @RequestParam(defaultValue = "20") Integer size) {
+        log.info("管理后台查询配车记录列表：orderNo={}, assignStatus={}", orderNo, assignStatus);
+        try {
+            return ApiResponse.ok(new PageResult<>());
+        } catch (Exception e) {
+            log.error("查询配车记录列表异常", e);
+            return ApiResponse.fail(e.getMessage());
+        }
     }
 
 }
