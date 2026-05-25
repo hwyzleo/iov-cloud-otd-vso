@@ -1,6 +1,9 @@
 package net.hwyz.iov.cloud.otd.vso.service.domain.service;
 
 import lombok.RequiredArgsConstructor;
+import net.hwyz.iov.cloud.otd.vso.service.common.exception.BindConflictException;
+import net.hwyz.iov.cloud.otd.vso.service.common.exception.LockConflictException;
+import net.hwyz.iov.cloud.otd.vso.service.common.exception.PaymentConflictException;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.mapper.OrderMapper;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
@@ -119,17 +122,25 @@ public class OrderLockService {
      * @param <T> 返回值类型
      * @return 操作结果
      */
-    public <T> T executeWithLock(String orderId, String operatorId, String lockScene, 
+    public <T> T executeWithLock(String orderId, String operatorId, String lockScene,
                                   java.util.function.Supplier<T> action) {
         if (!tryLock(orderId, operatorId, lockScene)) {
-            throw new IllegalStateException("订单正在处理中，请稍后再试 [" + orderId + "]");
+            throw createConflictException(lockScene);
         }
-        
+
         try {
             return action.get();
         } finally {
             unlock(orderId, operatorId);
         }
+    }
+
+    private RuntimeException createConflictException(String lockScene) {
+        return switch (lockScene) {
+            case "payment" -> new PaymentConflictException();
+            case "bindVehicle" -> new BindConflictException();
+            default -> new LockConflictException();
+        };
     }
 
     /**

@@ -18,7 +18,7 @@ import java.util.Optional;
 public class VehicleOccupancyConfigRepositoryImpl implements VehicleOccupancyConfigRepository {
 
     private final VehicleOccupancyConfigMapper mapper;
-    private static final int DEFAULT_HOURS = 24;
+    private static final int DEFAULT_HOURS = 72;
 
     @Override
     public int getDefaultOccupancyHours() {

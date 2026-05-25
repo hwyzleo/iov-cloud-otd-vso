@@ -9,7 +9,7 @@ public interface VehicleOccupancyConfigRepository {
 
     /**
      * 获取默认占用小时数
-     * @return 占用小时数，默认24小时
+     * @return 占用小时数，默认72小时
      */
     int getDefaultOccupancyHours();
 

@@ -636,6 +636,9 @@ public class Order {
         Date now = new Date();
         this.orderStateTime = now;
         this.downPaymentTime = now;
+        if (this.orderAmount != null && this.orderAmount.getPaidTotal().isGreaterThan(this.orderAmount.getDepositAmount())) {
+            this.orderAmount.setUpgradedFromSmall(true);
+        }
     }
 
     // ==================== 发运/交付业务方法 ====================

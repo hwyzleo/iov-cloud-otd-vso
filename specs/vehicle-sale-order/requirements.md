@@ -76,7 +76,7 @@
 **As a** C 端用户, **I want** 通过多种支付渠道完成订单支付, **so that** 我能完成购车付款流程。
 
 **Acceptance Criteria** (EARS 语法):
-- WHERE 订单状态为 EARNEST_MONEY_UNPAID 或 DOWN_PAYMENT_UNPAID、未超过支付过期时间、获取分布式锁成功 WHEN 用户发起支付请求（含订单号和支付渠道） THE SYSTEM SHALL 在 2s 内创建支付记录（状态 PENDING_PAYMENT）并返回支付凭证信息；若获取锁失败返回并发冲突错误
+- WHERE 订单状态为 EARNEST_MONEY_UNPAID 或 DOWN_PAYMENT_UNPAID、未超过支付过期时间、获取分布式锁成功 WHEN 用户发起支付请求（含订单号和支付渠道） THE SYSTEM SHALL 在 2s 内创建支付记录（状态 PENDING_PAYMENT）并返回支付凭证信息；若获取锁失败返回并发冲突错误（错误码 301032）
 - WHERE 支付记录存在、状态为 PENDING_PAYMENT、回调金额与订单金额一致（精度到分） WHEN 支付网关回调通知支付成功 THE SYSTEM SHALL 更新支付状态为 PAID 并在同一事务内触发订单状态流转
 - WHERE 支付成功且订单状态为 EARNEST_MONEY_UNPAID WHEN 支付状态更新为 PAID THE SYSTEM SHALL 将订单状态流转为 EARNEST_MONEY_PAID
 - WHERE 支付成功且订单状态为 DOWN_PAYMENT_UNPAID WHEN 支付状态更新为 PAID THE SYSTEM SHALL 将订单状态流转为 DOWN_PAYMENT_PAID
@@ -93,7 +93,7 @@
 #### 状态转换
 - WHERE 订单当前状态为 EARNEST_MONEY_PAID、获取分布式锁成功 WHEN 用户提交意向金转定金请求 THE SYSTEM SHALL 在 1s 内将订单类型从 SMALL 变更为 FORMAL、状态从 EARNEST_MONEY_PAID 流转为 DOWN_PAYMENT_PAID，并记录时间线事件
 - IF 订单当前状态不是 EARNEST_MONEY_PAID THEN THE SYSTEM SHALL 拒绝操作并返回状态不合法错误
-- IF 获取分布式锁失败 THEN THE SYSTEM SHALL 返回并发冲突错误
+- IF 获取分布式锁失败 THEN THE SYSTEM SHALL 返回并发冲突错误（错误码 301033）
 
 #### 补充信息采集
 - WHEN 用户提交意向金转定金请求 THE SYSTEM SHALL 支持采集以下可选信息：客户类型（customerType）、支付方式（paymentMethod）、订购人类型（orderPersonType）、订购人姓名（orderPersonName）、订购人证件类型（orderPersonIdType）、订购人证件号码（orderPersonIdNum）、购买计划（purchasePlan）、上牌城市代码（licenseCityCode）、下单门店编码（orderStoreCode）、交付门店编码（deliveryStoreCode）
@@ -135,7 +135,7 @@
 - WHERE 订单状态为 EARNEST_MONEY_PAID、DOWN_PAYMENT_UNPAID 或 DOWN_PAYMENT_PAID、buildConfigLock=false、获取分布式锁成功 WHEN 用户提交改配请求（含新的特征码组合） THE SYSTEM SHALL 在 2s 内解析新的 buildConfigCode、创建新版本车辆配置快照、记录时间线事件；若解析失败返回 BuildConfigNotMatchedException
 - IF 订单状态不在允许改配的状态范围内 THEN THE SYSTEM SHALL 拒绝改配并返回状态不合法错误
 - IF 订单已锁单（buildConfigLock=true） THEN THE SYSTEM SHALL 拒绝改配并返回 SaleModelConfigHasLockedException
-- IF 获取分布式锁失败 THEN THE SYSTEM SHALL 返回并发冲突错误
+- IF 获取分布式锁失败 THEN THE SYSTEM SHALL 返回并发冲突错误（错误码 301033）
 
 #### 价格重算与差额处理
 - WHERE 改配成功、新配置价格可获取 THE SYSTEM SHALL 计算价格差额（新配置价格 - 原配置价格），并记录到订单金额明细
@@ -164,8 +164,9 @@
 - WHERE 订单状态为 EARNEST_MONEY_PAID 或 DOWN_PAYMENT_PAID、获取分布式锁成功 WHEN 用户提交退款申请 THE SYSTEM SHALL 将订单状态设为 REFUND_APPLY 并创建退款任务，退款金额等于已支付金额（全额退款，手续费为 0）
 - WHERE 订单状态为 ARRANGE_PRODUCTION、获取分布式锁成功 WHEN 用户提交退款申请 THE SYSTEM SHALL 将订单状态设为 REFUND_APPLY 并创建退款任务，退款金额 = 已支付金额 - max(已支付金额 × 5%, 500)，其中 5% 为手续费比例，500 为最低手续费金额（单位：元）
 - WHERE 订单状态为 ALLOCATION_VEHICLE 或之后状态（APPLY_TRANSPORT、PREPARE_TRANSPORT、TRANSPORTING、PREPARE_DELIVER、DELIVERED、ACTIVATED） WHEN 用户提交退款申请 THE SYSTEM SHALL 拒绝退款并返回状态不合法错误（订单已进入生产/发运阶段，不支持退款）
+- WHERE 订单类型为 FORMAL（由 SMALL 升级而来）、订单状态为 EARNEST_MONEY_PAID 或 DOWN_PAYMENT_PAID、已支付金额 > 定金金额（存在超额支付）、获取分布式锁成功 WHEN 用户提交退款申请 THE SYSTEM SHALL 将订单状态设为 REFUND_APPLY 并创建退款任务，退款金额 = 已支付金额 - 定金金额（超额部分退款，定金不退还），手续费为 0，并记录时间线事件
 - WHILE 取消/退款操作执行中 THE SYSTEM SHALL 持有该订单的分布式锁（TTL 30s，操作完成后自动释放）
-- IF 获取分布式锁失败 THEN THE SYSTEM SHALL 返回并发冲突错误
+- IF 获取分布式锁失败 THEN THE SYSTEM SHALL 返回并发冲突错误（错误码 301033）
 - WHEN 退款申请提交成功 THE SYSTEM SHALL 记录退款记录（含退款金额、手续费金额、退款原因、申请时间）
 
 ### US-009: 订单锁单
@@ -176,7 +177,7 @@
 - WHERE 订单状态为 DOWN_PAYMENT_PAID、获取分布式锁成功 WHEN 运营人员对订单执行锁单 THE SYSTEM SHALL 在 1s 内将订单状态流转为 ARRANGE_PRODUCTION 并设置 buildConfigLock=true
 - WHEN 锁单成功 THE SYSTEM SHALL 记录锁单时间并创建超时提醒任务（LOCK_TIMEOUT，阈值 2880 分钟，策略 remind）
 - IF 订单状态不是 DOWN_PAYMENT_PAID THEN THE SYSTEM SHALL 拒绝锁单操作并返回状态不合法错误
-- IF 获取分布式锁失败 THEN THE SYSTEM SHALL 返回并发冲突错误
+- IF 获取分布式锁失败 THEN THE SYSTEM SHALL 返回并发冲突错误（错误码 301033）
 
 ### US-010: 订单审核
 
@@ -210,9 +211,9 @@
 
 **配车绑定**
 - WHERE 订单状态允许配车（ARRANGE_PRODUCTION）、VIN 未被其他订单占用、获取分布式锁成功 WHEN 运营人员提交配车请求（含订单号和 VIN） THE SYSTEM SHALL 在 2s 内将 VIN 绑定到订单并更新订单状态为 ALLOCATION_VEHICLE
-- WHEN 配车成功 THE SYSTEM SHALL 创建车辆分配记录（含占用过期时间，从 vso_config_vehicle_occupancy 读取配置，默认 24 小时）
+- WHEN 配车成功 THE SYSTEM SHALL 创建车辆分配记录（含占用过期时间，从 vso_config_vehicle_occupancy 读取配置，默认 72 小时）
 - IF VIN 已被其他订单占用 THEN THE SYSTEM SHALL 拒绝配车并返回 VIN 冲突错误（错误码 301030）
-- IF 获取分布式锁失败 THEN THE SYSTEM SHALL 返回并发冲突错误
+- IF 获取分布式锁失败 THEN THE SYSTEM SHALL 返回并发冲突错误（错误码 301034）
 - WHERE 订单已绑定 VIN、订单状态为 ALLOCATION_VEHICLE、获取分布式锁成功 WHEN 运营人员提交换绑请求（含订单号和新 VIN） THE SYSTEM SHALL 解绑旧 VIN 后绑定新 VIN，并更新占用过期时间
 - IF 换绑时新 VIN 已被其他订单占用 THEN THE SYSTEM SHALL 拒绝换绑并返回 VIN 冲突错误，旧 VIN 保持绑定状态
 
@@ -221,7 +222,7 @@
 - IF 同一 VIN 被并发请求分配 THEN THE SYSTEM SHALL 保证只有一个请求成功，其他请求返回 VIN 冲突错误
 
 **VIN 超时释放**
-- IF VIN 占用超过配置的过期时间（从 vso_config_vehicle_occupancy 读取，默认 24 小时）THEN THE SYSTEM SHALL 自动释放 VIN 并更新配车状态为 EXPIRED，订单状态回退至 ARRANGE_PRODUCTION
+- IF VIN 占用超过配置的过期时间（从 vso_config_vehicle_occupancy 读取，默认 72 小时）THEN THE SYSTEM SHALL 自动释放 VIN 并更新配车状态为 EXPIRED，订单状态回退至 ARRANGE_PRODUCTION
 - WHEN VIN 超时释放 THE SYSTEM SHALL 记录时间线事件（类型：VEHICLE_ASSIGNMENT_EXPIRED）并发送通知给订单归属运营人员
 - WHERE 订单状态为 ALLOCATION_VEHICLE 且配车状态为 ASSIGNED/BOUND WHEN VIN 超时释放任务执行 THE SYSTEM SHALL 先获取分布式锁再执行释放操作
 
@@ -263,6 +264,11 @@
 - WHERE 订单状态为 PREPARE_TRANSPORT WHEN 服务间调用通知发运中 THE SYSTEM SHALL 将订单状态流转为 TRANSPORTING 并记录时间线事件
 - IF 服务间调用携带的订单状态与当前状态不匹配 THEN THE SYSTEM SHALL 拒绝状态流转并返回状态不合法错误，不记录时间线
 
+#### 倒计时补偿机制
+- WHERE 订单状态流转为 PREPARE_TRANSPORT THE SYSTEM SHALL 创建倒计时任务（期望状态 TRANSPORTING，阈值 24 小时），倒计时触发时发送告警通知给运营人员
+- WHERE 订单状态流转为 TRANSPORTING THE SYSTEM SHALL 取消 PREPARE_TRANSPORT 倒计时任务，创建新倒计时任务（期望状态 PREPARE_DELIVER，阈值 48 小时），倒计时触发时发送告警通知
+- WHERE 服务间回调成功推进状态 THE SYSTEM SHALL 取消对应倒计时任务，订单状态不受影响
+
 ### US-013: 交付管理
 
 **As a** B 端运营人员, **I want** 管理订单的交付流程, **so that** 完成车辆从交付中心到客户手中的最后环节。
@@ -273,13 +279,18 @@
 - WHERE 订单状态为 PREPARE_DELIVER WHEN 服务间调用通知已交付 THE SYSTEM SHALL 将订单状态流转为 DELIVERED 并记录时间线事件
 - WHERE 订单状态为 DELIVERED WHEN 服务间调用通知已激活 THE SYSTEM SHALL 将订单状态流转为 ACTIVATED 并记录时间线事件
 
+#### 倒计时补偿机制
+- WHERE 订单状态流转为 PREPARE_DELIVER THE SYSTEM SHALL 创建倒计时任务（期望状态 DELIVERED，阈值 24 小时），倒计时触发时发送告警通知给运营人员
+- WHERE 订单状态流转为 DELIVERED THE SYSTEM SHALL 取消 PREPARE_DELIVER 倒计时任务，创建新倒计时任务（期望状态 ACTIVATED，阈值 72 小时），倒计时触发时发送告警通知
+- WHERE 服务间回调成功推进状态 THE SYSTEM SHALL 取消对应倒计时任务，订单状态不受影响
+
 ### US-014: 订单关闭
 
 **As a** B 端运营人员, **I want** 关闭异常或无效订单, **so that** 终止不再需要的订单流程。
 
 **Acceptance Criteria** (EARS 语法):
 - WHERE 订单存在且状态非终态（非 CANCEL、EXPIRED、ACTIVATED）、X-Operator-Id 请求头存在、关闭原因非空、获取分布式锁成功 WHEN 运营人员提交关闭订单请求（含关闭原因） THE SYSTEM SHALL 在 1s 内将订单状态设为 CLOSED 并记录关闭原因和操作人、时间线事件
-- IF 获取分布式锁失败 THEN THE SYSTEM SHALL 返回并发冲突错误
+- IF 获取分布式锁失败 THEN THE SYSTEM SHALL 返回并发冲突错误（错误码 301033）
 
 ### US-015: 订单物理删除
 
@@ -325,6 +336,19 @@
 - WHEN 支付回调重复到达（支付流水号已处理） THE SYSTEM SHALL 通过幂等机制保证不重复处理，直接返回成功
 - WHEN 回调处理完成（无论成功或失败） THE SYSTEM SHALL 记录回调日志（含回调时间、支付流水号、处理结果、耗时）
 
+#### 签名规范
+- **签名算法**：HMAC-SHA256
+- **签名内容**（按字段字典序排列，用 `&` 连接）：
+  ```
+  amount={金额}&nonce={随机串}&orderId={订单号}&paySeq={支付流水号}&status={支付状态}&timestamp={Unix秒}
+  ```
+- **防重放机制**：
+  - `timestamp`：与服务器时间差 < 5 分钟
+  - `nonce`：存 Redis SET，TTL 5 分钟，防止重放
+- **响应规范**：
+  - 验签失败 → 返回 403，**不记录支付流水号**（防信息泄露）
+  - 验签通过 → 返回 200
+
 ### US-019: 超时自动处理
 
 **As a** 系统, **I want** 自动处理超时订单, **so that** 未及时支付或处理的订单能被自动关闭或提醒。
@@ -338,6 +362,10 @@
 - **补偿机制**：若超时任务处理失败（抛出异常），系统标记任务为 FAILED 并递增重试计数器；最多重试 3 次（`retryCount < 3`），超过 3 次后标记为 DONE 并发送告警通知（策略 `retry_and_alert`）
 - **任务状态机**：PENDING → TRIGGERED → DONE/FAILED/CANCELLED，支付成功时自动取消对应订单的 SMALL_ORDER_PAY_TIMEOUT 任务
 - **时钟漂移**：系统使用单节点 `LocalDateTime.now()` 进行时间比较，不跨节点同步时钟；若未来部署多实例，需改用 Redis 分布式时间或数据库行级锁保证一致性
+- **⚠️ 多实例部署警告**：当前任务存储在 ConcurrentHashMap（单实例内存），多实例部署会导致任务被重复执行或漏执行。**生产部署前**必须迁移至：
+  - **方案A（推荐）**：Redis 存储任务 + 分布式锁保证单节点执行
+  - **方案B**：数据库任务表 + 行级锁
+  迁移完成前，禁止部署多副本。
 
 ### US-020: 订单并发控制
 
@@ -394,3 +422,4 @@
 | 2026-05-25 | CR-006 | Added | US-002 心愿单数量上限与唯一性约束：新增数量上限（5个）校验、buildConfigCode 维度唯一性校验（创建/修改时均校验），错误码 301026 WISHLIST_LIMIT_EXCEEDED、301027 DUPLICATE_WISHLIST |
 | 2026-05-25 | CR-007 | Added | US-011 配车业务规则补全：补全配车绑定、换绑 VIN、VIN 冲突检测、VIN 超时释放（72小时自动释放）、订单取消/退款时 VIN 释放、主动解绑 VIN、配车状态机、VIN 来源校验、并发控制、幂等性等业务规则；新增错误码 301030 VIN_CONFLICT、301031 VIN_INVALID |
 | 2026-05-25 | CR-008 | Added | US-010 审核驳回可恢复路径：新增重提审核规则（最多 3 次，超限自动关闭）、驳回超时策略（72h 提醒+168h 自动关闭）、结构化驳回原因枚举（INCOMPLETE_INFO/INCORRECT_INFO/RISK_BLOCK/DUPLICATE_ORDER/OTHER）、驳回后可取消、审批记录扩展（action_type/reject_category/reject_reason/parent_record_id）；新增错误码 301028 AUDIT_RESUBMIT_LIMIT_EXCEEDED、301029 AUDIT_REJECT_REASON_REQUIRED |
+| 2026-05-25 | CR-009 | Fixed | 需求文档问题修复与优化：①错误码优化：301015 CONCURRENT_CONFLICT 拆分为 301032 PAYMENT_CONFLICT（支付）、301033 LOCK_CONFLICT（锁单/退款/改配/关单）、301034 BIND_CONFLICT（配车/换绑）；②VIN 占用过期时间统一为 72 小时（修正 US-011 正文）；③US-008 补充意向金>定金超额退款规则；④US-019 增加多实例部署警告；⑤US-012/US-013 增加倒计时补偿机制（PREPARE_TRANSPORT→24h、TRANSPORTING→48h、PREPARE_DELIVER→24h、DELIVERED→72h）；⑥US-018 补充支付回调签名规范（HMAC-SHA256 + timestamp + nonce 防重放） |

@@ -1268,28 +1268,36 @@ public class OrderAppService {
         Order order = findOrderByOrderNo(cmd.getOrderNo());
         order.prepareTransport();
         orderRepository.save(order);
+        timeoutNotifyService.createTimeoutTask(order.getId(), "PREPARE_TRANSPORT_TIMEOUT", "remind", 1440);
     }
 
     public void transporting(TransportingCmd cmd) {
         Order order = findOrderByOrderNo(cmd.getOrderNo());
+        timeoutNotifyService.cancelByOrderIdAndType(order.getId(), "PREPARE_TRANSPORT_TIMEOUT");
         order.transporting();
         orderRepository.save(order);
+        timeoutNotifyService.createTimeoutTask(order.getId(), "TRANSPORTING_TIMEOUT", "remind", 2880);
     }
 
     public void prepareDelivery(PrepareDeliveryCmd cmd) {
         Order order = findOrderByOrderNo(cmd.getOrderNo());
+        timeoutNotifyService.cancelByOrderIdAndType(order.getId(), "TRANSPORTING_TIMEOUT");
         order.prepareDelivery();
         orderRepository.save(order);
+        timeoutNotifyService.createTimeoutTask(order.getId(), "PREPARE_DELIVER_TIMEOUT", "remind", 1440);
     }
 
     public void delivered(DeliveredCmd cmd) {
         Order order = findOrderByOrderNo(cmd.getOrderNo());
+        timeoutNotifyService.cancelByOrderIdAndType(order.getId(), "PREPARE_DELIVER_TIMEOUT");
         order.delivered();
         orderRepository.save(order);
+        timeoutNotifyService.createTimeoutTask(order.getId(), "DELIVERED_TIMEOUT", "remind", 4320);
     }
 
     public void activate(ActivateCmd cmd) {
         Order order = findOrderByOrderNo(cmd.getOrderNo());
+        timeoutNotifyService.cancelByOrderIdAndType(order.getId(), "DELIVERED_TIMEOUT");
         order.activate();
         orderRepository.save(order);
     }

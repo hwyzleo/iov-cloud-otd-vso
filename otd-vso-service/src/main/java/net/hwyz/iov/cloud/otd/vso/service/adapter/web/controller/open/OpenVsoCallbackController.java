@@ -9,9 +9,11 @@ import net.hwyz.iov.cloud.otd.vso.service.adapter.web.vo.request.PaymentCallback
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.PaymentCallbackCmd;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.enums.PaymentCallbackResultCode;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.PaymentCallbackResult;
+import net.hwyz.iov.cloud.otd.vso.service.application.service.CallbackSignatureService;
 import net.hwyz.iov.cloud.otd.vso.service.application.service.PaymentCallbackService;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -26,6 +28,7 @@ import java.util.Map;
 public class OpenVsoCallbackController extends BaseController {
 
     private final PaymentCallbackService paymentCallbackService;
+    private final CallbackSignatureService callbackSignatureService;
 
     /**
      * 支付回调
@@ -35,6 +38,11 @@ public class OpenVsoCallbackController extends BaseController {
                                              @RequestHeader(value = "X-Signature", required = false) String signature) {
         log.info("支付回调：paymentNo={}, externalTradeNo={}, paymentStage={}",
                 request.getPaymentNo(), request.getExternalTradeNo(), request.getPaymentStage());
+
+        if (!verifySignature(signature, request)) {
+            log.warn("支付回调签名验证失败：paymentNo={}", request.getPaymentNo());
+            return ApiResponse.fail("签名验证失败");
+        }
 
         try {
             PaymentCallbackCmd cmd = PaymentCallbackCmd.builder()
@@ -60,6 +68,15 @@ public class OpenVsoCallbackController extends BaseController {
             log.error("支付回调异常", e);
             return ApiResponse.fail("回调处理失败");
         }
+    }
+
+    private boolean verifySignature(String signature, PaymentCallbackRequest request) {
+        Map<String, String> signData = new HashMap<>();
+        signData.put("amount", request.getPaymentAmount() != null ? request.getPaymentAmount().toPlainString() : "");
+        signData.put("orderId", request.getPaymentNo());
+        signData.put("paySeq", request.getExternalTradeNo());
+        signData.put("status", request.getPaymentStatus());
+        return callbackSignatureService.verifySignature(signature, request.getTimestamp(), request.getNonce(), signData);
     }
 
     /**

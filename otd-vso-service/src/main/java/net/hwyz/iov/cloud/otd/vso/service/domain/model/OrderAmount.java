@@ -2,6 +2,7 @@ package net.hwyz.iov.cloud.otd.vso.service.domain.model;
 
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import net.hwyz.iov.cloud.otd.vso.api.enums.OrderType;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.shared.Money;
 
 import java.math.BigDecimal;
@@ -125,6 +126,11 @@ public class OrderAmount {
      */
     private Integer calculationVersion;
 
+    /**
+     * 是否由小定升级而来（意向金 > 定金）
+     */
+    private boolean upgradedFromSmall;
+
     public OrderAmount(String amountId) {
         this.amountId = amountId;
         this.guidePrice = new Money(BigDecimal.ZERO);
@@ -146,6 +152,7 @@ public class OrderAmount {
         this.receivableTotal = new Money(BigDecimal.ZERO);
         this.netReceivableTotal = new Money(BigDecimal.ZERO);
         this.unpaidTotal = new Money(BigDecimal.ZERO);
+        this.upgradedFromSmall = false;
         this.invoiceAmount = new Money(BigDecimal.ZERO);
         this.calculationVersion = 1;
     }
@@ -217,20 +224,19 @@ public class OrderAmount {
      * @throws IllegalStateException 如果订单状态不允许退款
      */
     public Money calculateRefundAmount(OrderState orderState) {
-        // 根据订单状态判断退款规则
         switch (orderState) {
             case EARNEST_MONEY_PAID:
             case DOWN_PAYMENT_PAID:
-                // 未锁单前：全额退款，手续费为 0
+                if (this.upgradedFromSmall && this.paidTotal.isGreaterThan(this.depositAmount)) {
+                    return this.paidTotal.subtract(this.depositAmount);
+                }
                 return this.paidTotal;
-                
+
             case ARRANGE_PRODUCTION:
-                // 锁单后：部分退款，扣除手续费
                 Money fee = calculateRefundFee(this.paidTotal);
                 return this.paidTotal.subtract(fee);
-                
+
             default:
-                // 生产中/已发运：不支持退款
                 throw new IllegalStateException("订单状态 [" + orderState + "] 不支持退款");
         }
     }
@@ -265,12 +271,15 @@ public class OrderAmount {
      * 获取退款场景
      *
      * @param orderState 订单状态
-     * @return 退款场景（full_refund 或 partial_refund）
+     * @return 退款场景（full_refund / excess_refund / partial_refund）
      */
     public String getRefundScene(OrderState orderState) {
         switch (orderState) {
             case EARNEST_MONEY_PAID:
             case DOWN_PAYMENT_PAID:
+                if (this.upgradedFromSmall && this.paidTotal.isGreaterThan(this.depositAmount)) {
+                    return "excess_refund";
+                }
                 return "full_refund";
             case ARRANGE_PRODUCTION:
                 return "partial_refund";
@@ -337,6 +346,13 @@ public class OrderAmount {
      */
     public void setDownPaymentAmount(Money downPaymentAmount) {
         this.downPaymentAmount = downPaymentAmount;
+    }
+
+    /**
+     * 设置是否由小定升级而来
+     */
+    public void setUpgradedFromSmall(boolean upgradedFromSmall) {
+        this.upgradedFromSmall = upgradedFromSmall;
     }
 
 }

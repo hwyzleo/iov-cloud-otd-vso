@@ -45,4 +45,8 @@ public class PaymentCallbackRequest {
 
     private String signature;
 
+    private Long timestamp;
+
+    private String nonce;
+
 }

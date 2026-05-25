@@ -36,6 +36,9 @@ public class VsoBaseException extends BaseException {
     protected static final int ERROR_CODE_VIN_INVALID = 301029;
     protected static final int ERROR_CODE_AUDIT_RESUBMIT_LIMIT_EXCEEDED = 301030;
     protected static final int ERROR_CODE_AUDIT_REJECT_REASON_REQUIRED = 301031;
+    protected static final int ERROR_CODE_PAYMENT_CONFLICT = 301032;
+    protected static final int ERROR_CODE_LOCK_CONFLICT = 301033;
+    protected static final int ERROR_CODE_BIND_CONFLICT = 301034;
 
     public VsoBaseException(String message) {
         super(ERROR_CODE, message);
