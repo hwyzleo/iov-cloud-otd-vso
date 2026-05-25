@@ -30,6 +30,7 @@ import net.hwyz.iov.cloud.otd.vso.service.common.exception.WishlistNotExistExcep
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.Order;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.OrderAmount;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.OrderState;
+import net.hwyz.iov.cloud.otd.vso.service.domain.model.VehicleAssignment;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.Wishlist;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.shared.CustomerInfo;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.shared.Money;
@@ -43,6 +44,7 @@ import net.hwyz.iov.cloud.otd.vso.service.domain.repository.SaleModelRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.WishlistRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.AuditRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.OrderVehicleSnapshotRepository;
+import net.hwyz.iov.cloud.otd.vso.service.domain.repository.VehicleAssignmentRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.service.OrderDomainService;
 import net.hwyz.iov.cloud.otd.vso.service.domain.service.OrderLockService;
 import net.hwyz.iov.cloud.otd.vso.service.domain.service.OrderPhysicalDeleteService;
@@ -61,6 +63,7 @@ import net.hwyz.iov.cloud.otd.vso.service.domain.repository.SupplementaryPayment
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.ConfigChangeRefundRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.event.ConfigChangePriceDiffEvent;
 import net.hwyz.iov.cloud.otd.vso.service.domain.gateway.PaymentAdapter;
+import net.hwyz.iov.cloud.otd.vso.service.domain.gateway.VehicleInventoryGateway;
 import net.hwyz.iov.cloud.otd.vso.service.domain.policy.DuplicateOrderSpecification;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.SupplementaryPaymentPo;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.ConfigChangeRefundPo;
@@ -126,6 +129,8 @@ public class OrderAppService {
     private final ApplicationEventPublisher eventPublisher;
     private final PaymentAdapter paymentAdapter;
     private final DuplicateOrderSpecification duplicateOrderSpecification;
+    private final VehicleAssignmentRepository vehicleAssignmentRepository;
+    private final VehicleInventoryGateway vehicleInventoryGateway;
 
     private final Map<String, String> cityNameCache = new ConcurrentHashMap<>();
     private volatile long cityNameCacheLastRefresh = 0;
@@ -283,6 +288,8 @@ public class OrderAppService {
                 cmd.getOrderId(), cmd.getOperatorId(), cmd.getReason(), cmd.getOperateType());
 
         orderLockService.executeWithLock(cmd.getOrderId(), cmd.getOperatorId(), cmd.getOperateType(), () -> {
+            Order order = orderDomainService.loadOrder(cmd.getOrderId());
+            releaseVehicleAssignmentIfNeeded(order, cmd.getOperateType());
             if ("cancel".equals(cmd.getOperateType())) {
                 orderDomainService.cancelOrder(cmd.getOrderId(), cmd.getReason());
             } else if ("close".equals(cmd.getOperateType())) {
@@ -1644,6 +1651,30 @@ public class OrderAppService {
                 .expireTime(po.getExpireTime())
                 .createTime(po.getCreateTime())
                 .build();
+    }
+
+    private void releaseVehicleAssignmentIfNeeded(Order order, String operateType) {
+        if (order.getDeliveryVin() == null || order.getDeliveryVin().isEmpty()) {
+            return;
+        }
+
+        Optional<VehicleAssignment> assignmentOpt = vehicleAssignmentRepository.findDomainByOrderId(order.getId());
+        if (assignmentOpt.isEmpty()) {
+            return;
+        }
+
+        VehicleAssignment assignment = assignmentOpt.get();
+        String reason = "cancel".equals(operateType) ? "ORDER_CANCELLED" : "ORDER_CLOSED";
+        assignment.release(reason);
+        vehicleAssignmentRepository.saveDomain(assignment);
+
+        vehicleInventoryGateway.releaseVehicleStatus(order.getDeliveryVin());
+
+        saveOrderTimeline(order.getId(), "VEHICLE_ASSIGNMENT_RELEASED", "VIN释放",
+                null, null, null, null, null, null, "success", null,
+                String.format("VIN: %s, 原因: %s", order.getDeliveryVin(), reason));
+
+        log.info("订单取消/关闭释放VIN：orderId={}, vin={}", order.getId(), order.getDeliveryVin());
     }
 
 }
