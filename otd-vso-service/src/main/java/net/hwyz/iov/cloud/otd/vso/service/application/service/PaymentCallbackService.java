@@ -7,12 +7,17 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.hwyz.iov.cloud.otd.vso.api.enums.PaymentStage;
 import net.hwyz.iov.cloud.otd.vso.api.enums.PaymentStatus;
+import net.hwyz.iov.cloud.otd.vso.api.enums.SupplementaryPaymentScene;
 import net.hwyz.iov.cloud.otd.vso.api.enums.SupplementaryPaymentStatus;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.PaymentCallbackCmd;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.enums.PaymentCallbackResultCode;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.PaymentCallbackResult;
+import net.hwyz.iov.cloud.otd.vso.service.domain.model.Order;
+import net.hwyz.iov.cloud.otd.vso.service.domain.model.OrderState;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.event.PaymentSuccessDomainEvent;
+import net.hwyz.iov.cloud.otd.vso.service.domain.model.shared.Money;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.CallbackLogRepository;
+import net.hwyz.iov.cloud.otd.vso.service.domain.repository.OrderRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.PaymentRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.SupplementaryPaymentRepository;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.CallbackLogPo;
@@ -33,6 +38,7 @@ public class PaymentCallbackService {
     private final PaymentRepository paymentRepository;
     private final CallbackLogRepository callbackLogRepository;
     private final SupplementaryPaymentRepository supplementaryPaymentRepository;
+    private final OrderRepository orderRepository;
     private final ApplicationEventPublisher eventPublisher;
     private final ObjectMapper objectMapper;
 
@@ -111,6 +117,33 @@ public class PaymentCallbackService {
             SupplementaryPaymentPo supplementPo = supplementOpt.get();
             supplementaryPaymentRepository.updateStatus(supplementPo.getSupplementaryNo(), SupplementaryPaymentStatus.COMPLETED, cmd.getPaymentNo());
             log.info("补款支付成功：supplementaryNo={}, paymentNo={}", supplementPo.getSupplementaryNo(), cmd.getPaymentNo());
+
+            // 如果是意向金转定金差额支付，触发订单状态转换
+            if (SupplementaryPaymentScene.EARNEST_TO_DOWN.getValue().equals(supplementPo.getSupplementaryScene())) {
+                try {
+                    Optional<Order> orderOpt = orderRepository.findByOrderId(supplementPo.getOrderId());
+                    if (orderOpt.isPresent()) {
+                        Order order = orderOpt.get();
+                        if (order.getOrderState() == OrderState.EARNEST_MONEY_PAID) {
+                            OrderState beforeState = order.getOrderState();
+                            order.earnestMoneyToDownPayment();
+                            order.getOrderAmount().addPaidAmount(new Money(supplementPo.getSupplementaryAmount()));
+                            orderRepository.save(order);
+
+                            log.info("意向金转定金差额支付成功，订单状态已转换：orderNo={}, {} -> {}",
+                                order.getOrderNo(), beforeState, order.getOrderState());
+                        } else {
+                            log.warn("订单状态已变更，跳过状态转换：orderNo={}, currentState={}",
+                                order.getOrderNo(), order.getOrderState());
+                        }
+                    } else {
+                        log.error("订单不存在：orderId={}", supplementPo.getOrderId());
+                    }
+                } catch (Exception e) {
+                    log.error("差额支付成功后订单状态转换失败：supplementaryNo={}", supplementPo.getSupplementaryNo(), e);
+                    // 不抛出异常，避免重复回调
+                }
+            }
 
             callbackLog.setProcessResult("SUCCESS");
             callbackLog.setProcessTime(LocalDateTime.now());

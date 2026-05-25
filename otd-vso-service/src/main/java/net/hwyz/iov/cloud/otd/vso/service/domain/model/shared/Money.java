@@ -80,6 +80,20 @@ public class Money {
     }
 
     /**
+     * 是否大于零
+     */
+    public boolean isPositive() {
+        return this.amount.compareTo(BigDecimal.ZERO) > 0;
+    }
+
+    /**
+     * 是否小于零
+     */
+    public boolean isNegative() {
+        return this.amount.compareTo(BigDecimal.ZERO) < 0;
+    }
+
+    /**
      * 是否大于指定金额
      */
     public boolean isGreaterThan(Money other) {

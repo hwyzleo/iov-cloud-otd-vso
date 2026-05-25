@@ -234,7 +234,7 @@ classDiagram
 | `vso_callback_log` | 回调日志 | US-018 |
 | `vso_order_version` | 订单版本历史 | US-007 |
 | `vso_order_timeline` | 业务时间线 | US-007 |
-| `vso_supplementary_payment` | 改配补款记录 | US-007 |
+| `vso_supplementary_payment` | 补款记录（改配补款 + 意向金转定金差额） | US-006, US-007 |
 | `vso_config_change_refund` | 改配退款记录 | US-007 |
 | `vso_config_timeout` | 超时配置 | US-019 |
 | `vso_order_shadow_delete` | 物理删除影子审计 | US-015 |
@@ -311,7 +311,9 @@ stateDiagram-v2
     EARNEST_MONEY_UNPAID --> EXPIRED: timeout [30min]
     EARNEST_MONEY_UNPAID --> CANCEL: cancel()
 
-    EARNEST_MONEY_PAID --> DOWN_PAYMENT_PAID: earnestMoneyToDownPayment()
+    EARNEST_MONEY_PAID --> DOWN_PAYMENT_PAID: earnestMoneyToDownPayment() [差额<=0, 直接转换]
+    EARNEST_MONEY_PAID --> EARNEST_MONEY_PAID: earnestMoneyToDownPayment() [差额>0, 创建差额支付任务]
+    EARNEST_MONEY_PAID --> DOWN_PAYMENT_PAID: supplementPay() [差额支付成功]
     EARNEST_MONEY_PAID --> CANCEL: cancel()
     EARNEST_MONEY_PAID --> REFUND_APPLY: requestRefund() [全额退款]
 
@@ -335,6 +337,11 @@ stateDiagram-v2
 
     REFUND_APPLY --> REFUND_COMPLETE: refundComplete()
 ```
+
+**意向金转定金状态说明**：
+- 差额 <= 0：`EARNEST_MONEY_PAID → DOWN_PAYMENT_PAID`（直接转换，无需额外支付）
+- 差额 > 0：`EARNEST_MONEY_PAID → EARNEST_MONEY_PAID`（创建差额支付任务，等待用户支付）→ `EARNEST_MONEY_PAID → DOWN_PAYMENT_PAID`（差额支付成功后转换）
+- 差额支付超时（30 分钟）：订单保持 `EARNEST_MONEY_PAID` 状态，差额支付任务自动取消
 
 **退款金额计算规则**（详见 §4.7）：
 
@@ -497,7 +504,109 @@ PENDING → TRIGGERED → FAILED → TRIGGERED → FAILED → ... → DONE（重
 PENDING → CANCELLED（支付成功等事件触发取消）
 ```
 
-### 4.6 分布式锁并发控制设计（US-020）
+### 4.6 意向金转定金差额支付流程（US-006）
+
+```mermaid
+sequenceDiagram
+    participant U as C端用户
+    participant MC as MobileVsoController
+    participant OAS as OrderAppService
+    participant OLS as OrderLockService
+    participant O as Order Aggregate
+    participant SPR as SupplementaryPaymentRepository
+    participant PR as PaymentRepository
+    participant PGW as Payment Gateway
+    participant EB as EventBus
+
+    U->>MC: POST /order/action/earnestMoneyToDownPayment
+    MC->>OAS: earnestMoneyToDownPayment(cmd)
+    OAS->>OLS: executeWithLock(orderNo, operatorId, "convert", action)
+    OAS->>O: load(orderNo)
+    OAS->>OAS: validate state == EARNEST_MONEY_PAID
+
+    alt 状态不允许
+        OAS-->>MC: throw OrderStateNotAllowedException
+    end
+
+    OAS->>OAS: 计算差额 = 定金金额 - 意向金金额
+
+    alt 差额 > 0
+        OAS->>SPR: createSupplementaryPayment(orderId, difference, PENDING)
+        OAS->>O: saveCustomerType/savePaymentMethod/saveOrderPerson...
+        OAS->>OAS: saveOrderTimeline(EARNEST_TO_DOWN_PAYMENT, "pending_payment")
+        OAS-->>MC: 返回差额支付信息（差额金额、支付渠道、过期时间）
+
+        U->>MC: POST /order/action/initiateSupplementPayment
+        MC->>OAS: initiateSupplementPayment(cmd)
+        OAS->>OLS: executeWithLock(orderNo, operatorId, "payment", action)
+        OAS->>SPR: findByOrderIdAndStatus(orderId, PENDING)
+
+        alt 补款任务不存在或已过期
+            OAS-->>MC: throw SupplementaryPaymentNotFoundException
+        end
+
+        OAS->>PR: createPayment(difference, PENDING_PAYMENT)
+        OAS->>PGW: createPaymentOrder(paymentInfo)
+        PGW-->>OAS: payment凭证
+        OAS-->>MC: InitiatePaymentResult
+
+        PGW->>OC: POST /payment (callback)
+        OC->>PCS: handlePaymentCallback(request)
+        PCS->>PR: findByPaymentNo(paymentNo)
+        PCS->>PCS: validate(status=PENDING, amount match)
+        PCS->>PR: updateStatus(PAID)
+        PCS->>SPR: updateStatus(COMPLETED)
+        PCS->>O: earnestMoneyToDownPayment()
+        PCS->>O: setState(DOWN_PAYMENT_PAID)
+        PCS->>O: updatePaidTotal(difference)
+        PCS->>OR: save(order)
+        PCS->>EB: publish(EarnestToDownPaymentSuccessEvent)
+
+    else 差额 <= 0
+        OAS->>O: earnestMoneyToDownPayment()
+        OAS->>O: saveCustomerType/savePaymentMethod/saveOrderPerson...
+        OAS->>OR: save(order)
+        OAS->>OAS: saveOrderTimeline(EARNEST_TO_DOWN_PAYMENT, "success")
+        OAS-->>MC: success
+    end
+```
+
+**差额支付任务数据结构**（`vso_supplementary_payment` 表，复用改配补款表）：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| id | BIGINT | 主键 ID |
+| supplementary_no | VARCHAR(64) | 补款单号 |
+| order_id | VARCHAR(64) | 关联订单 ID |
+| supplementary_amount | DECIMAL(18,2) | 补款金额（定金 - 意向金） |
+| supplementary_status | VARCHAR(32) | 补款状态（pending / completed / cancelled / expired） |
+| supplementary_scene | VARCHAR(32) | 补款场景（config_change / earnest_to_down） |
+| config_version_no | INTEGER | 配置版本号（转定金场景可为 null） |
+| payment_id | VARCHAR(64) | 关联支付 ID |
+| expire_time | TIMESTAMP | 补款过期时间（30 分钟） |
+| create_time | TIMESTAMP | 创建时间 |
+| update_time | TIMESTAMP | 更新时间 |
+
+**差额支付状态机**：
+
+```
+PENDING → COMPLETED（支付成功，触发订单状态转换）
+PENDING → CANCELLED（用户取消）
+PENDING → EXPIRED（超时自动取消，30 分钟）
+PENDING → FAILED（支付失败）
+```
+
+**关键设计决策**：
+
+| 维度 | 决策 | 理由 |
+|------|------|------|
+| 差额计算时机 | 转定金请求时实时计算 | 基于销售车型配置的定金金额与已支付意向金金额差值 |
+| 支付超时 | 30 分钟 | 与 US-005 支付超时一致，避免长期挂起 |
+| 幂等性 | 订单号作幂等键 | 同一订单重复提交返回上次结果 |
+| 复用补款表 | 复用 vso_supplementary_payment | 新增 supplementary_scene 字段区分场景，减少表数量 |
+| 失败处理 | 保持原状态不变 | 用户可重新发起，无需额外恢复操作 |
+
+### 4.7 分布式锁并发控制设计（US-020）
 
 ```mermaid
 sequenceDiagram
@@ -552,7 +661,7 @@ sequenceDiagram
 - **防死锁**：TTL 30s 自动过期，即使异常未释放也不会永久阻塞
 - **操作续期**：操作完成后续期 5s 再释放，防止操作接近 TTL 边界时锁提前过期
 
-### 4.7 退款金额计算流程（US-008）
+### 4.8 退款金额计算流程（US-008）
 
 ```mermaid
 flowchart TD
@@ -622,7 +731,7 @@ flowchart TD
 | 退款回调 | 复用支付回调机制 | 统一处理支付和退款回调 |
 | 状态流转 | REFUND_APPLY → REFUND_COMPLETE | 退款申请到退款完成 |
 
-### 4.8 改配补款流程设计（US-007）
+### 4.9 改配补款流程设计（US-007）
 
 ```mermaid
 sequenceDiagram
@@ -698,7 +807,7 @@ PENDING → EXPIRED（超时自动取消，30 分钟）
 | 幂等性 | 订单号+配置版本号 | 防止重复创建补款任务 |
 | 支付方式 | 复用支付网关 | 统一支付入口，复用现有支付流程 |
 
-### 4.9 改配退款流程设计（US-007）
+### 4.10 改配退款流程设计（US-007）
 
 ```mermaid
 sequenceDiagram
@@ -807,8 +916,14 @@ FAILED → REJECTED（人工审核驳回）
 - Response: void
 
 **POST** `/api/mobile/vso/v1/order/action/earnestMoneyToDownPayment`
-- Request: `{ orderNo, customerInfo, paymentInfo }`
-- Response: void
+- Request: `{ orderNo, customerType?, paymentMethod?, orderPersonType?, orderPersonName?, orderPersonIdType?, orderPersonIdNum?, purchasePlan?, licenseCityCode?, orderStoreCode?, deliveryStoreCode? }`
+- Response: `{ orderNo, orderType, orderState, supplementaryPayment?: { supplementaryNo, amount, paymentChannels[], expireTime } }`
+- 说明：差额>0 时返回 supplementaryPayment 信息，差额<=0 时直接完成转换
+
+**POST** `/api/mobile/vso/v1/order/action/initiateSupplementPayment`
+- Request: `{ orderNo, supplementaryNo, paymentChannel }`
+- Response: `{ paymentNo, paymentChannel, paymentAmount }`
+- 说明：差额支付发起，复用改配补款接口
 
 **POST** `/api/mobile/vso/v1/order/action/lock`
 - Request: `{ orderNo }`
@@ -898,7 +1013,9 @@ FAILED → REJECTED（人工审核驳回）
 | 支付 | 发起支付 | <2s | 含分布式锁获取 |
 | 支付 | 回调处理 | <2s | 含签名验证 + 状态流转 |
 | 订单操作 | 改配 | <2s | 含 VMD 调用 + 快照创建 |
-| 订单操作 | 锁单/取消/退款/转定金 | <1s | 本地状态流转 |
+| 订单操作 | 锁单/取消/退款/转定金 | <1s | 本地状态流转（差额<=0 时） |
+| 订单操作 | 转定金（含差额支付） | <2s | 含差额支付任务创建（差额>0 时） |
+| 支付 | 差额支付发起 | <2s | 含分布式锁获取 |
 | 订单操作 | 物理删除 | <5s | 级联删除多表 |
 | 订单查询 | 列表 | <1s | 分页查询 |
 | 订单查询 | 详情 | <500ms | 单订单全量数据 |
@@ -924,6 +1041,11 @@ FAILED → REJECTED（人工审核驳回）
 | 301015 | CONCURRENT_CONFLICT | 并发冲突（分布式锁获取失败） | 409 |
 | 301016 | VIN_ALREADY_ASSIGNED | VIN 已被其他订单占用 | 409 |
 | 301017 | SIGNATURE_INVALID | 回调签名校验失败 | 403 |
+| 301018 | SUPPLEMENTARY_PAYMENT_NOT_FOUND | 差额支付任务不存在或已失效 | 404 |
+| 301019 | SUPPLEMENTARY_PAYMENT_EXPIRED | 差额支付任务已过期（超过 30 分钟） | 409 |
+| 301020 | SUPPLEMENTARY_PAYMENT_FAILED | 差额支付失败 | 409 |
+| 301021 | CUSTOMER_TYPE_INVALID | 客户类型不合法，仅支持 personal | 400 |
+| 301022 | PAYMENT_METHOD_INVALID | 支付方式不合法，仅支持 full_payment、loan | 400 |
 
 ## 6. Coverage Mapping
 
@@ -934,9 +1056,9 @@ FAILED → REJECTED（人工审核驳回）
 | US-003 | §3.1(Order), §4.1, §5.2(earnestMoneyOrder) | 小定下单，含 VMD 校验 |
 | US-004 | §3.1(Order), §4.1, §5.2(downPaymentOrder) | 大定下单 |
 | US-005 | §4.1, §4.4, §5.2(initiatePayment), §5.5 | 支付发起+回调，领域事件驱动 |
-| US-006 | §4.2, §5.2(earnestMoneyToDownPayment) | 状态机 EARNEST_MONEY_PAID→DOWN_PAYMENT_PAID |
-| US-007 | §4.3, §4.8, §4.9, §3.2(vso_order_vehicle_snapshot, vso_supplementary_payment, vso_config_change_refund), §5.2(modifyConfig) | 改配，版本化快照，价格重算与差额补/退 |
-| US-008 | §4.2, §5.2(cancel/requestRefund) | 取消/退款状态流转 |
+| US-006 | §4.2, §4.6, §5.2(earnestMoneyToDownPayment) | 状态机 EARNEST_MONEY_PAID→DOWN_PAYMENT_PAID，差额支付流程 |
+| US-007 | §4.3, §4.9, §4.10, §3.2(vso_order_vehicle_snapshot, vso_supplementary_payment, vso_config_change_refund), §5.2(modifyConfig) | 改配，版本化快照，价格重算与差额补/退 |
+| US-008 | §4.2, §4.8, §5.2(cancel/requestRefund) | 取消/退款状态流转，退款金额计算 |
 | US-009 | §4.2, §5.2(lock), §5.3(lock) | 锁单，buildConfigLock=true |
 | US-010 | §5.3(audit/pass, audit/reject) | 审核通过/驳回 |
 | US-011 | §3.2(vso_vehicle_assignment), §5.3(assignVehicle) | 配车绑定 VIN |
@@ -967,7 +1089,7 @@ FAILED → REJECTED（人工审核驳回）
 | # | 问题 | 状态 |
 |---|------|------|
 | 1 | EsignAdapter、FinanceAdapter 接口已定义但未实现，合同签署和金融流程何时接入？ | 待定 |
-| 2 | 退款流程的具体金额计算规则（部分退款 vs 全额退款）未在代码中明确 | 已解决 → §4.7 |
+| 2 | 退款流程的具体金额计算规则（部分退款 vs 全额退款）未在代码中明确 | 已解决 → §4.8 |
 | 3 | 订单超时任务的调度频率和补偿机制细节 | 已解决 → §4.5 |
 | 4 | 物理删除的权限校验具体实现（当前仅预留权限标识） | 待定 |
 | 5 | 多维度状态表(vso_order_status_dimension)与主状态的同步策略 | 待定 |
@@ -980,4 +1102,5 @@ FAILED → REJECTED（人工审核驳回）
 | 2026-05-23 | CR-002 | Added | 新增 §4.5 超时任务调度流程、§4.6 分布式锁并发控制设计、§5.6 响应时间 SLA；补充 4 个错误码（301014~301017）；关闭 Open Question #3 |
 | 2026-05-23 | CR-003 | Fixed | 代码实现与设计对齐：分布式锁场景统一、超时任务 Redis 持久化、N+1 查询修复、状态机校验接入 |
 | 2026-05-25 | CR-004 | Added | 新增 §4.7 退款金额计算流程：按订单状态分层退款规则（未锁单前全额退款、锁单后扣 5% 手续费、生产中/已发运不退款）、退款记录数据结构、退款场景枚举；更新状态机图添加退款注释；关闭 Open Question #2 |
-| 2026-05-25 | CR-005 | Added | 新增 §4.8 改配补款流程设计、§4.9 改配退款流程设计：改配成功后实时结算差额，差额>0 创建补款任务（30 分钟超时自动取消），差额<0 自动发起退款（失败触发人工审核）；新增 vso_supplementary_payment、vso_config_change_refund 两张表；更新 §4.3 改配流程增加价格重算逻辑；更新 §6 Coverage Mapping |
+| 2026-05-25 | CR-005 | Added | 新增 §4.9 改配补款流程设计、§4.10 改配退款流程设计：改配成功后实时结算差额，差额>0 创建补款任务（30 分钟超时自动取消），差额<0 自动发起退款（失败触发人工审核）；新增 vso_supplementary_payment、vso_config_change_refund 两张表；更新 §4.3 改配流程增加价格重算逻辑；更新 §6 Coverage Mapping |
+| 2026-05-25 | CR-006 | Added | 新增 §4.6 意向金转定金差额支付流程：差额>0 时创建差额支付任务（复用 vso_supplementary_payment 表，新增 supplementary_scene 字段区分场景），用户完成差额支付后触发订单状态转换；差额<=0 时直接转换；更新 §4.2 状态机图增加差额支付分支；更新 §5.2 API 定义补充转定金请求参数和差额支付接口；新增 5 个错误码（301018~301022）；更新 §5.6 SLA 补充差额支付接口；更新 §6 Coverage Mapping 补充 US-006 设计章节引用 |

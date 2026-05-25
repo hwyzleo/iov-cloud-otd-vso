@@ -11,6 +11,7 @@ import net.hwyz.iov.cloud.edd.vmd.api.vo.response.VmdBuildConfigFeatureCodeRespo
 import net.hwyz.iov.cloud.edd.vmd.api.vo.response.VmdBuildConfigResponse;
 import net.hwyz.iov.cloud.framework.web.util.PageUtil;
 import net.hwyz.iov.cloud.otd.vso.api.enums.CustomerType;
+import net.hwyz.iov.cloud.otd.vso.api.enums.OrderType;
 import net.hwyz.iov.cloud.otd.vso.api.enums.PaymentChannel;
 import net.hwyz.iov.cloud.otd.vso.api.enums.PaymentMethod;
 import net.hwyz.iov.cloud.otd.vso.api.enums.PaymentStage;
@@ -63,6 +64,7 @@ import net.hwyz.iov.cloud.otd.vso.service.domain.gateway.PaymentAdapter;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.SupplementaryPaymentPo;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.ConfigChangeRefundPo;
 import net.hwyz.iov.cloud.otd.vso.api.enums.SupplementaryPaymentStatus;
+import net.hwyz.iov.cloud.otd.vso.api.enums.SupplementaryPaymentScene;
 import net.hwyz.iov.cloud.otd.vso.api.enums.ConfigChangeRefundStatus;
 import net.hwyz.iov.cloud.otd.vso.api.vo.SupplementaryPaymentVo;
 import net.hwyz.iov.cloud.otd.vso.service.common.exception.SupplementPaymentNotExistException;
@@ -920,10 +922,18 @@ public class OrderAppService {
         return "REF" + System.currentTimeMillis() + String.format("%04d", new java.util.Random().nextInt(10000));
     }
 
-    @Transactional(rollbackFor = Exception.class)
-    public void earnestMoneyToDownPayment(EarnestToDownCmd cmd) {
+    /**
+     * 意向金转定金（支持差额支付）
+     *
+     * 流程：
+     * 1. 校验订单状态
+     * 2. 计算差额 = 定金金额 - 意向金金额
+     * 3. 如果差额 > 0：创建差额支付任务，返回支付信息
+     * 4. 如果差额 <= 0：直接完成状态转换
+     */
+    public EarnestToDownResult earnestMoneyToDownPayment(EarnestToDownCmd cmd) {
         log.info("意向金转定金：accountId={}, orderNo={}", cmd.getAccountId(), cmd.getOrderNo());
-        
+
         if (StrUtil.isNotBlank(cmd.getCustomerType()) && !CustomerType.isValid(cmd.getCustomerType())) {
             log.warn("客户类型不合法：customerType={}", cmd.getCustomerType());
             throw new IllegalArgumentException("客户类型不合法，仅支持：personal");
@@ -932,68 +942,144 @@ public class OrderAppService {
             log.warn("支付方式不合法：paymentMethod={}", cmd.getPaymentMethod());
             throw new IllegalArgumentException("支付方式不合法，仅支持：full_payment、loan");
         }
-        
-        orderLockService.executeWithLock(cmd.getOrderNo(), cmd.getAccountId(), "convert", () -> {
+
+        return orderLockService.executeWithLock(cmd.getOrderNo(), cmd.getAccountId(), "convert", () -> {
             Order order = findOrderById(cmd.getAccountId(), cmd.getOrderNo());
-            
+
+            // 幂等性检查：如果已经是正式订单且状态为DOWN_PAYMENT_PAID，直接返回成功
+            if (order.getOrderType() == OrderType.FORMAL && order.getOrderState() == OrderState.DOWN_PAYMENT_PAID) {
+                log.info("订单已转为正式订单，幂等返回：orderNo={}", cmd.getOrderNo());
+                return EarnestToDownResult.builder()
+                    .orderNo(order.getOrderNo())
+                    .orderType(order.getOrderType())
+                    .orderState(order.getOrderState())
+                    .build();
+            }
+
+            // 校验订单状态
             if (order.getOrderState() != OrderState.EARNEST_MONEY_PAID) {
-                log.warn("订单状态不允许转定金：orderNo={}, orderState={}", 
-                        order.getOrderNo(), order.getOrderState());
+                log.warn("订单状态不允许转定金：orderNo={}, orderState={}",
+                    order.getOrderNo(), order.getOrderState());
                 throw new OrderStateNotAllowedException(order.getOrderNo(), order.getOrderState(), "EARNEST_TO_DOWN_PAYMENT");
             }
-            
-            OrderState beforeState = order.getOrderState();
-            
-            order.earnestMoneyToDownPayment();
-            
-            if (StrUtil.isNotBlank(cmd.getCustomerType())) {
-                order.saveCustomerType(cmd.getCustomerType());
-            }
-            if (StrUtil.isNotBlank(cmd.getPaymentMethod())) {
-                order.savePaymentMethod(cmd.getPaymentMethod());
-            }
-            order.saveOrderPerson(cmd.getAccountId(), cmd.getOrderPersonType(), cmd.getOrderPersonName(),
-                    cmd.getOrderPersonIdType(), cmd.getOrderPersonIdNum());
-            order.savePurchasePlan(cmd.getPurchasePlan());
-            if (StrUtil.isNotBlank(cmd.getLicenseCityCode())) {
-                order.saveLicenseCity(cmd.getLicenseCityCode());
-            }
-            
-            if (StrUtil.isNotBlank(cmd.getOrderStoreCode())) {
-                order.saveOrderStoreCode(cmd.getOrderStoreCode());
-                order.saveOwnerStoreCode(cmd.getOrderStoreCode());
-                if (cmd.getOrderStoreCode().length() >= 2) {
-                    order.saveOwnerRegionCode(cmd.getOrderStoreCode().substring(0, 2));
-                }
-            }
-            
-            if (StrUtil.isNotBlank(cmd.getDeliveryStoreCode())) {
-                order.saveDeliveryStoreCode(cmd.getDeliveryStoreCode());
-                if (cmd.getDeliveryStoreCode().length() >= 2) {
-                    order.saveDeliveryRegionCode(cmd.getDeliveryStoreCode().substring(0, 2));
-                }
-            }
-            
-            orderRepository.save(order);
-            
-            if (StrUtil.isNotBlank(cmd.getOrderPersonName()) && StrUtil.isNotBlank(cmd.getOrderPersonIdNum())) {
-                saveBuyerInfo(order.getId(), cmd.getOrderPersonType(), cmd.getOrderPersonName(),
-                        cmd.getOrderPersonIdType(), cmd.getOrderPersonIdNum());
-            }
-            
-            if (StrUtil.isNotBlank(cmd.getOrderStoreCode()) || StrUtil.isNotBlank(cmd.getDeliveryStoreCode())) {
-                saveOrderAssignment(order.getId(), cmd.getOrderStoreCode(), cmd.getDeliveryStoreCode());
-            }
-            
-            saveOrderTimeline(order.getId(), "EARNEST_TO_DOWN_PAYMENT", "意向金转定金",
+
+            // 保存补充信息
+            saveSupplementaryInfo(order, cmd);
+
+            // 计算差额
+            Money difference = order.getOrderAmount().calculateEarnestToDownDifference();
+            log.info("意向金转定金差额计算：orderNo={}, difference={}", cmd.getOrderNo(), difference);
+
+            if (difference.isPositive()) {
+                // 差额 > 0：创建差额支付任务
+                SupplementaryPaymentPo supplementaryPayment = createEarnestToDownSupplementaryPayment(
+                    order.getId(), difference);
+
+                log.info("意向金转定金差额支付任务已创建：orderNo={}, difference={}, supplementaryNo={}",
+                    cmd.getOrderNo(), difference, supplementaryPayment.getSupplementaryNo());
+
+                return EarnestToDownResult.builder()
+                    .orderNo(order.getOrderNo())
+                    .orderType(order.getOrderType())
+                    .orderState(order.getOrderState())
+                    .supplementaryPayment(SupplementaryPaymentInfo.builder()
+                        .supplementaryNo(supplementaryPayment.getSupplementaryNo())
+                        .amount(new Money(supplementaryPayment.getSupplementaryAmount()))
+                        .expireTime(supplementaryPayment.getExpireTime())
+                        .build())
+                    .build();
+            } else {
+                // 差额 <= 0：直接完成状态转换
+                OrderState beforeState = order.getOrderState();
+                order.earnestMoneyToDownPayment();
+                orderRepository.save(order);
+
+                // 保存买家信息和订单分配
+                saveRelatedInfo(order, cmd);
+
+                // 记录时间线
+                saveOrderTimeline(order.getId(), "EARNEST_TO_DOWN_PAYMENT", "意向金转定金",
                     beforeState.getValue().toString(), order.getOrderState().getValue().toString(),
                     cmd.getAccountId(), "order_user", "capp",
-                    null, "success", null, 
-                    "意向金订单转定金订单");
-            
-            log.info("意向金转定金完成：orderId={}, orderNo={}, orderType={}", 
+                    null, "success", null,
+                    "意向金订单转定金订单（差额<=0，直接转换）");
+
+                log.info("意向金转定金完成（直接转换）：orderId={}, orderNo={}, orderType={}",
                     order.getId(), order.getOrderNo(), order.getOrderType());
+
+                return EarnestToDownResult.builder()
+                    .orderNo(order.getOrderNo())
+                    .orderType(order.getOrderType())
+                    .orderState(order.getOrderState())
+                    .build();
+            }
         });
+    }
+
+    /**
+     * 保存补充信息
+     */
+    private void saveSupplementaryInfo(Order order, EarnestToDownCmd cmd) {
+        if (StrUtil.isNotBlank(cmd.getCustomerType())) {
+            order.saveCustomerType(cmd.getCustomerType());
+        }
+        if (StrUtil.isNotBlank(cmd.getPaymentMethod())) {
+            order.savePaymentMethod(cmd.getPaymentMethod());
+        }
+        order.saveOrderPerson(cmd.getAccountId(), cmd.getOrderPersonType(), cmd.getOrderPersonName(),
+            cmd.getOrderPersonIdType(), cmd.getOrderPersonIdNum());
+        order.savePurchasePlan(cmd.getPurchasePlan());
+        if (StrUtil.isNotBlank(cmd.getLicenseCityCode())) {
+            order.saveLicenseCity(cmd.getLicenseCityCode());
+        }
+        if (StrUtil.isNotBlank(cmd.getOrderStoreCode())) {
+            order.saveOrderStoreCode(cmd.getOrderStoreCode());
+            order.saveOwnerStoreCode(cmd.getOrderStoreCode());
+            if (cmd.getOrderStoreCode().length() >= 2) {
+                order.saveOwnerRegionCode(cmd.getOrderStoreCode().substring(0, 2));
+            }
+        }
+        if (StrUtil.isNotBlank(cmd.getDeliveryStoreCode())) {
+            order.saveDeliveryStoreCode(cmd.getDeliveryStoreCode());
+            if (cmd.getDeliveryStoreCode().length() >= 2) {
+                order.saveDeliveryRegionCode(cmd.getDeliveryStoreCode().substring(0, 2));
+            }
+        }
+        orderRepository.save(order);
+    }
+
+    /**
+     * 保存关联信息（买家信息和订单分配）
+     */
+    private void saveRelatedInfo(Order order, EarnestToDownCmd cmd) {
+        if (StrUtil.isNotBlank(cmd.getOrderPersonName()) && StrUtil.isNotBlank(cmd.getOrderPersonIdNum())) {
+            saveBuyerInfo(order.getId(), cmd.getOrderPersonType(), cmd.getOrderPersonName(),
+                cmd.getOrderPersonIdType(), cmd.getOrderPersonIdNum());
+        }
+        if (StrUtil.isNotBlank(cmd.getOrderStoreCode()) || StrUtil.isNotBlank(cmd.getDeliveryStoreCode())) {
+            saveOrderAssignment(order.getId(), cmd.getOrderStoreCode(), cmd.getDeliveryStoreCode());
+        }
+    }
+
+    /**
+     * 创建意向金转定金差额支付任务
+     */
+    private SupplementaryPaymentPo createEarnestToDownSupplementaryPayment(String orderId, Money amount) {
+        String supplementaryNo = "SUP" + System.currentTimeMillis() + String.format("%04d", new java.util.Random().nextInt(10000));
+        LocalDateTime expireTime = LocalDateTime.now().plusMinutes(30);
+
+        SupplementaryPaymentPo supplementaryPayment = SupplementaryPaymentPo.builder()
+            .supplementaryNo(supplementaryNo)
+            .orderId(orderId)
+            .supplementaryAmount(amount.getAmount())
+            .currency(amount.getCurrency())
+            .supplementaryStatus(SupplementaryPaymentStatus.PENDING.getValue())
+            .supplementaryScene(SupplementaryPaymentScene.EARNEST_TO_DOWN.getValue())
+            .expireTime(expireTime)
+            .build();
+
+        supplementaryPaymentRepository.save(supplementaryPayment);
+        return supplementaryPayment;
     }
 
     public void lock(LockCmd cmd) {

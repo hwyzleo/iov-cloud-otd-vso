@@ -229,13 +229,31 @@ public class MobileVsoController extends BaseController {
      *     <li>orderStoreCode - 下单门店编码，可选</li>
      *     <li>deliveryStoreCode - 交付门店编码，可选</li>
      * </ul>
+     *
+     * @return 差额>0时返回supplementaryPayment信息，差额<=0时直接完成转换
      */
     @PostMapping("/order/action/earnestMoneyToDownPayment")
-    public ApiResponse<Void> earnestMoneyToDownPayment(@RequestBody @Valid OrderVo order) {
+    public ApiResponse<EarnestToDownResponseVo> earnestMoneyToDownPayment(@RequestBody @Valid OrderVo order) {
         log.info("手机客户端[{}]订单[{}]意向金转定金", ParamHelper.getClientAccountInfo(), order.getOrderNo());
         EarnestToDownCmd cmd = OrderVoAssembler.INSTANCE.toEarnestToDownCmd(SecurityContextHolder.getUserId(), order);
-        vehicleSaleOrderAppService.earnestMoneyToDownPayment(cmd);
-        return ApiResponse.ok();
+        EarnestToDownResult result = vehicleSaleOrderAppService.earnestMoneyToDownPayment(cmd);
+
+        EarnestToDownResponseVo response = EarnestToDownResponseVo.builder()
+            .orderNo(result.getOrderNo())
+            .orderType(result.getOrderType().name())
+            .orderState(result.getOrderState().getValue().toString())
+            .build();
+
+        if (result.getSupplementaryPayment() != null) {
+            response.setSupplementaryPayment(EarnestToDownResponseVo.SupplementaryPaymentVo.builder()
+                .supplementaryNo(result.getSupplementaryPayment().getSupplementaryNo())
+                .amount(result.getSupplementaryPayment().getAmount().getAmount())
+                .currency(result.getSupplementaryPayment().getAmount().getCurrency())
+                .expireTime(result.getSupplementaryPayment().getExpireTime())
+                .build());
+        }
+
+        return ApiResponse.ok(response);
     }
 
     /**

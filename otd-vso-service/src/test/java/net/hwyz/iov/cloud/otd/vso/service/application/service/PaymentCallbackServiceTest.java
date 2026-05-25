@@ -8,7 +8,9 @@ import net.hwyz.iov.cloud.otd.vso.service.application.dto.enums.PaymentCallbackR
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.PaymentCallbackResult;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.event.PaymentSuccessDomainEvent;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.CallbackLogRepository;
+import net.hwyz.iov.cloud.otd.vso.service.domain.repository.OrderRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.PaymentRepository;
+import net.hwyz.iov.cloud.otd.vso.service.domain.repository.SupplementaryPaymentRepository;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.CallbackLogPo;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.PaymentPo;
 import org.junit.jupiter.api.BeforeEach;
@@ -37,6 +39,12 @@ class PaymentCallbackServiceTest {
 
     @Mock
     private CallbackLogRepository callbackLogRepository;
+
+    @Mock
+    private SupplementaryPaymentRepository supplementaryPaymentRepository;
+
+    @Mock
+    private OrderRepository orderRepository;
 
     @Mock
     private ApplicationEventPublisher eventPublisher;

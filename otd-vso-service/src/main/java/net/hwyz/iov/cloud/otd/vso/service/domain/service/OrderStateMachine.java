@@ -47,8 +47,9 @@ public class OrderStateMachine {
         );
         STATE_TRANSITIONS.put(200, earnestUnpaidTransitions);
         
-        // EARNEST_MONEY_PAID(210) -> DOWN_PAYMENT_UNPAID(300), CANCEL(950)
+        // EARNEST_MONEY_PAID(210) -> DOWN_PAYMENT_PAID(310), DOWN_PAYMENT_UNPAID(300), CANCEL(950), REFUND_APPLY(920)
         Set<OrderState> earnestPaidTransitions = EnumSet.of(
+            OrderState.DOWN_PAYMENT_PAID,
             OrderState.DOWN_PAYMENT_UNPAID,
             OrderState.CANCEL,
             OrderState.REFUND_APPLY

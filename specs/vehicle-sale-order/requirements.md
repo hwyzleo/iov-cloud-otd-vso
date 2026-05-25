@@ -82,9 +82,41 @@
 **As a** C 端用户, **I want** 将已支付意向金的小定订单升级为大定订单, **so that** 我能正式确认购车。
 
 **Acceptance Criteria** (EARS 语法):
+
+#### 状态转换
 - WHERE 订单当前状态为 EARNEST_MONEY_PAID、获取分布式锁成功 WHEN 用户提交意向金转定金请求 THE SYSTEM SHALL 在 1s 内将订单类型从 SMALL 变更为 FORMAL、状态从 EARNEST_MONEY_PAID 流转为 DOWN_PAYMENT_PAID，并记录时间线事件
 - IF 订单当前状态不是 EARNEST_MONEY_PAID THEN THE SYSTEM SHALL 拒绝操作并返回状态不合法错误
 - IF 获取分布式锁失败 THEN THE SYSTEM SHALL 返回并发冲突错误
+
+#### 补充信息采集
+- WHEN 用户提交意向金转定金请求 THE SYSTEM SHALL 支持采集以下可选信息：客户类型（customerType）、支付方式（paymentMethod）、订购人类型（orderPersonType）、订购人姓名（orderPersonName）、订购人证件类型（orderPersonIdType）、订购人证件号码（orderPersonIdNum）、购买计划（purchasePlan）、上牌城市代码（licenseCityCode）、下单门店编码（orderStoreCode）、交付门店编码（deliveryStoreCode）
+- IF customerType 不为空且不在枚举范围内（personal） THEN THE SYSTEM SHALL 拒绝操作并返回参数错误
+- IF paymentMethod 不为空且不在枚举范围内（full_payment、loan） THEN THE SYSTEM SHALL 拒绝操作并返回参数错误
+- WHERE orderPersonName 和 orderPersonIdNum 均非空 WHEN 保存订购人信息 THE SYSTEM SHALL 同步更新订单参与方表（vso_order_party）
+
+#### 差额支付
+- WHERE 意向金金额 < 定金金额（根据销售车型配置） WHEN 用户提交意向金转定金请求 THE SYSTEM SHALL 计算差额（定金金额 - 意向金金额），创建差额支付任务（状态 PENDING），并在 1s 内返回差额支付信息（含差额金额、支付渠道、支付过期时间）
+- WHERE 差额支付任务存在且状态为 PENDING、未超过支付过期时间（默认 30 分钟，基于 paymentChannelConfig.downPaymentTimeoutMinutes 配置） WHEN 用户发起差额支付 THE SYSTEM SHALL 调用支付网关创建支付订单并返回支付凭证
+- WHERE 差额支付成功（支付网关回调通知） WHEN 支付状态更新为 PAID THE SYSTEM SHALL 在同一事务内更新订单类型为 FORMAL、状态流转为 DOWN_PAYMENT_PAID、更新订单已支付金额（paidTotal += 差额金额），并记录时间线事件
+- IF 差额支付超过 30 分钟未完成 THEN THE SYSTEM SHALL 自动取消差额支付任务，订单状态保持 EARNEST_MONEY_PAID 不变，并记录超时事件
+- WHERE 意向金金额 >= 定金金额 WHEN 用户提交意向金转定金请求 THE SYSTEM SHALL 直接完成状态转换，不创建差额支付任务；若意向金金额 > 定金金额，差额部分在后续退款流程中处理（关联 US-008）
+
+#### 支付记录
+- WHERE 差额 > 0 且差额支付成功 WHEN 创建支付记录 THE SYSTEM SHALL 记录支付流水号、支付金额（差额金额）、支付渠道、支付时间，并关联到原订单
+- WHEN 差额支付回调到达 THE SYSTEM SHALL 使用支付流水号作为幂等键防止重复处理，重复回调直接返回成功
+
+#### 失败回滚
+- WHEN 转定金操作执行过程中发生异常 THE SYSTEM SHALL 回滚所有数据库变更至操作前状态（EARNEST_MONEY_PAID），释放分布式锁，并记录失败原因和时间线事件
+- WHERE 差额支付任务已创建但支付失败 WHEN 支付网关回调通知支付失败 THE SYSTEM SHALL 更新差额支付任务状态为 FAILED，订单状态保持 EARNEST_MONEY_PAID 不变，并通知用户支付失败
+- WHEN 差额支付任务因超时自动取消 THE SYSTEM SHALL 记录超时事件，订单状态保持 EARNEST_MONEY_PAID 不变，用户可重新发起转定金操作
+
+#### 幂等性
+- WHEN 用户重复提交相同订单的意向金转定金请求（订单号相同） THE SYSTEM SHALL 通过订单号作为幂等键保证不重复处理，直接返回上次操作结果；若上次操作未完成（存在进行中的差额支付任务），返回当前差额支付任务状态
+- WHERE 订单已成功转为 FORMAL 状态 WHEN 用户再次提交转定金请求 THE SYSTEM SHALL 直接返回成功，不重复执行转换操作
+
+#### 并发控制
+- WHILE 意向金转定金操作执行中 THE SYSTEM SHALL 持有该订单的分布式锁（场景 `convert`，TTL 30s，操作完成后自动释放）
+- WHILE 差额支付操作执行中 THE SYSTEM SHALL 持有该订单的分布式锁（场景 `payment`，TTL 30s，操作完成后自动释放）
 
 ### US-007: 订单改配
 
@@ -294,3 +326,4 @@
 | 2026-05-23 | CR-001 | Added | 基于现有代码逆向生成初始需求文档 |
 | 2026-05-23 | CR-002 | Fixed | 修复 EARS 语法不严谨问题：为所有 AC 添加 WHERE 前置条件、量化响应时间指标、明确分布式锁 TTL/重试策略/补偿机制；US-019 补充精度（分钟级）、调度方式（定时扫描 60s）、补偿（最多重试 3 次）、时钟漂移说明；US-020 补充锁实现细节、场景标识、续期策略 |
 | 2026-05-23 | CR-003 | Fixed | 代码实现与需求对齐：接入状态机校验、补充分布式锁覆盖、修复超时任务重试逻辑、性能优化（N+1 查询+缓存）、功能补全（退款任务+心愿单删除+锁单超时） |
+| 2026-05-25 | CR-004 | Added | US-006 意向金转定金需求补齐：新增补充信息采集（客户类型/支付方式/订购人信息等 10 个可选字段）、差额支付流程（意向金<定金时创建差额支付任务，30 分钟超时自动取消）、支付记录与回调处理、失败回滚机制（异常回滚至 EARNEST_MONEY_PAID）、幂等性控制（订单号作幂等键）、并发控制（分布式锁场景 convert/payment） |

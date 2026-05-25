@@ -88,4 +88,14 @@ public class SupplementaryPaymentRepositoryImpl implements SupplementaryPaymentR
             mapper.updatePo(po);
         }
     }
+
+    @Override
+    public Optional<SupplementaryPaymentPo> findPendingByOrderId(String orderId) {
+        Map<String, Object> params = new HashMap<>();
+        params.put("orderId", orderId);
+        params.put("supplementaryStatus", SupplementaryPaymentStatus.PENDING.getValue());
+        params.put("orderBy", "create_time DESC");
+        params.put("limit", 1);
+        return mapper.selectPoByMap(params).stream().findFirst();
+    }
 }

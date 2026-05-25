@@ -46,4 +46,12 @@ public interface SupplementaryPaymentRepository {
      * 更新补款状态
      */
     void updateStatus(String supplementaryNo, SupplementaryPaymentStatus status, String paymentId);
+
+    /**
+     * 根据订单ID查询待支付的补款任务
+     *
+     * @param orderId 订单ID
+     * @return 待支付的补款任务（可能为空）
+     */
+    Optional<SupplementaryPaymentPo> findPendingByOrderId(String orderId);
 }

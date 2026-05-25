@@ -39,6 +39,9 @@ public class SupplementaryPaymentPo implements Serializable {
     @TableField("supplementary_status")
     private String supplementaryStatus;
 
+    @TableField("supplementary_scene")
+    private String supplementaryScene;
+
     @TableField("config_version_no")
     private Integer configVersionNo;
 

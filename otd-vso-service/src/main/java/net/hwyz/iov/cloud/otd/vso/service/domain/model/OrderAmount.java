@@ -305,4 +305,38 @@ public class OrderAmount {
         this.optionPrice = optionPrice;
     }
 
+    /**
+     * 计算意向金转定金的差额
+     * 差额 = 定金金额 - 意向金金额（depositAmount）
+     *
+     * @return 差额金额（正数表示需要补款，负数或零表示无需补款）
+     */
+    public Money calculateEarnestToDownDifference() {
+        return this.downPaymentAmount.subtract(this.depositAmount);
+    }
+
+    /**
+     * 更新已支付金额（差额支付成功后调用）
+     *
+     * @param additionalAmount 新增支付金额
+     */
+    public void addPaidAmount(Money additionalAmount) {
+        this.paidTotal = this.paidTotal.add(additionalAmount);
+        calculateUnpaid();
+    }
+
+    /**
+     * 设置定金金额
+     */
+    public void setDepositAmount(Money depositAmount) {
+        this.depositAmount = depositAmount;
+    }
+
+    /**
+     * 设置首付款金额
+     */
+    public void setDownPaymentAmount(Money downPaymentAmount) {
+        this.downPaymentAmount = downPaymentAmount;
+    }
+
 }

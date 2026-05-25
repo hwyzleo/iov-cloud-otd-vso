@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import net.hwyz.iov.cloud.otd.vso.api.enums.SupplementaryPaymentScene;
 import net.hwyz.iov.cloud.otd.vso.api.enums.SupplementaryPaymentStatus;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.shared.Money;
 
@@ -23,6 +24,7 @@ public class SupplementaryPayment {
     private String orderId;
     private Money supplementaryAmount;
     private SupplementaryPaymentStatus supplementaryStatus;
+    private SupplementaryPaymentScene supplementaryScene;
     private Integer configVersionNo;
     private String paymentId;
     private LocalDateTime expireTime;
