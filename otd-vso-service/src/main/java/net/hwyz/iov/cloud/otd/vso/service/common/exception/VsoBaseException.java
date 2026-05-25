@@ -32,6 +32,8 @@ public class VsoBaseException extends BaseException {
     protected static final int ERROR_CODE_DUPLICATE_UNPAID_ORDER = 301025;
     protected static final int ERROR_CODE_WISHLIST_LIMIT_EXCEEDED = 301026;
     protected static final int ERROR_CODE_DUPLICATE_WISHLIST = 301027;
+    protected static final int ERROR_CODE_VIN_CONFLICT = 301028;
+    protected static final int ERROR_CODE_VIN_INVALID = 301029;
 
     public VsoBaseException(String message) {
         super(ERROR_CODE, message);

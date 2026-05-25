@@ -416,6 +416,26 @@ public class Order {
         this.deliveryVin = deliveryVin;
     }
 
+    /**
+     * 配车
+     * 设置交付车辆VIN，订单进入配车状态
+     */
+    public void assignVehicle(String vin) {
+        this.deliveryVin = vin;
+        this.orderState = OrderState.ALLOCATION_VEHICLE;
+        this.orderStateTime = new Date();
+    }
+
+    /**
+     * 解绑车辆
+     * 清除交付车辆VIN，订单回到排产状态
+     */
+    public void unassignVehicle() {
+        this.deliveryVin = null;
+        this.orderState = OrderState.ARRANGE_PRODUCTION;
+        this.orderStateTime = new Date();
+    }
+
     // ==================== 支付业务方法 ====================
 
     /**
