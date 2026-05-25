@@ -300,7 +300,7 @@ public class Order {
      */
     public void saveBuildConfig(String buildConfigCode, Map<String, OrderModelConfig> modelConfigMap) {
         if (Boolean.TRUE.equals(buildConfigLock)) {
-            throw new SaleModelConfigHasLockedException(orderNo);
+            throw new SaleModelConfigHasLockedException(buildConfigCode);
         }
         this.buildConfigCode = buildConfigCode;
         this.modelConfigMap = modelConfigMap;
@@ -469,7 +469,7 @@ public class Order {
                 this.downPaymentAmount = payAmount;
                 this.payState = PayState.DOWN_PAYMENT_PAID;
             }
-            default -> throw new OrderStateNotAllowedException(this.orderNo, this.orderState, "PAY");
+            default -> throw new OrderStateNotAllowedException("车辆销售订单[" + this.orderNo + "]当前状态[" + this.orderState + "]不允许支付");
         }
     }
 
@@ -737,10 +737,10 @@ public class Order {
 
     public void resubmitAudit() {
         if (this.orderState != OrderState.AUDIT_REJECTED) {
-            throw new OrderStateNotAllowedException(orderNo, this.orderState, "resubmitAudit");
+            throw new OrderStateNotAllowedException("车辆销售订单[" + orderNo + "]当前状态[" + this.orderState + "]不允许重新提交审核");
         }
-        if (this.auditRejectCount != null && this.auditRejectCount >= AuditResubmitLimitExceededException.RESUBMIT_LIMIT) {
-            throw new AuditResubmitLimitExceededException(this.id);
+        if (this.auditRejectCount != null && this.auditRejectCount >= 3) {
+            throw new AuditResubmitLimitExceededException(3);
         }
         OrderStateMachine.validateTransition(this.orderState.getValue(), OrderState.PENDING_AUDIT.getValue(), this.orderType);
         this.orderState = OrderState.PENDING_AUDIT;

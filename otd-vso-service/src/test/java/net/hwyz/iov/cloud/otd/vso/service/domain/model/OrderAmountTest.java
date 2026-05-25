@@ -38,7 +38,7 @@ class OrderAmountTest {
         
         // 手续费 = max(50000 * 5%, 500) = 2500
         // 退款金额 = 50000 - 2500 = 47500
-        assertEquals(new BigDecimal("47500.00"), refundAmount.getAmount());
+        assertEquals(0, new BigDecimal("47500.00").compareTo(refundAmount.getAmount()));
     }
 
     @Test

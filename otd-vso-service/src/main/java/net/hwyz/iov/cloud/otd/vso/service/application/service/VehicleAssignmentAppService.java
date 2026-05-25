@@ -76,7 +76,7 @@ public class VehicleAssignmentAppService {
             validateForReassign(order, cmd.getNewVin());
             Optional<VehicleAssignment> existingAssignment = vehicleAssignmentRepository.findDomainByOrderId(order.getId());
             if (existingAssignment.isEmpty()) {
-                throw new OrderStateNotAllowedException(order.getOrderNo(), order.getOrderState(), "REASSIGN_NO_VEHICLE");
+                throw new OrderStateNotAllowedException("车辆销售订单[" + order.getOrderNo() + "]当前状态[" + order.getOrderState() + "]不允许换绑（无车辆）");
             }
             String oldVin = existingAssignment.get().getVin();
             int occupancyHours = vehicleOccupancyConfigRepository.getDefaultOccupancyHours();
@@ -100,7 +100,7 @@ public class VehicleAssignmentAppService {
             validateForUnbind(order);
             Optional<VehicleAssignment> existingAssignment = vehicleAssignmentRepository.findDomainByOrderId(order.getId());
             if (existingAssignment.isEmpty()) {
-                throw new OrderStateNotAllowedException(order.getOrderNo(), order.getOrderState(), "UNBIND_NO_VEHICLE");
+                throw new OrderStateNotAllowedException("车辆销售订单[" + order.getOrderNo() + "]当前状态[" + order.getOrderState() + "]不允许解绑（无车辆）");
             }
             String vin = existingAssignment.get().getVin();
             VehicleAssignment assignment = existingAssignment.get();
@@ -142,7 +142,7 @@ public class VehicleAssignmentAppService {
 
     private void validateForAssign(Order order, String vin) {
         if (order.getOrderState() != OrderState.ARRANGE_PRODUCTION) {
-            throw new OrderStateNotAllowedException(order.getOrderNo(), order.getOrderState(), "ASSIGN_VEHICLE");
+            throw new OrderStateNotAllowedException("车辆销售订单[" + order.getOrderNo() + "]当前状态[" + order.getOrderState() + "]不允许分配车辆");
         }
         if (!vehicleInventoryGateway.validateVinAvailable(vin)) {
             throw new VinInvalidException(vin);
@@ -155,7 +155,7 @@ public class VehicleAssignmentAppService {
 
     private void validateForReassign(Order order, String newVin) {
         if (order.getOrderState() != OrderState.ALLOCATION_VEHICLE) {
-            throw new OrderStateNotAllowedException(order.getOrderNo(), order.getOrderState(), "REASSIGN_VEHICLE");
+            throw new OrderStateNotAllowedException("车辆销售订单[" + order.getOrderNo() + "]当前状态[" + order.getOrderState() + "]不允许换绑车辆");
         }
         if (!vehicleInventoryGateway.validateVinAvailable(newVin)) {
             throw new VinInvalidException(newVin);
@@ -168,7 +168,7 @@ public class VehicleAssignmentAppService {
 
     private void validateForUnbind(Order order) {
         if (order.getOrderState() != OrderState.ALLOCATION_VEHICLE) {
-            throw new OrderStateNotAllowedException(order.getOrderNo(), order.getOrderState(), "UNBIND_VEHICLE");
+            throw new OrderStateNotAllowedException("车辆销售订单[" + order.getOrderNo() + "]当前状态[" + order.getOrderState() + "]不允许解绑车辆");
         }
     }
 

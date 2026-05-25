@@ -1,18 +1,13 @@
 package net.hwyz.iov.cloud.otd.vso.service.common.exception;
 
-import lombok.extern.slf4j.Slf4j;
-
 /**
  * 订单不存在异常
  *
  * @author hwyz_leo
  */
-@Slf4j
 public class OrderNotExistException extends VsoBaseException {
 
     public OrderNotExistException(String orderNo) {
-        super(ERROR_CODE_ORDER_NOT_EXIST);
-        log.warn("车辆销售订单[{}]不存在", orderNo);
+        super(VsoErrorCode.ORDER_NOT_EXIST, "车辆销售订单[" + orderNo + "]不存在");
     }
-
 }

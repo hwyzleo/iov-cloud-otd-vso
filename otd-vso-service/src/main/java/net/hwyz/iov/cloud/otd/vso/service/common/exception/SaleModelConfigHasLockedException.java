@@ -1,18 +1,13 @@
 package net.hwyz.iov.cloud.otd.vso.service.common.exception;
 
-import lombok.extern.slf4j.Slf4j;
-
 /**
- * 销售车型配置已锁定异常
+ * 销售型号配置已锁定异常
  *
  * @author hwyz_leo
  */
-@Slf4j
 public class SaleModelConfigHasLockedException extends VsoBaseException {
 
-    public SaleModelConfigHasLockedException(String orderNo) {
-        super(ERROR_CODE_SALE_MODEL_CONFIG_HAS_LOCKED);
-        log.warn("订单[{}]销售车型配置已锁定", orderNo);
+    public SaleModelConfigHasLockedException(String configCode) {
+        super(VsoErrorCode.SALE_MODEL_CONFIG_HAS_LOCKED, "销售型号配置[" + configCode + "]已锁定");
     }
-
 }

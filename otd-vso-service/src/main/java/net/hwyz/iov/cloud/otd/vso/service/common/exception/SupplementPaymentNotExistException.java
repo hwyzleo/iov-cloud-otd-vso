@@ -1,15 +1,13 @@
 package net.hwyz.iov.cloud.otd.vso.service.common.exception;
 
-import lombok.extern.slf4j.Slf4j;
-
 /**
- * 补款任务不存在异常
+ * 补缴支付不存在异常
+ *
+ * @author hwyz_leo
  */
-@Slf4j
 public class SupplementPaymentNotExistException extends VsoBaseException {
 
-    public SupplementPaymentNotExistException(String supplementaryNo) {
-        super(ERROR_CODE_SUPPLEMENT_PAYMENT_NOT_EXIST);
-        log.warn("补款任务[{}]不存在", supplementaryNo);
+    public SupplementPaymentNotExistException(String paymentNo) {
+        super(VsoErrorCode.SUPPLEMENT_PAYMENT_NOT_EXIST, "补缴支付[" + paymentNo + "]不存在");
     }
 }

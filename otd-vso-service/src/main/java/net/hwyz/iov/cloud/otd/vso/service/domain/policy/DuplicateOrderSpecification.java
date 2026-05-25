@@ -35,7 +35,7 @@ public class DuplicateOrderSpecification implements Specification<Order> {
 
         if (mobileHash != null && !mobileHash.isEmpty()) {
             if (orderRepository.existsUnpaidOrderByMobileHash(mobileHash)) {
-                throw new DuplicateUnpaidOrderException(mobileHash, true);
+                throw new DuplicateUnpaidOrderException(mobileHash);
             }
         }
 

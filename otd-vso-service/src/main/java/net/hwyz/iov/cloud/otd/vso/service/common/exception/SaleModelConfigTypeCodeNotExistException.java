@@ -1,18 +1,13 @@
 package net.hwyz.iov.cloud.otd.vso.service.common.exception;
 
-import lombok.extern.slf4j.Slf4j;
-
 /**
- * 销售车型配置类型代码不存在异常
+ * 销售型号配置类型编码不存在异常
  *
  * @author hwyz_leo
  */
-@Slf4j
 public class SaleModelConfigTypeCodeNotExistException extends VsoBaseException {
 
-    public SaleModelConfigTypeCodeNotExistException(String saleModelCode, String saleModelConfigType, String saleModelConfigTypeCode) {
-        super(ERROR_CODE_SALE_MODEL_CONFIG_TYPE_CODE_NOT_EXIST);
-        log.warn("销售车型[{}]配置类型[{}]代码[{}]不存在", saleModelCode, saleModelConfigType, saleModelConfigTypeCode);
+    public SaleModelConfigTypeCodeNotExistException(String typeCode) {
+        super(VsoErrorCode.SALE_MODEL_CONFIG_TYPE_CODE_NOT_EXIST, "销售型号配置类型编码[" + typeCode + "]不存在");
     }
-
 }

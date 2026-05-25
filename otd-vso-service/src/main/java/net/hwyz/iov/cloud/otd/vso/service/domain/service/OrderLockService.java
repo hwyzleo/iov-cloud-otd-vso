@@ -137,9 +137,9 @@ public class OrderLockService {
 
     private RuntimeException createConflictException(String lockScene) {
         return switch (lockScene) {
-            case "payment" -> new PaymentConflictException();
-            case "bindVehicle" -> new BindConflictException();
-            default -> new LockConflictException();
+            case "payment" -> new PaymentConflictException("订单正在支付中，请稍后再试");
+            case "bindVehicle" -> new BindConflictException("订单正在绑定车辆中，请稍后再试");
+            default -> new LockConflictException("订单正在处理中，请稍后再试");
         };
     }
 

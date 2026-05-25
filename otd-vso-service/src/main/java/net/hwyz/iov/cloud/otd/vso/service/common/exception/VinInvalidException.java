@@ -1,23 +1,13 @@
 package net.hwyz.iov.cloud.otd.vso.service.common.exception;
 
-import lombok.extern.slf4j.Slf4j;
-
 /**
  * VIN无效异常
+ *
+ * @author hwyz_leo
  */
-@Slf4j
 public class VinInvalidException extends VsoBaseException {
 
-    private final String vin;
-
     public VinInvalidException(String vin) {
-        super(ERROR_CODE_VIN_INVALID);
-        this.vin = vin;
-        log.warn("VIN [{}] 无效或状态不可用", vin);
+        super(VsoErrorCode.VIN_INVALID, "VIN[" + vin + "]无效");
     }
-
-    public String getVin() {
-        return vin;
-    }
-
 }

@@ -1,11 +1,13 @@
 package net.hwyz.iov.cloud.otd.vso.service.common.exception;
 
-import lombok.extern.slf4j.Slf4j;
-
-@Slf4j
+/**
+ * 支付状态不匹配异常
+ *
+ * @author hwyz_leo
+ */
 public class PaymentStatusMismatchException extends VsoBaseException {
-    public PaymentStatusMismatchException(String paymentNo, String currentStatus) {
-        super(ERROR_CODE_PAYMENT_STATUS_MISMATCH, "支付单状态不匹配，当前状态：" + currentStatus);
-        log.warn("支付单[{}]状态不匹配，当前状态：{}", paymentNo, currentStatus);
+
+    public PaymentStatusMismatchException(String message) {
+        super(VsoErrorCode.PAYMENT_STATUS_MISMATCH, message);
     }
 }

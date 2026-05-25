@@ -685,7 +685,7 @@ public class OrderAppService {
                 } else {
                     log.warn("订单状态不允许定金下单：orderNo={}, orderState={}", 
                             order.getOrderNo(), order.getOrderState());
-                    throw new OrderStateNotAllowedException(order.getOrderNo(), order.getOrderState(), "DOWN_PAYMENT");
+                    throw new OrderStateNotAllowedException("车辆销售订单[" + order.getOrderNo() + "]当前状态[" + order.getOrderState() + "]不允许定金下单");
                 }
             } else {
                 order = Order.fromWishlist(cmd.getAccountId(), null);
@@ -909,7 +909,7 @@ public class OrderAppService {
             if (!order.canRefund()) {
                 log.warn("订单状态不允许退款：orderNo={}, orderState={}", 
                         order.getOrderNo(), order.getOrderState());
-                throw new OrderStateNotAllowedException(order.getOrderNo(), order.getOrderState(), "REFUND");
+                throw new OrderStateNotAllowedException("车辆销售订单[" + order.getOrderNo() + "]当前状态[" + order.getOrderState() + "]不允许退款");
             }
             
             // 计算退款金额
@@ -990,7 +990,7 @@ public class OrderAppService {
             if (order.getOrderState() != OrderState.EARNEST_MONEY_PAID) {
                 log.warn("订单状态不允许转定金：orderNo={}, orderState={}",
                     order.getOrderNo(), order.getOrderState());
-                throw new OrderStateNotAllowedException(order.getOrderNo(), order.getOrderState(), "EARNEST_TO_DOWN_PAYMENT");
+                throw new OrderStateNotAllowedException("车辆销售订单[" + order.getOrderNo() + "]当前状态[" + order.getOrderState() + "]不允许转定金");
             }
 
             // 保存补充信息
@@ -1219,7 +1219,7 @@ public class OrderAppService {
         if (state != OrderState.EARNEST_MONEY_PAID 
                 && state != OrderState.DOWN_PAYMENT_UNPAID 
                 && state != OrderState.DOWN_PAYMENT_PAID) {
-            throw new OrderStateNotAllowedException(order.getOrderNo(), state, "MODIFY_CONFIG");
+            throw new OrderStateNotAllowedException("车辆销售订单[" + order.getOrderNo() + "]当前状态[" + state + "]不允许修改配置");
         }
     }
 
@@ -1629,7 +1629,7 @@ public class OrderAppService {
                 .orElseThrow(() -> new SupplementPaymentNotExistException(supplementaryNo));
 
         if (!SupplementaryPaymentStatus.PENDING.getValue().equals(supplementPo.getSupplementaryStatus())) {
-            throw new SupplementPaymentStatusException(supplementaryNo, supplementPo.getSupplementaryStatus());
+            throw new SupplementPaymentStatusException("补缴支付[" + supplementaryNo + "]状态[" + supplementPo.getSupplementaryStatus() + "]不允许");
         }
 
         if (LocalDateTime.now().isAfter(supplementPo.getExpireTime())) {

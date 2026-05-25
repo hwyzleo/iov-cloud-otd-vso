@@ -1,15 +1,13 @@
 package net.hwyz.iov.cloud.otd.vso.service.common.exception;
 
-import lombok.extern.slf4j.Slf4j;
-
 /**
- * 补款任务已过期异常
+ * 补缴支付已过期异常
+ *
+ * @author hwyz_leo
  */
-@Slf4j
 public class SupplementPaymentExpiredException extends VsoBaseException {
 
-    public SupplementPaymentExpiredException(String supplementaryNo) {
-        super(ERROR_CODE_SUPPLEMENT_PAYMENT_EXPIRED);
-        log.warn("补款任务[{}]已过期", supplementaryNo);
+    public SupplementPaymentExpiredException(String paymentNo) {
+        super(VsoErrorCode.SUPPLEMENT_PAYMENT_EXPIRED, "补缴支付[" + paymentNo + "]已过期");
     }
 }

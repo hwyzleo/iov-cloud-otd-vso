@@ -59,7 +59,7 @@ public class VehicleAssignment {
      */
     public void reassign(String newVin, int occupancyHours) {
         if (this.assignStatus != AssignStatus.ASSIGNED && this.assignStatus != AssignStatus.BOUND) {
-            throw new OrderStateNotAllowedException(this.orderId, null, "REASSIGN_VEHICLE");
+            throw new OrderStateNotAllowedException("车辆分配[" + this.orderId + "]当前状态不允许换绑车辆");
         }
         this.assignmentType = AssignmentType.REASSIGN;
         this.vin = newVin;
@@ -75,7 +75,7 @@ public class VehicleAssignment {
      */
     public void unbind(String reason) {
         if (this.assignStatus != AssignStatus.ASSIGNED && this.assignStatus != AssignStatus.BOUND) {
-            throw new OrderStateNotAllowedException(this.orderId, null, "UNBIND_VEHICLE");
+            throw new OrderStateNotAllowedException("车辆分配[" + this.orderId + "]当前状态不允许解绑车辆");
         }
         this.assignmentType = AssignmentType.UNBIND;
         this.assignStatus = AssignStatus.UNBOUND;

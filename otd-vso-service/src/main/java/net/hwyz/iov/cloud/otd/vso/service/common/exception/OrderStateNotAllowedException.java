@@ -1,19 +1,13 @@
 package net.hwyz.iov.cloud.otd.vso.service.common.exception;
 
-import lombok.extern.slf4j.Slf4j;
-import net.hwyz.iov.cloud.otd.vso.service.domain.model.OrderState;
-
 /**
- * 订单当前状态不支持此操作异常
+ * 订单状态不允许异常
  *
  * @author hwyz_leo
  */
-@Slf4j
 public class OrderStateNotAllowedException extends VsoBaseException {
 
-    public OrderStateNotAllowedException(String orderNo, OrderState orderState, String operation) {
-        super(ERROR_CODE_ORDER_STATE_NOT_ALLOWED);
-        log.warn("车辆销售订单[{}]当前状态[{}]不支持此操作[{}]", orderNo, orderState, operation);
+    public OrderStateNotAllowedException(String message) {
+        super(VsoErrorCode.ORDER_STATE_NOT_ALLOWED, message);
     }
-
 }

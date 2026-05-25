@@ -263,10 +263,12 @@ private String getFamilyName(String saleModelCode, String familyCode) {
         }
     }
 
+    private static final int WISHLIST_LIMIT = 5;
+
     private void validateWishlistLimit(String userId) {
         long count = wishlistRepository.countByUserId(userId);
-        if (count >= WishlistLimitExceededException.WISHLIST_LIMIT) {
-            throw new WishlistLimitExceededException(userId);
+        if (count >= WISHLIST_LIMIT) {
+            throw new WishlistLimitExceededException(WISHLIST_LIMIT);
         }
     }
 
@@ -278,7 +280,7 @@ private String getFamilyName(String saleModelCode, String familyCode) {
             exists = wishlistRepository.existsByUserIdAndBuildConfigCodeExcluding(userId, buildConfigCode, excludeWishlistId);
         }
         if (exists) {
-            throw new DuplicateWishlistException(userId, buildConfigCode);
+            throw new DuplicateWishlistException(userId);
         }
     }
 
