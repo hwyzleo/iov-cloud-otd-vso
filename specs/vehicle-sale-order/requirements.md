@@ -102,9 +102,12 @@
 
 **Acceptance Criteria** (EARS 语法):
 - WHERE 订单存在且属于当前用户、订单状态允许取消（EARNEST_MONEY_UNPAID、EARNEST_MONEY_PAID、DOWN_PAYMENT_UNPAID、DOWN_PAYMENT_PAID）、获取分布式锁成功 WHEN 用户提交取消订单请求 THE SYSTEM SHALL 在 1s 内将订单状态设为 CANCEL 并记录取消原因和时间线事件
-- WHERE 订单已支付（EARNEST_MONEY_PAID 或 DOWN_PAYMENT_PAID）、获取分布式锁成功 WHEN 用户提交退款申请 THE SYSTEM SHALL 将订单状态设为 REFUND_APPLY 并创建退款任务
+- WHERE 订单状态为 EARNEST_MONEY_PAID 或 DOWN_PAYMENT_PAID、获取分布式锁成功 WHEN 用户提交退款申请 THE SYSTEM SHALL 将订单状态设为 REFUND_APPLY 并创建退款任务，退款金额等于已支付金额（全额退款，手续费为 0）
+- WHERE 订单状态为 ARRANGE_PRODUCTION、获取分布式锁成功 WHEN 用户提交退款申请 THE SYSTEM SHALL 将订单状态设为 REFUND_APPLY 并创建退款任务，退款金额 = 已支付金额 - max(已支付金额 × 5%, 500)，其中 5% 为手续费比例，500 为最低手续费金额（单位：元）
+- WHERE 订单状态为 ALLOCATION_VEHICLE 或之后状态（APPLY_TRANSPORT、PREPARE_TRANSPORT、TRANSPORTING、PREPARE_DELIVER、DELIVERED、ACTIVATED） WHEN 用户提交退款申请 THE SYSTEM SHALL 拒绝退款并返回状态不合法错误（订单已进入生产/发运阶段，不支持退款）
 - WHILE 取消/退款操作执行中 THE SYSTEM SHALL 持有该订单的分布式锁（TTL 30s，操作完成后自动释放）
 - IF 获取分布式锁失败 THEN THE SYSTEM SHALL 返回并发冲突错误
+- WHEN 退款申请提交成功 THE SYSTEM SHALL 记录退款记录（含退款金额、手续费金额、退款原因、申请时间）
 
 ### US-009: 订单锁单
 

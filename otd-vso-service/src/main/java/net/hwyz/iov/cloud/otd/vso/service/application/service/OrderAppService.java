@@ -31,6 +31,7 @@ import net.hwyz.iov.cloud.otd.vso.service.domain.model.OrderAmount;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.OrderState;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.Wishlist;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.shared.CustomerInfo;
+import net.hwyz.iov.cloud.otd.vso.service.domain.model.shared.Money;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.shared.OrganizationInfo;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.shared.VehicleInfo;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.OrderPartyRepository;
@@ -52,7 +53,9 @@ import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.OrderPar
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.OrderTimelinePo;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.OrderVehicleSnapshotPo;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.PaymentPo;
+import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.RefundPo;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.SaleModelPo;
+import net.hwyz.iov.cloud.otd.vso.service.domain.repository.RefundRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -95,6 +98,7 @@ public class OrderAppService {
     private final PaymentChannelConfig paymentChannelConfig;
     private final SaleModelRepository saleModelRepository;
     private final PaymentRepository paymentRepository;
+    private final RefundRepository refundRepository;
     private final SaleModelAppService saleModelAppService;
     private final DictionaryService dictionaryService;
     private final OrgDealershipService orgDealershipService;
@@ -850,10 +854,52 @@ public class OrderAppService {
     public void requestRefund(RequestRefundCmd cmd) {
         orderLockService.executeWithLock(cmd.getOrderNo(), cmd.getAccountId(), "refund", () -> {
             Order order = findOrderById(cmd.getAccountId(), cmd.getOrderNo());
+            
+            // 检查是否可以退款
+            if (!order.canRefund()) {
+                log.warn("订单状态不允许退款：orderNo={}, orderState={}", 
+                        order.getOrderNo(), order.getOrderState());
+                throw new OrderStateNotAllowedException(order.getOrderNo(), order.getOrderState(), "REFUND");
+            }
+            
+            // 计算退款金额
+            Money refundAmount = order.getRefundAmount();
+            Money refundFee = order.getRefundFee();
+            String refundScene = order.getRefundScene();
+            
+            // 更新订单状态
             order.requestRefund();
             orderRepository.save(order);
-            log.info("创建退款任务：orderId={}", order.getId());
+            
+            // 创建退款记录
+            RefundPo refundPo = new RefundPo();
+            refundPo.setRefundId(IdUtil.fastSimpleUUID());
+            refundPo.setRefundNo(generateRefundNo());
+            refundPo.setOrderId(order.getId());
+            refundPo.setRefundScene(refundScene);
+            refundPo.setRefundAmount(refundAmount.getAmount());
+            refundPo.setRefundFee(refundFee.getAmount());
+            refundPo.setRefundStatus("pending");
+            refundPo.setApplyTime(LocalDateTime.now());
+            refundRepository.save(refundPo);
+            
+            // 记录时间线
+            saveOrderTimeline(order.getId(), "REFUND_APPLY", "申请退款", 
+                    order.getOrderState().name(), "REFUND_APPLY",
+                    cmd.getAccountId(), "user", "mobile", 
+                    refundPo.getRefundNo(), "success", null, 
+                    "退款申请成功，退款金额：" + refundAmount + "，手续费：" + refundFee);
+            
+            log.info("创建退款任务：orderId={}, refundNo={}, refundAmount={}, refundFee={}", 
+                    order.getId(), refundPo.getRefundNo(), refundAmount, refundFee);
         });
+    }
+
+    /**
+     * 生成退款单号
+     */
+    private String generateRefundNo() {
+        return "REF" + System.currentTimeMillis() + String.format("%04d", new java.util.Random().nextInt(10000));
     }
 
     @Transactional(rollbackFor = Exception.class)

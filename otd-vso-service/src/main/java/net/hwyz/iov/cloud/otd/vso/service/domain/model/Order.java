@@ -546,6 +546,55 @@ public class Order {
         this.orderStateTime = new Date();
     }
 
+    /**
+     * 检查是否可以退款
+     *
+     * @return 是否可以退款
+     */
+    public boolean canRefund() {
+        return this.orderAmount != null && this.orderAmount.canRefund(this.orderState);
+    }
+
+    /**
+     * 获取退款金额
+     *
+     * @return 退款金额
+     * @throws IllegalStateException 如果订单状态不允许退款
+     */
+    public Money getRefundAmount() {
+        if (this.orderAmount == null) {
+            throw new IllegalStateException("订单金额信息不存在");
+        }
+        return this.orderAmount.calculateRefundAmount(this.orderState);
+    }
+
+    /**
+     * 获取退款手续费
+     *
+     * @return 手续费金额
+     * @throws IllegalStateException 如果订单状态不允许退款
+     */
+    public Money getRefundFee() {
+        if (this.orderAmount == null) {
+            throw new IllegalStateException("订单金额信息不存在");
+        }
+        Money paidTotal = this.orderAmount.getPaidTotal();
+        Money refundAmount = getRefundAmount();
+        return paidTotal.subtract(refundAmount);
+    }
+
+    /**
+     * 获取退款场景
+     *
+     * @return 退款场景（full_refund 或 partial_refund）
+     */
+    public String getRefundScene() {
+        if (this.orderAmount == null) {
+            throw new IllegalStateException("订单金额信息不存在");
+        }
+        return this.orderAmount.getRefundScene(this.orderState);
+    }
+
     // ==================== 意向金转定金 ====================
 
     /**

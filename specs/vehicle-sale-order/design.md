@@ -311,14 +311,16 @@ stateDiagram-v2
 
     EARNEST_MONEY_PAID --> DOWN_PAYMENT_PAID: earnestMoneyToDownPayment()
     EARNEST_MONEY_PAID --> CANCEL: cancel()
-    EARNEST_MONEY_PAID --> REFUND_APPLY: requestRefund()
+    EARNEST_MONEY_PAID --> REFUND_APPLY: requestRefund() [全额退款]
 
     DOWN_PAYMENT_UNPAID --> DOWN_PAYMENT_PAID: pay() [支付成功]
     DOWN_PAYMENT_UNPAID --> CANCEL: cancel()
 
     DOWN_PAYMENT_PAID --> ARRANGE_PRODUCTION: lock()
     DOWN_PAYMENT_PAID --> CANCEL: cancel()
-    DOWN_PAYMENT_PAID --> REFUND_APPLY: requestRefund()
+    DOWN_PAYMENT_PAID --> REFUND_APPLY: requestRefund() [全额退款]
+
+    ARRANGE_PRODUCTION --> REFUND_APPLY: requestRefund() [部分退款,扣5%手续费]
 
     ARRANGE_PRODUCTION --> ALLOCATION_VEHICLE: assignVehicle()
     ALLOCATION_VEHICLE --> APPLY_TRANSPORT: applyTransport()
@@ -331,6 +333,15 @@ stateDiagram-v2
 
     REFUND_APPLY --> REFUND_COMPLETE: refundComplete()
 ```
+
+**退款金额计算规则**（详见 §4.7）：
+
+| 订单状态 | 退款规则 | 手续费 |
+|---------|---------|--------|
+| EARNEST_MONEY_PAID | 全额退款 | 0 |
+| DOWN_PAYMENT_PAID | 全额退款 | 0 |
+| ARRANGE_PRODUCTION | 部分退款 | max(已支付金额 × 5%, 500 元) |
+| ALLOCATION_VEHICLE 及之后 | 不支持退款 | - |
 
 ### 4.3 订单改配流程
 
@@ -520,7 +531,75 @@ sequenceDiagram
 - **防死锁**：TTL 30s 自动过期，即使异常未释放也不会永久阻塞
 - **操作续期**：操作完成后续期 5s 再释放，防止操作接近 TTL 边界时锁提前过期
 
-## 5. API Contracts
+### 4.7 退款金额计算流程（US-008）
+
+```mermaid
+flowchart TD
+    A[用户提交退款申请] --> B{获取分布式锁}
+    B -->|失败| C[返回并发冲突错误]
+    B -->|成功| D{校验订单状态}
+    D -->|EARNEST_MONEY_PAID 或 DOWN_PAYMENT_PAID| E[全额退款]
+    D -->|ARRANGE_PRODUCTION| F[部分退款]
+    D -->|ALLOCATION_VEHICLE 及之后| G[拒绝退款]
+    
+    E --> H[退款金额 = 已支付金额]
+    F --> I[手续费 = max 已支付金额 × 5% , 500]
+    I --> J[退款金额 = 已支付金额 - 手续费]
+    
+    H --> K[创建退款记录]
+    J --> K
+    G --> L[返回状态不合法错误]
+    
+    K --> M[调用支付网关发起退款]
+    M --> N[更新订单状态为 REFUND_APPLY]
+    N --> O[记录时间线事件]
+    O --> P[释放分布式锁]
+```
+
+**退款金额计算公式**：
+
+```
+退款金额 = 已支付金额 - 手续费
+
+其中：
+- 未锁单前（EARNEST_MONEY_PAID、DOWN_PAYMENT_PAID）：手续费 = 0
+- 锁单后（ARRANGE_PRODUCTION）：手续费 = max(已支付金额 × 5%, 500)
+- 生产中/已发运（ALLOCATION_VEHICLE 及之后）：不支持退款
+```
+
+**退款记录数据结构**（`vso_refund` 表）：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| refund_id | VARCHAR(64) | 退款业务 ID |
+| refund_no | VARCHAR(64) | 退款单号 |
+| order_id | VARCHAR(64) | 关联订单 ID |
+| payment_id | VARCHAR(64) | 关联支付 ID |
+| refund_scene | VARCHAR(32) | 退款场景（full_refund / partial_refund） |
+| refund_amount | DECIMAL(18,2) | 退款金额 |
+| refund_status | VARCHAR(32) | 退款状态（pending / success / failed） |
+| approval_id | VARCHAR(64) | 关联审批 ID（预留） |
+| external_refund_no | VARCHAR(64) | 外部退款单号 |
+| apply_time | TIMESTAMP | 申请时间 |
+| refund_time | TIMESTAMP | 退款完成时间 |
+| fail_reason | VARCHAR(255) | 退款失败原因 |
+
+**退款场景枚举**：
+
+| 场景 | refund_scene | 说明 |
+|------|--------------|------|
+| 全额退款 | `full_refund` | 未锁单前退款，手续费为 0 |
+| 部分退款 | `partial_refund` | 锁单后退款，扣除手续费 |
+
+**关键设计决策**：
+
+| 维度 | 决策 | 理由 |
+|------|------|------|
+| 退款审核 | 自动审核 | 系统根据订单状态自动判断，无需人工干预 |
+| 手续费计算 | 固定比例 + 最低金额 | 简单明确，避免退款金额过低 |
+| 退款发起 | 调用支付网关 | 通过 PaymentAdapter.refund() 接口 |
+| 退款回调 | 复用支付回调机制 | 统一处理支付和退款回调 |
+| 状态流转 | REFUND_APPLY → REFUND_COMPLETE | 退款申请到退款完成 |
 
 ### 5.1 Mobile Sale Model APIs
 
@@ -717,7 +796,7 @@ sequenceDiagram
 | # | 问题 | 状态 |
 |---|------|------|
 | 1 | EsignAdapter、FinanceAdapter 接口已定义但未实现，合同签署和金融流程何时接入？ | 待定 |
-| 2 | 退款流程的具体金额计算规则（部分退款 vs 全额退款）未在代码中明确 | 待定 |
+| 2 | 退款流程的具体金额计算规则（部分退款 vs 全额退款）未在代码中明确 | 已解决 → §4.7 |
 | 3 | 订单超时任务的调度频率和补偿机制细节 | 已解决 → §4.5 |
 | 4 | 物理删除的权限校验具体实现（当前仅预留权限标识） | 待定 |
 | 5 | 多维度状态表(vso_order_status_dimension)与主状态的同步策略 | 待定 |
@@ -729,3 +808,4 @@ sequenceDiagram
 | 2026-05-23 | CR-001 | Added | 基于现有代码逆向生成初始设计文档 |
 | 2026-05-23 | CR-002 | Added | 新增 §4.5 超时任务调度流程、§4.6 分布式锁并发控制设计、§5.6 响应时间 SLA；补充 4 个错误码（301014~301017）；关闭 Open Question #3 |
 | 2026-05-23 | CR-003 | Fixed | 代码实现与设计对齐：分布式锁场景统一、超时任务 Redis 持久化、N+1 查询修复、状态机校验接入 |
+| 2026-05-25 | CR-004 | Added | 新增 §4.7 退款金额计算流程：按订单状态分层退款规则（未锁单前全额退款、锁单后扣 5% 手续费、生产中/已发运不退款）、退款记录数据结构、退款场景枚举；更新状态机图添加退款注释；关闭 Open Question #2 |

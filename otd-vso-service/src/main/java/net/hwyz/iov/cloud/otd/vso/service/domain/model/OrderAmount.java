@@ -209,4 +209,74 @@ public class OrderAmount {
         calculateUnpaid();
     }
 
+    /**
+     * 计算退款金额
+     *
+     * @param orderState 订单状态
+     * @return 退款金额（已支付金额 - 手续费）
+     * @throws IllegalStateException 如果订单状态不允许退款
+     */
+    public Money calculateRefundAmount(OrderState orderState) {
+        // 根据订单状态判断退款规则
+        switch (orderState) {
+            case EARNEST_MONEY_PAID:
+            case DOWN_PAYMENT_PAID:
+                // 未锁单前：全额退款，手续费为 0
+                return this.paidTotal;
+                
+            case ARRANGE_PRODUCTION:
+                // 锁单后：部分退款，扣除手续费
+                Money fee = calculateRefundFee(this.paidTotal);
+                return this.paidTotal.subtract(fee);
+                
+            default:
+                // 生产中/已发运：不支持退款
+                throw new IllegalStateException("订单状态 [" + orderState + "] 不支持退款");
+        }
+    }
+
+    /**
+     * 计算退款手续费
+     * 手续费 = max(已支付金额 × 5%, 500)
+     *
+     * @param paidAmount 已支付金额
+     * @return 手续费
+     */
+    private Money calculateRefundFee(Money paidAmount) {
+        BigDecimal percentageFee = paidAmount.getAmount().multiply(new BigDecimal("0.05"));
+        BigDecimal minFee = new BigDecimal("500.00");
+        BigDecimal fee = percentageFee.max(minFee);
+        return new Money(fee);
+    }
+
+    /**
+     * 检查是否可以退款
+     *
+     * @param orderState 订单状态
+     * @return 是否可以退款
+     */
+    public boolean canRefund(OrderState orderState) {
+        return orderState == OrderState.EARNEST_MONEY_PAID 
+            || orderState == OrderState.DOWN_PAYMENT_PAID 
+            || orderState == OrderState.ARRANGE_PRODUCTION;
+    }
+
+    /**
+     * 获取退款场景
+     *
+     * @param orderState 订单状态
+     * @return 退款场景（full_refund 或 partial_refund）
+     */
+    public String getRefundScene(OrderState orderState) {
+        switch (orderState) {
+            case EARNEST_MONEY_PAID:
+            case DOWN_PAYMENT_PAID:
+                return "full_refund";
+            case ARRANGE_PRODUCTION:
+                return "partial_refund";
+            default:
+                throw new IllegalStateException("订单状态 [" + orderState + "] 不支持退款");
+        }
+    }
+
 }

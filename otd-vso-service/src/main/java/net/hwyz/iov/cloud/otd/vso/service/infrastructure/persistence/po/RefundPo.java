@@ -36,6 +36,9 @@ public class RefundPo implements Serializable {
     @TableField("refund_amount")
     private BigDecimal refundAmount;
 
+    @TableField("refund_fee")
+    private BigDecimal refundFee;
+
     @TableField("refund_status")
     private String refundStatus;
 
