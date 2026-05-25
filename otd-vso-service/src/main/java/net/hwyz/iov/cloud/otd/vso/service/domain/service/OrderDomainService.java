@@ -1,6 +1,7 @@
 package net.hwyz.iov.cloud.otd.vso.service.domain.service;
 
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.Order;
+import net.hwyz.iov.cloud.otd.vso.service.domain.model.OrderState;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.OrderRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.OrderAmount;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.OrderAmountRepository;
@@ -201,6 +202,17 @@ public class OrderDomainService {
                 String.valueOf(beforeStatus),
                 order.getOrderState() != null ? String.valueOf(order.getOrderState().getValue()) : null,
                 "system", "system", "system", null, "success", null, "订单已完成");
+    }
+
+    /**
+     * VIN占用超时释放，订单状态回退
+     */
+    public void unassignVehicle(String orderId) {
+        Order order = loadOrder(orderId);
+        if (order.getOrderState() == OrderState.ALLOCATION_VEHICLE) {
+            order.unassignVehicle();
+            orderRepository.save(order);
+        }
     }
 
     /**
