@@ -12,6 +12,12 @@
 - 本地JDK17地址为：/Library/Java/JavaVirtualMachines/jdk-17.0.1.jdk/Contents/Home
 - 每次解决当前问题后，必须整体项目编译通过才算完成，如果有报错则直到解决所有报错问题后才停止
 
+# 当前项目需求文档
+- 参考 specs/vehicle-sale-order/requirements.md
+
+# 当前项目设计文档
+- 参考 specs/vehicle-sale-order/design.md
+
 # graphify
 
 This project has a graphify knowledge graph at graphify-out/.
