@@ -26,4 +26,6 @@ public class AuditOrderCmd {
      * 驳回原因（审核驳回时使用）
      */
     private String rejectReason;
+
+    private String rejectCategory;
 }

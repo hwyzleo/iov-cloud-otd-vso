@@ -47,6 +47,21 @@ public class ApprovalRecordPo implements Serializable {
     @TableField("timeout_flag")
     private Integer timeoutFlag;
 
+    @TableField("action_type")
+    private String actionType;
+
+    @TableField("reject_category")
+    private String rejectCategory;
+
+    @TableField("reject_reason")
+    private String rejectReason;
+
+    @TableField("operator_id")
+    private String operatorId;
+
+    @TableField("parent_record_id")
+    private Long parentRecordId;
+
     @TableField(value = "create_time", fill = FieldFill.INSERT)
     private LocalDateTime createTime;
 

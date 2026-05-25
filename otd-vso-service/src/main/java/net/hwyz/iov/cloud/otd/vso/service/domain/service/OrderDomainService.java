@@ -128,16 +128,46 @@ public class OrderDomainService {
      * 审核驳回
      */
     @Transactional(rollbackFor = Exception.class)
-    public void auditReject(String orderId, String reason) {
+    public void auditReject(String orderId, String rejectCategory, String reason) {
         Order order = loadOrder(orderId);
         Integer beforeStatus = order.getOrderState() != null ? order.getOrderState().getValue() : null;
-        order.auditReject(reason);
+        order.auditReject(rejectCategory, reason);
         saveOrder(order);
         
         saveTimeline(orderId, "AUDIT_REJECT", "审核驳回",
                 String.valueOf(beforeStatus),
                 order.getOrderState() != null ? String.valueOf(order.getOrderState().getValue()) : null,
                 "system", "auditor", "system", null, "success", reason, "订单审核驳回");
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public void resubmitAudit(String orderId) {
+        Order order = loadOrder(orderId);
+        Integer beforeStatus = order.getOrderState() != null ? order.getOrderState().getValue() : null;
+        order.resubmitAudit();
+        saveOrder(order);
+        
+        saveTimeline(orderId, "RESUBMIT_AUDIT", "重新提交审核",
+                String.valueOf(beforeStatus),
+                order.getOrderState() != null ? String.valueOf(order.getOrderState().getValue()) : null,
+                "system", "customer", "system", null, "success", null, "用户重新提交审核");
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public void rejectTimeoutClose(String orderId) {
+        Order order = loadOrder(orderId);
+        if (order.getOrderState() != OrderState.AUDIT_REJECTED) {
+            log.info("订单非审核驳回状态，跳过超时关闭：orderId={}", orderId);
+            return;
+        }
+        Integer beforeStatus = order.getOrderState().getValue();
+        order.cancel("审核驳回超时未重提，自动关闭");
+        saveOrder(order);
+        
+        saveTimeline(orderId, "AUDIT_REJECT_TIMEOUT_CLOSE", "驳回超时自动关闭",
+                String.valueOf(beforeStatus),
+                String.valueOf(OrderState.CANCEL.getValue()),
+                "system", "system", "system", null, "success", null, "审核驳回超时未重提，订单自动关闭");
     }
 
     /**

@@ -345,6 +345,11 @@ stateDiagram-v2
     DOWN_PAYMENT_PAID --> CANCEL: cancel()
     DOWN_PAYMENT_PAID --> REFUND_APPLY: requestRefund() [全额退款]
 
+    PENDING_AUDIT --> AUDIT_PASSED: auditPass()
+    PENDING_AUDIT --> AUDIT_REJECTED: auditReject()
+    AUDIT_REJECTED --> PENDING_AUDIT: resubmitAudit() [驳回次数<3]
+    AUDIT_REJECTED --> CANCEL: cancel() / AUDIT_REJECT_TIMEOUT
+
     ARRANGE_PRODUCTION --> REFUND_APPLY: requestRefund() [部分退款,扣5%手续费]
 
     ARRANGE_PRODUCTION --> ALLOCATION_VEHICLE: assignVehicle()
@@ -1163,6 +1168,123 @@ ASSIGNED（已分配）→ BOUND（已绑定）→ RELEASED（已释放）
 | 301030 | VIN 冲突，已被其他订单占用 |
 | 301031 | VIN 无效，不存在或状态不可用 |
 
+### 4.14 审核驳回可恢复路径设计（US-010）
+
+```mermaid
+sequenceDiagram
+    participant MPT as 管理后台
+    participant Ctrl as MptVsoController
+    participant OAS as OrderAppService
+    participant ODS as OrderDomainService
+    participant O as Order Aggregate
+    participant TNS as TimeoutNotifyService
+
+    Note over MPT,O: 审核驳回流程（增强）
+
+    MPT->>Ctrl: POST /{orderId}/audit/reject
+    Ctrl->>OAS: auditReject(cmd)
+    OAS->>ODS: auditReject(orderId, rejectCategory, rejectReason)
+    ODS->>O: auditReject(rejectCategory, rejectReason)
+    O->>O: validateTransition(PENDING_AUDIT → AUDIT_REJECTED)
+    O->>O: orderState = AUDIT_REJECTED
+    O->>O: auditRejectCount++
+    O->>O: rejectCategory = category
+    O->>O: remark = reason
+    ODS->>ODS: saveTimeline(AUDIT_REJECT)
+    ODS->>ODS: createApprovalRecord(REJECT, category, reason)
+    OAS->>TNS: createTimeoutTask(AUDIT_REJECT_REMIND, 72h)
+    OAS->>TNS: createTimeoutTask(AUDIT_REJECT_TIMEOUT, 168h)
+    OAS-->>Ctrl: success
+
+    Note over Ctrl,TNS: 重提审核流程
+
+    Ctrl->>OAS: resubmitAudit(cmd)
+    OAS->>ODS: resubmitAudit(orderId, modifiedFields)
+    ODS->>O: resubmitAudit()
+    O->>O: validateState(AUDIT_REJECTED)
+    O->>O: validate(auditRejectCount < 3)
+    O->>O: orderState = PENDING_AUDIT
+    O->>O: rejectCategory = null
+    O->>O: applyModifiedFields(modifiedFields)
+    ODS->>ODS: saveTimeline(RESUBMIT_AUDIT)
+    ODS->>ODS: createApprovalRecord(RESUBMIT, parentRecordId=lastRejectId)
+    OAS->>TNS: cancelTimeoutTask(AUDIT_REJECT_REMIND)
+    OAS->>TNS: cancelTimeoutTask(AUDIT_REJECT_TIMEOUT)
+    OAS->>TNS: createTimeoutTask(FORMAL_ORDER_AUDIT_TIMEOUT, 1440)
+    OAS-->>Ctrl: success
+```
+
+**驳回原因枚举** `AuditRejectReason`：
+
+| 枚举值 | 含义 |
+|--------|------|
+| INCOMPLETE_INFO | 资料不全 |
+| INCORRECT_INFO | 信息有误 |
+| RISK_BLOCK | 风险拦截 |
+| DUPLICATE_ORDER | 重复订单 |
+| OTHER | 其他 |
+
+**Order 聚合根新增字段**：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| auditRejectCount | Integer | 累计被驳回次数，默认 0，驳回时 +1，重提时校验上限 |
+| rejectCategory | String | 最近一次驳回原因分类枚举值，重提时清空 |
+
+**`vso_approval_record` 表扩展字段**：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| action_type | VARCHAR(32) | 操作类型（APPROVE / REJECT / RESUBMIT） |
+| reject_category | VARCHAR(32) | 驳回原因分类枚举值，仅 REJECT 时有值 |
+| reject_reason | TEXT | 驳回原因详情，仅 REJECT 时有值 |
+| operator_id | VARCHAR(64) | 操作人 ID |
+| parent_record_id | BIGINT | 关联上一条记录 ID，RESUBMIT 时指向上次 REJECT 记录 |
+
+**超时策略**：
+
+| 阶段 | 阈值 | 策略 | 任务编码 |
+|------|------|------|----------|
+| 驳回后提醒 | 72 小时 | remind | AUDIT_REJECT_REMIND |
+| 驳回后超时关闭 | 168 小时（7天） | auto_close | AUDIT_REJECT_TIMEOUT |
+
+**驳回超时自动关闭流程**：
+
+```mermaid
+flowchart TD
+    A[TimeoutNotifyService 触发] --> B{任务类型}
+    B -->|AUDIT_REJECT_REMIND| C[发送提醒通知给用户]
+    B -->|AUDIT_REJECT_TIMEOUT| D[加载订单]
+    D --> E{订单状态 = AUDIT_REJECTED?}
+    E -->|是| F[orderState → CANCEL]
+    E -->|否| G[跳过，已处理]
+    F --> H[saveTimeline AUDIT_REJECT_TIMEOUT_CLOSE]
+```
+
+**关键设计决策**：
+
+| 维度 | 决策 | 理由 |
+|------|------|------|
+| 恢复方式 | 用户修正后重提 | 符合'驳回即修正'的业务语义，行业标准做法 |
+| 重提上限 | 3 次 | 足够 2 轮修正 + 1 轮保留，避免无限重提审核绕过 |
+| 驳回原因 | 结构化枚举 + 自由文本 | 便于驳回原因统计分析，同时保留详情 |
+| 超时策略 | 72h 提醒 + 168h 自动关闭 | 与已有 TimeoutNotifyService 机制一致，避免订单长期挂起 |
+| 审批记录 | 扩展 vso_approval_record | 复用已有审批表，RESUBMIT 记录关联上次 REJECT 记录 |
+
+**状态机新增转移**：
+
+```
+AUDIT_REJECTED(370) → PENDING_AUDIT(350)   // 用户修正后重提
+AUDIT_REJECTED(370) → CANCEL(950)          // 用户主动取消 / 超时自动关闭
+```
+
+**错误码定义**：
+
+| 错误码 | 说明 |
+|--------|------|
+| 301028 | 审核重提次数超限（最多 3 次） |
+| 301029 | 审核驳回原因必填（分类和详情均不可为空） |
+
 ### 5.1 Mobile Sale Model APIs
 
 **GET** `/api/mobile/saleModel/v1`
@@ -1264,8 +1386,15 @@ ASSIGNED（已分配）→ BOUND（已绑定）→ RELEASED（已释放）
 
 **POST** `/api/mpt/vso/v1/{orderId}/audit/reject`
 - Header: `X-Operator-Id`
-- Param: `reason`
+- Param: `rejectCategory` (枚举，必填，INCOMPLETE_INFO/INCORRECT_INFO/RISK_BLOCK/DUPLICATE_ORDER/OTHER)
+- Param: `rejectReason` (String，必填，驳回详情)
 - Response: void
+
+**POST** `/api/mpt/vso/v1/{orderId}/audit/resubmit`
+- Header: `X-Operator-Id`
+- Request: `{ modifiedFields }` (可选修正字段)
+- Response: void
+- 说明：用户修正信息后重新提交审核，驳回次数 < 3 时允许
 
 **POST** `/api/mpt/vso/v1/{orderId}/lock`
 - Header: `X-Operator-Id`
@@ -1318,6 +1447,7 @@ ASSIGNED（已分配）→ BOUND（已绑定）→ RELEASED（已释放）
 | 支付 | 回调处理 | <2s | 含签名验证 + 状态流转 |
 | 订单操作 | 改配 | <2s | 含 VMD 调用 + 快照创建 |
 | 订单操作 | 锁单/取消/退款/转定金 | <1s | 本地状态流转（差额<=0 时） |
+| 订单操作 | 审核驳回/重提审核 | <1s | 本地状态流转+审批记录创建 |
 | 订单操作 | 转定金（含差额支付） | <2s | 含差额支付任务创建（差额>0 时） |
 | 支付 | 差额支付发起 | <2s | 含分布式锁获取 |
 | 订单操作 | 物理删除 | <5s | 级联删除多表 |
@@ -1355,6 +1485,8 @@ ASSIGNED（已分配）→ BOUND（已绑定）→ RELEASED（已释放）
 | 301025 | DUPLICATE_UNPAID_ORDER | 同一用户或手机号存在未完成订单，禁止重复下单 | 409 |
 | 301026 | WISHLIST_LIMIT_EXCEEDED | 心愿单已达上限（5个），禁止继续创建 | 409 |
 | 301027 | DUPLICATE_WISHLIST | 同一用户已存在相同配置的心愿单，禁止重复创建 | 409 |
+| 301028 | AUDIT_RESUBMIT_LIMIT_EXCEEDED | 审核重提次数超限（最多 3 次） | 409 |
+| 301029 | AUDIT_REJECT_REASON_REQUIRED | 审核驳回原因必填（分类和详情均不可为空） | 400 |
 | 301030 | VIN_CONFLICT | VIN 冲突，已被其他订单占用 | 409 |
 | 301031 | VIN_INVALID | VIN 无效，不存在或状态不可用 | 400 |
 
@@ -1371,7 +1503,7 @@ ASSIGNED（已分配）→ BOUND（已绑定）→ RELEASED（已释放）
 | US-007 | §4.3, §4.9, §4.10, §3.2(vso_order_vehicle_snapshot, vso_supplementary_payment, vso_config_change_refund), §5.2(modifyConfig) | 改配，版本化快照，价格重算与差额补/退 |
 | US-008 | §4.2, §4.8, §5.2(cancel/requestRefund) | 取消/退款状态流转，退款金额计算，含 VIN 释放逻辑 |
 | US-009 | §4.2, §5.2(lock), §5.3(lock) | 锁单，buildConfigLock=true |
-| US-010 | §5.3(audit/pass, audit/reject) | 审核通过/驳回 |
+| US-010 | §5.3(audit/pass, audit/reject, audit/resubmit), §4.14 | 审核通过/驳回/重提，驳回可恢复路径 |
 | US-011 | §3.2(vso_vehicle_assignment, vso_config_vehicle_occupancy), §4.13, §5.3(assignVehicle/reassignVehicle/unbindVehicle), §7.错误码(301030/301031) | 配车绑定/换绑/解绑 VIN，含超时释放、订单取消释放、库存服务集成 |
 | US-012 | §4.2, §5.3(applyTransport), §5.4 | 发运状态流转 |
 | US-013 | §4.2, §5.3(assignDeliveryPerson), §5.4 | 交付流程 |
@@ -1418,3 +1550,4 @@ ASSIGNED（已分配）→ BOUND（已绑定）→ RELEASED（已释放）
 | 2026-05-25 | CR-007 | Added | US-003/US-004 防刷单设计：新增 §4.11 防刷单/黄牛设计（DuplicateOrderSpecification 规约模式、用户/手机号维度校验、校验流程图）；更新 §4.1 下单流程增加 DuplicateOrderSpecification 校验步骤；更新 §3.2 补充防刷单唯一索引说明；新增错误码 301025 DUPLICATE_UNPAID_ORDER；更新 §6 Coverage Mapping 补充 US-003/US-004 防刷单设计引用 |
 | 2026-05-25 | CR-008 | Added | US-002 心愿单数量上限与唯一性约束：新增 §4.12 心愿单业务规则校验设计（数量上限 5 个、buildConfigCode 维度唯一性校验）；更新 §3.2 补充心愿单唯一索引说明；新增错误码 301026 WISHLIST_LIMIT_EXCEEDED、301027 DUPLICATE_WISHLIST；更新 §6 Coverage Mapping 补充 US-002 设计章节引用 |
 | 2026-05-25 | CR-009 | Added | US-011 配车业务规则补全：新增 §4.13 配车流程设计（配车绑定、换绑 VIN、VIN 超时释放、订单取消释放 VIN、主动解绑、配车状态机、VIN 唯一性保障）；新增 4 个 MPT API（reassignVehicle、unbindVehicle、vehicleAssignment/list、vehicleAssignment/{orderNo}）；新增 vso_config_vehicle_occupancy 配置表；新增错误码 301030 VIN_CONFLICT、301031 VIN_INVALID；更新 §6 Coverage Mapping 补充 US-008/US-011 设计章节引用；更新 requirements.md US-011 补全 Acceptance Criteria |
+| 2026-05-25 | CR-010 | Added | US-010 审核驳回可恢复路径：新增 §4.14 审核驳回可恢复路径设计（重提审核规则、驳回原因枚举、超时策略、审批记录扩展）；更新 §4.2 状态机图增加 AUDIT_REJECTED→PENDING_AUDIT/CANCEL 转移；更新 §5.3 API 定义增加 rejectCategory 参数和 audit/resubmit 接口；更新 §5.7 错误码增加 301028/301029；更新 §6 Coverage Mapping；更新 requirements.md US-010 补全 Acceptance Criteria |

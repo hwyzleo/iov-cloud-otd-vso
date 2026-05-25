@@ -82,6 +82,17 @@ public class TimeoutTaskScheduler {
                 }
                 break;
                 
+            case "auto_close":
+                log.info("审核驳回超时自动关闭订单：orderId={}", task.getOrderId());
+                try {
+                    orderDomainService.rejectTimeoutClose(task.getOrderId());
+                    task.complete();
+                } catch (Exception e) {
+                    log.error("审核驳回超时关闭订单失败：orderId={}", task.getOrderId(), e);
+                    task.fail();
+                }
+                break;
+                
             case "invalid":
                 // 自动失效订单（小订单）
                 log.info("自动失效小订单：orderId={}", task.getOrderId());

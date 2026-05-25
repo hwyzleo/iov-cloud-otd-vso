@@ -34,6 +34,8 @@ public class VsoBaseException extends BaseException {
     protected static final int ERROR_CODE_DUPLICATE_WISHLIST = 301027;
     protected static final int ERROR_CODE_VIN_CONFLICT = 301028;
     protected static final int ERROR_CODE_VIN_INVALID = 301029;
+    protected static final int ERROR_CODE_AUDIT_RESUBMIT_LIMIT_EXCEEDED = 301030;
+    protected static final int ERROR_CODE_AUDIT_REJECT_REASON_REQUIRED = 301031;
 
     public VsoBaseException(String message) {
         super(ERROR_CODE, message);

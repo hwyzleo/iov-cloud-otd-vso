@@ -9,6 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.hwyz.iov.cloud.otd.vso.api.enums.CustomerType;
 import net.hwyz.iov.cloud.otd.vso.api.enums.OrderType;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.shared.*;
+import net.hwyz.iov.cloud.otd.vso.service.common.exception.AuditResubmitLimitExceededException;
 import net.hwyz.iov.cloud.otd.vso.service.common.exception.OrderIllegalDeleteException;
 import net.hwyz.iov.cloud.otd.vso.service.common.exception.OrderStateNotAllowedException;
 import net.hwyz.iov.cloud.otd.vso.service.common.exception.SaleModelConfigHasLockedException;
@@ -78,6 +79,12 @@ public class Order {
 
     /** 订单状态变更时间 */
     private Date orderStateTime;
+
+    /** 累计被驳回次数，默认 0，驳回时 +1，重提时校验上限 */
+    private Integer auditRejectCount;
+
+    /** 最近一次驳回原因分类枚举值，重提时清空 */
+    private String rejectCategory;
 
     /** 下单时间，订单首次进入有效状态的时间 */
     private Date orderTime;
@@ -713,11 +720,29 @@ public class Order {
      *
      * @param reason 驳回原因
      */
-    public void auditReject(String reason) {
+    public void auditReject(String rejectCategory, String reason) {
         OrderStateMachine.validateTransition(this.orderState.getValue(), OrderState.AUDIT_REJECTED.getValue(), this.orderType);
         this.orderState = OrderState.AUDIT_REJECTED;
         this.orderStateTime = new Date();
+        this.rejectCategory = rejectCategory;
         this.remark = reason;
+        if (this.auditRejectCount == null) {
+            this.auditRejectCount = 0;
+        }
+        this.auditRejectCount++;
+    }
+
+    public void resubmitAudit() {
+        if (this.orderState != OrderState.AUDIT_REJECTED) {
+            throw new OrderStateNotAllowedException(orderNo, this.orderState, "resubmitAudit");
+        }
+        if (this.auditRejectCount != null && this.auditRejectCount >= AuditResubmitLimitExceededException.RESUBMIT_LIMIT) {
+            throw new AuditResubmitLimitExceededException(this.id);
+        }
+        OrderStateMachine.validateTransition(this.orderState.getValue(), OrderState.PENDING_AUDIT.getValue(), this.orderType);
+        this.orderState = OrderState.PENDING_AUDIT;
+        this.orderStateTime = new Date();
+        this.rejectCategory = null;
     }
 
     // ==================== 改配价格方法 ====================

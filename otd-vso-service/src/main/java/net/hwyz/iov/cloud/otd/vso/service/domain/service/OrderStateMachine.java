@@ -62,11 +62,30 @@ public class OrderStateMachine {
         
         // DOWN_PAYMENT_PAID(310) -> ARRANGE_PRODUCTION(400), CANCEL(950)
         Set<OrderState> downPaymentPaidTransitions = EnumSet.of(
+            OrderState.PENDING_AUDIT,
             OrderState.ARRANGE_PRODUCTION,
             OrderState.CANCEL,
             OrderState.REFUND_APPLY
         );
         STATE_TRANSITIONS.put(310, downPaymentPaidTransitions);
+        
+        // PENDING_AUDIT(350) → AUDIT_PASSED(360), AUDIT_REJECTED(370)
+        Set<OrderState> pendingAuditTransitions = EnumSet.of(
+            OrderState.AUDIT_PASSED,
+            OrderState.AUDIT_REJECTED
+        );
+        STATE_TRANSITIONS.put(350, pendingAuditTransitions);
+        
+        // AUDIT_PASSED(360) → ARRANGE_PRODUCTION(400)
+        Set<OrderState> auditPassedTransitions = EnumSet.of(OrderState.ARRANGE_PRODUCTION);
+        STATE_TRANSITIONS.put(360, auditPassedTransitions);
+        
+        // AUDIT_REJECTED(370) → PENDING_AUDIT(350), CANCEL(950)
+        Set<OrderState> auditRejectedTransitions = EnumSet.of(
+            OrderState.PENDING_AUDIT,
+            OrderState.CANCEL
+        );
+        STATE_TRANSITIONS.put(370, auditRejectedTransitions);
         
         // ARRANGE_PRODUCTION(400) -> ALLOCATION_VEHICLE(450), CANCEL(950)
         Set<OrderState> arrangeProductionTransitions = EnumSet.of(OrderState.ALLOCATION_VEHICLE, OrderState.CANCEL);

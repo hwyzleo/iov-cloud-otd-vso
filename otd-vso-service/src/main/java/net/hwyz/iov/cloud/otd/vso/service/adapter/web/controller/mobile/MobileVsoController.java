@@ -10,6 +10,7 @@ import net.hwyz.iov.cloud.framework.web.controller.BaseController;
 import net.hwyz.iov.cloud.otd.vso.service.adapter.web.assembler.*;
 import net.hwyz.iov.cloud.otd.vso.service.adapter.web.vo.*;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.*;
+import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.ResubmitAuditCmd;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.query.OrderQuery;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.*;
 import net.hwyz.iov.cloud.otd.vso.service.application.service.OrderAppService;
@@ -304,7 +305,6 @@ public class MobileVsoController extends BaseController {
         log.info("C 端取消订单：orderId={}, reason={}", orderId, reason);
 
         try {
-            // TODO: 获取当前用户 ID
             String operatorId = "CAPP_USER";
             vehicleSaleOrderAppService.cancelOrder(CancelOrderCmd.builder()
                     .orderId(orderId)
@@ -318,6 +318,29 @@ public class MobileVsoController extends BaseController {
             return ApiResponse.fail(e.getMessage());
         } catch (Exception e) {
             log.error("取消订单异常", e);
+            return ApiResponse.fail("系统繁忙，请稍后再试");
+        }
+    }
+
+    /**
+     * 重提审核
+     */
+    @PostMapping("/order/action/resubmitAudit")
+    public ApiResponse<Void> resubmitAudit(@RequestBody OrderVo order) {
+        log.info("C 端重提审核：orderNo={}", order.getOrderNo());
+
+        try {
+            String operatorId = "CAPP_USER";
+            vehicleSaleOrderAppService.resubmitAudit(ResubmitAuditCmd.builder()
+                    .orderId(order.getOrderNo())
+                    .operatorId(operatorId)
+                    .build());
+            return ApiResponse.ok();
+        } catch (IllegalArgumentException e) {
+            log.warn("重提审核失败：{}", e.getMessage());
+            return ApiResponse.fail(e.getMessage());
+        } catch (Exception e) {
+            log.error("重提审核异常", e);
             return ApiResponse.fail("系统繁忙，请稍后再试");
         }
     }

@@ -184,8 +184,23 @@
 
 **Acceptance Criteria** (EARS 语法):
 - WHERE 订单处于待审核状态、X-Operator-Id 请求头存在且有效 WHEN 运营人员审核通过订单 THE SYSTEM SHALL 在 1s 内记录操作人并更新审核状态为通过，创建超时提醒任务（FORMAL_ORDER_AUDIT_TIMEOUT，阈值 1440 分钟，策略 remind）
-- WHERE 订单处于待审核状态、驳回原因非空、X-Operator-Id 请求头存在且有效 WHEN 运营人员审核驳回订单 THE SYSTEM SHALL 在 1s 内记录驳回原因和操作人并更新审核状态为驳回
+- WHERE 订单处于待审核状态、驳回原因分类和详情非空、X-Operator-Id 请求头存在且有效 WHEN 运营人员审核驳回订单 THE SYSTEM SHALL 在 1s 内记录驳回原因分类、驳回详情和操作人并更新审核状态为驳回，累加驳回次数，创建驳回提醒任务（AUDIT_REJECT_REMIND，阈值 72 小时，策略 remind）和驳回超时关闭任务（AUDIT_REJECT_TIMEOUT，阈值 168 小时，策略 auto_close）
+- IF 驳回原因分类或详情为空 THEN THE SYSTEM SHALL 拒绝审核驳回操作并返回驳回原因必填错误（错误码 301029）
+- WHERE 订单处于审核驳回状态、累计驳回次数 < 3 WHEN 用户修正信息后重新提交审核 THE SYSTEM SHALL 在 1s 内更新审核状态为待审核、清空驳回原因分类、记录审批记录（RESUBMIT 类型，关联上次驳回记录）、取消驳回阶段超时任务、创建审核超时提醒任务
+- IF 累计驳回次数 >= 3 THEN THE SYSTEM SHALL 拒绝重提并返回重提次数超限错误（错误码 301028）
+- WHERE 订单处于审核驳回状态 WHEN 用户主动取消订单 THE SYSTEM SHALL 在 1s 内将订单状态流转为已取消并记录时间线事件
+- WHERE 订单处于审核驳回状态且超过 168 小时未重提 WHEN 超时任务触发 THE SYSTEM SHALL 自动将订单状态流转为已取消并记录时间线事件
 - WHEN 审核操作执行 THE SYSTEM SHALL 从 X-Operator-Id 请求头提取操作人 ID 并记录到审核记录中；若请求头缺失返回 401
+
+**驳回原因分类枚举**：
+
+| 枚举值 | 含义 |
+|--------|------|
+| INCOMPLETE_INFO | 资料不全 |
+| INCORRECT_INFO | 信息有误 |
+| RISK_BLOCK | 风险拦截 |
+| DUPLICATE_ORDER | 重复订单 |
+| OTHER | 其他 |
 
 ### US-011: 配车（分配 VIN）
 
@@ -378,3 +393,4 @@
 | 2026-05-25 | CR-005 | Added | US-003/US-004 防刷单规则补齐：新增用户维度和手机号维度的未完成订单唯一性校验（订单状态为 EARNEST_MONEY_UNPAID 或 DOWN_PAYMENT_UNPAID 时禁止重复下单），错误码 301025 DUPLICATE_UNPAID_ORDER |
 | 2026-05-25 | CR-006 | Added | US-002 心愿单数量上限与唯一性约束：新增数量上限（5个）校验、buildConfigCode 维度唯一性校验（创建/修改时均校验），错误码 301026 WISHLIST_LIMIT_EXCEEDED、301027 DUPLICATE_WISHLIST |
 | 2026-05-25 | CR-007 | Added | US-011 配车业务规则补全：补全配车绑定、换绑 VIN、VIN 冲突检测、VIN 超时释放（72小时自动释放）、订单取消/退款时 VIN 释放、主动解绑 VIN、配车状态机、VIN 来源校验、并发控制、幂等性等业务规则；新增错误码 301030 VIN_CONFLICT、301031 VIN_INVALID |
+| 2026-05-25 | CR-008 | Added | US-010 审核驳回可恢复路径：新增重提审核规则（最多 3 次，超限自动关闭）、驳回超时策略（72h 提醒+168h 自动关闭）、结构化驳回原因枚举（INCOMPLETE_INFO/INCORRECT_INFO/RISK_BLOCK/DUPLICATE_ORDER/OTHER）、驳回后可取消、审批记录扩展（action_type/reject_category/reject_reason/parent_record_id）；新增错误码 301028 AUDIT_RESUBMIT_LIMIT_EXCEEDED、301029 AUDIT_REJECT_REASON_REQUIRED |

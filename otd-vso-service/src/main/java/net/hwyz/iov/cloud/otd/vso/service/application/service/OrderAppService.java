@@ -18,6 +18,7 @@ import net.hwyz.iov.cloud.otd.vso.api.enums.PaymentStage;
 import net.hwyz.iov.cloud.otd.vso.api.enums.PaymentStatus;
 import net.hwyz.iov.cloud.otd.vso.service.adapter.web.assembler.OrderDtoAssembler;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.*;
+import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.ResubmitAuditCmd;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.query.CountQuery;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.query.OrderQuery;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.*;
@@ -254,12 +255,28 @@ public class OrderAppService {
      */
     @Transactional(rollbackFor = Exception.class)
     public void auditReject(AuditOrderCmd cmd) {
-        log.info("审核驳回：orderId={}, operatorId={}, reason={}",
-                cmd.getOrderId(), cmd.getOperatorId(), cmd.getRejectReason());
+        log.info("审核驳回：orderId={}, operatorId={}, rejectCategory={}, reason={}",
+                cmd.getOrderId(), cmd.getOperatorId(), cmd.getRejectCategory(), cmd.getRejectReason());
 
-        orderDomainService.auditReject(cmd.getOrderId(), cmd.getRejectReason());
+        orderDomainService.auditReject(cmd.getOrderId(), cmd.getRejectCategory(), cmd.getRejectReason());
+
+        timeoutNotifyService.createTimeoutTask(cmd.getOrderId(), "AUDIT_REJECT_REMIND", "remind", 4320);
+        timeoutNotifyService.createTimeoutTask(cmd.getOrderId(), "AUDIT_REJECT_TIMEOUT", "auto_close", 10080);
 
         log.info("订单审核驳回：orderId={}", cmd.getOrderId());
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public void resubmitAudit(ResubmitAuditCmd cmd) {
+        log.info("重提审核：orderId={}, operatorId={}", cmd.getOrderId(), cmd.getOperatorId());
+
+        orderDomainService.resubmitAudit(cmd.getOrderId());
+
+        timeoutNotifyService.cancelByOrderIdAndType(cmd.getOrderId(), "AUDIT_REJECT_REMIND");
+        timeoutNotifyService.cancelByOrderIdAndType(cmd.getOrderId(), "AUDIT_REJECT_TIMEOUT");
+        timeoutNotifyService.createTimeoutTask(cmd.getOrderId(), "FORMAL_ORDER_AUDIT_TIMEOUT", "remind", 1440);
+
+        log.info("订单重提审核成功：orderId={}", cmd.getOrderId());
     }
 
     /**

@@ -319,19 +319,38 @@ public class MptVsoController extends BaseController {
      */
     @PostMapping("/{orderId}/audit/reject")
     public ApiResponse<Void> auditReject(@PathVariable String orderId,
-                                         @RequestParam String reason,
+                                         @RequestParam String rejectCategory,
+                                         @RequestParam String rejectReason,
                                          @RequestHeader("X-Operator-Id") String operatorId) {
-        log.info("管理后台审核驳回：orderId={}, operatorId={}, reason={}", orderId, operatorId, reason);
+        log.info("管理后台审核驳回：orderId={}, operatorId={}, rejectCategory={}, reason={}", orderId, operatorId, rejectCategory, rejectReason);
 
         try {
             vehicleSaleOrderAppService.auditReject(AuditOrderCmd.builder()
                     .orderId(orderId)
                     .operatorId(operatorId)
-                    .rejectReason(reason)
+                    .rejectCategory(rejectCategory)
+                    .rejectReason(rejectReason)
                     .build());
             return ApiResponse.ok();
         } catch (Exception e) {
             log.error("审核驳回异常", e);
+            return ApiResponse.fail("操作失败");
+        }
+    }
+
+    @PostMapping("/{orderId}/audit/resubmit")
+    public ApiResponse<Void> resubmitAudit(@PathVariable String orderId,
+                                           @RequestHeader("X-Operator-Id") String operatorId) {
+        log.info("管理后台重提审核：orderId={}, operatorId={}", orderId, operatorId);
+
+        try {
+            vehicleSaleOrderAppService.resubmitAudit(ResubmitAuditCmd.builder()
+                    .orderId(orderId)
+                    .operatorId(operatorId)
+                    .build());
+            return ApiResponse.ok();
+        } catch (Exception e) {
+            log.error("重提审核异常", e);
             return ApiResponse.fail("操作失败");
         }
     }
