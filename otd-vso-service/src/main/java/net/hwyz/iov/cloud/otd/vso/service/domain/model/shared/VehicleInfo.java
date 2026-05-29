@@ -1,7 +1,12 @@
 package net.hwyz.iov.cloud.otd.vso.service.domain.model.shared;
 
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Data;
+
+import java.math.BigDecimal;
+import java.util.List;
 
 /**
  * 车辆信息值对象
@@ -46,6 +51,36 @@ public class VehicleInfo {
      * VIN（车辆识别码）
      */
     private String vin;
+
+    /**
+     * 销售车型编码
+     */
+    private String saleModelCode;
+
+    /**
+     * Variant 编码
+     */
+    private String variantCode;
+
+    /**
+     * Configuration 编码
+     */
+    private String configurationCode;
+
+    /**
+     * OptionCode 列表
+     */
+    private List<String> optionCodes;
+
+    /**
+     * Option 价格明细
+     */
+    private List<OptionPriceItem> optionPriceBreakdown;
+
+    /**
+     * 销售策略快照（JSON 字符串）
+     */
+    private String salePolicySnapshot;
 
     public VehicleInfo(String modelCode, String modelName, String configCode, String configName, 
                       String colorCode, String colorName) {
@@ -100,6 +135,18 @@ public class VehicleInfo {
             sb.append(colorName);
         }
         return sb.toString();
+    }
+
+    /**
+     * Option 价格明细项
+     */
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class OptionPriceItem {
+        private String optionFamilyCode;
+        private String optionCode;
+        private BigDecimal optionPrice;
     }
 
 }

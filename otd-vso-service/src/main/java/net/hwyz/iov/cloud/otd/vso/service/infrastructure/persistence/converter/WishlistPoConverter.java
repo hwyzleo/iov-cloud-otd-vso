@@ -1,5 +1,8 @@
 package net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.converter;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.Wishlist;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.WishlistPo;
 import org.mapstruct.Mapper;
@@ -29,5 +32,29 @@ public interface WishlistPoConverter {
     WishlistPo toPo(Wishlist domain);
 
     List<Wishlist> toDomainList(List<WishlistPo> poList);
+
+    default List<String> mapStringToList(String json) {
+        if (json == null || json.isEmpty()) {
+            return List.of();
+        }
+        try {
+            ObjectMapper objectMapper = new ObjectMapper();
+            return objectMapper.readValue(json, new TypeReference<List<String>>() {});
+        } catch (JsonProcessingException e) {
+            return List.of();
+        }
+    }
+
+    default String mapListToString(List<String> list) {
+        if (list == null || list.isEmpty()) {
+            return "[]";
+        }
+        try {
+            ObjectMapper objectMapper = new ObjectMapper();
+            return objectMapper.writeValueAsString(list);
+        } catch (JsonProcessingException e) {
+            return "[]";
+        }
+    }
 
 }

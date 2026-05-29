@@ -24,8 +24,8 @@ public interface WishlistRepository {
 
     long countByUserId(String userId);
 
-    boolean existsByUserIdAndBuildConfigCode(String userId, String buildConfigCode);
+    boolean existsByUserIdAndConfigurationCode(String userId, String configurationCode);
 
-    boolean existsByUserIdAndBuildConfigCodeExcluding(String userId, String buildConfigCode, String excludeWishlistId);
+    boolean existsByUserIdAndConfigurationCodeExcluding(String userId, String configurationCode, String excludeWishlistId);
 
 }

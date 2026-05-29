@@ -20,15 +20,17 @@
 
 ## 3. User Stories
 
-### US-001: 浏览销售车型
+### US-001: 浏览销售车型与选配器入口
 
-**As a** C 端用户, **I want** 查看当前在售车型列表及详情, **so that** 我能了解可购买的车型信息并选择配置。
+**As a** C 端用户, **I want** 查看当前在售车型卡片列表, **so that** 我能挑选一款进入选配页。
+
+**修订点说明**：原 US-001 基于 VMD 的 buildConfig/feature 语义设计，本轮重构后，C 端用户浏览销售车型只返回卡片级信息（起售价、卖点、营销图等），具体可选项树由 US-021 选配器返回。原"返回配置列表 / 特征码范围 / 解析 featureMap"三条 AC 全部废弃。
 
 **Acceptance Criteria** (EARS 语法):
-- WHERE 车型已上架且未逻辑删除 WHEN 用户请求销售车型列表 THE SYSTEM SHALL 在 500ms 内分页返回所有已上架的销售车型基本信息（编码、名称、图片、价格），按排序权重升序
-- WHERE 车型存在且未逻辑删除 WHEN 用户请求指定车型的配置列表 THE SYSTEM SHALL 在 500ms 内返回该车型下所有可选配置项（按配置族分组），若车型不存在返回 404
-- WHERE 车型存在且 VMD 服务可用 WHEN 用户请求指定车型的可选特征码范围 THE SYSTEM SHALL 调用 VMD 服务获取动态配置范围并在 2s 内返回；若 VMD 服务超时（>2s）或不可用，返回服务暂不可用提示
-- WHERE 特征码组合格式合法 WHEN 用户提交已选特征码组合 THE SYSTEM SHALL 解析匹配的 buildConfigCode 并在 1s 内返回对应的车型配置快照；若无法匹配返回 BuildConfigNotMatchedException
+- WHERE 销售车型存在、listingStatus = active、当前时间在 effectiveFrom 与 effectiveTo 之间、未逻辑删除 WHEN 用户请求销售车型列表 THE SYSTEM SHALL 在 300ms 内分页返回所有符合条件的销售车型卡片信息（saleModelCode、name、icon、variantName、basePrice、earnestMoneyPrice、downPaymentPrice、marketingCopy、images、sortWeight），按 sortWeight 升序、createdTime 倒序
+- WHERE availableRegions 非空 WHEN 用户请求销售车型列表 THE SYSTEM SHALL 仅返回 availableRegions 包含用户 regionCode 的车型；WHERE availableRegions 为空 THE SYSTEM SHALL 返回该车型（全国可售）
+- WHERE 销售车型存在、listingStatus = active、未逻辑删除 WHEN 用户请求指定车型详情 THE SYSTEM SHALL 在 300ms 内返回该车型的卡片信息和起售价；若车型不存在或已下架返回 404
+- WHEN 用户请求销售车型列表且无符合条件的车型 THE SYSTEM SHALL 返回 200 + 空数组，不返回 404
 - WHERE 车型存在且购车权益已配置 WHEN 用户请求购车权益 THE SYSTEM SHALL 返回该车型当前有效的购车权益信息；若无权益配置返回空列表
 - WHEN 用户请求上牌地区列表 THE SYSTEM SHALL 返回可选的省市区域列表（数据来自字典服务缓存，响应时间 <200ms）
 
@@ -36,40 +38,55 @@
 
 **As a** C 端用户, **I want** 创建、修改和删除心愿单, **so that** 我能保存感兴趣的车型配置以便后续下单。
 
+**修订点说明**：入参从 `{ saleModelCode, buildConfigCode }` 改为 `{ saleModelCode, optionCodes[] }`。创建时需调用 MDM `resolveConfiguration(variantCode, optionCodes)` 校验组合合法性，并校验 configurationCode 在销售白名单内、optionCodes 各自处于销售 active。唯一性维度从"用户 + buildConfigCode"改为"用户 + configurationCode + optionCodes 排序后哈希"。查询时实时校验配置有效性，失效时标注 invalidReason。
+
 **Acceptance Criteria** (EARS 语法):
-- WHERE 用户已登录且 buildConfigCode 有效 WHEN 用户提交创建心愿单请求（含车型编码和特征码） THE SYSTEM SHALL 在 500ms 内校验 buildConfigCode 有效性后创建心愿单并返回心愿单 ID；若 buildConfigCode 无效返回参数错误
-- WHERE 用户已登录 WHEN 用户提交创建心愿单请求 THE SYSTEM SHALL 校验用户当前有效心愿单数量，若已达上限（5 个）则拒绝并返回 WishlistLimitExceededException（错误码 301026），提示"心愿单已达上限（5个），请删除后再创建"
-- WHERE 用户已存在相同 buildConfigCode 的有效心愿单 WHEN 用户提交创建心愿单请求 THE SYSTEM SHALL 拒绝并返回 DuplicateWishlistException（错误码 301027），提示"该配置已存在心愿单，请勿重复添加"
-- WHERE 心愿单存在且属于当前用户 WHEN 用户提交修改心愿单请求 THE SYSTEM SHALL 更新心愿单的配置信息；若心愿单不存在返回 404
-- WHERE 心愿单存在且属于当前用户 WHEN 用户提交修改心愿单请求（buildConfigCode 与其他心愿单重复） THE SYSTEM SHALL 拒绝并返回 DuplicateWishlistException（错误码 301027）
+- WHERE 用户已登录、saleModelCode 有效、optionCodes 非空 WHEN 用户提交创建心愿单请求 THE SYSTEM SHALL 在 500ms 内调用 MDM `resolveConfiguration(variantCode, optionCodes)` 校验组合合法性，校验 configurationCode 在 SaleModel 销售白名单内、各 optionCode 处于销售 active 状态，全部通过后创建心愿单并返回心愿单 ID；若 resolveConfiguration 失败返回 CONFIGURATION_NOT_MATCHED（301010），若 configurationCode 不在白名单返回 CONFIGURATION_NOT_FOR_SALE（301035），若 optionCode 不在销售允许范围返回 OPTION_NOT_FOR_SALE（301036）
+- WHERE 用户已登录 WHEN 用户提交创建心愿单请求 THE SYSTEM SHALL 校验用户当前有效心愿单数量，若已达上限（5 个）则拒绝并返回 WISHLIST_LIMIT_EXCEEDED（错误码 301026），提示"心愿单已达上限（5个），请删除后再创建"
+- WHERE 用户已存在相同 configurationCode 且相同 optionCodes 排序后哈希的有效心愿单 WHEN 用户提交创建心愿单请求 THE SYSTEM SHALL 拒绝并返回 DUPLICATE_WISHLIST（错误码 301027），提示"该配置已存在心愿单，请勿重复添加"
+- WHERE 心愿单存在且属于当前用户 WHEN 用户提交修改心愿单请求 THE SYSTEM SHALL 更新心愿单的 optionCodes 信息，重新调用 MDM resolveConfiguration 校验；若心愿单不存在返回 404
+- WHERE 心愿单存在且属于当前用户 WHEN 用户提交修改心愿单请求（configurationCode + optionCodes 排序后哈希与其他心愿单重复） THE SYSTEM SHALL 拒绝并返回 DUPLICATE_WISHLIST（错误码 301027）
 - WHERE 心愿单存在且属于当前用户 WHEN 用户提交删除心愿单请求 THE SYSTEM SHALL 逻辑删除指定心愿单；若心愿单不存在返回 404
-- WHERE 心愿单存在 WHEN 用户请求心愿单详情 THE SYSTEM SHALL 返回心愿单信息并实时校验 buildConfig 是否仍启用，标注配置有效性状态
+- WHERE 心愿单存在 WHEN 用户请求心愿单详情 THE SYSTEM SHALL 返回心愿单信息并实时校验：① SaleModel 仍在售（listingStatus = active、时间窗有效）② configurationCode 仍在销售白名单（status = active）③ 每个 optionCode 仍在销售策略允许范围（saleStatus = active、区域/渠道命中）；任一项失效则在响应中标注 invalidReason 枚举值（SALE_MODEL_OFF_SHELF / CONFIGURATION_OFF_SHELF / OPTION_OFF_SHELF / REGION_RESTRICTED）
 - WHERE 用户已登录 WHEN 用户请求"我的车辆"列表 THE SYSTEM SHALL 合并返回用户的心愿单和订单列表，按创建时间倒序分页
 
 ### US-003: 意向金下单（小定）
 
 **As a** C 端用户, **I want** 支付意向金创建小定订单, **so that** 我能以较低成本锁定购车意向。
 
+**修订点说明**：入参从 `{ saleModelCode, featureMap, customerInfo, paymentChannel }` 改为 `{ saleModelCode, optionCodes[], customerInfo, paymentChannel, regionCode }`。在原"防刷单校验"之后，新增四步顺序校验（SaleModel 在售 → OptionCode 销售策略 → MDM resolveConfiguration → Configuration 销售白名单）。车辆配置快照新增 configurationCode、optionCodes[]、optionPriceBreakdown[]、salePolicySnapshot 固化字段。
+
 **Acceptance Criteria** (EARS 语法):
-- WHERE 用户已登录、buildConfigCode 有效、品牌编码存在 WHEN 用户提交意向金下单请求（含车型编码、特征码、客户信息） THE SYSTEM SHALL 在 1s 内生成唯一订单号、创建 SMALL 类型订单、状态设为 EARNEST_MONEY_UNPAID、创建车辆配置快照（版本 1），并通过分布式锁保证同一用户并发下单互斥
-- WHERE 用户已存在未完成订单（订单状态为 EARNEST_MONEY_UNPAID 或 DOWN_PAYMENT_UNPAID） WHEN 用户提交意向金下单请求 THE SYSTEM SHALL 拒绝下单并返回 DuplicateUnpaidOrderException（错误码 301025），提示"您有未完成的订单，请先完成支付或取消后再下单"
-- WHERE 手机号已关联其他用户的未完成订单（订单状态为 EARNEST_MONEY_UNPAID 或 DOWN_PAYMENT_UNPAID） WHEN 用户提交意向金下单请求 THE SYSTEM SHALL 拒绝下单并返回 DuplicateUnpaidOrderException（错误码 301025），提示"该手机号存在未完成的订单，请先完成支付或取消后再下单"
+- WHERE 用户已登录、saleModelCode 有效、optionCodes 非空、regionCode 有效 WHEN 用户提交意向金下单请求 THE SYSTEM SHALL 在 1s 内生成唯一订单号、创建 SMALL 类型订单、状态设为 EARNEST_MONEY_UNPAID、创建车辆配置快照（版本 1），并通过分布式锁保证同一用户并发下单互斥
+- WHERE 用户已存在未完成订单（订单状态为 EARNEST_MONEY_UNPAID 或 DOWN_PAYMENT_UNPAID） WHEN 用户提交意向金下单请求 THE SYSTEM SHALL 拒绝下单并返回 DUPLICATE_UNPAID_ORDER（错误码 301025），提示"您有未完成的订单，请先完成支付或取消后再下单"
+- WHERE 手机号已关联其他用户的未完成订单（订单状态为 EARNEST_MONEY_UNPAID 或 DOWN_PAYMENT_UNPAID） WHEN 用户提交意向金下单请求 THE SYSTEM SHALL 拒绝下单并返回 DUPLICATE_UNPAID_ORDER（错误码 301025），提示"该手机号存在未完成的订单，请先完成支付或取消后再下单"
+- WHERE 防刷单校验通过 WHEN 用户提交意向金下单请求 THE SYSTEM SHALL 按以下顺序校验，每一步失败返回对应错误码并终止：
+  1. SaleModel 在售校验：listingStatus = active、当前时间在 effectiveFrom 与 effectiveTo 之间、availableRegions 包含 regionCode 或为空；失败返回 SALE_MODEL_NOT_EXIST（301003）或 SALE_MODEL_OFF_SHELF（沿用 301003 + 描述）
+  2. OptionCode 销售策略校验：每个 optionCode 在 `tb_sale_model_option_policy` 中 saleStatus = active、optionPrice 非空、availableRegions 包含 regionCode 或为空、channels 包含当前渠道或为空；失败返回 OPTION_NOT_FOR_SALE（301036）或 OPTION_REGION_RESTRICTED（301037）
+  3. MDM 调用 `resolveConfiguration(variantCode, optionCodes)`：无法匹配返回 CONFIGURATION_NOT_MATCHED（301010，原 BUILD_CONFIG_NOT_MATCHED 改名）
+  4. Configuration 销售白名单校验：configurationCode 在 `tb_sale_model_config_policy` 中 status = active（空白名单视为 ALL 全开）；失败返回 CONFIGURATION_NOT_FOR_SALE（301035）
+- WHEN 订单创建成功 THE SYSTEM SHALL 在车辆配置快照中固化：saleModelCode、variantCode、configurationCode、optionCodes[]、optionPriceBreakdown[]（含 optionFamilyCode/optionCode/optionPrice 明细）、salePolicySnapshot（命中销售策略行的 JSON 快照）
 - WHEN 意向金订单创建成功 THE SYSTEM SHALL 自动删除该用户的所有心愿单（在同一事务内）
 - WHEN 意向金订单创建成功 THE SYSTEM SHALL 返回支付渠道信息和支付过期时间（基于 paymentChannelConfig.smallOrderTimeoutMinutes 配置，默认 30 分钟）
-- IF buildConfigCode 无法从特征码解析 THEN THE SYSTEM SHALL 拒绝下单并返回 BuildConfigNotMatchedException
-- IF brandCode 不存在 THEN THE SYSTEM SHALL 拒绝下单并返回 BrandCodeNotExistException
 
 ### US-004: 定金下单（大定）
 
 **As a** C 端用户, **I want** 支付定金创建大定订单, **so that** 我能正式确认购车并进入生产排期。
 
+**修订点说明**：同 US-003 的入参变更（optionCodes[]、regionCode）与四步校验顺序与快照固化要求。其他保持原 CR-005、CR-009 等已确立的逻辑（防刷单、支付过期等）。
+
 **Acceptance Criteria** (EARS 语法):
-- WHERE 用户已登录、buildConfigCode 有效 WHEN 用户提交定金下单请求 THE SYSTEM SHALL 在 1s 内生成唯一订单号、创建 FORMAL 类型订单、状态设为 DOWN_PAYMENT_UNPAID、创建车辆配置快照（版本 1），并通过分布式锁保证同一用户并发下单互斥
-- WHERE 用户已存在未完成订单（订单状态为 EARNEST_MONEY_UNPAID 或 DOWN_PAYMENT_UNPAID） WHEN 用户提交定金下单请求 THE SYSTEM SHALL 拒绝下单并返回 DuplicateUnpaidOrderException（错误码 301025），提示"您有未完成的订单，请先完成支付或取消后再下单"
-- WHERE 手机号已关联其他用户的未完成订单（订单状态为 EARNEST_MONEY_UNPAID 或 DOWN_PAYMENT_UNPAID） WHEN 用户提交定金下单请求 THE SYSTEM SHALL 拒绝下单并返回 DuplicateUnpaidOrderException（错误码 301025），提示"该手机号存在未完成的订单，请先完成支付或取消后再下单"
+- WHERE 用户已登录、saleModelCode 有效、optionCodes 非空、regionCode 有效 WHEN 用户提交定金下单请求 THE SYSTEM SHALL 在 1s 内生成唯一订单号、创建 FORMAL 类型订单、状态设为 DOWN_PAYMENT_UNPAID、创建车辆配置快照（版本 1），并通过分布式锁保证同一用户并发下单互斥
+- WHERE 用户已存在未完成订单（订单状态为 EARNEST_MONEY_UNPAID 或 DOWN_PAYMENT_UNPAID） WHEN 用户提交定金下单请求 THE SYSTEM SHALL 拒绝下单并返回 DUPLICATE_UNPAID_ORDER（错误码 301025），提示"您有未完成的订单，请先完成支付或取消后再下单"
+- WHERE 手机号已关联其他用户的未完成订单（订单状态为 EARNEST_MONEY_UNPAID 或 DOWN_PAYMENT_UNPAID） WHEN 用户提交定金下单请求 THE SYSTEM SHALL 拒绝下单并返回 DUPLICATE_UNPAID_ORDER（错误码 301025），提示"该手机号存在未完成的订单，请先完成支付或取消后再下单"
+- WHERE 防刷单校验通过 WHEN 用户提交定金下单请求 THE SYSTEM SHALL 按以下顺序校验，每一步失败返回对应错误码并终止：
+  1. SaleModel 在售校验：listingStatus = active、当前时间在 effectiveFrom 与 effectiveTo 之间、availableRegions 包含 regionCode 或为空；失败返回 SALE_MODEL_NOT_EXIST（301003）或 SALE_MODEL_OFF_SHELF（沿用 301003 + 描述）
+  2. OptionCode 销售策略校验：每个 optionCode 在 `tb_sale_model_option_policy` 中 saleStatus = active、optionPrice 非空、availableRegions 包含 regionCode 或为空、channels 包含当前渠道或为空；失败返回 OPTION_NOT_FOR_SALE（301036）或 OPTION_REGION_RESTRICTED（301037）
+  3. MDM 调用 `resolveConfiguration(variantCode, optionCodes)`：无法匹配返回 CONFIGURATION_NOT_MATCHED（301010）
+  4. Configuration 销售白名单校验：configurationCode 在 `tb_sale_model_config_policy` 中 status = active（空白名单视为 ALL 全开）；失败返回 CONFIGURATION_NOT_FOR_SALE（301035）
+- WHEN 订单创建成功 THE SYSTEM SHALL 在车辆配置快照中固化：saleModelCode、variantCode、configurationCode、optionCodes[]、optionPriceBreakdown[]（含 optionFamilyCode/optionCode/optionPrice 明细）、salePolicySnapshot（命中销售策略行的 JSON 快照）
 - WHEN 定金订单创建成功 THE SYSTEM SHALL 自动删除该用户的所有心愿单（在同一事务内）
 - WHEN 定金订单创建成功 THE SYSTEM SHALL 返回支付渠道信息和支付过期时间（基于 paymentChannelConfig.downPaymentTimeoutMinutes 配置）
-- IF buildConfigCode 无法从特征码解析 THEN THE SYSTEM SHALL 拒绝下单并返回 BuildConfigNotMatchedException
 
 ### US-005: 订单支付
 
@@ -129,16 +146,23 @@
 
 **As a** C 端用户, **I want** 在锁单前修改订单的车辆配置, **so that** 我能调整车辆选装方案并处理价格差异。
 
+**修订点说明**：入参从 `{ orderNo, saleModelCode, featureMap }` 改为 `{ orderNo, optionCodes[] }`（saleModelCode 不可改，固定为下单时的 SaleModel）。沿用 US-003 第 2、3、4 步校验（OptionCode 销售策略 + resolveConfiguration + Configuration 销售白名单）。价格差额计算基于订单快照固化的 salePolicySnapshot 价格对比新组合价格，不基于实时销售策略；新 OptionCode 若不在原快照中则按当前实时 optionPrice 计入。
+
 **Acceptance Criteria** (EARS 语法):
 
 #### 配置变更
-- WHERE 订单状态为 EARNEST_MONEY_PAID、DOWN_PAYMENT_UNPAID 或 DOWN_PAYMENT_PAID、buildConfigLock=false、获取分布式锁成功 WHEN 用户提交改配请求（含新的特征码组合） THE SYSTEM SHALL 在 2s 内解析新的 buildConfigCode、创建新版本车辆配置快照、记录时间线事件；若解析失败返回 BuildConfigNotMatchedException
+- WHERE 订单状态为 EARNEST_MONEY_PAID、DOWN_PAYMENT_UNPAID 或 DOWN_PAYMENT_PAID、buildConfigLock=false、获取分布式锁成功 WHEN 用户提交改配请求（含 orderNo、optionCodes[]） THE SYSTEM SHALL 在 2s 内按以下顺序校验并执行：
+  1. OptionCode 销售策略校验：每个 optionCode 在 `tb_sale_model_option_policy` 中 saleStatus = active、optionPrice 非空；失败返回 OPTION_NOT_FOR_SALE（301036）
+  2. MDM 调用 `resolveConfiguration(variantCode, optionCodes)`：无法匹配返回 CONFIGURATION_NOT_MATCHED（301010）
+  3. Configuration 销售白名单校验：configurationCode 在 `tb_sale_model_config_policy` 中 status = active；失败返回 CONFIGURATION_NOT_FOR_SALE（301035）
+  4. 校验通过后创建新版本车辆配置快照、记录时间线事件
 - IF 订单状态不在允许改配的状态范围内 THEN THE SYSTEM SHALL 拒绝改配并返回状态不合法错误
-- IF 订单已锁单（buildConfigLock=true） THEN THE SYSTEM SHALL 拒绝改配并返回 SaleModelConfigHasLockedException
+- IF 订单已锁单（buildConfigLock=true） THEN THE SYSTEM SHALL 拒绝改配并返回 CONFIGURATION_HAS_LOCKED（301008，原 SALE_MODEL_CONFIG_HAS_LOCKED 改名）
 - IF 获取分布式锁失败 THEN THE SYSTEM SHALL 返回并发冲突错误（错误码 301033）
 
 #### 价格重算与差额处理
-- WHERE 改配成功、新配置价格可获取 THE SYSTEM SHALL 计算价格差额（新配置价格 - 原配置价格），并记录到订单金额明细
+- WHERE 改配成功 WHEN 计算价格差额 THE SYSTEM SHALL 基于订单快照固化的 salePolicySnapshot 中各 optionPrice 计算原配置总价，与新组合价格对比；新 OptionCode 若不在原快照中则按当前实时 `tb_sale_model_option_policy.optionPrice` 计入
+- WHERE 改配成功、新版本快照生成 THE SYSTEM SHALL 同时刷新 salePolicySnapshot 中新增 OptionCode 对应的策略行（已有的不动）
 - IF 差额 > 0 THEN THE SYSTEM SHALL 创建补款任务，状态为 PENDING，并通过领域事件通知用户补款
 - IF 差额 < 0 THEN THE SYSTEM SHALL 创建退款任务，状态为 PENDING，退款金额 = |差额|，并通过领域事件通知用户退款
 - IF 差额 = 0 THEN THE SYSTEM SHALL 仅更新配置快照，不创建补款/退款任务
@@ -303,16 +327,95 @@
 
 ### US-016: 销售车型管理（MPT）
 
-**As a** B 端运营人员, **I want** 管理销售车型的基本信息和配置, **so that** 维护 C 端用户可见的在售车型数据。
+**As a** B 端运营人员, **I want** 维护销售车型（SaleModel）与上游 MDM Variant 的绑定及销售域属性, **so that** 控制车型上架节奏与商业策略。
+
+**修订点说明**：原 US-016 中"基础车型管理"、"VMD buildConfig 同步"两段废弃。重写后 SaleModel 直接关联 Variant（1:1），新增 variantCode 修改锁定校验、同步 MDM 数据接口、listingStatus 切换不影响存量订单等 AC。
 
 **Acceptance Criteria** (EARS 语法):
-- WHERE 车型编码唯一、必填字段（编码、名称、意向金价格、定金价格）非空 WHEN 运营人员创建销售车型 THE SYSTEM SHALL 在 1s 内保存车型信息并返回 ID；若编码重复返回唯一性冲突错误
-- WHERE 车型存在且未逻辑删除 WHEN 运营人员更新销售车型 THE SYSTEM SHALL 更新对应字段并记录更新时间
-- WHERE 车型存在且无关联的在售订单 WHEN 运营人员删除销售车型 THE SYSTEM SHALL 逻辑删除指定车型；若存在关联在售订单返回约束冲突错误
-- WHEN 运营人员查询销售车型列表 THE SYSTEM SHALL 支持按编码、名称、时间范围分页查询，默认按创建时间倒序，单页最大 100 条
-- WHERE 车型存在 WHEN 运营人员管理车型配置 THE SYSTEM SHALL 支持配置项的查看、更新、排序操作
-- WHERE VMD 服务可用 WHEN 运营人员执行同步配置 THE SYSTEM SHALL 从 VMD 的 buildConfig 同步配置数据到本地，同步结果（成功/失败/新增/更新数量）返回给调用方
-- WHERE 基础车型存在 WHEN 运营人员管理基础车型 THE SYSTEM SHALL 支持基础车型的查看、更新、同步操作
+- WHERE saleModelCode 唯一、必填字段（saleModelCode、name、variantCode、basePrice、earnestMoneyPrice、downPaymentPrice、effectiveFrom）非空 WHEN 运营人员创建销售车型 THE SYSTEM SHALL 在 1s 内保存车型信息并返回 ID；若 saleModelCode 重复返回唯一性冲突错误
+- WHERE variantCode 在 MDM 投影中存在且未停用 WHEN 运营人员创建销售车型 THE SYSTEM SHALL 校验通过；若 variantCode 不存在或已停用返回参数错误
+- WHERE 同 variantCode 已存在 SaleModel WHEN 运营人员创建销售车型 THE SYSTEM SHALL 拒绝创建并返回唯一性冲突错误（1:1 约束）
+- WHERE 车型存在且未逻辑删除 WHEN 运营人员更新销售车型 THE SYSTEM SHALL 更新对应字段并记录更新时间；WHERE 更新字段包含 listingStatus THE SYSTEM SHALL 允许 active ↔ off_shelf 切换，不影响存量订单
+- WHERE 车型存在、更新字段包含 variantCode WHEN 运营人员更新销售车型 THE SYSTEM SHALL 校验"无未完成订单（非终态）+ 无活跃心愿单"，否则返回 SALE_MODEL_VARIANT_LOCKED（301038）
+- WHERE 车型存在且无关联的活跃订单（state ∈ {EARNEST_MONEY_PAID 之后非终态}） WHEN 运营人员删除销售车型 THE SYSTEM SHALL 逻辑删除指定车型；若存在关联活跃订单返回约束冲突错误
+- WHEN 运营人员查询销售车型列表 THE SYSTEM SHALL 支持按 saleModelCode、name、variantCode、listingStatus、时间范围分页查询，默认按 sortWeight 升序 + createTime 倒序，单页最大 100 条，响应时间 <500ms
+- WHERE 车型存在 WHEN 运营人员触发同步 MDM 数据 THE SYSTEM SHALL 强制刷新该 variantCode 的本地 MDM 投影（Variant 标配 options、所属 Configuration 列表、OptionFamily 树、各 OptionCode 元数据），并返回同步统计（新增/更新/删除数量），响应时间 <5s
+
+### US-021: 销售车型选配器（C 端）
+
+**As a** C 端用户, **I want** 在选配页看到当前 SaleModel 可选的 OptionFamily 树并完成配置选择, **so that** 我能得到一台具体可下单的车辆配置和实时报价。
+
+**Acceptance Criteria** (EARS 语法):
+
+#### 配置器数据组装
+- WHERE SaleModel 存在、listingStatus = active、当前时间在 effectiveFrom 与 effectiveTo 之间、availableRegions 包含 regionCode 或为空 WHEN 用户请求选配器 THE SYSTEM SHALL 在 800ms 内返回：
+  - variantCode、variantName、modelCode、modelName
+  - variantStandardOptions：Variant 标配 option 列表（来自 MDM 投影，只读展示，含 optionCode、optionName）
+  - selectableFamilies：可选 optionFamily 数组，每条含 { optionFamilyCode、optionFamilyName、sortWeight、required、options[] }
+  - options[] 每条含：{ optionCode、optionName、saleStatus、optionPrice、image、marketingCopy、badges[]、bundleWith[]、mutexWith[] }
+  - basePrice、earnestMoneyPrice、downPaymentPrice
+- WHERE OptionCode 在销售策略中 saleStatus = off_shelf、或 optionPrice 为 null、或 availableRegions 不含用户 regionCode WHEN 组装 selectableFamilies THE SYSTEM SHALL 过滤掉该 OptionCode
+- WHERE OptionFamily 经过销售策略过滤后无任何 OptionCode 可选 WHEN 组装 selectableFamilies THE SYSTEM SHALL 从树中移除该 family
+- WHERE OptionCode 在 `tb_sale_model_option_policy` 中无对应记录 WHEN 组装 selectableFamilies THE SYSTEM SHALL 视为该 OptionCode 未配置销售策略，直接过滤不展示
+
+#### 实时报价
+- WHEN 用户提交报价请求 `{ saleModelCode, optionCodes[], regionCode }` THE SYSTEM SHALL 在 500ms 内按以下步骤返回：
+  1. 查销售策略：校验每个 optionCode saleStatus = active、optionPrice 非空、区域命中；失败返回 OPTION_NOT_FOR_SALE（301036）或 OPTION_REGION_RESTRICTED（301037）
+  2. 调 MDM `resolveConfiguration(variantCode, optionCodes)`：失败返回 CONFIGURATION_NOT_MATCHED（301010）
+  3. 查销售白名单：configurationCode 在 `tb_sale_model_config_policy` 中 status = active（空白名单视为 ALL）；失败返回 CONFIGURATION_NOT_FOR_SALE（301035）
+  4. 计算总价：basePrice + Σ(optionPrice)，返回 `{ configurationCode, totalPrice, optionPriceBreakdown[] }`
+- IF resolveConfiguration 返回不可生产 THEN 返回 CONFIGURATION_NOT_MATCHED（301010）
+
+#### 兜底
+- WHEN MDM 服务超时（>2s）或不可用 THE SYSTEM SHALL 返回服务暂不可用提示，不允许用本地投影兜底完成报价（避免脏数据下单）
+- WHERE MDM 服务不可用 WHEN 用户请求选配器只读展示（配置器数据组装） THE SYSTEM SHALL 可基于本地投影返回 variantStandardOptions 和 selectableFamilies（标注数据可能延迟）
+
+### US-022: 销售策略管理（B 端 MPT）
+
+**As a** B 端运营人员, **I want** 在 SaleModel 下维护"可售 Configuration 白名单"与"OptionCode 销售策略", **so that** 精细化控制每个 SaleModel 下哪些组合在售、哪些 OptionCode 在售、价格、区域、渠道。
+
+**Acceptance Criteria** (EARS 语法):
+
+#### 可售 Configuration 白名单
+- WHEN 运营进入 SaleModel 销售策略页 THE SYSTEM SHALL 展示该 variantCode 下 MDM 全部 Configuration，并标注是否已在白名单
+- WHERE configurationCode 属于 SaleModel.variantCode 下的合法 Configuration WHEN 运营添加到白名单 THE SYSTEM SHALL 写入 `tb_sale_model_config_policy`，status 默认 active
+- **白名单语义约定**：WHERE `tb_sale_model_config_policy` 中该 SaleModel 无任何行 WHEN 下单/改配/选配器校验 Configuration THE SYSTEM SHALL 视为 ALL 全开（该 Variant 下全部 Configuration 都可售）；WHERE 表中存在至少 1 行 WHEN 校验 THE SYSTEM SHALL 严格白名单语义，仅在表中且 status = active 的可售
+- WHEN 运营批量导入白名单 THE SYSTEM SHALL 支持 CSV 上传，单次最多 500 行，全量校验（variantCode 合法性、configurationCode 归属关系）通过才落库，响应时间 <5s
+- WHERE 删除/下架某 Configuration 时存在关联活跃订单（非终态） WHEN 运营执行操作 THE SYSTEM SHALL 不阻止操作，但在响应中返回 affectedOrderCount 提示影响的订单数（订单基于快照运行不受影响）
+
+#### OptionCode 销售策略
+- WHERE optionCode 属于 SaleModel.variantCode 的 optionTree WHEN 运营创建/更新策略 THE SYSTEM SHALL 写入 `tb_sale_model_option_policy`，字段含：saleStatus（active / off_shelf / coming_soon）、availableRegions、channels、optionPrice、bundleWith、mutexWith、marketingTitle、marketingImage、sortWeight、effectiveFrom、effectiveTo；WHERE optionPrice 为空且 saleStatus = active THE SYSTEM SHALL 拒绝保存并返回参数错误（价格必填才能上架）
+- WHEN 运营把某 OptionCode 标记 off_shelf 且该 OptionCode 属于 required = true 的 family 且 family 内已无其它 saleStatus = active 的 OptionCode THE SYSTEM SHALL 弹出强警告（"该 family 将无可选项，用户无法下单"），由运营确认后方可保存（不强制阻止）
+- WHEN 同 family 内同时存在 bundleWith 和 mutexWith 配置导致逻辑矛盾（如 A.bundleWith = B 且 A.mutexWith = B） THE SYSTEM SHALL 保存前校验并返回参数错误，禁止矛盾配置入库
+
+#### 响应时间
+- 所有 CRUD 操作响应时间 <1s
+- 批量导入（500 行内）响应时间 <5s
+
+### US-023: MDM 主数据本地投影（系统）
+
+**As a** 系统, **I want** 维护 MDM 主数据的本地只读投影, **so that** 配置器与下单链路无需对每个请求都跨服务调用 MDM。
+
+**Acceptance Criteria** (EARS 语法):
+
+#### 初始化与订阅
+- WHEN VSO 启动 THE SYSTEM SHALL 拉取所有 listingStatus = active 的 SaleModel 关联 variantCode 对应的 MDM 主数据投影（Variant 含标配 options、Configuration 列表含归属 variantCode/optionCodes/指导价、OptionFamily 树、OptionCode 元数据含 optionFamilyCode/optionName/互斥关系）
+- WHEN VSO 订阅的 Kafka topic `mdm.product.variant.changed` / `mdm.product.configuration.changed` / `mdm.product.option.changed` 收到事件 THE SYSTEM SHALL 在 30s 内更新本地投影并失效相关 Redis 缓存
+
+#### 读路径
+- WHEN 选配器/心愿单/下单/改配链路需要读 MDM 主数据 THE SYSTEM SHALL 优先读本地投影 + Redis 缓存（TTL 10 分钟）
+- WHERE 本地投影中无某 variantCode / configurationCode / optionCode 记录 WHEN 读路径访问 THE SYSTEM SHALL 实时回源 MDM 拉取并写入投影
+- **投影仅读，不可直接写**：所有变更必须经由 Kafka 事件、初始化任务、运营触发的"强制同步"（见 US-016 / US-022）三条路径之一
+
+#### 一致性兜底
+- WHERE 检测到本地投影与 MDM 不一致（例如下单 resolveConfiguration 返回的 configurationCode 在本地投影中不存在） WHEN 异常发生 THE SYSTEM SHALL 记录告警日志、回源 MDM 补齐投影，并返回 MDM_PROJECTION_STALE（301039），由运营或下次重试解决
+- WHEN 运营触发"强制同步"接口（见 US-016 / US-022） THE SYSTEM SHALL 全量重拉指定 variantCode 的投影，忽略本地缓存
+
+#### 投影范围
+- 投影 3 类对象：
+  - Variant：含 variantCode、variantName、modelCode、modelName、标配 options[]
+  - Configuration：含 configurationCode、variantCode、optionCodes[]、指导价
+  - OptionCode：含 optionCode、optionFamilyCode、optionName、互斥关系（mutexWith[]、bundleWith[]）
 
 ### US-017: 订单列表与详情查询（MPT）
 
@@ -410,7 +513,20 @@
 - 消息推送的具体实现（仅创建通知任务）
 - 用户认证与鉴权（由网关层处理）
 
-## 6. Changelog
+## 6. 错误码表
+
+| Code | Name | Description | HTTP |
+|---|---|---|---|
+| 301002 | CONFIGURATION_CODE_NOT_EXIST | 配置编码不存在（CR-010 重命名自 BUILD_CONFIG_CODE_NOT_EXIST） | 400 |
+| 301008 | CONFIGURATION_HAS_LOCKED | 订单配置已锁定，不可修改（CR-010 重命名自 SALE_MODEL_CONFIG_HAS_LOCKED） | 409 |
+| 301010 | CONFIGURATION_NOT_MATCHED | OptionCode 组合无法匹配到合法 Configuration（CR-010 重命名自 BUILD_CONFIG_NOT_MATCHED） | 400 |
+| 301035 | CONFIGURATION_NOT_FOR_SALE | Configuration 可生产但未列入销售白名单 | 409 |
+| 301036 | OPTION_NOT_FOR_SALE | OptionCode 在销售策略中处于 off_shelf 状态或未配置价格 | 409 |
+| 301037 | OPTION_REGION_RESTRICTED | OptionCode 当前用户区域不可售 | 409 |
+| 301038 | SALE_MODEL_VARIANT_LOCKED | SaleModel 已有活跃订单或心愿单，不可修改 variantCode | 409 |
+| 301039 | MDM_PROJECTION_STALE | MDM 本地投影过期或不一致，需触发强制同步 | 503 |
+
+## 7. Changelog
 
 | Date | Change ID | Type | Description |
 |------|-----------|------|-------------|
@@ -423,3 +539,4 @@
 | 2026-05-25 | CR-007 | Added | US-011 配车业务规则补全：补全配车绑定、换绑 VIN、VIN 冲突检测、VIN 超时释放（72小时自动释放）、订单取消/退款时 VIN 释放、主动解绑 VIN、配车状态机、VIN 来源校验、并发控制、幂等性等业务规则；新增错误码 301030 VIN_CONFLICT、301031 VIN_INVALID |
 | 2026-05-25 | CR-008 | Added | US-010 审核驳回可恢复路径：新增重提审核规则（最多 3 次，超限自动关闭）、驳回超时策略（72h 提醒+168h 自动关闭）、结构化驳回原因枚举（INCOMPLETE_INFO/INCORRECT_INFO/RISK_BLOCK/DUPLICATE_ORDER/OTHER）、驳回后可取消、审批记录扩展（action_type/reject_category/reject_reason/parent_record_id）；新增错误码 301028 AUDIT_RESUBMIT_LIMIT_EXCEEDED、301029 AUDIT_REJECT_REASON_REQUIRED |
 | 2026-05-25 | CR-009 | Fixed | 需求文档问题修复与优化：①错误码优化：301015 CONCURRENT_CONFLICT 拆分为 301032 PAYMENT_CONFLICT（支付）、301033 LOCK_CONFLICT（锁单/退款/改配/关单）、301034 BIND_CONFLICT（配车/换绑）；②VIN 占用过期时间统一为 72 小时（修正 US-011 正文）；③US-008 补充意向金>定金超额退款规则；④US-019 增加多实例部署警告；⑤US-012/US-013 增加倒计时补偿机制（PREPARE_TRANSPORT→24h、TRANSPORTING→48h、PREPARE_DELIVER→24h、DELIVERED→72h）；⑥US-018 补充支付回调签名规范（HMAC-SHA256 + timestamp + nonce 防重放） |
+| 2026-05-29 | CR-010 | Changed/Added | 销售车型 MDM 对齐重构：① 术语全量迁移（buildConfig→configuration、feature→option、baseModel→variant）；② SaleModel 由"1:N buildConfig"重构为"1:1 Variant + 销售策略"；③ 重写 US-001/US-016；④ 修订 US-002/US-003/US-004/US-007（入参改 optionCodes[]、新增 OptionCode/Configuration 销售策略校验、订单快照固化销售策略）；⑤ 新增 US-021 选配器、US-022 销售策略管理、US-023 MDM 本地投影；⑥ 错误码 301002/301008/301010 重命名，新增 301035~301039 |

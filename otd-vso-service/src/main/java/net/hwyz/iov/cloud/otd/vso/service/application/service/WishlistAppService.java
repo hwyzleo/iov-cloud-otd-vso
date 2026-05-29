@@ -61,7 +61,7 @@ public class WishlistAppService {
 
         validateDuplicateWishlist(cmd.getAccountId(), buildConfigCode, null);
 
-        Wishlist wishlist = Wishlist.create(cmd.getAccountId(), cmd.getSaleModelCode(), buildConfigCode);
+        Wishlist wishlist = Wishlist.create(cmd.getAccountId(), cmd.getSaleModelCode(), buildConfigCode, null);
         wishlistRepository.save(wishlist);
         log.info("心愿单创建成功：wishlistId={}, buildConfigCode={}", wishlist.getId(), buildConfigCode);
         return wishlist.getId();
@@ -80,12 +80,12 @@ public class WishlistAppService {
         String buildConfigCode = vmdVehicleModelConfigService.getVehicleBuildConfigCode(featureConfig);
 
         if (buildConfigCode == null || buildConfigCode.isEmpty()) {
-            throw new BuildConfigNotMatchedException(wishlist.getSaleModel());
+            throw new BuildConfigNotMatchedException(wishlist.getSaleModelCode());
         }
 
         validateDuplicateWishlist(cmd.getAccountId(), buildConfigCode, cmd.getWishlistId());
 
-        wishlist.modify(buildConfigCode);
+        wishlist.modify(buildConfigCode, null);
         wishlistRepository.save(wishlist);
         log.info("心愿单修改成功：wishlistId={}, buildConfigCode={}", wishlist.getId(), buildConfigCode);
     }
@@ -119,9 +119,9 @@ public class WishlistAppService {
     }
 
     private WishlistListResult toWishlistListResult(Wishlist wishlist) {
-        Map<String, String> featureCodes = parseBuildConfigToFeatureCodes(wishlist.getBuildConfigCode());
+        Map<String, String> featureCodes = parseBuildConfigToFeatureCodes(wishlist.getConfigurationCode());
         SelectedSaleModelResult selectedModel = saleModelAppService.getSelectedSaleModelByFeatureCodes(
-                wishlist.getSaleModel(), featureCodes);
+                wishlist.getSaleModelCode(), featureCodes);
 
         String displayName = "";
         if (selectedModel.getSaleModelConfigName() != null) {
@@ -132,8 +132,8 @@ public class WishlistAppService {
 
         return WishlistListResult.builder()
                 .wishlistId(wishlist.getId())
-                .saleModelCode(wishlist.getSaleModel())
-                .buildConfigCode(wishlist.getBuildConfigCode())
+                .saleModelCode(wishlist.getSaleModelCode())
+                .buildConfigCode(wishlist.getConfigurationCode())
                 .createTime(wishlist.getCreateTime())
                 .modifyTime(wishlist.getModifyTime())
                 .displayName(displayName)
@@ -142,14 +142,14 @@ public class WishlistAppService {
                 .saleModelImages(selectedModel.getSaleModelImages())
                 .totalPrice(selectedModel.getTotalPrice())
                 .saleModelDesc(selectedModel.getSaleModelDesc())
-                .isValid(checkBuildConfigValid(wishlist.getBuildConfigCode()))
+                .isValid(checkBuildConfigValid(wishlist.getConfigurationCode()))
                 .build();
     }
 
     private WishlistDetailResult toWishlistDetailResult(Wishlist wishlist) {
-        Map<String, String> featureCodes = parseBuildConfigToFeatureCodes(wishlist.getBuildConfigCode());
+        Map<String, String> featureCodes = parseBuildConfigToFeatureCodes(wishlist.getConfigurationCode());
         SelectedSaleModelResult selectedModel = saleModelAppService.getSelectedSaleModelByFeatureCodes(
-                wishlist.getSaleModel(), featureCodes);
+                wishlist.getSaleModelCode(), featureCodes);
 
         // 构建 displayName
         String displayName = "";
@@ -159,12 +159,12 @@ public class WishlistAppService {
         }
 
         // 将 Map 转换为配置项列表
-        List<SaleModelConfigItemResult> saleModelConfigs = buildConfigItems(wishlist.getSaleModel(), selectedModel);
+        List<SaleModelConfigItemResult> saleModelConfigs = buildConfigItems(wishlist.getSaleModelCode(), selectedModel);
 
         return WishlistDetailResult.builder()
                 .wishlistId(wishlist.getId())
-                .saleModelCode(wishlist.getSaleModel())
-                .buildConfigCode(wishlist.getBuildConfigCode())
+                .saleModelCode(wishlist.getSaleModelCode())
+                .buildConfigCode(wishlist.getConfigurationCode())
                 .createTime(wishlist.getCreateTime())
                 .modifyTime(wishlist.getModifyTime())
                 .displayName(displayName)
@@ -172,7 +172,7 @@ public class WishlistAppService {
                 .saleModelImages(selectedModel.getSaleModelImages())
                 .saleModelDesc(selectedModel.getSaleModelDesc())
                 .totalPrice(selectedModel.getTotalPrice())
-                .isValid(checkBuildConfigValid(wishlist.getBuildConfigCode()))
+                .isValid(checkBuildConfigValid(wishlist.getConfigurationCode()))
                 .build();
     }
 
@@ -272,12 +272,12 @@ private String getFamilyName(String saleModelCode, String familyCode) {
         }
     }
 
-    private void validateDuplicateWishlist(String userId, String buildConfigCode, String excludeWishlistId) {
+    private void validateDuplicateWishlist(String userId, String configurationCode, String excludeWishlistId) {
         boolean exists;
         if (excludeWishlistId == null || excludeWishlistId.isEmpty()) {
-            exists = wishlistRepository.existsByUserIdAndBuildConfigCode(userId, buildConfigCode);
+            exists = wishlistRepository.existsByUserIdAndConfigurationCode(userId, configurationCode);
         } else {
-            exists = wishlistRepository.existsByUserIdAndBuildConfigCodeExcluding(userId, buildConfigCode, excludeWishlistId);
+            exists = wishlistRepository.existsByUserIdAndConfigurationCodeExcluding(userId, configurationCode, excludeWishlistId);
         }
         if (exists) {
             throw new DuplicateWishlistException(userId);

@@ -1,2 +1,2 @@
 mybatis-plus:
-  type-aliases-package: net.hwyz.iov.cloud.otd.vso.service.infrastructure.repository.po
+  type-aliases-package: net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po

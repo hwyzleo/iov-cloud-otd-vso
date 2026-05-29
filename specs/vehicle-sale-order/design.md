@@ -64,10 +64,12 @@ graph TB
     end
 
     subgraph External Services
-        VMD[VMD Service - Feign]
+        MDM[MDM Service - Feign]
+        VMD[VMD Service - Feign (Deprecated)]
         DICT[Dictionary Service - Feign]
         ORG[Org Dealership Service - Feign]
         PGW[Payment Gateway - Callback]
+        KFK[MDM Kafka Topics]
     end
 
     MC & MSC & MPC & MPSC & SC & OC --> OAS & WAS & SMAS & PCS
@@ -79,11 +81,12 @@ graph TB
     ODS --> REPO
     REPO --> REPOIMPL
     REPOIMPL --> MAPPER
-    OAS --> VMD & DICT & ORG
+    OAS --> MDM & DICT & ORG
+    KFK --> MDM
     PGW --> OC
 ```
 
-系统采用 DDD 六边形架构，分为四层：Adapter（适配器/控制器）→ Application（应用服务/编排）→ Domain（领域模型/业务规则）→ Infrastructure（基础设施/持久化）。Order 和 Wishlist 作为两个聚合根，通过领域事件实现跨聚合通信。外部系统通过 Feign 客户端（VMD、字典、组织）和回调接口（支付网关）集成。
+系统采用 DDD 六边形架构，分为四层：Adapter（适配器/控制器）→ Application（应用服务/编排）→ Domain（领域模型/业务规则）→ Infrastructure（基础设施/持久化）。Order 和 Wishlist 作为两个聚合根，通过领域事件实现跨聚合通信。外部系统通过 Feign 客户端（MDM、字典、组织）和回调接口（支付网关）集成。MDM 主数据通过 Kafka 事件订阅 + 本地投影缓存机制，实现配置器与下单链路的高效读取。
 
 ## 2. Tech Stack & Decisions
 
@@ -140,10 +143,13 @@ classDiagram
         <<Aggregate Root>>
         +Long id
         +String userId
-        +String saleModel
-        +String buildConfigCode
+        +String saleModelCode
+        +String configurationCode
+        +List~String~ optionCodes
+        +String optionCodesHash
         +String wishlistName
         +WishlistStatus status
+        +String invalidReason
         +create()
         +modify()
         +delete()
@@ -168,12 +174,27 @@ classDiagram
 
     class VehicleInfo {
         <<Value Object>>
+        +String saleModelCode
+        +String variantCode
+        +String configurationCode
+        +List~String~ optionCodes
+        +List~OptionPriceItem~ optionPriceBreakdown
+        +String salePolicySnapshot
         +String modelCode
         +String modelName
         +String configCode
         +String configName
         +String vin
     }
+
+    class OptionPriceItem {
+        <<Value Object>>
+        +String optionFamilyCode
+        +String optionCode
+        +BigDecimal optionPrice
+    }
+
+    VehicleInfo *-- OptionPriceItem
 
     class OrganizationInfo {
         <<Value Object>>
@@ -212,12 +233,16 @@ classDiagram
 
 | 表名 | 用途 | 关联 US |
 |------|------|---------|
-| `tb_sale_model` | 销售车型主表 | US-001, US-016 |
-| `tb_sale_model_config` | 销售车型配置项 | US-001, US-016 |
+| `tb_sale_model` | 销售车型主表（1:1 关联 Variant） | US-001, US-016 |
+| `tb_sale_model_config_policy` | Configuration 销售白名单 | US-022, US-003, US-004, US-007 |
+| `tb_sale_model_option_policy` | OptionCode 销售策略（价格/区域/渠道/上下架） | US-022, US-003, US-004, US-007, US-021 |
+| `mdm_projection_variant` | MDM Variant 本地投影 | US-023, US-021 |
+| `mdm_projection_configuration` | MDM Configuration 本地投影 | US-023, US-021 |
+| `mdm_projection_option` | MDM OptionCode 本地投影 | US-023, US-021 |
 | `tb_purchase_benefits` | 购车权益 | US-001 |
 | `vso_order` | 订单主表 | US-003~US-015 |
 | `vso_order_party` | 订单参与方 | US-003, US-004 |
-| `vso_order_vehicle_snapshot` | 车辆配置快照（版本化） | US-003, US-004, US-007 |
+| `vso_order_vehicle_snapshot` | 车辆配置快照（版本化，含 optionCodes/salePolicySnapshot） | US-003, US-004, US-007 |
 | `vso_order_amount` | 订单金额 | US-003~US-006 |
 | `vso_order_assignment` | 订单归属/转派 | US-011, US-013 |
 | `vso_order_status_dimension` | 多维度状态 | US-009~US-014 |
@@ -1356,27 +1381,284 @@ sequenceDiagram
 | 倒计时阈值 | 24h/48h/72h 分级 | 根据业务阶段合理分配时间，越接近交付越宽松 |
 | 任务存储 | 复用 US-019 超时任务机制 | 统一管理，定时扫描触发 |
 
+### 4.16 选配器数据组装与实时报价流程（US-021）
+
+**背景**：CR-010 将"销售车型选配"从 VMD 的 featureMap 语义切换为 MDM 的 option/configuration 语义。选配器负责组装可选项树和实时报价，是 C 端用户下单前的核心交互环节。
+
+**配置器数据组装流程**：
+
+```mermaid
+sequenceDiagram
+    participant U as C端用户
+    participant MC as MobileVsoController
+    participant SMAS as SaleModelAppService
+    participant MDM as MDM 投影 (本地+Redis)
+    participant POL as OptionPolicyRepository
+    participant CP as ConfigPolicyRepository
+
+    U->>MC: GET /configurator/{saleModelCode}?regionCode=xxx
+    MC->>SMAS: getConfigurator(saleModelCode, regionCode)
+    SMAS->>SMAS: validate SaleModel (active, time window, region)
+
+    SMAS->>MDM: getVariant(variantCode)
+    MDM-->>SMAS: variant (含标配 options)
+
+    SMAS->>MDM: getOptionTree(variantCode)
+    MDM-->>SMAS: optionFamilies[] + options[]
+
+    SMAS->>POL: findBySaleModelCode(saleModelCode)
+    POL-->>SMAS: optionPolicies[]
+
+    SMAS->>SMAS: 过滤逻辑:
+    Note over SMAS: 1. 过滤 saleStatus=off_shelf 的 option
+    Note over SMAS: 2. 过滤 optionPrice=null 的 option
+    Note over SMAS: 3. 过滤 availableRegions 不含 regionCode 的 option
+    Note over SMAS: 4. 移除过滤后无 option 的 family
+
+    SMAS->>SMAS: 组装 selectableFamilies[]
+    SMAS-->>MC: ConfiguratorResponse
+    MC-->>U: variantStandardOptions + selectableFamilies + basePrice
+```
+
+**实时报价流程**：
+
+```mermaid
+sequenceDiagram
+    participant U as C端用户
+    participant MC as MobileVsoController
+    participant SMAS as SaleModelAppService
+    participant POL as OptionPolicyRepository
+    participant CP as ConfigPolicyRepository
+    participant MDM as MDM Service (实时)
+
+    U->>MC: POST /quote {saleModelCode, optionCodes[], regionCode}
+    MC->>SMAS: getQuote(cmd)
+
+    SMAS->>POL: findByOptionCodes(saleModelCode, optionCodes)
+    POL-->>SMAS: optionPolicies[]
+
+    SMAS->>SMAS: 校验每个 optionCode:
+    Note over SMAS: saleStatus=active && optionPrice!=null && 区域命中
+    alt 校验失败
+        SMAS-->>MC: OPTION_NOT_FOR_SALE / OPTION_REGION_RESTRICTED
+    end
+
+    SMAS->>MDM: resolveConfiguration(variantCode, optionCodes)
+    MDM-->>SMAS: configurationCode
+    alt 无法匹配
+        SMAS-->>MC: CONFIGURATION_NOT_MATCHED (301010)
+    end
+
+    SMAS->>CP: findByConfigurationCode(saleModelCode, configurationCode)
+    CP-->>SMAS: configPolicy (或空=ALL)
+    alt 不在白名单
+        SMAS-->>MC: CONFIGURATION_NOT_FOR_SALE (301035)
+    end
+
+    SMAS->>SMAS: 计算总价 = basePrice + Σ(optionPrice)
+    SMAS-->>MC: QuoteResponse {configurationCode, totalPrice, optionPriceBreakdown[]}
+    MC-->>U: 报价结果
+```
+
+**MDM 超时兜底策略**：
+
+| 场景 | 策略 | 说明 |
+|------|------|------|
+| 选配器只读展示（配置器数据组装） | 可降级到本地投影 | 标注"数据可能延迟"，用户可见 |
+| 实时报价（下单前） | 不允许降级 | 返回服务暂不可用提示，避免脏数据下单 |
+
+**关键设计决策**：
+
+| 维度 | 决策 | 理由 |
+|------|------|------|
+| 选项过滤层级 | 先过滤 option，再移除空 family | 避免用户看到无可选项的 family |
+| 未配置策略的 option | 直接过滤不展示 | 价格必须显式配置才能上架（MDM 无价格） |
+| 报价依赖 MDM 实时调用 | 必须调用 resolveConfiguration | 确保 configurationCode 合法性 |
+| 白名单空表语义 | ALL 全开 | 降低运营初始配置成本 |
+
+### 4.17 销售策略管理流程（US-022）
+
+**背景**：CR-010 新增两个销售策略表，实现精细化控制哪些 Configuration 可售、哪些 OptionCode 可售及其价格/区域/渠道。
+
+**Configuration 白名单语义**：
+
+```mermaid
+flowchart TD
+    A[下单/改配/选配器校验 Configuration] --> B{tb_sale_model_config_policy 有记录?}
+    B -->|无任何记录| C[ALL 全开: 该 Variant 下全部 Configuration 可售]
+    B -->|有记录| D{该 configurationCode 在表中?}
+    D -->|否| E[不可售]
+    D -->|是| F{status = active?}
+    F -->|是| G[可售]
+    F -->|否| H[不可售]
+```
+
+**OptionCode 销售策略校验流程**：
+
+```mermaid
+flowchart TD
+    A[下单/改配/选配器校验 OptionCode] --> B{tb_sale_model_option_policy 有记录?}
+    B -->|无记录| C[过滤: 未配置策略的 option 不展示]
+    B -->|有记录| D{saleStatus}
+    D -->|off_shelf| E[不可售]
+    D -->|coming_soon| F[不可售, 但可展示为"即将上市"]
+    D -->|active| G{optionPrice != null?}
+    G -->|否| E
+    G -->|是| H{availableRegions 命中?}
+    H -->|否| I[OPTION_REGION_RESTRICTED]
+    H -->|是| J{channels 命中?}
+    J -->|否| I
+    J -->|是| K[可售]
+```
+
+**BundleWith/MutexWith 矛盾校验**：
+
+```mermaid
+flowchart TD
+    A[运营保存 OptionCode 策略] --> B{bundleWith 和 mutexWith 是否矛盾?}
+    B -->|A.bundleWith=B 且 A.mutexWith=B| C[返回参数错误, 禁止保存]
+    B -->|无矛盾| D[保存成功]
+```
+
+**关键设计决策**：
+
+| 维度 | 决策 | 理由 |
+|------|------|------|
+| 白名单空表语义 | ALL 全开 | 降低运营初始配置成本，逐步精细化 |
+| 价格必填 | optionPrice 非空才能上架 | MDM 无价格，VSO 是唯一价格来源 |
+| 必选 family 最后 option 下架 | 弹出强警告，不强制阻止 | 保留运营灵活性，但提示风险 |
+| 矛盾校验 | 保存前校验 | 避免运行时逻辑混乱 |
+
+### 4.18 MDM 主数据本地投影流程（US-023）
+
+**背景**：CR-010 要求 VSO 维护 MDM 主数据的本地只读投影，避免每个请求都跨服务调用 MDM，提升选配器和下单链路的性能。
+
+**初始化流程**：
+
+```mermaid
+sequenceDiagram
+    participant VSO as VSO Application
+    participant MDM as MDM Service
+    participant DB as 本地投影表
+    participant Redis as Redis Cache
+
+    Note over VSO: VSO 启动时
+    VSO->>MDM: 查询所有 active SaleModel 关联的 variantCode
+    MDM-->>VSO: variantCodes[]
+
+    loop 每个 variantCode
+        VSO->>MDM: getVariantDetail(variantCode)
+        MDM-->>VSO: variant + 标配 options
+        VSO->>MDM: getConfigurationList(variantCode)
+        MDM-->>VSO: configurations[]
+        VSO->>MDM: getOptionTree(variantCode)
+        MDM-->>VSO: optionFamilies[] + options[]
+        VSO->>DB: upsert 投影数据
+        VSO->>Redis: 写入缓存 (TTL 10min)
+    end
+```
+
+**Kafka 订阅更新流程**：
+
+```mermaid
+sequenceDiagram
+    participant KFK as Kafka (mdm.product.*.changed)
+    participant LIS as MdmProjectionEventListener
+    participant DB as 本地投影表
+    participant Redis as Redis Cache
+
+    KFK->>LIS: 收到变更事件 (variant/configuration/option)
+    LIS->>LIS: 解析事件类型和变更对象
+
+    alt variant 变更
+        LIS->>DB: 更新 mdm_projection_variant
+        LIS->>Redis: 失效相关缓存
+    else configuration 变更
+        LIS->>DB: 更新 mdm_projection_configuration
+        LIS->>Redis: 失效相关缓存
+    else option 变更
+        LIS->>DB: 更新 mdm_projection_option
+        LIS->>Redis: 失效相关缓存
+    end
+
+    Note over LIS: 30s 内完成更新
+```
+
+**读路径与一致性兜底**：
+
+```mermaid
+flowchart TD
+    A[选配器/下单/改配链路读 MDM 数据] --> B{本地投影有数据?}
+    B -->|有| C[返回投影数据]
+    B -->|无| D[实时回源 MDM]
+    D --> E{MDM 返回成功?}
+    E -->|是| F[写入投影 + 缓存]
+    F --> G[返回数据]
+    E -->|否| H{MDM 超时/不可用?}
+    H -->|是| I[记录告警日志]
+    I --> J[返回 MDM_PROJECTION_STALE 301039]
+    H -->|否| K[返回错误]
+```
+
+**投影数据结构**：
+
+| 投影表 | 主键 | 核心字段 |
+|--------|------|----------|
+| `mdm_projection_variant` | variant_code | variant_name, model_code, model_name, standard_options(JSON) |
+| `mdm_projection_configuration` | configuration_code | variant_code, option_codes(JSON), guide_price |
+| `mdm_projection_option` | option_code | option_family_code, option_name, mutex_with(JSON), bundle_with(JSON) |
+
+**投影更新路径**（仅以下三条路径可写）：
+
+| 路径 | 触发方式 | 说明 |
+|------|----------|------|
+| Kafka 事件 | 自动 | mdm.product.variant/configuration/option.changed |
+| 初始化任务 | VSO 启动 | 全量拉取 active SaleModel 关联数据 |
+| 强制同步 | 运营触发 | US-016/US-022 的同步接口，忽略本地缓存 |
+
+**关键设计决策**：
+
+| 维度 | 决策 | 理由 |
+|------|------|------|
+| 投影可写路径 | 仅三条（Kafka/初始化/强制同步） | 防止数据不一致 |
+| 缓存 TTL | 10 分钟 | 平衡性能与数据新鲜度 |
+| MDM 超时处理 | 记录告警 + 返回 301039 | 不用脏数据兜底，由运营或重试解决 |
+| 投影范围 | Variant + Configuration + OptionCode | 覆盖选配器和下单链路全部 MDM 数据需求 |
+
 ### 5.1 Mobile Sale Model APIs
 
 **GET** `/api/mobile/saleModel/v1`
-- Response: `List<SaleModelMp>` — 销售车型列表
+- Query: `regionCode` (可选，区域过滤)
+- Response: `List<SaleModelCardVo>` — 销售车型卡片列表（含 saleModelCode、name、icon、variantName、basePrice、earnestMoneyPrice、downPaymentPrice、marketingCopy、images、sortWeight）
+- 说明：仅返回 listingStatus=active、时间窗有效、区域命中的车型
 
-**GET** `/api/mobile/saleModel/v1/{saleModelCode}/config`
-- Response: `List<SaleModelConfigMp>` — 车型配置列表
+**GET** `/api/mobile/saleModel/v1/{saleModelCode}`
+- Response: `SaleModelCardVo` — 销售车型卡片详情
 
-**POST** `/api/mobile/saleModel/v1/selectedSaleModel`
-- Request: `{ saleModelCode: String, featureMap: Map<String, String> }`
-- Response: `SelectedSaleModel` — 匹配的车型配置快照
+**GET** `/api/mobile/saleModel/v1/{saleModelCode}/configurator`
+- Query: `regionCode` (必填)
+- Response: `ConfiguratorResponse` — 选配器数据（含 variantCode、variantName、modelCode、modelName、variantStandardOptions[]、selectableFamilies[]、basePrice、earnestMoneyPrice、downPaymentPrice）
+- 说明：根据销售策略过滤不可售 option，移除空 family
+
+**POST** `/api/mobile/saleModel/v1/quote`
+- Request: `{ saleModelCode, optionCodes[], regionCode }`
+- Response: `{ configurationCode, totalPrice, optionPriceBreakdown[] }` — 实时报价结果
+- 说明：调用 MDM resolveConfiguration + 销售策略校验 + 白名单校验
+
+**GET** `/api/mobile/saleModel/v1/regions`
+- Response: `List<RegionVo>` — 可选上牌地区列表（字典服务缓存）
 
 ### 5.2 Mobile Order APIs
 
 **POST** `/api/mobile/vso/v1/action/earnestMoneyOrder`
-- Request: `{ saleModelCode, featureMap, customerInfo, paymentChannel }`
+- Request: `{ saleModelCode, optionCodes[], customerInfo, paymentChannel, regionCode }`
 - Response: `{ orderNo, earnestMoneyAmount, paymentChannels[], expireTime }`
+- 说明：新增四步校验（SaleModel 在售 → OptionCode 销售策略 → MDM resolveConfiguration → Configuration 白名单）
 
 **POST** `/api/mobile/vso/v1/action/downPaymentOrder`
-- Request: `{ saleModelCode, featureMap, customerInfo, paymentChannel }`
+- Request: `{ saleModelCode, optionCodes[], customerInfo, paymentChannel, regionCode }`
 - Response: `{ orderNo, downPaymentAmount, paymentChannels[], expireTime }`
+- 说明：同意向金下单的四步校验
 
 **POST** `/api/mobile/vso/v1/action/initiatePayment`
 - Request: `{ orderNo, paymentChannel }`
@@ -1405,8 +1687,9 @@ sequenceDiagram
 - Response: void
 
 **POST** `/api/mobile/vso/v1/order/action/modifyConfig`
-- Request: `{ orderNo, saleModelCode, featureMap }`
+- Request: `{ orderNo, optionCodes[] }`
 - Response: void
+- 说明：saleModelCode 不可改（固定为下单时的 SaleModel），沿用 US-003 第 2、3、4 步校验
 
 **GET** `/api/mobile/vso/v1/order/{orderNo}`
 - Response: `OrderResponseVo` — 订单详情
@@ -1480,6 +1763,69 @@ sequenceDiagram
 - Request: `DeleteOrderRequestVo`
 - Response: `PhysicalDeleteResponseVo`
 
+### 5.3.1 MPT Sale Model APIs (CR-010 新增/修订)
+
+**POST** `/api/mpt/saleModel/v1`
+- Request: `{ saleModelCode, name, variantCode, basePrice, earnestMoneyPrice, downPaymentPrice, effectiveFrom, icon?, images?, marketingCopy?, sortWeight?, availableRegions?, channels?, effectiveTo? }`
+- Response: `{ id }`
+- 说明：创建销售车型，1:1 关联 Variant，variantCode 必须在 MDM 投影中存在
+
+**PUT** `/api/mpt/saleModel/v1/{id}`
+- Request: `{ name?, basePrice?, earnestMoneyPrice?, downPaymentPrice?, effectiveFrom?, effectiveTo?, icon?, images?, marketingCopy?, sortWeight?, availableRegions?, channels?, listingStatus? }`
+- Response: void
+- 说明：variantCode 修改前需校验"无未完成订单+无活跃心愿单"，否则返回 SALE_MODEL_VARIANT_LOCKED (301038)
+
+**DELETE** `/api/mpt/saleModel/v1/{id}`
+- Response: void
+- 说明：存在关联活跃订单时拒绝删除
+
+**GET** `/api/mpt/saleModel/v1/list`
+- Query: `{ saleModelCode?, name?, variantCode?, listingStatus?, startTime?, endTime?, page, size }`
+- Response: `PageResult<SaleModelMptVo>`
+- 说明：按 sortWeight 升序 + createTime 倒序，单页最大 100
+
+**POST** `/api/mpt/saleModel/v1/{saleModelCode}/syncMdm`
+- Response: `{ variantAdded, variantUpdated, configurationAdded, configurationUpdated, optionAdded, optionUpdated, optionDeleted }`
+- 说明：强制刷新该 variantCode 的本地 MDM 投影，忽略本地缓存
+
+### 5.3.2 MPT Sales Policy APIs (CR-010 新增)
+
+**GET** `/api/mpt/saleModel/v1/{saleModelCode}/configPolicy`
+- Response: `List<ConfigPolicyVo>` — Configuration 白名单列表
+
+**POST** `/api/mpt/saleModel/v1/{saleModelCode}/configPolicy`
+- Request: `{ configurationCodes[], status? }`
+- Response: `{ created, affectedOrderCount }`
+- 说明：批量添加 Configuration 到白名单，status 默认 active
+
+**DELETE** `/api/mpt/saleModel/v1/{saleModelCode}/configPolicy/{configurationCode}`
+- Response: `{ affectedOrderCount }`
+- 说明：删除/下架 Configuration，不阻止操作但返回影响订单数
+
+**POST** `/api/mpt/saleModel/v1/{saleModelCode}/configPolicy/import`
+- Request: CSV file (最多 500 行)
+- Response: `{ totalRows, successRows, failedRows, errors[] }`
+- 说明：批量导入白名单，全量校验通过才落库
+
+**GET** `/api/mpt/saleModel/v1/{saleModelCode}/optionPolicy`
+- Query: `{ optionFamilyCode?, saleStatus?, page, size }`
+- Response: `PageResult<OptionPolicyVo>` — OptionCode 销售策略列表
+
+**POST** `/api/mpt/saleModel/v1/{saleModelCode}/optionPolicy`
+- Request: `{ optionCode, saleStatus, availableRegions?, channels?, optionPrice, bundleWith?, mutexWith?, marketingTitle?, marketingImage?, sortWeight?, effectiveFrom?, effectiveTo? }`
+- Response: `{ id }`
+- 说明：optionPrice 非空才能上架，bundleWith/mutexWith 矛盾校验
+
+**PUT** `/api/mpt/saleModel/v1/{saleModelCode}/optionPolicy/{id}`
+- Request: `{ saleStatus?, availableRegions?, channels?, optionPrice?, bundleWith?, mutexWith?, marketingTitle?, marketingImage?, sortWeight?, effectiveFrom?, effectiveTo? }`
+- Response: void
+- 说明：必选 family 最后一个 active option 下架时弹出强警告
+
+**POST** `/api/mpt/saleModel/v1/{saleModelCode}/optionPolicy/import`
+- Request: CSV file (最多 500 行)
+- Response: `{ totalRows, successRows, failedRows, errors[] }`
+- 说明：批量导入销售策略
+
 ### 5.4 Service-to-Service APIs
 
 **POST** `/api/service/order/v1/order/action/prepareTransport`
@@ -1508,15 +1854,15 @@ sequenceDiagram
 
 | API 类别 | 接口 | SLA | 说明 |
 |----------|------|-----|------|
-| 车型查询 | 列表/配置/权益 | <500ms | 走缓存，无外部调用 |
-| 车型查询 | 特征码范围 | <2s | 依赖 VMD 服务，超时返回降级提示 |
-| 车型查询 | 特征码解析 | <1s | 本地计算 |
+| 车型查询 | 列表/详情 | <300ms | 走缓存，无外部调用 |
+| 车型查询 | 选配器数据组装 | <800ms | 含 MDM 投影读取 + 销售策略过滤 |
+| 车型查询 | 实时报价 | <500ms | 含 MDM resolveConfiguration + 策略校验 |
 | 车型查询 | 上牌地区 | <200ms | 字典服务缓存 |
-| 心愿单 | CRUD | <500ms | 本地 DB 操作 |
-| 下单 | 小定/大定 | <1s | 含 VMD 校验 + 分布式锁 |
+| 心愿单 | CRUD | <500ms | 含 MDM resolveConfiguration 校验 |
+| 下单 | 小定/大定 | <1s | 含四步校验 + 分布式锁 |
 | 支付 | 发起支付 | <2s | 含分布式锁获取 |
 | 支付 | 回调处理 | <2s | 含签名验证 + 状态流转 |
-| 订单操作 | 改配 | <2s | 含 VMD 调用 + 快照创建 |
+| 订单操作 | 改配 | <2s | 含四步校验 + 快照创建 |
 | 订单操作 | 锁单/取消/退款/转定金 | <1s | 本地状态流转（差额<=0 时） |
 | 订单操作 | 审核驳回/重提审核 | <1s | 本地状态流转+审批记录创建 |
 | 订单操作 | 转定金（含差额支付） | <2s | 含差额支付任务创建（差额>0 时） |
@@ -1524,21 +1870,24 @@ sequenceDiagram
 | 订单操作 | 物理删除 | <5s | 级联删除多表 |
 | 订单查询 | 列表 | <1s | 分页查询 |
 | 订单查询 | 详情 | <500ms | 单订单全量数据 |
+| 销售策略 | CRUD | <1s | 本地 DB 操作 |
+| 销售策略 | 批量导入 | <5s | 500 行内，含全量校验 |
+| MDM 投影 | 强制同步 | <5s | 全量重拉指定 variantCode |
 
 ### 5.7 Error Codes
 
 | Code | Name | Description | HTTP Status |
 |------|------|-------------|-------------|
 | 301001 | SALE_MODEL_CONFIG_TYPE_CODE_NOT_EXIST | 销售车型配置类型代码不存在 | 400 |
-| 301002 | BUILD_CONFIG_CODE_NOT_EXIST | 生产配置代码不存在 | 400 |
+| 301002 | CONFIGURATION_CODE_NOT_EXIST | 配置编码不存在（CR-010 重命名自 BUILD_CONFIG_CODE_NOT_EXIST） | 400 |
 | 301003 | SALE_MODEL_NOT_EXIST | 销售车型不存在 | 404 |
 | 301004 | ORDER_NOT_EXIST | 订单不存在 | 404 |
 | 301005 | ORDER_ILLEGAL_DELETE | 订单非法删除（状态不允许） | 403 |
 | 301006 | ORDER_STATE_NOT_ALLOWED | 订单当前状态不支持此操作 | 409 |
 | 301007 | ACCOUNT_NOT_EXIST | 账户不存在 | 404 |
-| 301008 | SALE_MODEL_CONFIG_HAS_LOCKED | 销售车型配置已锁定，不可修改 | 409 |
+| 301008 | CONFIGURATION_HAS_LOCKED | 订单配置已锁定，不可修改（CR-010 重命名自 SALE_MODEL_CONFIG_HAS_LOCKED） | 409 |
 | 301009 | WISHLIST_NOT_EXIST | 心愿单不存在 | 404 |
-| 301010 | BUILD_CONFIG_NOT_MATCHED | 特征码无法匹配到生产配置 | 400 |
+| 301010 | CONFIGURATION_NOT_MATCHED | OptionCode 组合无法匹配到合法 Configuration（CR-010 重命名自 BUILD_CONFIG_NOT_MATCHED） | 400 |
 | 301011 | PAYMENT_CHANNEL_NOT_AVAILABLE | 支付渠道不可用 | 400 |
 | 301012 | PAYMENT_NOT_EXIST | 支付单不存在 | 404 |
 | 301013 | PAYMENT_STATUS_MISMATCH | 支付单状态不匹配 | 409 |
@@ -1562,43 +1911,54 @@ sequenceDiagram
 | 301032 | PAYMENT_CONFLICT | 支付操作并发冲突（分布式锁获取失败） | 409 |
 | 301033 | LOCK_CONFLICT | 锁单/退款/改配/关单操作并发冲突 | 409 |
 | 301034 | BIND_CONFLICT | 配车/换绑/解绑操作并发冲突 | 409 |
+| 301035 | CONFIGURATION_NOT_FOR_SALE | Configuration 可生产但未列入销售白名单 | 409 |
+| 301036 | OPTION_NOT_FOR_SALE | OptionCode 在销售策略中处于 off_shelf 状态或未配置价格 | 409 |
+| 301037 | OPTION_REGION_RESTRICTED | OptionCode 当前用户区域不可售 | 409 |
+| 301038 | SALE_MODEL_VARIANT_LOCKED | SaleModel 已有活跃订单或心愿单，不可修改 variantCode | 409 |
+| 301039 | MDM_PROJECTION_STALE | MDM 本地投影过期或不一致，需触发强制同步 | 503 |
 
 ## 6. Coverage Mapping
 
 | US-ID | Design Section | Note |
 |-------|----------------|------|
-| US-001 | §3.2(tb_sale_model/config/benefits), §5.1 | 销售车型浏览，Feign 调用 VMD |
-| US-002 | §3.1(Wishlist), §3.2(心愿单唯一索引), §4.12, §5.2(wishlist APIs) | 心愿单 CRUD，含数量上限+唯一性校验 |
-| US-003 | §3.1(Order), §3.2(防刷单唯一索引), §4.1, §4.11, §5.2(earnestMoneyOrder) | 小定下单，含 VMD 校验 + 防刷单校验 |
-| US-004 | §3.1(Order), §3.2(防刷单唯一索引), §4.1, §4.11, §5.2(downPaymentOrder) | 大定下单，含防刷单校验 |
+| US-001 | §3.2(tb_sale_model, tb_purchase_benefits), §5.1 | 销售车型卡片浏览，区域/时间窗/上下架过滤 |
+| US-002 | §3.1(Wishlist), §3.2(心愿单唯一索引), §4.12, §5.2(wishlist APIs) | 心愿单 CRUD，入参改 optionCodes[]，含 MDM resolveConfiguration 校验 |
+| US-003 | §3.1(Order), §3.2(防刷单唯一索引), §4.1, §4.11, §5.2(earnestMoneyOrder) | 小定下单，含四步校验（SaleModel→OptionCode→resolveConfiguration→Configuration 白名单） |
+| US-004 | §3.1(Order), §3.2(防刷单唯一索引), §4.1, §4.11, §5.2(downPaymentOrder) | 大定下单，同意向金四步校验 |
 | US-005 | §4.1, §4.4, §5.2(initiatePayment), §5.5 | 支付发起+回调，领域事件驱动 |
 | US-006 | §4.2, §4.6, §5.2(earnestMoneyToDownPayment) | 状态机 EARNEST_MONEY_PAID→DOWN_PAYMENT_PAID，差额支付流程 |
-| US-007 | §4.3, §4.9, §4.10, §3.2(vso_order_vehicle_snapshot, vso_supplementary_payment, vso_config_change_refund), §5.2(modifyConfig) | 改配，版本化快照，价格重算与差额补/退 |
+| US-007 | §4.3, §4.9, §4.10, §3.2(vso_order_vehicle_snapshot, vso_supplementary_payment, vso_config_change_refund), §5.2(modifyConfig) | 改配，入参改 optionCodes[]，价格基于快照 salePolicySnapshot 计算 |
 | US-008 | §4.2, §4.8, §5.2(cancel/requestRefund) | 取消/退款状态流转，退款金额计算（含超额退款），含 VIN 释放逻辑 |
 | US-009 | §4.2, §5.2(lock), §5.3(lock) | 锁单，buildConfigLock=true |
 | US-010 | §5.3(audit/pass, audit/reject, audit/resubmit), §4.14 | 审核通过/驳回/重提，驳回可恢复路径 |
-| US-011 | §3.2(vso_vehicle_assignment, vso_config_vehicle_occupancy), §4.13, §5.3(assignVehicle/reassignVehicle/unbindVehicle), §7.错误码(301030/301031) | 配车绑定/换绑/解绑 VIN，含超时释放、订单取消释放、库存服务集成 |
+| US-011 | §3.2(vso_vehicle_assignment, vso_config_vehicle_occupancy), §4.13, §5.3(assignVehicle/reassignVehicle/unbindVehicle), §5.7(301030/301031) | 配车绑定/换绑/解绑 VIN，含超时释放、订单取消释放、库存服务集成 |
 | US-012 | §4.2, §4.15, §5.3(applyTransport), §5.4 | 发运状态流转，含倒计时补偿机制 |
 | US-013 | §4.2, §4.15, §5.3(assignDeliveryPerson), §5.4 | 交付流程，含倒计时补偿机制 |
 | US-014 | §4.2, §5.3(close) | 关闭订单 |
 | US-015 | §3.2(vso_order_shadow_delete), §5.3(physical delete) | 物理删除+影子审计 |
-| US-016 | §3.2(tb_sale_model*), §5.1 | MPT 车型管理 CRUD |
+| US-016 | §3.2(tb_sale_model), §5.3.1(saleModel CRUD/syncMdm) | MPT 销售车型管理，1:1 关联 Variant，含 MDM 同步 |
 | US-017 | §5.3(list/detail queries) | MPT 订单查询 |
 | US-018 | §4.4(签名规范), §5.5, §3.2(vso_callback_log) | 支付回调处理，含 HMAC-SHA256 + timestamp/nonce 验签 |
 | US-019 | §3.2(vso_config_timeout), §4.5(多实例警告), Domain(TimeoutNotifyService) | 超时调度，含多实例部署警告 |
 | US-020 | Domain(OrderLockService), §4.3 | 分布式锁并发控制 |
+| US-021 | §4.16(选配器流程), §5.1(configurator/quote APIs) | 选配器数据组装+实时报价，含销售策略过滤+MDM resolveConfiguration |
+| US-022 | §4.17(销售策略管理流程), §5.3.2(configPolicy/optionPolicy APIs) | Configuration 白名单+OptionCode 销售策略 CRUD/批量导入 |
+| US-023 | §4.18(MDM 投影流程), §3.2(mdm_projection_* 表) | MDM 主数据本地投影，Kafka 订阅+初始化+强制同步 |
 
 ## 7. Impact Analysis
 
 | 模块 | 影响范围 | 说明 |
 |------|----------|------|
-| VMD Service | 强依赖 | buildConfigCode 解析、车型数据获取 |
+| MDM Service | 强依赖 | resolveConfiguration、Variant/Configuration/OptionCode 主数据获取，本地投影订阅 |
+| MDM Kafka Topics | 强依赖 | mdm.product.variant/configuration/option.changed 事件订阅 |
+| VMD Service | 弱依赖 (Deprecated) | CR-010 后逐步废弃，仅保留兼容 |
 | Dictionary Service | 弱依赖 | 省市区域数据，可降级 |
 | Org Dealership Service | 弱依赖 | 门店信息，可降级 |
 | Payment Gateway | 强依赖 | 支付发起与回调，影响核心下单流程 |
-| Redis | 强依赖 | 分布式锁，影响并发控制 |
-| MySQL | 强依赖 | 全部数据持久化 |
+| Redis | 强依赖 | 分布式锁 + MDM 投影缓存，影响并发控制和性能 |
+| MySQL | 强依赖 | 全部数据持久化（含 MDM 投影表） |
 | Nacos | 强依赖 | 服务注册发现与配置中心 |
+| Kafka | 强依赖 | MDM 主数据变更事件订阅 |
 
 ## 8. Open Questions
 
@@ -1625,3 +1985,4 @@ sequenceDiagram
 | 2026-05-25 | CR-009 | Added | US-011 配车业务规则补全：新增 §4.13 配车流程设计（配车绑定、换绑 VIN、VIN 超时释放、订单取消释放 VIN、主动解绑、配车状态机、VIN 唯一性保障）；新增 4 个 MPT API（reassignVehicle、unbindVehicle、vehicleAssignment/list、vehicleAssignment/{orderNo}）；新增 vso_config_vehicle_occupancy 配置表；新增错误码 301030 VIN_CONFLICT、301031 VIN_INVALID；更新 §6 Coverage Mapping 补充 US-008/US-011 设计章节引用；更新 requirements.md US-011 补全 Acceptance Criteria |
 | 2026-05-25 | CR-010 | Added | US-010 审核驳回可恢复路径：新增 §4.14 审核驳回可恢复路径设计（重提审核规则、驳回原因枚举、超时策略、审批记录扩展）；更新 §4.2 状态机图增加 AUDIT_REJECTED→PENDING_AUDIT/CANCEL 转移；更新 §5.3 API 定义增加 rejectCategory 参数和 audit/resubmit 接口；更新 §5.7 错误码增加 301028/301029；更新 §6 Coverage Mapping；更新 requirements.md US-010 补全 Acceptance Criteria |
 | 2026-05-25 | CR-011 | Fixed | 需求问题修复与设计同步：①错误码优化：301015 CONCURRENT_CONFLICT 描述更新，301016 VIN_ALREADY_ASSIGNED 删除（合并至 301030），新增 301032 PAYMENT_CONFLICT、301033 LOCK_CONFLICT、301034 BIND_CONFLICT；②VIN 占用有效期默认值修正为 72 小时（§4.13）；③US-008 §4.8 补充超额退款场景（由 SMALL 升级的 FORMAL 订单，已支付金额 > 定金金额时退超额部分）；④US-012/US-013 新增 §4.15 倒计时补偿机制设计（PREPARE_TRANSPORT→24h、TRANSPORTING→48h、PREPARE_DELIVER→24h、DELIVERED→72h 告警）；⑤US-018 §4.4 补充支付回调签名规范（HMAC-SHA256 + timestamp ±5min + nonce Redis SET TTL 5min）；⑥US-019 §4.5 增加多实例部署警告（生产前必须迁移至 Redis/DB）；更新 §6 Coverage Mapping；同步更新 requirements.md CR-009 |
+| 2026-05-29 | CR-012 | Changed/Added | 销售车型 MDM 对齐重构：① §1 架构图新增 MDM Service/Kafka 依赖，VMD 标记 Deprecated；② §3 数据模型：Wishlist 聚合根 buildConfigCode→configurationCode+optionCodes，VehicleInfo 新增 configurationCode/optionCodes/optionPriceBreakdown/salePolicySnapshot 字段，新增 tb_sale_model_config_policy/tb_sale_model_option_policy/mdm_projection_* 表；③ §4 新增 §4.16 选配器流程（配置器数据组装+实时报价）、§4.17 销售策略管理流程（Configuration 白名单+OptionCode 策略+矛盾校验）、§4.18 MDM 投影流程（初始化+Kafka 订阅+读路径+一致性兜底）；④ §5 API 更新：Mobile APIs 入参改 optionCodes[]/regionCode，新增选配器/报价 API，新增 MPT 销售策略管理 APIs；⑤ §5.7 错误码：301002/301008/301010 重命名，新增 301035~301039；⑥ §6 Coverage Mapping 新增 US-021/US-022/US-023；⑦ §7 Impact Analysis 新增 MDM/Kafka 强依赖，VMD 降级为弱依赖 |
