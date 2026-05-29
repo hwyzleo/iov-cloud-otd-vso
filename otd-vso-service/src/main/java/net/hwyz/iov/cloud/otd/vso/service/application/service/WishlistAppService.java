@@ -45,15 +45,12 @@ public class WishlistAppService {
 
     @Transactional(rollbackFor = Exception.class)
     public String createWishlist(CreateWishlistCmd cmd) {
-        Map<String, String> featureConfig = cmd.getFeatureConfig();
-        log.info("创建心愿单：accountId={}, saleModelCode={}, featureConfig={}",
-                cmd.getAccountId(), cmd.getSaleModelCode(), featureConfig);
+        log.info("创建心愿单：accountId={}, saleModelCode={}, configurationCode={}, optionCodes={}",
+                cmd.getAccountId(), cmd.getSaleModelCode(), cmd.getConfigurationCode(), cmd.getOptionCodes());
 
         validateWishlistLimit(cmd.getAccountId());
 
-        featureConfig.remove("BASE_MODEL");
-
-        String buildConfigCode = vmdVehicleModelConfigService.getVehicleBuildConfigCode(featureConfig);
+        String buildConfigCode = cmd.getConfigurationCode();
 
         if (buildConfigCode == null || buildConfigCode.isEmpty()) {
             throw new BuildConfigNotMatchedException(cmd.getSaleModelCode());
@@ -69,15 +66,12 @@ public class WishlistAppService {
 
     @Transactional(rollbackFor = Exception.class)
     public void modifyWishlist(ModifyWishlistCmd cmd) {
-        Map<String, String> featureConfig = cmd.getFeatureConfig();
-        log.info("修改心愿单：wishlistId={}, accountId={}, featureConfig={}",
-                cmd.getWishlistId(), cmd.getAccountId(), featureConfig);
+        log.info("修改心愿单：wishlistId={}, accountId={}, configurationCode={}, optionCodes={}",
+                cmd.getWishlistId(), cmd.getAccountId(), cmd.getConfigurationCode(), cmd.getOptionCodes());
 
         Wishlist wishlist = findWishlistById(cmd.getAccountId(), cmd.getWishlistId());
 
-        featureConfig.remove("BASE_MODEL");
-
-        String buildConfigCode = vmdVehicleModelConfigService.getVehicleBuildConfigCode(featureConfig);
+        String buildConfigCode = cmd.getConfigurationCode();
 
         if (buildConfigCode == null || buildConfigCode.isEmpty()) {
             throw new BuildConfigNotMatchedException(wishlist.getSaleModelCode());

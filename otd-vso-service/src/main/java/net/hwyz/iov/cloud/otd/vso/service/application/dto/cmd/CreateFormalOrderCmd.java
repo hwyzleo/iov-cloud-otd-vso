@@ -3,6 +3,8 @@ package net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd;
 import lombok.Builder;
 import lombok.Data;
 
+import java.util.List;
+
 /**
  * 创建正式订单命令
  *
@@ -96,4 +98,19 @@ public class CreateFormalOrderCmd {
      * 销售顾问名称
      */
     private String salesName;
+
+    /**
+     * 销售车型编码
+     */
+    private String saleModelCode;
+
+    /**
+     * OptionCode 列表
+     */
+    private List<String> optionCodes;
+
+    /**
+     * 区域编码
+     */
+    private String regionCode;
 }

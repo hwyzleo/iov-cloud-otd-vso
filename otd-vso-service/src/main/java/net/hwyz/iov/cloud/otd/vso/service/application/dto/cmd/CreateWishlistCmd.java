@@ -3,7 +3,7 @@ package net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd;
 import lombok.Builder;
 import lombok.Data;
 
-import java.util.Map;
+import java.util.List;
 
 /**
  * 创建心愿单命令
@@ -16,6 +16,7 @@ public class CreateWishlistCmd {
 
     private String accountId;
     private String saleModelCode;
-    private Map<String, String> featureConfig;
+    private String configurationCode;
+    private List<String> optionCodes;
 
 }

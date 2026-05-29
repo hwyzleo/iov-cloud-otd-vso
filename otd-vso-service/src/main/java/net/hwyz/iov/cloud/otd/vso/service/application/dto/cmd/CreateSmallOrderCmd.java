@@ -4,6 +4,7 @@ import lombok.Builder;
 import lombok.Data;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 /**
  * 创建小订单命令
@@ -68,4 +69,19 @@ public class CreateSmallOrderCmd {
      * 颜色名称
      */
     private String colorName;
+
+    /**
+     * 销售车型编码
+     */
+    private String saleModelCode;
+
+    /**
+     * OptionCode 列表
+     */
+    private List<String> optionCodes;
+
+    /**
+     * 区域编码
+     */
+    private String regionCode;
 }

@@ -1124,8 +1124,8 @@ public class OrderAppService {
      */
     @Transactional(rollbackFor = Exception.class)
     public void modifyConfig(ModifyOrderConfigCmd cmd) {
-        log.info("修改订单配置：accountId={}, orderNo={}, featureConfig={}", 
-                cmd.getAccountId(), cmd.getOrderNo(), cmd.getFeatureConfig());
+        log.info("修改订单配置：accountId={}, orderNo={}, optionCodes={}", 
+                cmd.getAccountId(), cmd.getOrderNo(), cmd.getOptionCodes());
         
         orderLockService.executeWithLock(cmd.getOrderNo(), cmd.getAccountId(), "modifyConfig", () -> {
             // 1. 查找订单
@@ -1134,8 +1134,9 @@ public class OrderAppService {
             // 2. 校验订单状态
             validateOrderStateForModifyConfig(order);
 
-            // 3. 获取新的 buildConfigCode
-            String newBuildConfigCode = getBuildConfigCodeFromFeatureConfig(cmd.getFeatureConfig());
+            // 3. 获取新的 buildConfigCode（通过 optionCodes）
+            String newBuildConfigCode = vmdVehicleModelConfigService.getBuildConfigCodeByOptionCodes(
+                    order.getSaleModel(), cmd.getOptionCodes());
             if (newBuildConfigCode == null || newBuildConfigCode.isEmpty()) {
                 throw new BuildConfigNotMatchedException(order.getSaleModel());
             }

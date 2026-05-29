@@ -17,7 +17,8 @@ public interface ModifyOrderConfigRequestVoAssembler {
     ModifyOrderConfigRequestVoAssembler INSTANCE = Mappers.getMapper(ModifyOrderConfigRequestVoAssembler.class);
 
     @Mapping(target = "accountId", source = "accountId")
-    @Mapping(target = "featureConfig", source = "vo.saleModelConfigType")
+    @Mapping(target = "orderNo", source = "vo.orderNo")
+    @Mapping(target = "optionCodes", source = "vo.optionCodes")
     ModifyOrderConfigCmd toCmd(String accountId, ModifyOrderConfigRequestVo vo);
 
 }
