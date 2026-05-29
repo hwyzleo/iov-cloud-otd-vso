@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import java.math.BigDecimal;
+import java.sql.Timestamp;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 import net.hwyz.iov.cloud.framework.mysql.po.BasePo;
@@ -92,4 +93,58 @@ public class SaleModelPo extends BasePo {
      */
     @TableField("sort")
     private Integer sort;
+
+    /**
+     * MDM Variant 编码
+     */
+    @TableField("variant_code")
+    private String variantCode;
+
+    /**
+     * 起售价
+     */
+    @TableField("base_price")
+    private BigDecimal basePrice;
+
+    /**
+     * 车型图标 URL
+     */
+    @TableField("icon")
+    private String icon;
+
+    /**
+     * 卖点文案
+     */
+    @TableField("marketing_copy")
+    private String marketingCopy;
+
+    /**
+     * 上架状态：active/off_shelf
+     */
+    @TableField("listing_status")
+    private String listingStatus;
+
+    /**
+     * 上架生效开始时间
+     */
+    @TableField("effective_from")
+    private Timestamp effectiveFrom;
+
+    /**
+     * 上架生效结束时间
+     */
+    @TableField("effective_to")
+    private Timestamp effectiveTo;
+
+    /**
+     * 可售区域列表，为空表示全国
+     */
+    @TableField("available_regions")
+    private String availableRegions;
+
+    /**
+     * 可售渠道列表，为空表示全渠道
+     */
+    @TableField("channels")
+    private String channels;
 }

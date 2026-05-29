@@ -39,4 +39,34 @@ public class WishlistPo extends BasePo {
     @TableField("status")
     private String status;
 
+    /**
+     * 销售车型编码
+     */
+    @TableField("sale_model_code")
+    private String saleModelCode;
+
+    /**
+     * Configuration 编码
+     */
+    @TableField("configuration_code")
+    private String configurationCode;
+
+    /**
+     * OptionCode 列表（JSON）
+     */
+    @TableField("option_codes")
+    private String optionCodes;
+
+    /**
+     * OptionCode 排序后哈希
+     */
+    @TableField("option_codes_hash")
+    private String optionCodesHash;
+
+    /**
+     * 失效原因枚举
+     */
+    @TableField("invalid_reason")
+    private String invalidReason;
+
 }

@@ -55,4 +55,34 @@ public class OrderVehicleSnapshotPo implements Serializable {
 
     @TableField(value = "row_valid", fill = FieldFill.INSERT)
     private Integer rowValid;
+
+    /**
+     * Variant 编码
+     */
+    @TableField("variant_code")
+    private String variantCode;
+
+    /**
+     * Configuration 编码
+     */
+    @TableField("configuration_code")
+    private String configurationCode;
+
+    /**
+     * OptionCode 列表（JSON）
+     */
+    @TableField("option_codes")
+    private String optionCodes;
+
+    /**
+     * Option 价格明细（JSON）
+     */
+    @TableField("option_price_breakdown")
+    private String optionPriceBreakdown;
+
+    /**
+     * 销售策略快照（JSON）
+     */
+    @TableField("sale_policy_snapshot")
+    private String salePolicySnapshot;
 }
