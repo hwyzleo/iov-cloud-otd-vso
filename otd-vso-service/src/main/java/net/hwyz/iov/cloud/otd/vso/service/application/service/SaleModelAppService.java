@@ -15,10 +15,17 @@ import net.hwyz.iov.cloud.otd.vso.service.adapter.web.vo.*;
 import net.hwyz.iov.cloud.otd.vso.service.application.assembler.SaleModelPoAssembler;
 import net.hwyz.iov.cloud.otd.vso.service.application.assembler.SaleModelResultAssembler;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.query.SaleModelQuery;
+import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.GetConfiguratorCmd;
+import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.GetQuoteCmd;
+import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.ConfiguratorResult;
+import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.QuoteResult;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.SaleModelConfigResult;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.SaleModelResult;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.SelectedSaleModelResult;
+import net.hwyz.iov.cloud.otd.vso.service.common.exception.ConfigurationNotMatchedException;
 import net.hwyz.iov.cloud.otd.vso.service.common.exception.SaleModelNotExistException;
+import net.hwyz.iov.cloud.otd.vso.service.domain.service.ConfiguratorService;
+import net.hwyz.iov.cloud.otd.vso.service.domain.service.SalesPolicyService;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.SaleModelBaseModelRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.SaleModelBuildConfigRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.SaleModelConfigRepository;
@@ -44,6 +51,8 @@ public class SaleModelAppService {
     private final DictionaryService dictionaryService;
     private final VmdVehicleModelConfigService vmdVehicleModelConfigService;
     private final PurchaseBenefitsMapper purchaseBenefitsMapper;
+    private final ConfiguratorService configuratorService;
+    private final SalesPolicyService salesPolicyService;
 
     public List<SaleModelResult> search(SaleModelQuery query) {
         List<SaleModelPo> poList = saleModelRepository.findByCondition(query);
@@ -251,6 +260,57 @@ public class SaleModelAppService {
     public PurchaseBenefits getPurchaseBenefits(String saleModelCode) {
         PurchaseBenefitsPo po = purchaseBenefitsMapper.selectCurrentPoBySaleCode(saleModelCode);
         return po == null ? null : PurchaseBenefits.builder().intro(po.getIntro()).build();
+    }
+
+    /**
+     * 获取选配器数据
+     */
+    public ConfiguratorResult getConfigurator(GetConfiguratorCmd cmd) {
+        SaleModelPo saleModel = saleModelRepository.findBySaleModelCode(cmd.getSaleModelCode())
+            .orElseThrow(() -> new SaleModelNotExistException("销售车型不存在: " + cmd.getSaleModelCode()));
+
+        if (!"active".equals(saleModel.getListingStatus())) {
+            throw new SaleModelNotExistException("销售车型已下架: " + cmd.getSaleModelCode());
+        }
+
+        ConfiguratorService.ConfiguratorData data = configuratorService.getConfigurator(
+            saleModel.getVariantCode(), cmd.getSaleModelCode(), cmd.getRegionCode());
+
+        // TODO: 组装 ConfiguratorResult
+        return null;
+    }
+
+    /**
+     * 获取实时报价
+     */
+    public QuoteResult getQuote(GetQuoteCmd cmd) {
+        SaleModelPo saleModel = saleModelRepository.findBySaleModelCode(cmd.getSaleModelCode())
+            .orElseThrow(() -> new SaleModelNotExistException("销售车型不存在: " + cmd.getSaleModelCode()));
+
+        salesPolicyService.validateOptionsForSale(cmd.getSaleModelCode(), cmd.getOptionCodes(), cmd.getRegionCode());
+
+        String configurationCode = vmdVehicleModelConfigService.getBuildConfigCodeByOptionCodes(cmd.getSaleModelCode(), cmd.getOptionCodes());
+        if (configurationCode == null) {
+            throw new ConfigurationNotMatchedException("OptionCode 组合无法匹配到合法 Configuration");
+        }
+
+        salesPolicyService.validateConfigurationForSale(cmd.getSaleModelCode(), configurationCode);
+
+        BigDecimal basePrice = saleModel.getBasePrice() != null ? saleModel.getBasePrice() : BigDecimal.ZERO;
+        BigDecimal totalPrice = configuratorService.calculateTotalPrice(cmd.getSaleModelCode(), basePrice, cmd.getOptionCodes());
+
+        List<QuoteResult.OptionPriceItem> breakdown = cmd.getOptionCodes().stream()
+            .map(code -> QuoteResult.OptionPriceItem.builder()
+                .optionCode(code)
+                .optionPrice(salesPolicyService.getOptionPrice(cmd.getSaleModelCode(), code))
+                .build())
+            .collect(Collectors.toList());
+
+        return QuoteResult.builder()
+            .configurationCode(configurationCode)
+            .totalPrice(totalPrice)
+            .optionPriceBreakdown(breakdown)
+            .build();
     }
 
     public List<LicenseArea> getLicenseAreaList() {

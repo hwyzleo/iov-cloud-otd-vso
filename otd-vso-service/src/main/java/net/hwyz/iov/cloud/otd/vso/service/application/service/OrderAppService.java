@@ -24,10 +24,13 @@ import net.hwyz.iov.cloud.otd.vso.service.application.dto.query.OrderQuery;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.*;
 import net.hwyz.iov.cloud.otd.vso.service.common.exception.BrandCodeNotExistException;
 import net.hwyz.iov.cloud.otd.vso.service.common.exception.BuildConfigNotMatchedException;
+import net.hwyz.iov.cloud.otd.vso.service.common.exception.ConfigurationNotMatchedException;
 import net.hwyz.iov.cloud.otd.vso.service.common.exception.OrderNotExistException;
 import net.hwyz.iov.cloud.otd.vso.service.common.exception.OrderStateNotAllowedException;
 import net.hwyz.iov.cloud.otd.vso.service.common.exception.PaymentChannelNotAvailableException;
+import net.hwyz.iov.cloud.otd.vso.service.common.exception.SaleModelNotExistException;
 import net.hwyz.iov.cloud.otd.vso.service.common.exception.WishlistNotExistException;
+import net.hwyz.iov.cloud.otd.vso.service.domain.service.SalesPolicyService;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.Order;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.OrderAmount;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.OrderState;
@@ -132,6 +135,7 @@ public class OrderAppService {
     private final DuplicateOrderSpecification duplicateOrderSpecification;
     private final VehicleAssignmentRepository vehicleAssignmentRepository;
     private final VehicleInventoryGateway vehicleInventoryGateway;
+    private final SalesPolicyService salesPolicyService;
 
     private final Map<String, String> cityNameCache = new ConcurrentHashMap<>();
     private volatile long cityNameCacheLastRefresh = 0;
@@ -143,6 +147,8 @@ public class OrderAppService {
     @Transactional(rollbackFor = Exception.class)
     public OrderCreateResult createSmallOrder(CreateSmallOrderCmd cmd) {
         log.info("创建小订单：userId={}, modelCode={}", cmd.getUserId(), cmd.getModelCode());
+
+        validateOrderBeforeCreate(cmd.getSaleModelCode(), cmd.getOptionCodes(), cmd.getRegionCode());
 
         CustomerInfo customerInfo = new CustomerInfo(
                 cmd.getUserId(),
@@ -180,6 +186,8 @@ public class OrderAppService {
     @Transactional(rollbackFor = Exception.class)
     public OrderCreateResult createFormalOrder(CreateFormalOrderCmd cmd) {
         log.info("创建正式订单：userId={}, modelCode={}", cmd.getUserId(), cmd.getModelCode());
+
+        validateOrderBeforeCreate(cmd.getSaleModelCode(), cmd.getOptionCodes(), cmd.getRegionCode());
 
         CustomerInfo customerInfo = new CustomerInfo(
                 cmd.getUserId(),
@@ -594,6 +602,27 @@ public class OrderAppService {
 //                        .build()))
 //                .build());
         return new ArrayList<>();
+    }
+
+    /**
+     * 下单前的四步校验
+     */
+    private void validateOrderBeforeCreate(String saleModelCode, List<String> optionCodes, String regionCode) {
+        SaleModelPo saleModel = saleModelRepository.findBySaleModelCode(saleModelCode)
+            .orElseThrow(() -> new SaleModelNotExistException("销售车型不存在: " + saleModelCode));
+
+        if (!"active".equals(saleModel.getListingStatus())) {
+            throw new SaleModelNotExistException("销售车型已下架: " + saleModelCode);
+        }
+
+        salesPolicyService.validateOptionsForSale(saleModelCode, optionCodes, regionCode);
+
+        String configurationCode = vmdVehicleModelConfigService.getBuildConfigCodeByOptionCodes(saleModelCode, optionCodes);
+        if (configurationCode == null) {
+            throw new ConfigurationNotMatchedException("OptionCode 组合无法匹配到合法 Configuration");
+        }
+
+        salesPolicyService.validateConfigurationForSale(saleModelCode, configurationCode);
     }
 
     // --- 以下为兼容旧接口的方法 ---

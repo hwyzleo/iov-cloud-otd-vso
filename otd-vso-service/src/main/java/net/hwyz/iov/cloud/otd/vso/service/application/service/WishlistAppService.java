@@ -15,10 +15,14 @@ import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.WishlistDetailR
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.WishlistListResult;
 import net.hwyz.iov.cloud.otd.vso.service.common.exception.BuildConfigNotMatchedException;
 import net.hwyz.iov.cloud.otd.vso.service.common.exception.DuplicateWishlistException;
+import net.hwyz.iov.cloud.otd.vso.service.common.exception.SaleModelNotExistException;
 import net.hwyz.iov.cloud.otd.vso.service.common.exception.WishlistLimitExceededException;
 import net.hwyz.iov.cloud.otd.vso.service.common.exception.WishlistNotExistException;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.Wishlist;
+import net.hwyz.iov.cloud.otd.vso.service.domain.repository.SaleModelRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.WishlistRepository;
+import net.hwyz.iov.cloud.otd.vso.service.domain.service.SalesPolicyService;
+import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.SaleModelPo;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -42,6 +46,8 @@ public class WishlistAppService {
     private final WishlistRepository wishlistRepository;
     private final SaleModelAppService saleModelAppService;
     private final VmdVehicleModelConfigService vmdVehicleModelConfigService;
+    private final SaleModelRepository saleModelRepository;
+    private final SalesPolicyService salesPolicyService;
 
     @Transactional(rollbackFor = Exception.class)
     public String createWishlist(CreateWishlistCmd cmd) {
@@ -49,6 +55,7 @@ public class WishlistAppService {
                 cmd.getAccountId(), cmd.getSaleModelCode(), cmd.getConfigurationCode(), cmd.getOptionCodes());
 
         validateWishlistLimit(cmd.getAccountId());
+        validateWishlistBeforeCreate(cmd.getSaleModelCode(), cmd.getConfigurationCode(), cmd.getOptionCodes());
 
         String buildConfigCode = cmd.getConfigurationCode();
 
@@ -70,6 +77,7 @@ public class WishlistAppService {
                 cmd.getWishlistId(), cmd.getAccountId(), cmd.getConfigurationCode(), cmd.getOptionCodes());
 
         Wishlist wishlist = findWishlistById(cmd.getAccountId(), cmd.getWishlistId());
+        validateWishlistBeforeCreate(wishlist.getSaleModelCode(), cmd.getConfigurationCode(), cmd.getOptionCodes());
 
         String buildConfigCode = cmd.getConfigurationCode();
 
@@ -255,6 +263,18 @@ private String getFamilyName(String saleModelCode, String familyCode) {
             log.warn("检查生产配置有效性失败: buildConfigCode={}", buildConfigCode, e);
             return false;
         }
+    }
+
+    /**
+     * 创建心愿单前的校验
+     */
+    private void validateWishlistBeforeCreate(String saleModelCode, String configurationCode, List<String> optionCodes) {
+        SaleModelPo saleModel = saleModelRepository.findBySaleModelCode(saleModelCode)
+            .orElseThrow(() -> new SaleModelNotExistException("销售车型不存在: " + saleModelCode));
+
+        salesPolicyService.validateOptionsForSale(saleModelCode, optionCodes, null);
+
+        salesPolicyService.validateConfigurationForSale(saleModelCode, configurationCode);
     }
 
     private static final int WISHLIST_LIMIT = 5;
