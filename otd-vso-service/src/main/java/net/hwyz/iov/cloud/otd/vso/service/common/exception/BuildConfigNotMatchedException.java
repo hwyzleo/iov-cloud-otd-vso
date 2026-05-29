@@ -8,6 +8,6 @@ package net.hwyz.iov.cloud.otd.vso.service.common.exception;
 public class BuildConfigNotMatchedException extends VsoBaseException {
 
     public BuildConfigNotMatchedException(String message) {
-        super(VsoErrorCode.BUILD_CONFIG_NOT_MATCHED, message);
+        super(VsoErrorCode.CONFIGURATION_NOT_MATCHED, message);
     }
 }

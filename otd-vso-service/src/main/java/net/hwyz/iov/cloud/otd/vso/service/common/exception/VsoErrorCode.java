@@ -19,7 +19,7 @@ public enum VsoErrorCode implements ErrorCode {
 
     // 销售型号配置
     SALE_MODEL_CONFIG_TYPE_CODE_NOT_EXIST("201003", "销售型号配置类型编码不存在"),
-    BUILD_CONFIG_CODE_NOT_EXIST("201004", "构建配置编码不存在"),
+    CONFIGURATION_CODE_NOT_EXIST("201004", "配置编码不存在"),
     SALE_MODEL_NOT_EXIST("201005", "销售型号不存在"),
 
     // 订单
@@ -27,11 +27,11 @@ public enum VsoErrorCode implements ErrorCode {
     ORDER_ILLEGAL_DELETE("201007", "订单非法删除"),
     ORDER_STATE_NOT_ALLOWED("201008", "订单状态不允许"),
     ACCOUNT_NOT_EXIST("201009", "账号不存在"),
-    SALE_MODEL_CONFIG_HAS_LOCKED("201010", "销售型号配置已锁定"),
+    CONFIGURATION_HAS_LOCKED("201010", "订单配置已锁定"),
 
     // 心愿单
     WISHLIST_NOT_EXIST("201011", "心愿单不存在"),
-    BUILD_CONFIG_NOT_MATCHED("201012", "构建配置不匹配"),
+    CONFIGURATION_NOT_MATCHED("201012", "OptionCode 组合无法匹配到合法 Configuration"),
 
     // 支付
     PAYMENT_CHANNEL_NOT_AVAILABLE("201013", "支付渠道不可用"),
@@ -59,7 +59,20 @@ public enum VsoErrorCode implements ErrorCode {
     // 冲突
     PAYMENT_CONFLICT("201028", "支付冲突"),
     LOCK_CONFLICT("201029", "锁定冲突"),
-    BIND_CONFLICT("201030", "绑定冲突");
+    BIND_CONFLICT("201030", "绑定冲突"),
+
+    // Configuration 销售
+    CONFIGURATION_NOT_FOR_SALE("201034", "Configuration 可生产但未列入销售白名单"),
+
+    // OptionCode 销售
+    OPTION_NOT_FOR_SALE("201035", "OptionCode 在销售策略中处于 off_shelf 状态或未配置价格"),
+    OPTION_REGION_RESTRICTED("201036", "OptionCode 当前用户区域不可售"),
+
+    // 销售车型
+    SALE_MODEL_VARIANT_LOCKED("201037", "SaleModel 已有活跃订单或心愿单，不可修改 variantCode"),
+
+    // MDM 投影
+    MDM_PROJECTION_STALE("201038", "MDM 本地投影过期或不一致，需触发强制同步");
 
     private final String code;
     private final String message;

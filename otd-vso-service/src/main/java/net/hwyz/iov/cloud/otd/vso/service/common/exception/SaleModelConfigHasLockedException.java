@@ -8,6 +8,6 @@ package net.hwyz.iov.cloud.otd.vso.service.common.exception;
 public class SaleModelConfigHasLockedException extends VsoBaseException {
 
     public SaleModelConfigHasLockedException(String configCode) {
-        super(VsoErrorCode.SALE_MODEL_CONFIG_HAS_LOCKED, "销售型号配置[" + configCode + "]已锁定");
+        super(VsoErrorCode.CONFIGURATION_HAS_LOCKED, "订单配置[" + configCode + "]已锁定");
     }
 }
