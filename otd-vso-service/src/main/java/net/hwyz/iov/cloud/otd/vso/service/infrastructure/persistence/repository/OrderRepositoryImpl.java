@@ -129,4 +129,20 @@ public class OrderRepositoryImpl implements OrderRepository {
         return orderMapper.existsUnpaidOrderByMobileHash(mobileHash) > 0;
     }
 
+    @Override
+    public boolean existsActiveOrdersBySaleModelCode(String saleModelCode) {
+        if (saleModelCode == null || saleModelCode.isEmpty()) {
+            return false;
+        }
+        java.util.Map<String, Object> params = new java.util.HashMap<>();
+        params.put("saleModel", saleModelCode);
+        params.put("orderStateRange", java.util.List.of(
+            net.hwyz.iov.cloud.otd.vso.service.domain.model.OrderState.EARNEST_MONEY_PAID.getValue(),
+            net.hwyz.iov.cloud.otd.vso.service.domain.model.OrderState.DOWN_PAYMENT_UNPAID.getValue(),
+            net.hwyz.iov.cloud.otd.vso.service.domain.model.OrderState.DOWN_PAYMENT_PAID.getValue(),
+            net.hwyz.iov.cloud.otd.vso.service.domain.model.OrderState.ARRANGE_PRODUCTION.getValue(),
+            net.hwyz.iov.cloud.otd.vso.service.domain.model.OrderState.ALLOCATION_VEHICLE.getValue()));
+        return orderMapper.countPoByMap(params) > 0;
+    }
+
 }

@@ -1533,6 +1533,15 @@ flowchart TD
 
 **背景**：CR-010 要求 VSO 维护 MDM 主数据的本地只读投影，避免每个请求都跨服务调用 MDM，提升选配器和下单链路的性能。
 
+**同步范围**：
+- **Variant**：同步该 variantCode 的 Variant 数据
+- **Configuration**：同步该 variantCode 下的所有 Configuration
+- **OptionCode**：只同步该 variantCode 关联的 OptionCode，来源包括：
+  1. Variant 的 `standardOptions`（标配选项）
+  2. 该 variantCode 下所有 Configuration 的 `optionCodes`（可选选项）
+  3. 两者去重后，只同步这些 OptionCode（不同步全量 OptionCode）
+- **OptionFamily**：只同步关联的 OptionFamily（从 OptionCode 的 `optionFamilyCode` 提取）
+
 **初始化流程**：
 
 ```mermaid
@@ -1784,6 +1793,10 @@ flowchart TD
 - Response: `PageResult<SaleModelMptVo>`
 - 说明：按 sortWeight 升序 + createTime 倒序，单页最大 100
 
+**GET** `/api/mpt/saleModel/v1/code/{saleModelCode}`
+- Response: `SaleModelMptVo` — 销售车型详情
+- 说明：根据 saleModelCode 查询销售车型详情
+
 **POST** `/api/mpt/saleModel/v1/{saleModelCode}/syncMdm`
 - Response: `{ variantAdded, variantUpdated, configurationAdded, configurationUpdated, optionAdded, optionUpdated, optionDeleted }`
 - 说明：强制刷新该 variantCode 的本地 MDM 投影，忽略本地缓存
@@ -1792,6 +1805,19 @@ flowchart TD
 
 **GET** `/api/mpt/saleModel/v1/{saleModelCode}/configPolicy`
 - Response: `List<ConfigPolicyVo>` — Configuration 白名单列表
+
+**GET** `/api/mpt/saleModel/v1/{saleModelCode}/configPolicy/available` (CR-013 新增)
+- Response: `List<ConfigPolicyAvailableVo>` — MDM 投影中该 variantCode 下的全部 Configuration 列表，标注是否在白名单
+- 数据来源：`mdm_projection_configuration` 表 LEFT JOIN `vso_sale_model_config_policy` 表
+- 返回字段：
+  - `configurationCode`: Configuration 编码
+  - `variantCode`: 所属 Variant 编码
+  - `optionCodes`: 包含的 OptionCode 列表
+  - `guidePrice`: 指导价
+  - `inWhitelist`: 是否在白名单中（boolean）
+  - `policyStatus`: 白名单状态（active/off_shelf，不在白名单时为 null）
+- 说明：用于销售策略页展示可选 Configuration 列表，运营可从中选择添加到白名单
+- SLA: <500ms
 
 **POST** `/api/mpt/saleModel/v1/{saleModelCode}/configPolicy`
 - Request: `{ configurationCodes[], status? }`
@@ -1810,6 +1836,21 @@ flowchart TD
 **GET** `/api/mpt/saleModel/v1/{saleModelCode}/optionPolicy`
 - Query: `{ optionFamilyCode?, saleStatus?, page, size }`
 - Response: `PageResult<OptionPolicyVo>` — OptionCode 销售策略列表
+
+**GET** `/api/mpt/saleModel/v1/{saleModelCode}/optionPolicy/available` (CR-014 新增)
+- Response: `List<OptionFamilyAvailableVo>` — MDM 投影中该 variantCode 下的全部 OptionCode 列表（按 OptionFamily 分组），标注是否已有销售策略
+- 数据来源：`mdm_projection_option` 表 + `mdm_projection_option_family` 表 + `vso_sale_model_option_policy` 表
+- 返回结构：
+  - `optionFamilyCode`: 选项族编码
+  - `optionFamilyName`: 选项族名称
+  - `options[]`: 该族下的 OptionCode 列表
+    - `optionCode`: 选项编码
+    - `optionName`: 选项名称
+    - `inPolicy`: 是否已有销售策略（boolean）
+    - `saleStatus`: 销售状态（active/off_shelf/coming_soon，无策略时为 null）
+    - `optionPrice`: 价格（无策略时为 null）
+- 说明：用于销售策略页展示可选 OptionCode 列表，运营可从中选择配置销售策略
+- SLA: <500ms
 
 **POST** `/api/mpt/saleModel/v1/{saleModelCode}/optionPolicy`
 - Request: `{ optionCode, saleStatus, availableRegions?, channels?, optionPrice, bundleWith?, mutexWith?, marketingTitle?, marketingImage?, sortWeight?, effectiveFrom?, effectiveTo? }`

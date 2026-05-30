@@ -2,12 +2,18 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.mapper.SaleModelConfigPolicyMapper">
     <select id="selectBySaleModelCode" resultType="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.SaleModelConfigPolicyPo">
-        SELECT * FROM tb_sale_model_config_policy
+        SELECT * FROM vso_sale_model_config_policy
         WHERE sale_model_code = #{saleModelCode} AND row_valid = 1
     </select>
     
     <select id="selectBySaleModelCodeAndConfigCode" resultType="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.SaleModelConfigPolicyPo">
-        SELECT * FROM tb_sale_model_config_policy
-        WHERE sale_model_code = #{saleModelCode} AND configuration_code = #{configurationCode} AND row_valid = 1
+        SELECT * FROM vso_sale_model_config_policy
+        WHERE sale_model_code = #{saleModelCode} AND configuration_code = #{configurationCode}
     </select>
+
+    <update id="reactivateById">
+        UPDATE vso_sale_model_config_policy
+        SET row_valid = 1, status = #{status}, modify_time = #{modifyTime}
+        WHERE id = #{id}
+    </update>
 </mapper>

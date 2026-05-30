@@ -83,4 +83,9 @@ public interface OrderRepository {
 
     boolean existsUnpaidOrderByMobileHash(String mobileHash);
 
+    /**
+     * 检查是否存在指定销售车型的活跃订单（非终态）
+     */
+    boolean existsActiveOrdersBySaleModelCode(String saleModelCode);
+
 }

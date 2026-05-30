@@ -62,6 +62,30 @@ public class SaleModelRepositoryImpl implements SaleModelRepository {
     }
 
     @Override
+    public boolean existsByVariantCode(String variantCode) {
+        if (variantCode == null || variantCode.isEmpty()) {
+            return false;
+        }
+        List<SaleModelPo> list = mapper.selectPoByMap(Map.of("variantCode", variantCode));
+        return !list.isEmpty();
+    }
+
+    @Override
+    public boolean existsByVariantCodeExcludeId(String variantCode, Long excludeId) {
+        if (variantCode == null || variantCode.isEmpty()) {
+            return false;
+        }
+        List<SaleModelPo> list = mapper.selectPoByMap(Map.of("variantCode", variantCode));
+        if (list.isEmpty()) {
+            return false;
+        }
+        if (excludeId == null) {
+            return true;
+        }
+        return list.stream().anyMatch(po -> !po.getId().equals(excludeId));
+    }
+
+    @Override
     public int insert(SaleModelPo entity) {
         return mapper.insertPo(entity);
     }

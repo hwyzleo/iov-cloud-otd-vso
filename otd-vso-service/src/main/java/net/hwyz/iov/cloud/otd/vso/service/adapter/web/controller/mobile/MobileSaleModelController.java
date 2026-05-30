@@ -9,6 +9,10 @@ import net.hwyz.iov.cloud.otd.vso.service.adapter.web.assembler.SaleModelConfigM
 import net.hwyz.iov.cloud.otd.vso.service.adapter.web.assembler.SaleModelMpAssembler;
 import net.hwyz.iov.cloud.otd.vso.service.adapter.web.assembler.SelectedSaleModelAssembler;
 import net.hwyz.iov.cloud.otd.vso.service.adapter.web.vo.*;
+import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.GetConfiguratorCmd;
+import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.GetQuoteCmd;
+import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.ConfiguratorResult;
+import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.QuoteResult;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.SaleModelConfigResult;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.SaleModelResult;
 import net.hwyz.iov.cloud.otd.vso.service.application.service.SaleModelAppService;
@@ -114,5 +118,36 @@ public class MobileSaleModelController extends BaseController {
     public ApiResponse<List<LicenseArea>> getLicenseAreaList() {
         log.info("手机客户端[{}]获取上牌区域列表", ParamHelper.getClientAccountInfo());
         return ApiResponse.ok(saleModelAppService.getLicenseAreaList());
+    }
+
+    /**
+     * 获取选配器数据
+     *
+     * @param saleModelCode 销售车型代码
+     * @param regionCode 区域代码
+     * @return 选配器数据
+     */
+    @GetMapping("/{saleModelCode}/configurator")
+    public ApiResponse<ConfiguratorResult> getConfigurator(
+            @PathVariable String saleModelCode,
+            @RequestParam String regionCode) {
+        log.info("手机客户端[{}]获取销售车型代码[{}]选配器数据, 区域[{}]", ParamHelper.getClientAccountInfo(), saleModelCode, regionCode);
+        GetConfiguratorCmd cmd = GetConfiguratorCmd.builder()
+            .saleModelCode(saleModelCode)
+            .regionCode(regionCode)
+            .build();
+        return ApiResponse.ok(saleModelAppService.getConfigurator(cmd));
+    }
+
+    /**
+     * 获取实时报价
+     *
+     * @param cmd 报价请求参数
+     * @return 报价结果
+     */
+    @PostMapping("/quote")
+    public ApiResponse<QuoteResult> getQuote(@RequestBody GetQuoteCmd cmd) {
+        log.info("手机客户端[{}]获取实时报价, 销售车型[{}]", ParamHelper.getClientAccountInfo(), cmd.getSaleModelCode());
+        return ApiResponse.ok(saleModelAppService.getQuote(cmd));
     }
 }

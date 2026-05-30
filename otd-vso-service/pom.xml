@@ -20,6 +20,7 @@
         <vso.version>0.0.1-SNAPSHOT</vso.version>
         <org.version>0.0.1-SNAPSHOT</org.version>
         <dictionary.version>0.0.1-SNAPSHOT</dictionary.version>
+        <mdm.version>0.0.1-SNAPSHOT</mdm.version>
     </properties>
 
     <dependencies>
@@ -51,6 +52,12 @@
             <groupId>net.hwyz.iov.cloud.edd</groupId>
             <artifactId>edd-org-api</artifactId>
             <version>${org.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>net.hwyz.iov.cloud.edd</groupId>
+            <artifactId>edd-mdm-api</artifactId>
+            <version>${mdm.version}</version>
         </dependency>
 
         <!-- 框架: MySQL -->

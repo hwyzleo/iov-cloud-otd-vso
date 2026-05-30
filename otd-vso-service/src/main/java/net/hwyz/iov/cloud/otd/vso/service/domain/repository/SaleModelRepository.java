@@ -21,6 +21,16 @@ public interface SaleModelRepository {
 
     boolean existsBySaleModelCodeExcludeId(String saleModelCode, Long excludeId);
 
+    /**
+     * 检查 variantCode 是否已被使用（1:1 约束）
+     */
+    boolean existsByVariantCode(String variantCode);
+
+    /**
+     * 检查 variantCode 是否已被其他 SaleModel 使用（排除指定 ID）
+     */
+    boolean existsByVariantCodeExcludeId(String variantCode, Long excludeId);
+
     int insert(SaleModelPo entity);
 
     int update(SaleModelPo entity);

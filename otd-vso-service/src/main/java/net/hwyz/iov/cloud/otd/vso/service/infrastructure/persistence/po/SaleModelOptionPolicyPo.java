@@ -13,7 +13,7 @@ import java.sql.Timestamp;
 @SuperBuilder
 @NoArgsConstructor
 @EqualsAndHashCode(callSuper = true)
-@TableName("tb_sale_model_option_policy")
+@TableName("vso_sale_model_option_policy")
 public class SaleModelOptionPolicyPo extends BasePo {
     private static final long serialVersionUID = 1L;
 

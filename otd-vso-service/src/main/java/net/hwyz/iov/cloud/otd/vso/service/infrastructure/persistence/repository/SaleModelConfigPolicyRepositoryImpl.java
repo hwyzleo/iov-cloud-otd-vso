@@ -6,6 +6,7 @@ import net.hwyz.iov.cloud.otd.vso.service.domain.repository.SaleModelConfigPolic
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.mapper.SaleModelConfigPolicyMapper;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.SaleModelConfigPolicyPo;
 import org.springframework.stereotype.Repository;
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
@@ -39,6 +40,11 @@ public class SaleModelConfigPolicyRepositoryImpl implements SaleModelConfigPolic
     @Override
     public void update(SaleModelConfigPolicyPo po) {
         mapper.updateById(po);
+    }
+
+    @Override
+    public void reactivate(Long id, String status) {
+        mapper.reactivateById(id, status, new Date());
     }
 
     @Override

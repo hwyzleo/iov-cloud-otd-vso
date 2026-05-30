@@ -177,4 +177,11 @@
         LIMIT 1
     </select>
 
+    <select id="selectBySaleModelCode" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_wishlist t
+        WHERE t.sale_model_code = #{saleModelCode}
+        AND t.row_valid = 1
+    </select>
+
 </mapper>

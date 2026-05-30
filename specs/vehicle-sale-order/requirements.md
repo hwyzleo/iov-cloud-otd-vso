@@ -384,6 +384,7 @@
 - WHERE 删除/下架某 Configuration 时存在关联活跃订单（非终态） WHEN 运营执行操作 THE SYSTEM SHALL 不阻止操作，但在响应中返回 affectedOrderCount 提示影响的订单数（订单基于快照运行不受影响）
 
 #### OptionCode 销售策略
+- WHEN 运营进入 SaleModel 销售策略页 THE SYSTEM SHALL 展示该 variantCode 下 MDM 全部 OptionCode（按 OptionFamily 分组），并标注每个 OptionCode 是否已有销售策略及当前状态（saleStatus）
 - WHERE optionCode 属于 SaleModel.variantCode 的 optionTree WHEN 运营创建/更新策略 THE SYSTEM SHALL 写入 `tb_sale_model_option_policy`，字段含：saleStatus（active / off_shelf / coming_soon）、availableRegions、channels、optionPrice、bundleWith、mutexWith、marketingTitle、marketingImage、sortWeight、effectiveFrom、effectiveTo；WHERE optionPrice 为空且 saleStatus = active THE SYSTEM SHALL 拒绝保存并返回参数错误（价格必填才能上架）
 - WHEN 运营把某 OptionCode 标记 off_shelf 且该 OptionCode 属于 required = true 的 family 且 family 内已无其它 saleStatus = active 的 OptionCode THE SYSTEM SHALL 弹出强警告（"该 family 将无可选项，用户无法下单"），由运营确认后方可保存（不强制阻止）
 - WHEN 同 family 内同时存在 bundleWith 和 mutexWith 配置导致逻辑矛盾（如 A.bundleWith = B 且 A.mutexWith = B） THE SYSTEM SHALL 保存前校验并返回参数错误，禁止矛盾配置入库

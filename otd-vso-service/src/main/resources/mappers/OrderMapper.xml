@@ -343,6 +343,21 @@
         SELECT COUNT(*)
         FROM vso_order t
         WHERE t.row_valid = 1
+        <if test="saleModel != null and saleModel != ''">
+            AND t.sale_model = #{saleModel}
+        </if>
+        <if test="orderState != null">
+            AND t.order_state = #{orderState}
+        </if>
+        <if test="orderStateRange != null and orderStateRange.size() > 0">
+            AND t.order_state IN
+            <foreach collection="orderStateRange" item="status" open="(" separator="," close=")">
+                #{status}
+            </foreach>
+        </if>
+        <if test="deliveryPersonId != null and deliveryPersonId != ''">
+            AND t.delivery_person_id = #{deliveryPersonId}
+        </if>
     </select>
 
     <!-- 根据订单号和账户ID获取订单 -->

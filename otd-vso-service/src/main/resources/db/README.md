@@ -27,13 +27,13 @@ vso-service/src/main/resources/db/migration/
 
 **V1.4.0** - 首版完整数据库结构
 
-### 表清单（35 张）
+### 表清单（42 张）
 
 #### 基础业务表（4 张）
-1. `tb_sale_model` - 销售车型
-2. `tb_sale_model_config` - 销售车型配置
-3. `tb_purchase_benefits` - 购车权益
-4. `tb_purchase_agreement` - 购车协议
+1. `vso_sale_model` - 销售车型
+2. `vso_sale_model_config` - 销售车型配置
+3. `vso_purchase_benefits` - 购车权益
+4. `vso_purchase_agreement` - 购车协议
 
 #### 订单核心表（6 张）
 5. `vso_order` - 订单主表
@@ -75,6 +75,15 @@ vso-service/src/main/resources/db/migration/
 #### 配置表（2 张）
 36. `vso_config_timeout` - 超时任务配置
 37. `vso_config_vehicle_occupancy` - 车源占用有效期配置
+
+#### 销售策略表（2 张，CR-010 新增）
+38. `vso_sale_model_config_policy` - Configuration 销售白名单
+39. `vso_sale_model_option_policy` - OptionCode 销售策略
+
+#### MDM 投影表（3 张，CR-010 新增）
+40. `mdm_projection_variant` - MDM Variant 投影
+41. `mdm_projection_configuration` - MDM Configuration 投影
+42. `mdm_projection_option` - MDM OptionCode 投影
 
 ## 执行顺序
 

@@ -7,6 +7,7 @@ import net.hwyz.iov.cloud.otd.vso.service.domain.repository.MdmProjectionReposit
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.MdmProjectionVariantPo;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.MdmProjectionConfigurationPo;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.MdmProjectionOptionPo;
+import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.MdmProjectionOptionFamilyPo;
 import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Optional;
@@ -49,6 +50,13 @@ public class MdmProjectionService {
     }
 
     /**
+     * 获取 Configuration 投影（可选）
+     */
+    public Optional<MdmProjectionConfigurationPo> getConfigurationOptional(String configurationCode) {
+        return projectionRepository.findConfigurationByCode(configurationCode);
+    }
+
+    /**
      * 获取 Variant 下的所有 Configuration
      */
     public List<MdmProjectionConfigurationPo> getConfigurationsByVariant(String variantCode) {
@@ -62,6 +70,34 @@ public class MdmProjectionService {
         return projectionRepository.findOptionByCode(optionCode)
             .orElseThrow(() -> new MdmProjectionStaleException(
                 String.format("OptionCode [%s] 在本地投影中不存在", optionCode)));
+    }
+
+    /**
+     * 获取 OptionCode 投影（可选）
+     */
+    public Optional<MdmProjectionOptionPo> getOptionOptional(String optionCode) {
+        return projectionRepository.findOptionByCode(optionCode);
+    }
+
+    /**
+     * 获取 OptionFamily 下的所有 OptionCode
+     */
+    public List<MdmProjectionOptionPo> getOptionsByOptionFamily(String optionFamilyCode) {
+        return projectionRepository.findOptionsByOptionFamilyCode(optionFamilyCode);
+    }
+
+    /**
+     * 获取所有 OptionFamily
+     */
+    public List<MdmProjectionOptionFamilyPo> getAllOptionFamilies() {
+        return projectionRepository.findAllOptionFamilies();
+    }
+
+    /**
+     * 获取 OptionFamily 投影（可选）
+     */
+    public Optional<MdmProjectionOptionFamilyPo> getOptionFamilyOptional(String optionFamilyCode) {
+        return projectionRepository.findOptionFamilyByCode(optionFamilyCode);
     }
 
     /**
@@ -106,6 +142,21 @@ public class MdmProjectionService {
         } else {
             projectionRepository.saveOption(po);
             log.info("新增 OptionCode 投影: {}", po.getOptionCode());
+        }
+    }
+
+    /**
+     * 保存或更新 OptionFamily 投影
+     */
+    public void saveOrUpdateOptionFamily(MdmProjectionOptionFamilyPo po) {
+        Optional<MdmProjectionOptionFamilyPo> existing = projectionRepository.findOptionFamilyByCode(po.getOptionFamilyCode());
+        if (existing.isPresent()) {
+            po.setId(existing.get().getId());
+            projectionRepository.updateOptionFamily(po);
+            log.info("更新 OptionFamily 投影: {}", po.getOptionFamilyCode());
+        } else {
+            projectionRepository.saveOptionFamily(po);
+            log.info("新增 OptionFamily 投影: {}", po.getOptionFamilyCode());
         }
     }
 }

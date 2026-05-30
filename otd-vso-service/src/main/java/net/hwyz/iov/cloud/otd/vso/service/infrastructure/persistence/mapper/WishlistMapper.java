@@ -32,4 +32,6 @@ public interface WishlistMapper extends BaseDao<WishlistPo, Long> {
 
     WishlistPo selectByUserIdAndConfigurationCodeExcluding(@Param("userId") String userId, @Param("configurationCode") String configurationCode, @Param("excludeWishlistId") String excludeWishlistId);
 
+    List<WishlistPo> selectBySaleModelCode(@Param("saleModelCode") String saleModelCode);
+
 }

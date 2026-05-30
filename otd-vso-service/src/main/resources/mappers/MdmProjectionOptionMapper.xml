@@ -5,4 +5,9 @@
         SELECT * FROM mdm_projection_option
         WHERE option_code = #{optionCode}
     </select>
+
+    <select id="selectByOptionFamilyCode" resultType="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.MdmProjectionOptionPo">
+        SELECT * FROM mdm_projection_option
+        WHERE option_family_code = #{optionFamilyCode}
+    </select>
 </mapper>

@@ -18,6 +18,8 @@ public class SaleModelVo {
 
     private String modelName;
 
+    private String variantCode;
+
     private String parameters;
 
     private List<String> images;
@@ -33,6 +35,22 @@ public class SaleModelVo {
     private Boolean enable;
 
     private Integer sort;
+
+    private BigDecimal basePrice;
+
+    private String icon;
+
+    private String marketingCopy;
+
+    private String listingStatus;
+
+    private Instant effectiveFrom;
+
+    private Instant effectiveTo;
+
+    private List<String> availableRegions;
+
+    private List<String> channels;
 
     private Instant createTime;
 

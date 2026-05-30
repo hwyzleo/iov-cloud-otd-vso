@@ -10,5 +10,6 @@ public interface SaleModelConfigPolicyRepository {
     boolean existsBySaleModelCode(String saleModelCode);
     void save(SaleModelConfigPolicyPo po);
     void update(SaleModelConfigPolicyPo po);
+    void reactivate(Long id, String status);
     void delete(Long id);
 }

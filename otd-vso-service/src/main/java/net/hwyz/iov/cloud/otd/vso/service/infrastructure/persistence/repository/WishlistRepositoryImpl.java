@@ -75,4 +75,13 @@ public class WishlistRepositoryImpl implements WishlistRepository {
         return wishlistMapper.selectByUserIdAndConfigurationCodeExcluding(userId, configurationCode, excludeWishlistId) != null;
     }
 
+    @Override
+    public boolean existsActiveBySaleModelCode(String saleModelCode) {
+        if (saleModelCode == null || saleModelCode.isEmpty()) {
+            return false;
+        }
+        List<WishlistPo> list = wishlistMapper.selectBySaleModelCode(saleModelCode);
+        return list.stream().anyMatch(po -> "ACTIVE".equals(po.getStatus()));
+    }
+
 }

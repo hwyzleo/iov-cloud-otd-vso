@@ -4,9 +4,21 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.hwyz.iov.cloud.edd.dictionary.api.service.DictionaryService;
 import net.hwyz.iov.cloud.edd.dictionary.api.vo.response.DictionaryResponse;
+import net.hwyz.iov.cloud.edd.mdm.api.service.ConfigurationService;
+import net.hwyz.iov.cloud.edd.mdm.api.service.OptionCodeService;
+import net.hwyz.iov.cloud.edd.mdm.api.service.OptionFamilyService;
+import net.hwyz.iov.cloud.edd.mdm.api.service.VariantService;
+import net.hwyz.iov.cloud.edd.mdm.api.vo.response.ConfigurationPageResponse;
+import net.hwyz.iov.cloud.edd.mdm.api.vo.response.ConfigurationResponse;
+import net.hwyz.iov.cloud.edd.mdm.api.vo.response.OptionCodePageResponse;
+import net.hwyz.iov.cloud.edd.mdm.api.vo.response.OptionCodeResponse;
+import net.hwyz.iov.cloud.edd.mdm.api.vo.response.OptionFamilyPageResponse;
+import net.hwyz.iov.cloud.edd.mdm.api.vo.response.OptionFamilyResponse;
+import net.hwyz.iov.cloud.edd.mdm.api.vo.response.VariantResponse;
 import net.hwyz.iov.cloud.edd.vmd.api.service.VmdVehicleModelConfigService;
 import net.hwyz.iov.cloud.edd.vmd.api.vo.response.VmdBuildConfigFeatureCodeResponse;
 import net.hwyz.iov.cloud.edd.vmd.api.vo.response.VmdBuildConfigResponse;
+import net.hwyz.iov.cloud.framework.common.bean.PageResult;
 import net.hwyz.iov.cloud.framework.common.enums.Symbol;
 import net.hwyz.iov.cloud.framework.common.util.StrUtil;
 import net.hwyz.iov.cloud.framework.web.context.SecurityContextHolder;
@@ -15,6 +27,9 @@ import net.hwyz.iov.cloud.otd.vso.service.adapter.web.vo.*;
 import net.hwyz.iov.cloud.otd.vso.service.application.assembler.SaleModelPoAssembler;
 import net.hwyz.iov.cloud.otd.vso.service.application.assembler.SaleModelResultAssembler;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.query.SaleModelQuery;
+import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.CreateConfigPolicyCmd;
+import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.CreateOptionFamilyPolicyCmd;
+import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.CreateOptionPolicyCmd;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.GetConfiguratorCmd;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.GetQuoteCmd;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.ConfiguratorResult;
@@ -24,12 +39,19 @@ import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.SaleModelResult
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.SelectedSaleModelResult;
 import net.hwyz.iov.cloud.otd.vso.service.common.exception.ConfigurationNotMatchedException;
 import net.hwyz.iov.cloud.otd.vso.service.common.exception.SaleModelNotExistException;
+import net.hwyz.iov.cloud.otd.vso.service.common.exception.SaleModelVariantLockedException;
 import net.hwyz.iov.cloud.otd.vso.service.domain.service.ConfiguratorService;
 import net.hwyz.iov.cloud.otd.vso.service.domain.service.SalesPolicyService;
+import net.hwyz.iov.cloud.otd.vso.service.domain.service.MdmProjectionService;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.SaleModelBaseModelRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.SaleModelBuildConfigRepository;
+import net.hwyz.iov.cloud.otd.vso.service.domain.repository.SaleModelConfigPolicyRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.SaleModelConfigRepository;
+import net.hwyz.iov.cloud.otd.vso.service.domain.repository.SaleModelOptionFamilyPolicyRepository;
+import net.hwyz.iov.cloud.otd.vso.service.domain.repository.SaleModelOptionPolicyRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.SaleModelRepository;
+import net.hwyz.iov.cloud.otd.vso.service.domain.repository.OrderRepository;
+import net.hwyz.iov.cloud.otd.vso.service.domain.repository.WishlistRepository;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.mapper.PurchaseBenefitsMapper;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.*;
 import org.springframework.stereotype.Service;
@@ -53,6 +75,16 @@ public class SaleModelAppService {
     private final PurchaseBenefitsMapper purchaseBenefitsMapper;
     private final ConfiguratorService configuratorService;
     private final SalesPolicyService salesPolicyService;
+    private final SaleModelConfigPolicyRepository configPolicyRepository;
+    private final SaleModelOptionPolicyRepository optionPolicyRepository;
+    private final SaleModelOptionFamilyPolicyRepository optionFamilyPolicyRepository;
+    private final OrderRepository orderRepository;
+    private final WishlistRepository wishlistRepository;
+    private final MdmProjectionService mdmProjectionService;
+    private final VariantService variantService;
+    private final ConfigurationService configurationService;
+    private final OptionCodeService optionCodeService;
+    private final OptionFamilyService optionFamilyService;
 
     public List<SaleModelResult> search(SaleModelQuery query) {
         List<SaleModelPo> poList = saleModelRepository.findByCondition(query);
@@ -179,12 +211,35 @@ public class SaleModelAppService {
 
     @Transactional(rollbackFor = Exception.class)
     public Long createSaleModel(SaleModelCreateDto dto, String userId) {
+        // 校验 saleModelCode 唯一性
         if (!checkSaleModelCodeUnique(null, dto.getSaleModelCode())) {
             throw new IllegalArgumentException("销售代码已存在：" + dto.getSaleModelCode());
         }
+        
+        // 校验 variantCode 1:1 约束：同 variantCode 已存在 SaleModel 时拒绝创建
+        if (dto.getVariantCode() != null && !dto.getVariantCode().isEmpty()) {
+            boolean variantExists = saleModelRepository.existsByVariantCode(dto.getVariantCode());
+            if (variantExists) {
+                throw new IllegalArgumentException("同 Variant 编码已存在销售车型，不允许重复绑定：" + dto.getVariantCode());
+            }
+        }
+        
         SaleModelPo entity = SaleModelPoAssembler.INSTANCE.toDo(dto);
         entity.setCreateBy(userId);
         entity.setModifyBy(userId);
+        // 设置默认值
+        if (entity.getEarnestMoney() == null) {
+            entity.setEarnestMoney(false);
+        }
+        if (entity.getDownPayment() == null) {
+            entity.setDownPayment(false);
+        }
+        if (entity.getEnable() == null) {
+            entity.setEnable(true);
+        }
+        if (entity.getSort() == null) {
+            entity.setSort(0);
+        }
         saleModelRepository.insert(entity);
         return entity.getId();
     }
@@ -205,6 +260,32 @@ public class SaleModelAppService {
         if (!checkSaleModelCodeUnique(dto.getId(), dto.getSaleModelCode())) {
             throw new IllegalArgumentException("销售代码已存在：" + dto.getSaleModelCode());
         }
+        
+        // 校验 variantCode 修改锁定：如果要修改 variantCode，需要校验"无未完成订单 + 无活跃心愿单"
+        if (dto.getVariantCode() != null) {
+            SaleModelPo existingModel = saleModelRepository.findById(dto.getId())
+                .orElseThrow(() -> new SaleModelNotExistException("销售车型不存在"));
+            
+            // 如果 variantCode 发生了变化，需要校验锁定
+            if (existingModel.getVariantCode() != null && !existingModel.getVariantCode().equals(dto.getVariantCode())) {
+                // 校验是否有未完成订单
+                boolean hasActiveOrders = orderRepository.existsActiveOrdersBySaleModelCode(dto.getSaleModelCode());
+                // 校验是否有活跃心愿单
+                boolean hasActiveWishlists = wishlistRepository.existsActiveBySaleModelCode(dto.getSaleModelCode());
+                
+                if (hasActiveOrders || hasActiveWishlists) {
+                    throw new SaleModelVariantLockedException(
+                        String.format("销售车型 [%s] 已有活跃订单或心愿单，不可修改 variantCode", dto.getSaleModelCode()));
+                }
+                
+                // 校验新 variantCode 是否已被其他 SaleModel 使用
+                boolean newVariantExists = saleModelRepository.existsByVariantCodeExcludeId(dto.getVariantCode(), dto.getId());
+                if (newVariantExists) {
+                    throw new IllegalArgumentException("同 Variant 编码已存在其他销售车型，不允许重复绑定：" + dto.getVariantCode());
+                }
+            }
+        }
+        
         SaleModelPo entity = SaleModelPoAssembler.INSTANCE.toUpdateDo(dto);
         entity.setModifyBy(userId);
         saleModelRepository.update(entity);
@@ -311,6 +392,178 @@ public class SaleModelAppService {
             .totalPrice(totalPrice)
             .optionPriceBreakdown(breakdown)
             .build();
+    }
+
+    /**
+     * 同步 MDM 数据
+     * 强制刷新该 variantCode 的本地 MDM 投影
+     */
+    public Map<String, Integer> syncMdmData(String saleModelCode) {
+        SaleModelPo saleModel = saleModelRepository.findBySaleModelCode(saleModelCode)
+            .orElseThrow(() -> new SaleModelNotExistException("销售车型不存在: " + saleModelCode));
+
+        if (saleModel.getVariantCode() == null || saleModel.getVariantCode().isEmpty()) {
+            throw new IllegalArgumentException("销售车型未绑定 Variant，无法同步 MDM 数据");
+        }
+
+        String variantCode = saleModel.getVariantCode();
+        int variantAdded = 0, variantUpdated = 0;
+        int configAdded = 0, configUpdated = 0;
+        int optionAdded = 0, optionUpdated = 0, optionDeleted = 0;
+
+        // 获取 Variant 数据
+        VariantResponse variantResp = null;
+        try {
+            variantResp = variantService.getByCode(variantCode);
+            if (variantResp != null) {
+                MdmProjectionVariantPo existingVariant = mdmProjectionService.getVariantOptional(variantCode).orElse(null);
+                MdmProjectionVariantPo variantPo = MdmProjectionVariantPo.builder()
+                    .variantCode(variantResp.getCode())
+                    .variantName(variantResp.getName())
+                    .modelCode(variantResp.getModelCode())
+                    .status(variantResp.getStatus())
+                    .build();
+
+                if (existingVariant != null) {
+                    variantPo.setId(existingVariant.getId());
+                    mdmProjectionService.saveOrUpdateVariant(variantPo);
+                    variantUpdated++;
+                } else {
+                    mdmProjectionService.saveOrUpdateVariant(variantPo);
+                    variantAdded++;
+                }
+                log.info("Variant 投影同步完成: {}", variantCode);
+            }
+        } catch (Exception e) {
+            log.error("同步 Variant 投影失败: {}", variantCode, e);
+        }
+
+        // 同步 Configuration 投影
+        try {
+            ConfigurationPageResponse configPageResp = configurationService.listAll(1, 1000, variantCode, true);
+            if (configPageResp != null && configPageResp.getRows() != null) {
+                for (ConfigurationResponse configResp : configPageResp.getRows()) {
+                    MdmProjectionConfigurationPo existingConfig = mdmProjectionService.getConfigurationOptional(configResp.getCode()).orElse(null);
+                    MdmProjectionConfigurationPo configPo = MdmProjectionConfigurationPo.builder()
+                        .configurationCode(configResp.getCode())
+                        .variantCode(configResp.getVariantCode())
+                        .status(configResp.getStatus())
+                        .build();
+
+                    // 获取 Configuration 关联的 OptionCode 列表
+                    try {
+                        List<OptionCodeResponse> optionCodeResps = configurationService.getOptionCodes(configResp.getCode());
+                        if (optionCodeResps != null && !optionCodeResps.isEmpty()) {
+                            List<String> optionCodes = optionCodeResps.stream()
+                                .map(OptionCodeResponse::getCode)
+                                .collect(Collectors.toList());
+                            configPo.setOptionCodes(cn.hutool.json.JSONUtil.toJsonStr(optionCodes));
+                        }
+                    } catch (Exception e) {
+                        log.warn("获取 Configuration [{}] 的 OptionCode 失败: {}", configResp.getCode(), e.getMessage());
+                    }
+
+                    if (existingConfig != null) {
+                        configPo.setId(existingConfig.getId());
+                        mdmProjectionService.saveOrUpdateConfiguration(configPo);
+                        configUpdated++;
+                    } else {
+                        mdmProjectionService.saveOrUpdateConfiguration(configPo);
+                        configAdded++;
+                    }
+                }
+                log.info("Configuration 投影同步完成: {}, 数量: {}", variantCode, configPageResp.getRows().size());
+            }
+        } catch (Exception e) {
+            log.error("同步 Configuration 投影失败: {}", variantCode, e);
+        }
+
+        // 同步 OptionCode 投影（只同步该 variantCode 关联的 OptionCode）
+        // 关联来源：Configuration 的 optionCodes（MDM API 未暴露 Variant 的 standardOptions）
+        try {
+            Set<String> relatedOptionCodes = new HashSet<>();
+
+            // 从 Configuration 的 optionCodes 中获取
+            List<MdmProjectionConfigurationPo> configs = mdmProjectionService.getConfigurationsByVariant(variantCode);
+            for (MdmProjectionConfigurationPo config : configs) {
+                if (config.getOptionCodes() != null) {
+                    relatedOptionCodes.addAll(cn.hutool.json.JSONUtil.toList(config.getOptionCodes(), String.class));
+                }
+            }
+
+            // 同步关联的 OptionCode
+            Set<String> relatedOptionFamilyCodes = new HashSet<>();
+            for (String optionCode : relatedOptionCodes) {
+                try {
+                    OptionCodeResponse optionResp = optionCodeService.getByCode(optionCode);
+                    if (optionResp != null) {
+                        MdmProjectionOptionPo existingOption = mdmProjectionService.getOptionOptional(optionCode).orElse(null);
+                        MdmProjectionOptionPo optionPo = MdmProjectionOptionPo.builder()
+                            .optionCode(optionResp.getCode())
+                            .optionFamilyCode(optionResp.getOptionFamilyCode())
+                            .optionName(optionResp.getName())
+                            .status(optionResp.getStatus())
+                            .build();
+
+                        if (existingOption != null) {
+                            optionPo.setId(existingOption.getId());
+                            mdmProjectionService.saveOrUpdateOption(optionPo);
+                            optionUpdated++;
+                        } else {
+                            mdmProjectionService.saveOrUpdateOption(optionPo);
+                            optionAdded++;
+                        }
+
+                        // 收集关联的 OptionFamily
+                        if (optionResp.getOptionFamilyCode() != null) {
+                            relatedOptionFamilyCodes.add(optionResp.getOptionFamilyCode());
+                        }
+                    }
+                } catch (Exception e) {
+                    log.warn("同步 OptionCode 失败: {}", optionCode, e);
+                }
+            }
+            log.info("OptionCode 投影同步完成: {}, 关联数量: {}", variantCode, relatedOptionCodes.size());
+
+            // 同步关联的 OptionFamily
+            for (String optionFamilyCode : relatedOptionFamilyCodes) {
+                try {
+                    OptionFamilyResponse familyResp = optionFamilyService.getByCode(optionFamilyCode);
+                    if (familyResp != null) {
+                        MdmProjectionOptionFamilyPo existingFamily = mdmProjectionService.getOptionFamilyOptional(optionFamilyCode).orElse(null);
+                        MdmProjectionOptionFamilyPo familyPo = MdmProjectionOptionFamilyPo.builder()
+                            .optionFamilyCode(familyResp.getCode())
+                            .optionFamilyName(familyResp.getName())
+                            .status(familyResp.getStatus())
+                            .build();
+
+                        if (existingFamily != null) {
+                            familyPo.setId(existingFamily.getId());
+                            mdmProjectionService.saveOrUpdateOptionFamily(familyPo);
+                        } else {
+                            mdmProjectionService.saveOrUpdateOptionFamily(familyPo);
+                        }
+                    }
+                } catch (Exception e) {
+                    log.warn("同步 OptionFamily 失败: {}", optionFamilyCode, e);
+                }
+            }
+            log.info("OptionFamily 投影同步完成: {}, 关联数量: {}", variantCode, relatedOptionFamilyCodes.size());
+        } catch (Exception e) {
+            log.error("同步 OptionCode/OptionFamily 投影失败: {}", variantCode, e);
+        }
+
+        Map<String, Integer> stats = new LinkedHashMap<>();
+        stats.put("variantAdded", variantAdded);
+        stats.put("variantUpdated", variantUpdated);
+        stats.put("configurationAdded", configAdded);
+        stats.put("configurationUpdated", configUpdated);
+        stats.put("optionAdded", optionAdded);
+        stats.put("optionUpdated", optionUpdated);
+        stats.put("optionDeleted", optionDeleted);
+
+        log.info("同步 MDM 数据完成，saleModelCode: {}, variantCode: {}, 统计: {}", saleModelCode, variantCode, stats);
+        return stats;
     }
 
     public List<LicenseArea> getLicenseAreaList() {
@@ -1023,5 +1276,360 @@ public class SaleModelAppService {
         }
 
         log.info("同步完成，基础车型 {} 个，删除 {} 个", baseModelNameMap.size(), toDelete.size());
+    }
+
+    /**
+     * 获取 Configuration 白名单
+     */
+    public List<SaleModelConfigPolicyPo> getConfigPolicies(String saleModelCode) {
+        return configPolicyRepository.findBySaleModelCode(saleModelCode);
+    }
+
+    /**
+     * 获取可用的 Configuration 列表（MDM 投影 + 白名单状态）
+     *
+     * @param saleModelCode 销售车型编码
+     * @return MDM 投影中的 Configuration 列表，标注是否在白名单
+     */
+    public List<ConfigPolicyAvailableVo> getAvailableConfigPolicies(String saleModelCode) {
+        // 获取销售车型信息
+        SaleModelPo saleModel = saleModelRepository.findBySaleModelCode(saleModelCode)
+            .orElseThrow(() -> new SaleModelNotExistException("销售车型不存在: " + saleModelCode));
+
+        String variantCode = saleModel.getVariantCode();
+        if (variantCode == null || variantCode.isEmpty()) {
+            return List.of();
+        }
+
+        // 获取 MDM 投影中的 Configuration 列表
+        List<MdmProjectionConfigurationPo> mdmConfigs = mdmProjectionService.getConfigurationsByVariant(variantCode);
+
+        // 获取白名单列表
+        List<SaleModelConfigPolicyPo> whitelist = configPolicyRepository.findBySaleModelCode(saleModelCode);
+        Map<String, SaleModelConfigPolicyPo> whitelistMap = whitelist.stream()
+            .collect(Collectors.toMap(SaleModelConfigPolicyPo::getConfigurationCode, po -> po));
+
+        // 合并结果
+        List<ConfigPolicyAvailableVo> result = new ArrayList<>();
+        for (MdmProjectionConfigurationPo mdmConfig : mdmConfigs) {
+            SaleModelConfigPolicyPo policy = whitelistMap.get(mdmConfig.getConfigurationCode());
+            ConfigPolicyAvailableVo vo = ConfigPolicyAvailableVo.builder()
+                .configurationCode(mdmConfig.getConfigurationCode())
+                .variantCode(mdmConfig.getVariantCode())
+                .optionCodes(mdmConfig.getOptionCodes() != null ?
+                    cn.hutool.json.JSONUtil.toList(mdmConfig.getOptionCodes(), String.class) : List.of())
+                .guidePrice(mdmConfig.getGuidePrice())
+                .inWhitelist(policy != null)
+                .policyStatus(policy != null ? policy.getStatus() : null)
+                .build();
+            result.add(vo);
+        }
+
+        return result;
+    }
+
+    /**
+     * 获取可用的 OptionCode 列表（按 OptionFamily 分组）
+     * 用于销售策略页展示可选 OptionCode 列表
+     *
+     * @param saleModelCode 销售车型编码
+     * @return MDM 投影中的 OptionCode 列表（按 OptionFamily 分组），标注是否已有销售策略
+     */
+    public List<OptionFamilyAvailableVo> getAvailableOptionPolicies(String saleModelCode) {
+        // 获取销售车型信息
+        SaleModelPo saleModel = saleModelRepository.findBySaleModelCode(saleModelCode)
+            .orElseThrow(() -> new SaleModelNotExistException("销售车型不存在: " + saleModelCode));
+
+        String variantCode = saleModel.getVariantCode();
+        if (variantCode == null || variantCode.isEmpty()) {
+            return List.of();
+        }
+
+        // 获取所有 OptionFamily
+        List<MdmProjectionOptionFamilyPo> families = mdmProjectionService.getAllOptionFamilies();
+
+        // 获取该销售车型的销售策略列表
+        List<SaleModelOptionPolicyPo> policies = optionPolicyRepository.findBySaleModelCode(saleModelCode);
+        Map<String, SaleModelOptionPolicyPo> policyMap = policies.stream()
+            .collect(Collectors.toMap(SaleModelOptionPolicyPo::getOptionCode, po -> po));
+
+        // 获取该销售车型的 OptionFamily 销售策略
+        List<SaleModelOptionFamilyPolicyPo> familyPolicies = optionFamilyPolicyRepository.findBySaleModelCode(saleModelCode);
+        Map<String, SaleModelOptionFamilyPolicyPo> familyPolicyMap = familyPolicies.stream()
+            .collect(Collectors.toMap(SaleModelOptionFamilyPolicyPo::getOptionFamilyCode, po -> po));
+
+        // 按 OptionFamily 分组构建结果
+        List<OptionFamilyAvailableVo> result = new ArrayList<>();
+        for (MdmProjectionOptionFamilyPo family : families) {
+            // 获取该 OptionFamily 下的所有 OptionCode
+            List<MdmProjectionOptionPo> options = mdmProjectionService.getOptionsByOptionFamily(family.getOptionFamilyCode());
+            if (options.isEmpty()) {
+                continue;
+            }
+
+            // 构建该 OptionFamily 下的 OptionCode 列表
+            List<OptionFamilyAvailableVo.OptionAvailableVo> optionVos = new ArrayList<>();
+            for (MdmProjectionOptionPo option : options) {
+                SaleModelOptionPolicyPo policy = policyMap.get(option.getOptionCode());
+                OptionFamilyAvailableVo.OptionAvailableVo optionVo = OptionFamilyAvailableVo.OptionAvailableVo.builder()
+                    .optionCode(option.getOptionCode())
+                    .optionName(option.getOptionName())
+                    .inPolicy(policy != null)
+                    .saleStatus(policy != null ? policy.getSaleStatus() : null)
+                    .optionPrice(policy != null ? policy.getOptionPrice() : null)
+                    .build();
+                optionVos.add(optionVo);
+            }
+
+            // 获取自定义的 OptionFamily 营销信息
+            SaleModelOptionFamilyPolicyPo familyPolicy = familyPolicyMap.get(family.getOptionFamilyCode());
+
+            OptionFamilyAvailableVo familyVo = OptionFamilyAvailableVo.builder()
+                .optionFamilyCode(family.getOptionFamilyCode())
+                .optionFamilyName(family.getOptionFamilyName())
+                .marketingTitle(familyPolicy != null ? familyPolicy.getMarketingTitle() : null)
+                .marketingImage(familyPolicy != null ? familyPolicy.getMarketingImage() : null)
+                .marketingDesc(familyPolicy != null ? familyPolicy.getMarketingDesc() : null)
+                .options(optionVos)
+                .build();
+            result.add(familyVo);
+        }
+
+        return result;
+    }
+
+    /**
+     * 创建 Configuration 白名单
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public List<SaleModelConfigPolicyPo> createConfigPolicy(CreateConfigPolicyCmd cmd) {
+        List<SaleModelConfigPolicyPo> result = new ArrayList<>();
+        // 去重
+        Set<String> uniqueConfigCodes = new LinkedHashSet<>(cmd.getConfigurationCodes());
+
+        for (String configurationCode : uniqueConfigCodes) {
+            // 检查是否已存在
+            Optional<SaleModelConfigPolicyPo> existing = configPolicyRepository.findBySaleModelCodeAndConfigCode(
+                cmd.getSaleModelCode(), configurationCode);
+
+            if (existing.isPresent()) {
+                SaleModelConfigPolicyPo po = existing.get();
+                if (!Boolean.TRUE.equals(po.getRowValid())) {
+                    String newStatus = cmd.getStatus() != null ? cmd.getStatus() : po.getStatus();
+                    configPolicyRepository.reactivate(po.getId(), newStatus);
+                    po.setRowValid(true);
+                    po.setStatus(newStatus);
+                } else if (cmd.getStatus() != null && !cmd.getStatus().equals(po.getStatus())) {
+                    po.setStatus(cmd.getStatus());
+                    po.setModifyTime(new java.sql.Timestamp(System.currentTimeMillis()));
+                    configPolicyRepository.update(po);
+                }
+                result.add(po);
+            } else {
+                // 不存在则创建
+                SaleModelConfigPolicyPo po = SaleModelConfigPolicyPo.builder()
+                    .saleModelCode(cmd.getSaleModelCode())
+                    .configurationCode(configurationCode)
+                    .status(cmd.getStatus() != null ? cmd.getStatus() : "active")
+                    .build();
+                po.setCreateTime(new java.sql.Timestamp(System.currentTimeMillis()));
+                po.setModifyTime(new java.sql.Timestamp(System.currentTimeMillis()));
+                configPolicyRepository.save(po);
+                result.add(po);
+            }
+        }
+        return result;
+    }
+
+    /**
+     * 删除 Configuration 白名单
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public int deleteConfigPolicy(String saleModelCode, String configurationCode) {
+        SaleModelConfigPolicyPo policy = configPolicyRepository
+            .findBySaleModelCodeAndConfigCode(saleModelCode, configurationCode)
+            .orElse(null);
+        if (policy != null) {
+            configPolicyRepository.delete(policy.getId());
+            return 1;
+        }
+        return 0;
+    }
+
+    /**
+     * 获取 OptionCode 销售策略
+     */
+    public PageResult<SaleModelOptionPolicyPo> getOptionPolicies(String saleModelCode, String optionFamilyCode, String saleStatus, Integer page, Integer size) {
+        List<SaleModelOptionPolicyPo> policies = optionPolicyRepository.findBySaleModelCode(saleModelCode);
+
+        if (optionFamilyCode != null && !optionFamilyCode.isEmpty()) {
+            policies = policies.stream()
+                .filter(p -> optionFamilyCode.equals(p.getOptionFamilyCode()))
+                .collect(Collectors.toList());
+        }
+
+        if (saleStatus != null && !saleStatus.isEmpty()) {
+            policies = policies.stream()
+                .filter(p -> saleStatus.equals(p.getSaleStatus()))
+                .collect(Collectors.toList());
+        }
+
+        int total = policies.size();
+        int fromIndex = (page - 1) * size;
+        int toIndex = Math.min(fromIndex + size, total);
+
+        List<SaleModelOptionPolicyPo> pageData = fromIndex < total ?
+            policies.subList(fromIndex, toIndex) : new ArrayList<>();
+
+        return PageResult.<SaleModelOptionPolicyPo>builder()
+            .total(total)
+            .items(pageData)
+            .page(page)
+            .size(size)
+            .build();
+    }
+
+    /**
+     * 创建 OptionCode 销售策略
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public SaleModelOptionPolicyPo createOptionPolicy(CreateOptionPolicyCmd cmd) {
+        SaleModelOptionPolicyPo po = SaleModelOptionPolicyPo.builder()
+            .saleModelCode(cmd.getSaleModelCode())
+            .optionCode(cmd.getOptionCode())
+            .optionFamilyCode(cmd.getOptionFamilyCode())
+            .saleStatus(cmd.getSaleStatus() != null ? cmd.getSaleStatus() : "active")
+            .optionPrice(cmd.getOptionPrice())
+            .availableRegions(cmd.getAvailableRegions() != null ? cn.hutool.json.JSONUtil.toJsonStr(cmd.getAvailableRegions()) : null)
+            .channels(cmd.getChannels() != null ? cn.hutool.json.JSONUtil.toJsonStr(cmd.getChannels()) : null)
+            .bundleWith(cmd.getBundleWith() != null ? cn.hutool.json.JSONUtil.toJsonStr(cmd.getBundleWith()) : null)
+            .mutexWith(cmd.getMutexWith() != null ? cn.hutool.json.JSONUtil.toJsonStr(cmd.getMutexWith()) : null)
+            .marketingTitle(cmd.getMarketingTitle())
+            .marketingImage(cmd.getMarketingImage())
+            .sortWeight(cmd.getSortWeight())
+            .build();
+        po.setCreateTime(new java.sql.Timestamp(System.currentTimeMillis()));
+        po.setModifyTime(new java.sql.Timestamp(System.currentTimeMillis()));
+        optionPolicyRepository.save(po);
+        return po;
+    }
+
+    /**
+     * 更新 OptionCode 销售策略
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public SaleModelOptionPolicyPo updateOptionPolicy(Long id, CreateOptionPolicyCmd cmd) {
+        SaleModelOptionPolicyPo po = optionPolicyRepository.findBySaleModelCodeAndOptionCode(cmd.getSaleModelCode(), cmd.getOptionCode())
+            .orElseThrow(() -> new IllegalArgumentException("销售策略不存在"));
+
+        po.setOptionFamilyCode(cmd.getOptionFamilyCode());
+        po.setSaleStatus(cmd.getSaleStatus());
+        po.setOptionPrice(cmd.getOptionPrice());
+        po.setAvailableRegions(cmd.getAvailableRegions() != null ? cn.hutool.json.JSONUtil.toJsonStr(cmd.getAvailableRegions()) : null);
+        po.setChannels(cmd.getChannels() != null ? cn.hutool.json.JSONUtil.toJsonStr(cmd.getChannels()) : null);
+        po.setBundleWith(cmd.getBundleWith() != null ? cn.hutool.json.JSONUtil.toJsonStr(cmd.getBundleWith()) : null);
+        po.setMutexWith(cmd.getMutexWith() != null ? cn.hutool.json.JSONUtil.toJsonStr(cmd.getMutexWith()) : null);
+        po.setMarketingTitle(cmd.getMarketingTitle());
+        po.setMarketingImage(cmd.getMarketingImage());
+        po.setSortWeight(cmd.getSortWeight());
+
+        optionPolicyRepository.update(po);
+        return po;
+    }
+
+    /**
+     * 删除 OptionCode 销售策略
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public int deleteOptionPolicy(Long id) {
+        optionPolicyRepository.delete(id);
+        return 1;
+    }
+
+    /**
+     * 获取 OptionFamily 销售策略列表
+     */
+    public List<SaleModelOptionFamilyPolicyPo> getOptionFamilyPolicies(String saleModelCode) {
+        return optionFamilyPolicyRepository.findBySaleModelCode(saleModelCode);
+    }
+
+    /**
+     * 创建/更新 OptionFamily 销售策略
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public List<SaleModelOptionFamilyPolicyPo> createOptionFamilyPolicy(CreateOptionFamilyPolicyCmd cmd) {
+        List<SaleModelOptionFamilyPolicyPo> result = new ArrayList<>();
+
+        // 支持单个 optionFamilyCode 或批量 optionFamilyCodes
+        List<String> familyCodes = new ArrayList<>();
+        if (cmd.getOptionFamilyCode() != null && !cmd.getOptionFamilyCode().isEmpty()) {
+            familyCodes.add(cmd.getOptionFamilyCode());
+        }
+        if (cmd.getOptionFamilyCodes() != null && !cmd.getOptionFamilyCodes().isEmpty()) {
+            familyCodes.addAll(cmd.getOptionFamilyCodes());
+        }
+        if (familyCodes.isEmpty()) {
+            return result;
+        }
+        Set<String> uniqueFamilyCodes = new LinkedHashSet<>(familyCodes);
+
+        for (String optionFamilyCode : uniqueFamilyCodes) {
+            Optional<SaleModelOptionFamilyPolicyPo> existing = optionFamilyPolicyRepository.findBySaleModelCodeAndFamilyCode(
+                cmd.getSaleModelCode(), optionFamilyCode);
+
+            if (existing.isPresent()) {
+                SaleModelOptionFamilyPolicyPo po = existing.get();
+                boolean needUpdate = false;
+                if (cmd.getMarketingTitle() != null && !cmd.getMarketingTitle().equals(po.getMarketingTitle())) {
+                    po.setMarketingTitle(cmd.getMarketingTitle());
+                    needUpdate = true;
+                }
+                if (cmd.getMarketingImage() != null && !cmd.getMarketingImage().equals(po.getMarketingImage())) {
+                    po.setMarketingImage(cmd.getMarketingImage());
+                    needUpdate = true;
+                }
+                if (cmd.getMarketingDesc() != null && !cmd.getMarketingDesc().equals(po.getMarketingDesc())) {
+                    po.setMarketingDesc(cmd.getMarketingDesc());
+                    needUpdate = true;
+                }
+                if (cmd.getSortWeight() != null && !cmd.getSortWeight().equals(po.getSortWeight())) {
+                    po.setSortWeight(cmd.getSortWeight());
+                    needUpdate = true;
+                }
+                if (needUpdate) {
+                    optionFamilyPolicyRepository.update(po);
+                }
+                result.add(po);
+            } else {
+                SaleModelOptionFamilyPolicyPo po = SaleModelOptionFamilyPolicyPo.builder()
+                    .saleModelCode(cmd.getSaleModelCode())
+                    .optionFamilyCode(optionFamilyCode)
+                    .marketingTitle(cmd.getMarketingTitle())
+                    .marketingImage(cmd.getMarketingImage())
+                    .marketingDesc(cmd.getMarketingDesc())
+                    .sortWeight(cmd.getSortWeight() != null ? cmd.getSortWeight() : 0)
+                    .build();
+                po.setCreateTime(new java.sql.Timestamp(System.currentTimeMillis()));
+                po.setModifyTime(new java.sql.Timestamp(System.currentTimeMillis()));
+                optionFamilyPolicyRepository.save(po);
+                result.add(po);
+            }
+        }
+        return result;
+    }
+
+    /**
+     * 删除 OptionFamily 销售策略
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public int deleteOptionFamilyPolicy(String saleModelCode, String optionFamilyCode) {
+        SaleModelOptionFamilyPolicyPo policy = optionFamilyPolicyRepository
+            .findBySaleModelCodeAndFamilyCode(saleModelCode, optionFamilyCode)
+            .orElse(null);
+        if (policy != null) {
+            optionFamilyPolicyRepository.delete(policy.getId());
+            return 1;
+        }
+        return 0;
     }
 }

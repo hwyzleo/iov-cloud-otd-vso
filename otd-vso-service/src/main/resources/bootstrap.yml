@@ -15,6 +15,7 @@ spring:
           - application.yaml
           - mysql.yaml
           - redis.yaml
+          - kafka.yaml
   flyway:
     enabled: true
     baseline-on-migrate: true

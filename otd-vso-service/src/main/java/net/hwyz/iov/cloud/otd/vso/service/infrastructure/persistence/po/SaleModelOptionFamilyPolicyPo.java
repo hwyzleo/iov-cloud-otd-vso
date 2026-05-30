@@ -11,8 +11,8 @@ import net.hwyz.iov.cloud.framework.mysql.po.BasePo;
 @SuperBuilder
 @NoArgsConstructor
 @EqualsAndHashCode(callSuper = true)
-@TableName("vso_sale_model_config_policy")
-public class SaleModelConfigPolicyPo extends BasePo {
+@TableName("vso_sale_model_option_family_policy")
+public class SaleModelOptionFamilyPolicyPo extends BasePo {
     private static final long serialVersionUID = 1L;
 
     @TableId(value = "id", type = IdType.AUTO)
@@ -21,12 +21,18 @@ public class SaleModelConfigPolicyPo extends BasePo {
     @TableField("sale_model_code")
     private String saleModelCode;
 
-    @TableField("configuration_code")
-    private String configurationCode;
+    @TableField("option_family_code")
+    private String optionFamilyCode;
 
-    @TableField("status")
-    private String status;
+    @TableField("marketing_title")
+    private String marketingTitle;
 
-    @TableField("description")
-    private String description;
+    @TableField("marketing_image")
+    private String marketingImage;
+
+    @TableField("marketing_desc")
+    private String marketingDesc;
+
+    @TableField("sort_weight")
+    private Integer sortWeight;
 }

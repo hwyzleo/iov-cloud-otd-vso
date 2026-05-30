@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.mapper.SaleModelOptionFamilyPolicyMapper">
+    <select id="selectBySaleModelCode" resultType="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.SaleModelOptionFamilyPolicyPo">
+        SELECT * FROM vso_sale_model_option_family_policy
+        WHERE sale_model_code = #{saleModelCode} AND row_valid = 1
+    </select>
+
+    <select id="selectBySaleModelCodeAndFamilyCode" resultType="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.SaleModelOptionFamilyPolicyPo">
+        SELECT * FROM vso_sale_model_option_family_policy
+        WHERE sale_model_code = #{saleModelCode} AND option_family_code = #{optionFamilyCode}
+    </select>
+</mapper>

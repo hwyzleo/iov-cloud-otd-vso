@@ -1,7 +1,7 @@
 -- CR-010 销售车型与 MDM 对齐
--- 1. tb_sale_model 新增 Variant 关联和销售域字段
--- 2. 新增 tb_sale_model_config_policy 表（Configuration 销售白名单）
--- 3. 新增 tb_sale_model_option_policy 表（OptionCode 销售策略）
+-- 1. vso_sale_model 新增 Variant 关联和销售域字段
+-- 2. 新增 vso_sale_model_config_policy 表（Configuration 销售白名单）
+-- 3. 新增 vso_sale_model_option_policy 表（OptionCode 销售策略）
 -- 4. 新增 MDM 投影表（variant/configuration/option）
 -- 5. vso_order_vehicle_snapshot 新增 Option 相关字段
 -- 6. vso_wishlist 新增字段
@@ -10,9 +10,9 @@ SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
 
 -- ============================================================
--- 1. 修改 tb_sale_model 表：新增 Variant 关联和销售域字段
+-- 1. 修改 vso_sale_model 表：新增 Variant 关联和销售域字段
 -- ============================================================
-ALTER TABLE `tb_sale_model`
+ALTER TABLE `vso_sale_model`
     ADD COLUMN `variant_code` VARCHAR(50) DEFAULT NULL COMMENT 'MDM Variant 编码' AFTER `sale_code`,
     ADD COLUMN `base_price` DECIMAL(18,2) DEFAULT NULL COMMENT '起售价' AFTER `down_payment_price`,
     ADD COLUMN `icon` VARCHAR(500) DEFAULT NULL COMMENT '车型图标 URL' AFTER `model_name`,
@@ -23,13 +23,13 @@ ALTER TABLE `tb_sale_model`
     ADD COLUMN `available_regions` JSON DEFAULT NULL COMMENT '可售区域列表，为空表示全国' AFTER `effective_to`,
     ADD COLUMN `channels` JSON DEFAULT NULL COMMENT '可售渠道列表，为空表示全渠道' AFTER `available_regions`;
 
-ALTER TABLE `tb_sale_model`
+ALTER TABLE `vso_sale_model`
     ADD UNIQUE KEY `uk_variant_code` (`variant_code`);
 
 -- ============================================================
--- 2. 新增 tb_sale_model_config_policy 表：Configuration 销售白名单
+-- 2. 新增 vso_sale_model_config_policy 表：Configuration 销售白名单
 -- ============================================================
-CREATE TABLE IF NOT EXISTS `tb_sale_model_config_policy` (
+CREATE TABLE IF NOT EXISTS `vso_sale_model_config_policy` (
     `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键',
     `sale_model_code` VARCHAR(50) NOT NULL COMMENT '销售车型编码',
     `configuration_code` VARCHAR(50) NOT NULL COMMENT 'Configuration 编码',
@@ -47,9 +47,9 @@ CREATE TABLE IF NOT EXISTS `tb_sale_model_config_policy` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Configuration 销售白名单';
 
 -- ============================================================
--- 3. 新增 tb_sale_model_option_policy 表：OptionCode 销售策略
+-- 3. 新增 vso_sale_model_option_policy 表：OptionCode 销售策略
 -- ============================================================
-CREATE TABLE IF NOT EXISTS `tb_sale_model_option_policy` (
+CREATE TABLE IF NOT EXISTS `vso_sale_model_option_policy` (
     `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键',
     `sale_model_code` VARCHAR(50) NOT NULL COMMENT '销售车型编码',
     `option_code` VARCHAR(50) NOT NULL COMMENT 'OptionCode 编码',

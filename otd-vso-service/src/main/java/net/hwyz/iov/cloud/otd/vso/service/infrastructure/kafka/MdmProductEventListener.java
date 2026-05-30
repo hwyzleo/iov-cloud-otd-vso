@@ -24,7 +24,7 @@ public class MdmProductEventListener {
     /**
      * 监听 Variant 变更事件
      */
-    @KafkaListener(topics = "${mdm.kafka.topics.variant:mdm.product.variant.changed}", groupId = "${spring.kafka.consumer.group-id}")
+    @KafkaListener(topics = "${mdm.kafka.topics.variant:mdm.product.variant.changed}", groupId = "${mdm.kafka.group-id:vso-mdm-projection}")
     public void handleVariantChanged(ConsumerRecord<String, String> record, Acknowledgment acknowledgment) {
         try {
             log.info("收到 Variant 变更事件: key={}, partition={}, offset={}",
@@ -54,7 +54,7 @@ public class MdmProductEventListener {
     /**
      * 监听 Configuration 变更事件
      */
-    @KafkaListener(topics = "${mdm.kafka.topics.configuration:mdm.product.configuration.changed}", groupId = "${spring.kafka.consumer.group-id}")
+    @KafkaListener(topics = "${mdm.kafka.topics.configuration:mdm.product.configuration.changed}", groupId = "${mdm.kafka.group-id:vso-mdm-projection}")
     public void handleConfigurationChanged(ConsumerRecord<String, String> record, Acknowledgment acknowledgment) {
         try {
             log.info("收到 Configuration 变更事件: key={}, partition={}, offset={}",
@@ -83,7 +83,7 @@ public class MdmProductEventListener {
     /**
      * 监听 OptionCode 变更事件
      */
-    @KafkaListener(topics = "${mdm.kafka.topics.option:mdm.product.option.changed}", groupId = "${spring.kafka.consumer.group-id}")
+    @KafkaListener(topics = "${mdm.kafka.topics.option:mdm.product.option.changed}", groupId = "${mdm.kafka.group-id:vso-mdm-projection}")
     public void handleOptionChanged(ConsumerRecord<String, String> record, Acknowledgment acknowledgment) {
         try {
             log.info("收到 OptionCode 变更事件: key={}, partition={}, offset={}",

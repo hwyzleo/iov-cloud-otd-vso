@@ -23,6 +23,7 @@ public class SaleModelResult {
     private Long id;
     private String saleModelCode;
     private String modelName;
+    private String variantCode;
     private String parameters;
     private List<String> images;
     private Boolean earnestMoney;
@@ -31,6 +32,14 @@ public class SaleModelResult {
     private BigDecimal downPaymentPrice;
     private Boolean enable;
     private Integer sort;
+    private BigDecimal basePrice;
+    private String icon;
+    private String marketingCopy;
+    private String listingStatus;
+    private Instant effectiveFrom;
+    private Instant effectiveTo;
+    private List<String> availableRegions;
+    private List<String> channels;
     private Instant createTime;
     private String createBy;
     private Instant modifyTime;

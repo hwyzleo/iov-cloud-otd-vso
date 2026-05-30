@@ -5,9 +5,11 @@ import net.hwyz.iov.cloud.otd.vso.service.domain.repository.MdmProjectionReposit
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.mapper.MdmProjectionVariantMapper;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.mapper.MdmProjectionConfigurationMapper;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.mapper.MdmProjectionOptionMapper;
+import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.mapper.MdmProjectionOptionFamilyMapper;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.MdmProjectionVariantPo;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.MdmProjectionConfigurationPo;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.MdmProjectionOptionPo;
+import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.MdmProjectionOptionFamilyPo;
 import org.springframework.stereotype.Repository;
 import java.util.List;
 import java.util.Optional;
@@ -18,6 +20,7 @@ public class MdmProjectionRepositoryImpl implements MdmProjectionRepository {
     private final MdmProjectionVariantMapper variantMapper;
     private final MdmProjectionConfigurationMapper configurationMapper;
     private final MdmProjectionOptionMapper optionMapper;
+    private final MdmProjectionOptionFamilyMapper optionFamilyMapper;
 
     @Override
     public Optional<MdmProjectionVariantPo> findVariantByCode(String variantCode) {
@@ -60,6 +63,11 @@ public class MdmProjectionRepositoryImpl implements MdmProjectionRepository {
     }
 
     @Override
+    public List<MdmProjectionOptionPo> findOptionsByOptionFamilyCode(String optionFamilyCode) {
+        return optionMapper.selectByOptionFamilyCode(optionFamilyCode);
+    }
+
+    @Override
     public void saveOption(MdmProjectionOptionPo po) {
         optionMapper.insert(po);
     }
@@ -67,5 +75,25 @@ public class MdmProjectionRepositoryImpl implements MdmProjectionRepository {
     @Override
     public void updateOption(MdmProjectionOptionPo po) {
         optionMapper.updateById(po);
+    }
+
+    @Override
+    public Optional<MdmProjectionOptionFamilyPo> findOptionFamilyByCode(String optionFamilyCode) {
+        return Optional.ofNullable(optionFamilyMapper.selectByOptionFamilyCode(optionFamilyCode));
+    }
+
+    @Override
+    public List<MdmProjectionOptionFamilyPo> findAllOptionFamilies() {
+        return optionFamilyMapper.selectList(null);
+    }
+
+    @Override
+    public void saveOptionFamily(MdmProjectionOptionFamilyPo po) {
+        optionFamilyMapper.insert(po);
+    }
+
+    @Override
+    public void updateOptionFamily(MdmProjectionOptionFamilyPo po) {
+        optionFamilyMapper.updateById(po);
     }
 }

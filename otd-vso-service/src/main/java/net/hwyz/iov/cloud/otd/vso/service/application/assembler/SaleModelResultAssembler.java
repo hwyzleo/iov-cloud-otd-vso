@@ -9,6 +9,8 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.factory.Mappers;
 
+import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.List;
 
 /**
@@ -21,6 +23,9 @@ public interface SaleModelResultAssembler {
 
     SaleModelResultAssembler INSTANCE = Mappers.getMapper(SaleModelResultAssembler.class);
 
+    @Mapping(target = "images", expression = "java(stringToList(po.getImages()))")
+    @Mapping(target = "availableRegions", expression = "java(stringToList(po.getAvailableRegions()))")
+    @Mapping(target = "channels", expression = "java(stringToList(po.getChannels()))")
     SaleModelResult toResult(SaleModelPo po);
 
     List<SaleModelResult> toResultList(List<SaleModelPo> poList);
@@ -30,10 +35,14 @@ public interface SaleModelResultAssembler {
 
     List<SaleModelConfigResult> toConfigResultList(List<SaleModelConfigPo> poList);
 
-    default List<String> stringToImages(String images) {
-        if (images == null || images.isEmpty()) {
+    default List<String> stringToList(String json) {
+        if (json == null || json.isEmpty()) {
             return List.of();
         }
-        return JSONUtil.toList(images, String.class);
+        return JSONUtil.toList(json, String.class);
+    }
+
+    default Instant timestampToInstant(Timestamp timestamp) {
+        return timestamp == null ? null : timestamp.toInstant();
     }
 }

@@ -54,6 +54,12 @@ public class MptSaleModelController extends BaseController {
         return ApiResponse.ok(SaleModelVoAssembler.INSTANCE.toVo(result));
     }
 
+    @GetMapping("/code/{saleModelCode}")
+    public ApiResponse<SaleModelVo> getByCode(@PathVariable String saleModelCode) {
+        SaleModelResult result = saleModelAppService.getSaleModelByCode(saleModelCode);
+        return ApiResponse.ok(SaleModelVoAssembler.INSTANCE.toVo(result));
+    }
+
     @PostMapping
     public ApiResponse<Long> create(@RequestBody SaleModelCreateDto dto) {
         return ApiResponse.ok(saleModelAppService.createSaleModel(dto, SecurityUtils.getUserId().toString()));
@@ -161,5 +167,14 @@ public class MptSaleModelController extends BaseController {
                                               @RequestBody SaleModelConfigSortDto dto) {
         saleModelAppService.batchUpdateConfigSort(saleModelId, dto, SecurityContextHolder.getUserId());
         return ApiResponse.ok();
+    }
+
+    /**
+     * 同步 MDM 数据
+     * 强制刷新该 variantCode 的本地 MDM 投影
+     */
+    @PostMapping("/{saleModelCode}/syncMdm")
+    public ApiResponse<java.util.Map<String, Integer>> syncMdmData(@PathVariable String saleModelCode) {
+        return ApiResponse.ok(saleModelAppService.syncMdmData(saleModelCode));
     }
 }

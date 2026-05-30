@@ -28,4 +28,9 @@ public interface WishlistRepository {
 
     boolean existsByUserIdAndConfigurationCodeExcluding(String userId, String configurationCode, String excludeWishlistId);
 
+    /**
+     * 检查是否存在指定销售车型的活跃心愿单
+     */
+    boolean existsActiveBySaleModelCode(String saleModelCode);
+
 }
