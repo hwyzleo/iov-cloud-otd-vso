@@ -8,8 +8,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.Arrays;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -22,14 +22,12 @@ class OrderAppServiceModifyConfigTest extends BaseTest {
 
     @Test
     void testModifyConfigSuccess() {
-        Map<String, String> featureConfig = new HashMap<>();
-        featureConfig.put("COLOR", "RED");
-        featureConfig.put("INTERIOR", "BLACK");
+        List<String> optionCodes = Arrays.asList("OPT_COLOR_RED", "OPT_INTERIOR_BLACK");
         
         ModifyOrderConfigCmd cmd = ModifyOrderConfigCmd.builder()
                 .accountId("test_user_001")
                 .orderNo("TEST_ORDER_001")
-                .featureConfig(featureConfig)
+                .optionCodes(optionCodes)
                 .build();
         
         orderAppService.modifyConfig(cmd);
@@ -37,13 +35,12 @@ class OrderAppServiceModifyConfigTest extends BaseTest {
 
     @Test
     void testModifyConfigInvalidState() {
-        Map<String, String> featureConfig = new HashMap<>();
-        featureConfig.put("COLOR", "BLUE");
+        List<String> optionCodes = Arrays.asList("OPT_COLOR_BLUE");
         
         ModifyOrderConfigCmd cmd = ModifyOrderConfigCmd.builder()
                 .accountId("test_user_002")
                 .orderNo("TEST_ORDER_LOCKED")
-                .featureConfig(featureConfig)
+                .optionCodes(optionCodes)
                 .build();
         
         assertThrows(OrderStateNotAllowedException.class, () -> {
