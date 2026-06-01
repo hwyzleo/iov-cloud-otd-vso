@@ -1,5 +1,6 @@
 package net.hwyz.iov.cloud.otd.vso.service.adapter.web.controller.mpt;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.hwyz.iov.cloud.framework.common.bean.ApiResponse;
@@ -61,7 +62,7 @@ public class MptSaleModelController extends BaseController {
     }
 
     @PostMapping
-    public ApiResponse<Long> create(@RequestBody SaleModelCreateDto dto) {
+    public ApiResponse<Long> create(@Valid @RequestBody SaleModelCreateDto dto) {
         return ApiResponse.ok(saleModelAppService.createSaleModel(dto, SecurityUtils.getUserId().toString()));
     }
 
@@ -73,7 +74,7 @@ public class MptSaleModelController extends BaseController {
 
     @DeleteMapping
     public ApiResponse<Void> delete(@RequestParam Long[] ids) {
-        saleModelAppService.deleteSaleModelByIds(ids);
+        saleModelAppService.deleteSaleModelByIds(ids, SecurityUtils.getUserId().toString());
         return ApiResponse.ok();
     }
 

@@ -81,4 +81,19 @@ public class SaleModelVariantPolicyRepositoryImpl implements SaleModelVariantPol
     public int deleteById(Long id) {
         return mapper.deleteById(id);
     }
+
+    @Override
+    public int updateSaleStatusBySaleModelCode(String saleModelCode, String saleStatus, String modifyBy) {
+        LambdaUpdateWrapper<SaleModelVariantPolicyPo> wrapper = new LambdaUpdateWrapper<>();
+        wrapper.eq(SaleModelVariantPolicyPo::getSaleModelCode, saleModelCode)
+               .set(SaleModelVariantPolicyPo::getSaleStatus, saleStatus)
+               .set(SaleModelVariantPolicyPo::getModifyTime, new java.sql.Timestamp(System.currentTimeMillis()))
+               .set(SaleModelVariantPolicyPo::getModifyBy, modifyBy);
+        return mapper.update(null, wrapper);
+    }
+
+    @Override
+    public int deleteBySaleModelCode(String saleModelCode) {
+        return mapper.physicalDeleteBySaleModelCode(saleModelCode);
+    }
 }

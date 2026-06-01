@@ -25,16 +25,15 @@ public class TestSaleModelMapper extends BaseTest {
     @DisplayName("新增一条记录")
     public void testInsertPo() throws Exception {
         SaleModelPo saleModelPo = SaleModelPo.builder()
-                .saleModelCode("H01")
+                .saleModelCode("TEST_" + System.currentTimeMillis())
                 .modelName("高阶智驾")
                 .parameters("{}")
                 .images("{}")
                 .earnestMoney(true)
-                .earnestMoneyPrice(BigDecimal.valueOf(5000))
                 .downPayment(true)
-                .downPaymentPrice(BigDecimal.valueOf(5000))
                 .enable(true)
                 .sort(99)
+                .listingStatus("active")
                 .build();
         saleModelMapper.insertPo(saleModelPo);
     }

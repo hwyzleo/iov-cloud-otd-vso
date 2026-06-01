@@ -10,4 +10,11 @@ public interface SaleModelOptionFamilyPolicyRepository {
     void save(SaleModelOptionFamilyPolicyPo po);
     void update(SaleModelOptionFamilyPolicyPo po);
     void delete(Long id);
+
+    /**
+     * 根据 saleModelCode 物理删除所有关联策略
+     * @param saleModelCode 销售车型编码
+     * @return 删除数量
+     */
+    int deleteBySaleModelCode(String saleModelCode);
 }

@@ -37,4 +37,9 @@ public class SaleModelOptionFamilyPolicyRepositoryImpl implements SaleModelOptio
     public void delete(Long id) {
         mapper.deleteById(id);
     }
+
+    @Override
+    public int deleteBySaleModelCode(String saleModelCode) {
+        return mapper.physicalDeleteBySaleModelCode(saleModelCode);
+    }
 }

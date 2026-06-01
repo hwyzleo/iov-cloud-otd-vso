@@ -1687,6 +1687,61 @@ flowchart TD
 | MDM 超时处理 | 记录告警 + 返回 301039 | 不用脏数据兜底，由运营或重试解决 |
 | 投影范围 | Carline + Model + Variant + Configuration + OptionCode | 覆盖三段式选配器和下单链路全部 MDM 数据需求 |
 
+### 4.19 删除销售车型级联标记失效流程（US-016）
+
+**背景**：删除销售车型时，需要同时处理该 saleModelCode 关联的四层销售策略（Model/Variant/Configuration/Option）。采用级联标记失效（off_shelf）而非物理删除，保留历史订单快照的可追溯性。
+
+**级联标记失效流程**：
+
+```mermaid
+sequenceDiagram
+    participant MPT as 管理后台
+    participant Ctrl as MptSaleModelController
+    participant SMAS as SaleModelAppService
+    participant ODS as OrderDomainService
+    participant DB as 数据库
+
+    MPT->>Ctrl: DELETE /api/mpt/saleModel/v1/{id}
+    Ctrl->>SMAS: deleteSaleModel(id)
+    SMAS->>SMAS: 加载销售车型
+    SMAS->>ODS: 查询关联活跃订单
+
+    alt 存在关联活跃订单
+        ODS-->>SMAS: 存在活跃订单
+        SMAS-->>Ctrl: 抛出约束冲突异常
+        Ctrl-->>MPT: 409 错误
+    end
+
+    SMAS->>DB: 开启事务
+    SMAS->>DB: 逻辑删除 tb_sale_model (is_deleted=1)
+    SMAS->>DB: 级联更新 tb_sale_model_model_policy SET sale_status='off_shelf' WHERE sale_model_code=?
+    SMAS->>DB: 级联更新 tb_sale_model_variant_policy SET sale_status='off_shelf' WHERE sale_model_code=?
+    SMAS->>DB: 级联更新 tb_sale_model_config_policy SET status='off_shelf' WHERE sale_model_code=?
+    SMAS->>DB: 级联更新 tb_sale_model_option_policy SET sale_status='off_shelf' WHERE sale_model_code=?
+    SMAS->>DB: 提交事务
+    SMAS-->>Ctrl: 删除成功
+    Ctrl-->>MPT: 200 OK
+```
+
+**级联操作范围**：
+
+| 表 | 操作 | 条件 |
+|------|------|------|
+| `tb_sale_model` | 逻辑删除（is_deleted=1） | 主记录 |
+| `tb_sale_model_model_policy` | sale_status → off_shelf | WHERE sale_model_code = ? |
+| `tb_sale_model_variant_policy` | sale_status → off_shelf | WHERE sale_model_code = ? |
+| `tb_sale_model_config_policy` | status → off_shelf | WHERE sale_model_code = ? |
+| `tb_sale_model_option_policy` | sale_status → off_shelf | WHERE sale_model_code = ? |
+
+**关键设计决策**：
+
+| 维度 | 决策 | 理由 |
+|------|------|------|
+| 级联方式 | 标记失效（off_shelf）而非物理删除 | 保留历史订单快照的可追溯性，支持误删恢复 |
+| 事务边界 | 同一事务内完成 | 保证数据一致性，避免部分成功 |
+| 历史快照 | 不受影响 | 订单快照（vso_order_vehicle_snapshot）为独立数据，删除销售车型不影响历史记录 |
+| 恢复机制 | 运营可重新创建销售车型并重新配置策略 | 简化设计，避免复杂的状态恢复逻辑 |
+
 ### 5.1 Mobile Sale Model APIs
 
 **GET** `/api/mobile/saleModel/v1`
@@ -1839,7 +1894,7 @@ flowchart TD
 
 **DELETE** `/api/mpt/saleModel/v1/{id}`
 - Response: void
-- 说明：存在关联活跃订单时拒绝删除
+- 说明：存在关联活跃订单时拒绝删除；删除成功时在同一事务内级联将该 saleModelCode 关联的四层销售策略标记为失效（off_shelf）：Model 销售策略（`tb_sale_model_model_policy`）、Variant 销售策略（`tb_sale_model_variant_policy`）、Configuration 销售白名单（`tb_sale_model_config_policy`）、OptionCode 销售策略（`tb_sale_model_option_policy`）；级联操作不影响历史订单快照数据
 
 **GET** `/api/mpt/saleModel/v1/list`
 - Query: `{ saleModelCode?, name?, carlineCode?, listingStatus?, startTime?, endTime?, page, size }`
@@ -2077,7 +2132,7 @@ flowchart TD
 | US-013 | §4.2, §4.15, §5.3(assignDeliveryPerson), §5.4 | 交付流程，含倒计时补偿机制 |
 | US-014 | §4.2, §5.3(close) | 关闭订单 |
 | US-015 | §3.2(vso_order_shadow_delete), §5.3(physical delete) | 物理删除+影子审计 |
-| US-016 | §3.2(tb_sale_model), §5.3.1(saleModel CRUD/syncMdm) | MPT 销售车型管理，1:1 关联 Carline，carlineCode 锁定（301042），整条 Carline 链路 MDM 同步 |
+| US-016 | §3.2(tb_sale_model), §4.19(删除级联标记失效), §5.3.1(saleModel CRUD/syncMdm) | MPT 销售车型管理，1:1 关联 Carline，carlineCode 锁定（301042），整条 Carline 链路 MDM 同步，删除时级联标记四层销售策略失效 |
 | US-017 | §5.3(list/detail queries) | MPT 订单查询 |
 | US-018 | §4.4(签名规范), §5.5, §3.2(vso_callback_log) | 支付回调处理，含 HMAC-SHA256 + timestamp/nonce 验签 |
 | US-019 | §3.2(vso_config_timeout), §4.5(多实例警告), Domain(TimeoutNotifyService) | 超时调度，含多实例部署警告 |
@@ -2129,3 +2184,4 @@ flowchart TD
 | 2026-05-29 | CR-012    | Changed/Added | 销售车型 MDM 对齐重构：① §1 架构图新增 MDM Service/Kafka 依赖，VMD 标记 Deprecated；② §3 数据模型：Wishlist 聚合根 buildConfigCode→configurationCode+optionCodes，VehicleInfo 新增 configurationCode/optionCodes/optionPriceBreakdown/salePolicySnapshot 字段，新增 tb_sale_model_config_policy/tb_sale_model_option_policy/mdm_projection_* 表；③ §4 新增 §4.16 选配器流程（配置器数据组装+实时报价）、§4.17 销售策略管理流程（Configuration 白名单+OptionCode 策略+矛盾校验）、§4.18 MDM 投影流程（初始化+Kafka 订阅+读路径+一致性兜底）；④ §5 API 更新：Mobile APIs 入参改 optionCodes[]/regionCode，新增选配器/报价 API，新增 MPT 销售策略管理 APIs；⑤ §5.7 错误码：301002/301008/301010 重命名，新增 301035~301039；⑥ §6 Coverage Mapping 新增 US-021/US-022/US-023；⑦ §7 Impact Analysis 新增 MDM/Kafka 强依赖，VMD 降级为弱依赖 |
 | 2026-06-01 | CR-013    | Changed/Added | 销售车型粒度上提至 Carline 重构（对齐 requirements.md CR-011）：① §3.1 数据模型 Wishlist 新增 modelCode/variantCode，VehicleInfo 新增 carlineCode + modelPolicySnapshot/variantPolicySnapshot/configPolicySnapshot 五层快照字段；② §3.2 tb_sale_model 改 1:1 Carline，新增 tb_sale_model_model_policy/tb_sale_model_variant_policy 与 mdm_projection_carline/model 表，Config/Option 策略归属键扩为 (saleModelCode, variantCode, ...)，快照固化五层；③ §4.1 下单流程改为六步校验+五层快照固化（替换遗留 VMD buildConfig 调用为 MDM）；④ §4.3 改配新增跨 Model/SaleModel 边界校验与 variantCode 变更；⑤ §4.16 选配器重写为三段式 carline→models→variants + 报价六步；⑥ §4.17 销售策略扩展为 Model/Variant/Configuration/Option 四层 + 空表语义；⑦ §4.18 MDM 投影扩为五类对象 + carline/model Kafka 主题；⑧ §5.1/§5.2/§5.3.1/§5.3.2 API 同步（卡片 carlineCode/startingPrice、三段式选配器、下单/报价/改配入参增 modelCode/variantCode、SaleModel 改 carlineCode、新增 Model/Variant 策略 API）；⑨ §5.7 新增错误码 301040~301044，301038 描述更新（Variant 锁定）、301010 说明 variantCode 来自入参；⑩ §6 Coverage Mapping 与 §7 Impact Analysis 同步更新 |
 | 2026-06-01 | CR-014    | Added | §5.3.2 新增 Model/Variant 策略详情查询接口：GET `/{saleModelCode}/modelPolicy/{modelCode}` 获取单个 Model 策略详情，GET `/{saleModelCode}/variantPolicy/{variantCode}` 获取单个 Variant 策略详情；未配置策略时返回 404 |
+| 2026-06-01 | CR-015    | Added | §4.19 新增删除销售车型级联标记失效流程：删除销售车型时在同一事务内级联将 Model/Variant/Configuration/Option 四层销售策略标记为失效（off_shelf），保留历史订单快照可追溯性；更新 §5.3.1 DELETE API 说明；更新 §6 Coverage Mapping 补充 US-016 设计章节引用；同步更新 requirements.md US-016 补充级联标记失效业务规则 |

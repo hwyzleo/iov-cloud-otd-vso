@@ -47,6 +47,8 @@ class OrderAppServiceCreateOrderTest {
                 .configName("测试配置")
                 .colorCode("COLOR_001")
                 .colorName("测试颜色")
+                .saleModelCode("SALE_MODEL_001")
+                .regionCode("REGION_001")
                 .build();
         
         OrderCreateResult result = orderAppService.createSmallOrder(cmd);
@@ -78,6 +80,8 @@ class OrderAppServiceCreateOrderTest {
                 .configName("测试配置")
                 .colorCode("COLOR_001")
                 .colorName("测试颜色")
+                .saleModelCode("SALE_MODEL_001")
+                .regionCode("REGION_001")
                 .ownerRegionCode("REGION_001")
                 .ownerRegionName("测试区域")
                 .ownerStoreCode("STORE_001")
@@ -115,6 +119,8 @@ class OrderAppServiceCreateOrderTest {
                 .configName("测试配置")
                 .colorCode("COLOR_001")
                 .colorName("测试颜色")
+                .saleModelCode("SALE_MODEL_001")
+                .regionCode("REGION_001")
                 .build();
         
         OrderCreateResult smallResult = orderAppService.createSmallOrder(smallCmd);
@@ -133,6 +139,8 @@ class OrderAppServiceCreateOrderTest {
                 .configName("测试配置")
                 .colorCode("COLOR_001")
                 .colorName("测试颜色")
+                .saleModelCode("SALE_MODEL_001")
+                .regionCode("REGION_001")
                 .ownerRegionCode("REGION_001")
                 .ownerRegionName("测试区域")
                 .ownerStoreCode("STORE_001")

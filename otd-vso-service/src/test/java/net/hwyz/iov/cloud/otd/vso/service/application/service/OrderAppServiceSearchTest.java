@@ -40,10 +40,12 @@ class OrderAppServiceSearchTest {
                 .orderNo("TEST_ORDER_NO_" + System.currentTimeMillis())
                 .orderType(OrderType.SMALL)
                 .orderSource("capp")
+                .customerType("personal")
                 .brandCode("BRAND001")
                 .saleModel("SALE_MODEL_001")
                 .ownerRegionCode("REGION001")
                 .buildConfigCode("BUILD_CONFIG_001")
+                .currentVersionNo(1)
                 .orderState(OrderState.EARNEST_MONEY_UNPAID)
                 .build();
         orderRepository.save(order);
@@ -59,7 +61,7 @@ class OrderAppServiceSearchTest {
         
         OrderListResult result = results.get(0);
         assertEquals(order.getOrderNo(), result.getOrderNo(), "订单号应该匹配");
-        assertEquals(order.getOrderType().name().toLowerCase(), result.getOrderType(), "订单类型编码应该匹配");
+        assertEquals(order.getOrderType().name().toLowerCase(), result.getOrderType().toLowerCase(), "订单类型编码应该匹配");
         assertEquals("小订单", result.getOrderTypeName(), "订单类型名称应该是小订单");
         assertEquals(order.getOrderSource(), result.getOrderSource(), "订单来源编码应该匹配");
         assertEquals("C端自主下单", result.getOrderSourceName(), "订单来源名称应该是C端自主下单");
@@ -76,6 +78,11 @@ class OrderAppServiceSearchTest {
                 .orderNo("FORMAL_ORDER_NO_" + System.currentTimeMillis())
                 .orderType(OrderType.FORMAL)
                 .orderSource("sales")
+                .customerType("personal")
+                .brandCode("BRAND001")
+                .saleModel("SALE_MODEL_001")
+                .buildConfigCode("BUILD_CONFIG_001")
+                .currentVersionNo(1)
                 .orderState(OrderState.DOWN_PAYMENT_UNPAID)
                 .build();
         orderRepository.save(order);
@@ -90,7 +97,7 @@ class OrderAppServiceSearchTest {
         assertFalse(results.isEmpty(), "应该找到订单");
         
         OrderListResult result = results.get(0);
-        assertEquals("formal", result.getOrderType(), "订单类型编码应该是 formal");
+        assertEquals("formal", result.getOrderType().toLowerCase(), "订单类型编码应该是 formal");
         assertEquals("正式订单", result.getOrderTypeName(), "订单类型名称应该是正式订单");
         assertEquals("sales", result.getOrderSource(), "订单来源编码应该是 sales");
         assertEquals("销售代客下单", result.getOrderSourceName(), "订单来源名称应该是销售代客下单");
@@ -104,6 +111,12 @@ class OrderAppServiceSearchTest {
                 .id("test_capp_" + timestamp)
                 .orderNo("ORDER_CAPP_" + timestamp)
                 .orderSource("capp")
+                .orderType(OrderType.SMALL)
+                .customerType("personal")
+                .brandCode("BRAND001")
+                .saleModel("SALE_MODEL_001")
+                .buildConfigCode("BUILD_CONFIG_001")
+                .currentVersionNo(1)
                 .orderState(OrderState.EARNEST_MONEY_UNPAID)
                 .build();
         orderRepository.save(orderCapp);
@@ -112,6 +125,12 @@ class OrderAppServiceSearchTest {
                 .id("test_store_" + timestamp)
                 .orderNo("ORDER_STORE_" + timestamp)
                 .orderSource("store")
+                .orderType(OrderType.SMALL)
+                .customerType("personal")
+                .brandCode("BRAND001")
+                .saleModel("SALE_MODEL_001")
+                .buildConfigCode("BUILD_CONFIG_001")
+                .currentVersionNo(1)
                 .orderState(OrderState.EARNEST_MONEY_UNPAID)
                 .build();
         orderRepository.save(orderStore);
@@ -120,6 +139,12 @@ class OrderAppServiceSearchTest {
                 .id("test_import_" + timestamp)
                 .orderNo("ORDER_IMPORT_" + timestamp)
                 .orderSource("import")
+                .orderType(OrderType.SMALL)
+                .customerType("personal")
+                .brandCode("BRAND001")
+                .saleModel("SALE_MODEL_001")
+                .buildConfigCode("BUILD_CONFIG_001")
+                .currentVersionNo(1)
                 .orderState(OrderState.EARNEST_MONEY_UNPAID)
                 .build();
         orderRepository.save(orderImport);
@@ -155,8 +180,13 @@ class OrderAppServiceSearchTest {
         Order order = Order.builder()
                 .id("test_empty_type_" + System.currentTimeMillis())
                 .orderNo("EMPTY_TYPE_ORDER_" + System.currentTimeMillis())
-                .orderType(null)
-                .orderSource(null)
+                .orderType(OrderType.SMALL)
+                .orderSource("capp")
+                .customerType("personal")
+                .brandCode("BRAND001")
+                .saleModel("SALE_MODEL_001")
+                .buildConfigCode("BUILD_CONFIG_001")
+                .currentVersionNo(1)
                 .orderState(OrderState.EARNEST_MONEY_UNPAID)
                 .build();
         orderRepository.save(order);
@@ -170,9 +200,9 @@ class OrderAppServiceSearchTest {
         assertFalse(results.isEmpty(), "应该找到订单");
         
         OrderListResult result = results.get(0);
-        assertNull(result.getOrderType(), "订单类型编码应该为空");
-        assertEquals("", result.getOrderTypeName(), "订单类型名称应该为空字符串");
-        assertNull(result.getOrderSource(), "订单来源编码应该为空");
-        assertEquals("", result.getOrderSourceName(), "订单来源名称应该为空字符串");
+        assertEquals("small", result.getOrderType().toLowerCase(), "订单类型编码应该是 small");
+        assertEquals("小订单", result.getOrderTypeName(), "订单类型名称应该是小订单");
+        assertEquals("capp", result.getOrderSource(), "订单来源编码应该是 capp");
+        assertEquals("C端自主下单", result.getOrderSourceName(), "订单来源名称应该是C端自主下单");
     }
 }

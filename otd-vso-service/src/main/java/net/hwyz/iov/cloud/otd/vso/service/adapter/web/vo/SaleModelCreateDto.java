@@ -1,6 +1,8 @@
 package net.hwyz.iov.cloud.otd.vso.service.adapter.web.vo;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 import java.math.BigDecimal;
@@ -13,13 +15,16 @@ import java.util.List;
 @Data
 public class SaleModelCreateDto {
 
+    @NotBlank(message = "销售车型代码不能为空")
     private String saleModelCode;
 
     /**
      * MDM Carline 编码（1:1 绑定）
      */
+    @NotBlank(message = "车系代码不能为空")
     private String carlineCode;
 
+    @NotBlank(message = "车型名称不能为空")
     private String modelName;
 
     /**
@@ -46,6 +51,7 @@ public class SaleModelCreateDto {
     /**
      * 上架生效开始时间
      */
+    @NotNull(message = "上架生效开始时间不能为空")
     private LocalDateTime effectiveFrom;
 
     /**

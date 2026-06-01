@@ -325,15 +325,27 @@ public class SaleModelAppService {
     }
 
     @Transactional(rollbackFor = Exception.class)
-    public void deleteSaleModelByIds(Long[] ids) {
+    public void deleteSaleModelByIds(Long[] ids, String userId) {
         for (Long id : ids) {
             SaleModelResult model = getSaleModelById(id);
-            List<SaleModelConfigPo> configs = saleModelConfigRepository.findBySaleModelCode(model.getSaleModelCode());
-            if (!configs.isEmpty()) {
-                Long[] configIds = configs.stream().map(SaleModelConfigPo::getId).toArray(Long[]::new);
-                saleModelConfigRepository.physicalDeleteBySaleModelCodeAndIds(model.getSaleModelCode(), configIds);
-            }
+            String saleModelCode = model.getSaleModelCode();
+
+            // 级联物理删除 Model 销售策略
+            saleModelModelPolicyRepository.deleteBySaleModelCode(saleModelCode);
+
+            // 级联物理删除 Variant 销售策略
+            saleModelVariantPolicyRepository.deleteBySaleModelCode(saleModelCode);
+
+            // 级联物理删除 Configuration 销售白名单
+            configPolicyRepository.deleteBySaleModelCode(saleModelCode);
+
+            // 级联物理删除 OptionCode 销售策略
+            optionPolicyRepository.deleteBySaleModelCode(saleModelCode);
+
+            // 级联物理删除 OptionFamily 销售策略
+            optionFamilyPolicyRepository.deleteBySaleModelCode(saleModelCode);
         }
+        // 物理删除销售车型
         saleModelRepository.physicalDeleteByIds(ids);
     }
 
@@ -1742,6 +1754,11 @@ public class SaleModelAppService {
      */
     @Transactional(rollbackFor = Exception.class)
     public SaleModelOptionPolicyPo createOptionPolicy(CreateOptionPolicyCmd cmd) {
+        // 条件必填验证：saleStatus为active时，optionPrice必填
+        if ("active".equals(cmd.getSaleStatus()) && cmd.getOptionPrice() == null) {
+            throw new IllegalArgumentException("Option价格不能为空：上架状态为active时必须填写价格");
+        }
+
         SaleModelOptionPolicyPo po = SaleModelOptionPolicyPo.builder()
             .saleModelCode(cmd.getSaleModelCode())
             .optionCode(cmd.getOptionCode())
@@ -1767,6 +1784,11 @@ public class SaleModelAppService {
      */
     @Transactional(rollbackFor = Exception.class)
     public SaleModelOptionPolicyPo updateOptionPolicy(Long id, CreateOptionPolicyCmd cmd) {
+        // 条件必填验证：saleStatus为active时，optionPrice必填
+        if ("active".equals(cmd.getSaleStatus()) && cmd.getOptionPrice() == null) {
+            throw new IllegalArgumentException("Option价格不能为空：上架状态为active时必须填写价格");
+        }
+
         SaleModelOptionPolicyPo po = optionPolicyRepository.findById(id)
             .orElseThrow(() -> new IllegalArgumentException("销售策略不存在: " + id));
 
@@ -2100,6 +2122,11 @@ public class SaleModelAppService {
      */
     @Transactional(rollbackFor = Exception.class)
     public SaleModelVariantPolicyPo createVariantPolicy(CreateVariantPolicyCmd cmd) {
+        // 条件必填验证：saleStatus为active时，variantPrice必填
+        if ("active".equals(cmd.getSaleStatus()) && cmd.getVariantPrice() == null) {
+            throw new IllegalArgumentException("Variant价格不能为空：上架状态为active时必须填写价格");
+        }
+
         SaleModelVariantPolicyPo existing = saleModelVariantPolicyRepository
             .findBySaleModelCodeAndVariantCode(cmd.getSaleModelCode(), cmd.getVariantCode())
             .orElse(null);

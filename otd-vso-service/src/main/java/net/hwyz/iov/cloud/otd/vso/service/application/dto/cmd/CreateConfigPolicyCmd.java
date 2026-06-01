@@ -1,5 +1,6 @@
 package net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd;
 
+import jakarta.validation.constraints.NotEmpty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -20,6 +21,7 @@ public class CreateConfigPolicyCmd {
     /**
      * Configuration 编码列表
      */
+    @NotEmpty(message = "Configuration编码列表不能为空")
     private List<String> configurationCodes;
 
     /**

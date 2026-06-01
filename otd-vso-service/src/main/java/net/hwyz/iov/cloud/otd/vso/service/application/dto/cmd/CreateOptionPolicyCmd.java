@@ -1,5 +1,6 @@
 package net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd;
 
+import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -14,8 +15,13 @@ import java.util.List;
 @AllArgsConstructor
 public class CreateOptionPolicyCmd {
     private String saleModelCode;
+
+    @NotBlank(message = "Option代码不能为空")
     private String optionCode;
+
     private String optionFamilyCode;
+
+    @NotBlank(message = "销售状态不能为空")
     private String saleStatus;
     private BigDecimal optionPrice;
     private List<String> availableRegions;

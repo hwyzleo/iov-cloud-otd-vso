@@ -1,5 +1,6 @@
 package net.hwyz.iov.cloud.otd.vso.service.adapter.web.controller.mpt;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import net.hwyz.iov.cloud.framework.common.bean.ApiResponse;
 import net.hwyz.iov.cloud.otd.vso.service.adapter.web.vo.ModelPolicyVo;
@@ -46,7 +47,7 @@ public class MptSalesPolicyController {
     @PostMapping("/{saleModelCode}/modelPolicy")
     public ApiResponse<?> createModelPolicy(
             @PathVariable String saleModelCode,
-            @RequestBody CreateModelPolicyCmd cmd) {
+            @Valid @RequestBody CreateModelPolicyCmd cmd) {
         cmd.setSaleModelCode(saleModelCode);
         return ApiResponse.ok(saleModelAppService.createModelPolicy(cmd));
     }
@@ -90,7 +91,7 @@ public class MptSalesPolicyController {
     @PostMapping("/{saleModelCode}/variantPolicy")
     public ApiResponse<?> createVariantPolicy(
             @PathVariable String saleModelCode,
-            @RequestBody CreateVariantPolicyCmd cmd) {
+            @Valid @RequestBody CreateVariantPolicyCmd cmd) {
         cmd.setSaleModelCode(saleModelCode);
         return ApiResponse.ok(saleModelAppService.createVariantPolicy(cmd));
     }
@@ -130,7 +131,7 @@ public class MptSalesPolicyController {
     @PostMapping("/{saleModelCode}/configPolicy")
     public ApiResponse<?> createConfigPolicy(
             @PathVariable String saleModelCode,
-            @RequestBody CreateConfigPolicyCmd cmd) {
+            @Valid @RequestBody CreateConfigPolicyCmd cmd) {
         cmd.setSaleModelCode(saleModelCode);
         return ApiResponse.ok(saleModelAppService.createConfigPolicy(cmd));
     }
@@ -183,7 +184,7 @@ public class MptSalesPolicyController {
     @PostMapping("/{saleModelCode}/optionPolicy")
     public ApiResponse<?> createOptionPolicy(
             @PathVariable String saleModelCode,
-            @RequestBody CreateOptionPolicyCmd cmd) {
+            @Valid @RequestBody CreateOptionPolicyCmd cmd) {
         cmd.setSaleModelCode(saleModelCode);
         return ApiResponse.ok(saleModelAppService.createOptionPolicy(cmd));
     }
@@ -195,7 +196,7 @@ public class MptSalesPolicyController {
     public ApiResponse<?> updateOptionPolicy(
             @PathVariable String saleModelCode,
             @PathVariable Long id,
-            @RequestBody CreateOptionPolicyCmd cmd) {
+            @Valid @RequestBody CreateOptionPolicyCmd cmd) {
         return ApiResponse.ok(saleModelAppService.updateOptionPolicy(id, cmd));
     }
 

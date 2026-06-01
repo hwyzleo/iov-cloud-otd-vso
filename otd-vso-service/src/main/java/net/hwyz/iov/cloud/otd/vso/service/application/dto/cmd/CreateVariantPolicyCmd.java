@@ -1,5 +1,6 @@
 package net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd;
 
+import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -21,7 +22,11 @@ import java.util.List;
 public class CreateVariantPolicyCmd {
 
     private String saleModelCode;
+
+    @NotBlank(message = "Variant代码不能为空")
     private String variantCode;
+
+    @NotBlank(message = "销售状态不能为空")
     private String saleStatus;
     private BigDecimal variantPrice;
     private BigDecimal earnestMoneyPrice;

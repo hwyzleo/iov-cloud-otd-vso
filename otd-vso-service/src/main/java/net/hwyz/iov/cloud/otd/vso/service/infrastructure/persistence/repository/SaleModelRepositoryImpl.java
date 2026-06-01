@@ -1,7 +1,6 @@
 package net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.repository;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import lombok.RequiredArgsConstructor;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.query.SaleModelQuery;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.SaleModelRepository;

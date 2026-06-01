@@ -349,6 +349,7 @@
 - WHERE 车型存在且未逻辑删除 WHEN 运营人员更新销售车型 THE SYSTEM SHALL 更新对应字段并记录更新时间；WHERE 更新字段包含 listingStatus THE SYSTEM SHALL 允许 active ↔ off_shelf 切换，不影响存量订单
 - WHERE 车型存在、更新字段包含 carlineCode WHEN 运营人员更新销售车型 THE SYSTEM SHALL 校验"无未完成订单（非终态）+ 无活跃心愿单"，否则返回 SALE_MODEL_CARLINE_LOCKED（301042）
 - WHERE 车型存在且无关联的活跃订单（state ∈ {EARNEST_MONEY_PAID 之后非终态}） WHEN 运营人员删除销售车型 THE SYSTEM SHALL 逻辑删除指定车型；若存在关联活跃订单返回约束冲突错误
+- WHEN 运营人员删除销售车型 THE SYSTEM SHALL 在同一事务内级联将该 saleModelCode 关联的四层销售策略标记为失效（off_shelf）：① Model 销售策略（`tb_sale_model_model_policy`）② Variant 销售策略（`tb_sale_model_variant_policy`）③ Configuration 销售白名单（`tb_sale_model_config_policy`）④ OptionCode 销售策略（`tb_sale_model_option_policy`）；级联操作不影响历史订单快照数据
 - WHEN 运营人员查询销售车型列表 THE SYSTEM SHALL 支持按 saleModelCode、name、carlineCode、listingStatus、时间范围分页查询，默认按 sortWeight 升序 + createTime 倒序，单页最大 100 条，响应时间 <500ms
 - WHERE 车型存在 WHEN 运营人员触发同步 MDM 数据 THE SYSTEM SHALL 强制刷新该 carlineCode 整条链路的本地 MDM 投影（Carline 元数据、该 Carline 下全部 Model 元数据、Model→Variant 归属关系、各 Variant 标配 options/所属 Configuration 列表/OptionFamily 树/各 OptionCode 元数据），并返回同步统计（新增/更新/删除数量），响应时间 <5s
 - WHERE 卡片展示需要统一意向金/起售价 WHEN 运营查询车型卡片派生值 THE SYSTEM SHALL 以"该 SaleModel 下当前可售 Variant 销售策略行的 min(variantPrice) 为 startingPrice、min(earnestMoneyPrice) 为展示意向金"口径计算（与 US-001 一致）

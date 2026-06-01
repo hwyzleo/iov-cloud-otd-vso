@@ -12,4 +12,20 @@ public interface SaleModelOptionPolicyRepository {
     void save(SaleModelOptionPolicyPo po);
     void update(SaleModelOptionPolicyPo po);
     void delete(Long id);
+
+    /**
+     * 根据 saleModelCode 批量更新销售状态
+     * @param saleModelCode 销售车型编码
+     * @param saleStatus 销售状态
+     * @param modifyBy 修改人
+     * @return 更新数量
+     */
+    int updateSaleStatusBySaleModelCode(String saleModelCode, String saleStatus, String modifyBy);
+
+    /**
+     * 根据 saleModelCode 物理删除所有关联策略
+     * @param saleModelCode 销售车型编码
+     * @return 删除数量
+     */
+    int deleteBySaleModelCode(String saleModelCode);
 }

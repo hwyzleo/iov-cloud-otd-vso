@@ -1,6 +1,7 @@
 package net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.repository;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import lombok.RequiredArgsConstructor;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.SaleModelConfigPolicyRepository;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.mapper.SaleModelConfigPolicyMapper;
@@ -50,5 +51,20 @@ public class SaleModelConfigPolicyRepositoryImpl implements SaleModelConfigPolic
     @Override
     public void delete(Long id) {
         mapper.deleteById(id);
+    }
+
+    @Override
+    public int updateStatusBySaleModelCode(String saleModelCode, String status, String modifyBy) {
+        LambdaUpdateWrapper<SaleModelConfigPolicyPo> wrapper = new LambdaUpdateWrapper<>();
+        wrapper.eq(SaleModelConfigPolicyPo::getSaleModelCode, saleModelCode)
+               .set(SaleModelConfigPolicyPo::getStatus, status)
+               .set(SaleModelConfigPolicyPo::getModifyTime, new java.util.Date())
+               .set(SaleModelConfigPolicyPo::getModifyBy, modifyBy);
+        return mapper.update(null, wrapper);
+    }
+
+    @Override
+    public int deleteBySaleModelCode(String saleModelCode) {
+        return mapper.physicalDeleteBySaleModelCode(saleModelCode);
     }
 }
