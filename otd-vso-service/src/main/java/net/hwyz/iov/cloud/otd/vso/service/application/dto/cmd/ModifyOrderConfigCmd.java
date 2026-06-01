@@ -16,6 +16,7 @@ public class ModifyOrderConfigCmd {
 
     private String accountId;
     private String orderNo;
+    private String variantCode;
     private List<String> optionCodes;
 
 }

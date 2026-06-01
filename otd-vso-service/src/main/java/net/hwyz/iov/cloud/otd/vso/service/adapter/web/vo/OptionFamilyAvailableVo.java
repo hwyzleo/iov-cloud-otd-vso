@@ -58,6 +58,11 @@ public class OptionFamilyAvailableVo {
     public static class OptionAvailableVo {
 
         /**
+         * 策略 ID（inPolicy=true 时有值）
+         */
+        private Long id;
+
+        /**
          * 选项编码
          */
         private String optionCode;

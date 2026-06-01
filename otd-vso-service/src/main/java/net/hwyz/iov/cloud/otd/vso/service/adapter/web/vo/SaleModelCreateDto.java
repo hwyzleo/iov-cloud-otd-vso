@@ -16,11 +16,10 @@ public class SaleModelCreateDto {
     private String saleModelCode;
 
     /**
-     * MDM Variant 编码（1:1 绑定）
+     * MDM Carline 编码（1:1 绑定）
      */
-    private String variantCode;
+    private String carlineCode;
 
-    @JsonProperty("name")
     private String modelName;
 
     /**
@@ -35,18 +34,9 @@ public class SaleModelCreateDto {
      */
     private String marketingCopy;
 
-    /**
-     * 起售价
-     */
-    private BigDecimal basePrice;
-
     private Boolean earnestMoney;
 
-    private BigDecimal earnestMoneyPrice;
-
     private Boolean downPayment;
-
-    private BigDecimal downPaymentPrice;
 
     /**
      * 上架状态：active/off_shelf

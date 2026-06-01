@@ -17,4 +17,6 @@ public interface SaleModelOptionPolicyMapper extends BaseMapper<SaleModelOptionP
     SaleModelOptionPolicyPo selectBySaleModelCodeAndOptionCode(
         @Param("saleModelCode") String saleModelCode,
         @Param("optionCode") String optionCode);
+
+    int updateByIdDirect(SaleModelOptionPolicyPo po);
 }

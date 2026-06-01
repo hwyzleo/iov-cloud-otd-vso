@@ -18,7 +18,10 @@ public class WishlistDetailVo {
 
     private String wishlistId;
     private String saleModelCode;
-    private String buildConfigCode;
+    private String modelCode;
+    private String variantCode;
+    private String configurationCode;
+    private List<String> optionCodes;
     private Date createTime;
     private Date modifyTime;
 
@@ -28,5 +31,6 @@ public class WishlistDetailVo {
     private String saleModelDesc;
     private BigDecimal totalPrice;
     private Boolean isValid;
+    private String invalidReason;
 
 }

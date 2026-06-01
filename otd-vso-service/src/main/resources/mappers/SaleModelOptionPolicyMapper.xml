@@ -19,4 +19,20 @@
         SELECT * FROM vso_sale_model_option_policy
         WHERE sale_model_code = #{saleModelCode} AND option_code = #{optionCode} AND row_valid = 1
     </select>
+
+    <update id="updateByIdDirect">
+        UPDATE vso_sale_model_option_policy
+        SET option_family_code = #{optionFamilyCode},
+            sale_status = #{saleStatus},
+            option_price = #{optionPrice},
+            available_regions = #{availableRegions},
+            channels = #{channels},
+            bundle_with = #{bundleWith},
+            mutex_with = #{mutexWith},
+            marketing_title = #{marketingTitle},
+            marketing_image = #{marketingImage},
+            sort_weight = #{sortWeight},
+            modify_time = NOW()
+        WHERE id = #{id} AND row_valid = 1
+    </update>
 </mapper>

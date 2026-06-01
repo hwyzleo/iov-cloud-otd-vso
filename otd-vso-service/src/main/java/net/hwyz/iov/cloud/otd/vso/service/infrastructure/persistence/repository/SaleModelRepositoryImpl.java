@@ -62,20 +62,20 @@ public class SaleModelRepositoryImpl implements SaleModelRepository {
     }
 
     @Override
-    public boolean existsByVariantCode(String variantCode) {
-        if (variantCode == null || variantCode.isEmpty()) {
+    public boolean existsByCarlineCode(String carlineCode) {
+        if (carlineCode == null || carlineCode.isEmpty()) {
             return false;
         }
-        List<SaleModelPo> list = mapper.selectPoByMap(Map.of("variantCode", variantCode));
+        List<SaleModelPo> list = mapper.selectPoByMap(Map.of("carlineCode", carlineCode));
         return !list.isEmpty();
     }
 
     @Override
-    public boolean existsByVariantCodeExcludeId(String variantCode, Long excludeId) {
-        if (variantCode == null || variantCode.isEmpty()) {
+    public boolean existsByCarlineCodeExcludeId(String carlineCode, Long excludeId) {
+        if (carlineCode == null || carlineCode.isEmpty()) {
             return false;
         }
-        List<SaleModelPo> list = mapper.selectPoByMap(Map.of("variantCode", variantCode));
+        List<SaleModelPo> list = mapper.selectPoByMap(Map.of("carlineCode", carlineCode));
         if (list.isEmpty()) {
             return false;
         }

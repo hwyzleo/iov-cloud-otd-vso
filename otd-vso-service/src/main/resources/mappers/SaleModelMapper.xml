@@ -14,16 +14,13 @@
         <result column="row_valid" property="rowValid" />
         <result column="sale_code" property="saleModelCode" />
         <result column="model_name" property="modelName" />
-        <result column="variant_code" property="variantCode" />
+        <result column="carline_code" property="carlineCode" />
         <result column="parameters" property="parameters" />
         <result column="images" property="images" />
         <result column="earnest_money" property="earnestMoney" />
-        <result column="earnest_money_price" property="earnestMoneyPrice" />
         <result column="down_payment" property="downPayment" />
-        <result column="down_payment_price" property="downPaymentPrice" />
         <result column="enable" property="enable" />
         <result column="sort" property="sort" />
-        <result column="base_price" property="basePrice" />
         <result column="icon" property="icon" />
         <result column="marketing_copy" property="marketingCopy" />
         <result column="listing_status" property="listingStatus" />
@@ -35,21 +32,21 @@
 
     <!-- 通用查询结果列 -->
     <sql id="baseColumnList">
-        id, sale_code, model_name, variant_code, parameters, images, earnest_money, earnest_money_price, down_payment, down_payment_price, enable, sort,
-        base_price, icon, marketing_copy, listing_status, effective_from, effective_to, available_regions, channels,
+        id, sale_code, model_name, carline_code, parameters, images, earnest_money, down_payment, enable, sort,
+        icon, marketing_copy, listing_status, effective_from, effective_to, available_regions, channels,
         description, create_time, create_by, modify_time, modify_by, row_version, row_valid
     </sql>
 
     <!-- 插入 -->
     <insert id="insertPo" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO vso_sale_model (
-            id, sale_code, model_name, variant_code, parameters, images, earnest_money, earnest_money_price, down_payment, down_payment_price, enable, sort,
-            base_price, icon, marketing_copy, listing_status, effective_from, effective_to, available_regions, channels,
+            id, sale_code, model_name, carline_code, parameters, images, earnest_money, down_payment, enable, sort,
+            icon, marketing_copy, listing_status, effective_from, effective_to, available_regions, channels,
             description, create_time, create_by, modify_time, modify_by, row_version, row_valid
         )
         VALUES (
-            #{id}, #{saleModelCode}, #{modelName}, #{variantCode}, #{parameters}, #{images}, #{earnestMoney}, #{earnestMoneyPrice}, #{downPayment}, #{downPaymentPrice}, #{enable}, #{sort},
-            #{basePrice}, #{icon}, #{marketingCopy}, #{listingStatus}, #{effectiveFrom}, #{effectiveTo}, #{availableRegions}, #{channels},
+            #{id}, #{saleModelCode}, #{modelName}, #{carlineCode}, #{parameters}, #{images}, #{earnestMoney}, #{downPayment}, #{enable}, #{sort},
+            #{icon}, #{marketingCopy}, #{listingStatus}, #{effectiveFrom}, #{effectiveTo}, #{availableRegions}, #{channels},
             #{description}, now(), #{createBy}, now(), #{modifyBy}, 1, 1
         )
     </insert>
@@ -57,15 +54,15 @@
     <!-- 批量插入 -->
     <insert id="batchInsertPo" useGeneratedKeys="true" keyProperty="id" parameterType="java.util.List">
         INSERT INTO vso_sale_model (
-            id, sale_code, model_name, variant_code, parameters, images, earnest_money, earnest_money_price, down_payment, down_payment_price, enable, sort,
-            base_price, icon, marketing_copy, listing_status, effective_from, effective_to, available_regions, channels,
+            id, sale_code, model_name, carline_code, parameters, images, earnest_money, down_payment, enable, sort,
+            icon, marketing_copy, listing_status, effective_from, effective_to, available_regions, channels,
             description, create_time, create_by, modify_time, modify_by, row_version, row_valid
         )
         VALUES
         <foreach collection="list" item="item" index="index" separator=",">
         (
-            #{item.id}, #{item.saleModelCode}, #{item.modelName}, #{item.variantCode}, #{item.parameters}, #{item.images}, #{item.earnestMoney}, #{item.earnestMoneyPrice}, #{item.downPayment}, #{item.downPaymentPrice}, #{item.enable}, #{item.sort},
-            #{item.basePrice}, #{item.icon}, #{item.marketingCopy}, #{item.listingStatus}, #{item.effectiveFrom}, #{item.effectiveTo}, #{item.availableRegions}, #{item.channels},
+            #{item.id}, #{item.saleModelCode}, #{item.modelName}, #{item.carlineCode}, #{item.parameters}, #{item.images}, #{item.earnestMoney}, #{item.downPayment}, #{item.enable}, #{item.sort},
+            #{item.icon}, #{item.marketingCopy}, #{item.listingStatus}, #{item.effectiveFrom}, #{item.effectiveTo}, #{item.availableRegions}, #{item.channels},
             #{item.description}, now(), #{item.createBy}, now(), #{item.modifyBy}, 1, 1
         )
         </foreach>
@@ -80,8 +77,8 @@
         <if test="modelName != null and modelName != ''">
             t.model_name = #{modelName},
         </if>
-        <if test="variantCode != null">
-            t.variant_code = #{variantCode},
+        <if test="carlineCode != null and carlineCode != ''">
+            t.carline_code = #{carlineCode},
         </if>
         <if test="parameters != null and parameters != ''">
             t.parameters = #{parameters},
@@ -92,23 +89,14 @@
         <if test="earnestMoney != null">
             t.earnest_money = #{earnestMoney},
         </if>
-        <if test="earnestMoneyPrice != null">
-            t.earnest_money_price = #{earnestMoneyPrice},
-        </if>
         <if test="downPayment != null">
             t.down_payment = #{downPayment},
-        </if>
-        <if test="downPaymentPrice != null">
-            t.down_payment_price = #{downPaymentPrice},
         </if>
         <if test="enable != null">
             t.enable = #{enable},
         </if>
         <if test="sort != null">
             t.sort = #{sort},
-        </if>
-        <if test="basePrice != null">
-            t.base_price = #{basePrice},
         </if>
         <if test="icon != null and icon != ''">
             t.icon = #{icon},
@@ -188,8 +176,8 @@
         <if test="modelName != null and modelName != ''">
             AND t.model_name = #{modelName}
         </if>
-        <if test="variantCode != null and variantCode != ''">
-            AND t.variant_code = #{variantCode}
+        <if test="carlineCode != null and carlineCode != ''">
+            AND t.carline_code = #{carlineCode}
         </if>
         <if test="parameters != null and parameters != ''">
             AND t.parameters = #{parameters}
@@ -200,23 +188,14 @@
         <if test="earnestMoney != null">
             AND t.earnest_money = #{earnestMoney}
         </if>
-        <if test="earnestMoneyPrice != null">
-            AND t.earnest_money_price = #{earnestMoneyPrice}
-        </if>
         <if test="downPayment != null">
             AND t.down_payment = #{downPayment}
-        </if>
-        <if test="downPaymentPrice != null">
-            AND t.down_payment_price = #{downPaymentPrice}
         </if>
         <if test="enable != null">
             AND t.enable = #{enable}
         </if>
         <if test="sort != null">
             AND t.sort = #{sort}
-        </if>
-        <if test="basePrice != null">
-            AND t.base_price = #{basePrice}
         </if>
         <if test="listingStatus != null and listingStatus != ''">
             AND t.listing_status = #{listingStatus}
@@ -253,8 +232,8 @@
         <if test="modelName != null and modelName != ''">
             AND t.model_name LIKE #{modelName}
         </if>
-        <if test="variantCode != null and variantCode != ''">
-            AND t.variant_code = #{variantCode}
+        <if test="carlineCode != null and carlineCode != ''">
+            AND t.carline_code = #{carlineCode}
         </if>
         <if test="beginTime != null">
             and date_format(t.create_time,'%Y%m%d') &gt;= date_format(#{beginTime},'%Y%m%d')

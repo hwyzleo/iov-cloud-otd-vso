@@ -8,6 +8,8 @@ import net.hwyz.iov.cloud.otd.vso.service.domain.service.MdmProjectionService;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.MdmProjectionVariantPo;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.MdmProjectionConfigurationPo;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.MdmProjectionOptionPo;
+import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.MdmProjectionModelPo;
+import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.MdmProjectionCarlinePo;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.support.Acknowledgment;
@@ -107,6 +109,63 @@ public class MdmProductEventListener {
             acknowledgment.acknowledge();
         } catch (Exception e) {
             log.error("处理 OptionCode 变更事件失败", e);
+        }
+    }
+
+    /**
+     * 监听 Model 变更事件
+     */
+    @KafkaListener(topics = "${mdm.kafka.topics.model:mdm.product.model.changed}", groupId = "${mdm.kafka.group-id:vso-mdm-projection}")
+    public void handleModelChanged(ConsumerRecord<String, String> record, Acknowledgment acknowledgment) {
+        try {
+            log.info("收到 Model 变更事件: key={}, partition={}, offset={}",
+                record.key(), record.partition(), record.offset());
+
+            JsonNode payload = objectMapper.readTree(record.value());
+            String modelCode = payload.get("modelCode").asText();
+
+            MdmProjectionModelPo po = MdmProjectionModelPo.builder()
+                .modelCode(modelCode)
+                .modelName(payload.has("modelName") ? payload.get("modelName").asText() : null)
+                .carlineCode(payload.has("carlineCode") ? payload.get("carlineCode").asText() : null)
+                .variantCodes(payload.has("variantCodes") ? payload.get("variantCodes").toString() : null)
+                .status(payload.has("status") ? payload.get("status").asText() : "active")
+                .build();
+
+            mdmProjectionService.saveOrUpdateModel(po);
+            log.info("Model 投影更新完成: {}", modelCode);
+
+            acknowledgment.acknowledge();
+        } catch (Exception e) {
+            log.error("处理 Model 变更事件失败", e);
+        }
+    }
+
+    /**
+     * 监听 Carline 变更事件
+     */
+    @KafkaListener(topics = "${mdm.kafka.topics.carline:mdm.product.carline.changed}", groupId = "${mdm.kafka.group-id:vso-mdm-projection}")
+    public void handleCarlineChanged(ConsumerRecord<String, String> record, Acknowledgment acknowledgment) {
+        try {
+            log.info("收到 Carline 变更事件: key={}, partition={}, offset={}",
+                record.key(), record.partition(), record.offset());
+
+            JsonNode payload = objectMapper.readTree(record.value());
+            String carlineCode = payload.get("carlineCode").asText();
+
+            MdmProjectionCarlinePo po = MdmProjectionCarlinePo.builder()
+                .carlineCode(carlineCode)
+                .carlineName(payload.has("carlineName") ? payload.get("carlineName").asText() : null)
+                .modelCodes(payload.has("modelCodes") ? payload.get("modelCodes").toString() : null)
+                .status(payload.has("status") ? payload.get("status").asText() : "active")
+                .build();
+
+            mdmProjectionService.saveOrUpdateCarline(po);
+            log.info("Carline 投影更新完成: {}", carlineCode);
+
+            acknowledgment.acknowledge();
+        } catch (Exception e) {
+            log.error("处理 Carline 变更事件失败", e);
         }
     }
 }

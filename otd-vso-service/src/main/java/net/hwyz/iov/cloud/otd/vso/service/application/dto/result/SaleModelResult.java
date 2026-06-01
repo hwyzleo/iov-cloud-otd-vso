@@ -22,17 +22,14 @@ public class SaleModelResult {
 
     private Long id;
     private String saleModelCode;
+    private String carlineCode;
     private String modelName;
-    private String variantCode;
     private String parameters;
     private List<String> images;
     private Boolean earnestMoney;
-    private BigDecimal earnestMoneyPrice;
     private Boolean downPayment;
-    private BigDecimal downPaymentPrice;
     private Boolean enable;
     private Integer sort;
-    private BigDecimal basePrice;
     private String icon;
     private String marketingCopy;
     private String listingStatus;

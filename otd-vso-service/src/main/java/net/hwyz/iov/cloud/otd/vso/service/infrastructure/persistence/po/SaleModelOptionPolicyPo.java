@@ -23,6 +23,9 @@ public class SaleModelOptionPolicyPo extends BasePo {
     @TableField("sale_model_code")
     private String saleModelCode;
 
+    @TableField("variant_code")
+    private String variantCode;
+
     @TableField("option_code")
     private String optionCode;
 

@@ -14,6 +14,11 @@ public class SaleModelOptionPolicyRepositoryImpl implements SaleModelOptionPolic
     private final SaleModelOptionPolicyMapper mapper;
 
     @Override
+    public Optional<SaleModelOptionPolicyPo> findById(Long id) {
+        return Optional.ofNullable(mapper.selectById(id));
+    }
+
+    @Override
     public Optional<SaleModelOptionPolicyPo> findBySaleModelCodeAndOptionCode(String saleModelCode, String optionCode) {
         return Optional.ofNullable(mapper.selectBySaleModelCodeAndOptionCode(saleModelCode, optionCode));
     }
@@ -35,7 +40,7 @@ public class SaleModelOptionPolicyRepositoryImpl implements SaleModelOptionPolic
 
     @Override
     public void update(SaleModelOptionPolicyPo po) {
-        mapper.updateById(po);
+        mapper.updateByIdDirect(po);
     }
 
     @Override

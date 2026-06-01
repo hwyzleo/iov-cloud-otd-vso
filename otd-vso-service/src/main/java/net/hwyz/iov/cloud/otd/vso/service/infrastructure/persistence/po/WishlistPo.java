@@ -46,6 +46,18 @@ public class WishlistPo extends BasePo {
     private String saleModelCode;
 
     /**
+     * Model 编码
+     */
+    @TableField("model_code")
+    private String modelCode;
+
+    /**
+     * Variant 编码
+     */
+    @TableField("variant_code")
+    private String variantCode;
+
+    /**
      * Configuration 编码
      */
     @TableField("configuration_code")

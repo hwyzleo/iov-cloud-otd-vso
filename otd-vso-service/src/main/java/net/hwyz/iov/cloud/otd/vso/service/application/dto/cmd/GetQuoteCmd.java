@@ -18,6 +18,16 @@ public class GetQuoteCmd {
     private String saleModelCode;
 
     /**
+     * Model 编码
+     */
+    private String modelCode;
+
+    /**
+     * Variant 编码
+     */
+    private String variantCode;
+
+    /**
      * OptionCode 列表
      */
     private List<String> optionCodes;

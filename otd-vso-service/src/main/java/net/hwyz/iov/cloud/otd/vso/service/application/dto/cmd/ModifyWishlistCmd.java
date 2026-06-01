@@ -16,6 +16,9 @@ public class ModifyWishlistCmd {
 
     private String accountId;
     private String wishlistId;
+    private String saleModelCode;
+    private String modelCode;
+    private String variantCode;
     private String configurationCode;
     private List<String> optionCodes;
 

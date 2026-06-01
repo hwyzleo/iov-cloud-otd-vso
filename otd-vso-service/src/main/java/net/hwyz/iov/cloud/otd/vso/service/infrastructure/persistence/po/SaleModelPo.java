@@ -65,22 +65,10 @@ public class SaleModelPo extends BasePo {
     private Boolean earnestMoney;
 
     /**
-     * 意向金价格
-     */
-    @TableField("earnest_money_price")
-    private BigDecimal earnestMoneyPrice;
-
-    /**
      * 是否允许定金
      */
     @TableField("down_payment")
     private Boolean downPayment;
-
-    /**
-     * 定金价格
-     */
-    @TableField("down_payment_price")
-    private BigDecimal downPaymentPrice;
 
     /**
      * 是否启用
@@ -95,16 +83,10 @@ public class SaleModelPo extends BasePo {
     private Integer sort;
 
     /**
-     * MDM Variant 编码
+     * MDM Carline 编码（1:1 关联）
      */
-    @TableField("variant_code")
-    private String variantCode;
-
-    /**
-     * 起售价
-     */
-    @TableField("base_price")
-    private BigDecimal basePrice;
+    @TableField("carline_code")
+    private String carlineCode;
 
     /**
      * 车型图标 URL

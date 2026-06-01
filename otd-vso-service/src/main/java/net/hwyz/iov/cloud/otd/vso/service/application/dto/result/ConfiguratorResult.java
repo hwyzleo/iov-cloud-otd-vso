@@ -10,49 +10,37 @@ import java.util.List;
 @Builder
 public class ConfiguratorResult {
     /**
-     * Variant 编码
+     * Carline 编码
      */
-    private String variantCode;
+    private String carlineCode;
 
     /**
-     * Variant 名称
+     * Carline 名称
      */
-    private String variantName;
+    private String carlineName;
 
     /**
-     * Model 编码
+     * 三段式结构：Carline → Model → Variant
      */
-    private String modelCode;
+    private List<ModelItem> models;
 
-    /**
-     * Model 名称
-     */
-    private String modelName;
+    @Data
+    @Builder
+    public static class ModelItem {
+        private String modelCode;
+        private String modelName;
+        private List<VariantItem> variants;
+    }
 
-    /**
-     * 标配 options
-     */
-    private List<StandardOption> variantStandardOptions;
-
-    /**
-     * 可选 families
-     */
-    private List<SelectableFamily> selectableFamilies;
-
-    /**
-     * 起售价
-     */
-    private BigDecimal basePrice;
-
-    /**
-     * 意向金价格
-     */
-    private BigDecimal earnestMoneyPrice;
-
-    /**
-     * 定金价格
-     */
-    private BigDecimal downPaymentPrice;
+    @Data
+    @Builder
+    public static class VariantItem {
+        private String variantCode;
+        private String variantName;
+        private BigDecimal variantPrice;
+        private BigDecimal earnestMoneyPrice;
+        private BigDecimal downPaymentPrice;
+    }
 
     @Data
     @Builder

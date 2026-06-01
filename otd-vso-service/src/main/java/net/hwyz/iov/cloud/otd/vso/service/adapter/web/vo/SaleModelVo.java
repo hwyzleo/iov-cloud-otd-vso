@@ -16,9 +16,9 @@ public class SaleModelVo {
 
     private String saleModelCode;
 
-    private String modelName;
+    private String carlineCode;
 
-    private String variantCode;
+    private String modelName;
 
     private String parameters;
 
@@ -26,17 +26,11 @@ public class SaleModelVo {
 
     private Boolean earnestMoney;
 
-    private BigDecimal earnestMoneyPrice;
-
     private Boolean downPayment;
-
-    private BigDecimal downPaymentPrice;
 
     private Boolean enable;
 
     private Integer sort;
-
-    private BigDecimal basePrice;
 
     private String icon;
 

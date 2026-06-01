@@ -76,6 +76,11 @@ public class CreateSmallOrderCmd {
     private String saleModelCode;
 
     /**
+     * Variant 编码
+     */
+    private String variantCode;
+
+    /**
      * OptionCode 列表
      */
     private List<String> optionCodes;

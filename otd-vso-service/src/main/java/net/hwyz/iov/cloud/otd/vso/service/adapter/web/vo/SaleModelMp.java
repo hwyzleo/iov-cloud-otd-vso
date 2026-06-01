@@ -25,9 +25,29 @@ public class SaleModelMp {
     private String saleModelCode;
 
     /**
+     * Carline 编码
+     */
+    private String carlineCode;
+
+    /**
+     * Carline 名称
+     */
+    private String carlineName;
+
+    /**
      * 销售车型名称
      */
     private String modelName;
+
+    /**
+     * 起售价（派生字段，取该 SaleModel 下当前可售 Variant 的 min(variantPrice)）
+     */
+    private BigDecimal startingPrice;
+
+    /**
+     * 意向金价格（派生字段，取该 SaleModel 下当前可售 Variant 的 min(earnestMoneyPrice)）
+     */
+    private BigDecimal earnestMoneyPrice;
 
     /**
      * 销售车型图片集
@@ -35,23 +55,18 @@ public class SaleModelMp {
     private List<String> images;
 
     /**
-     * 是否允许意向金
+     * 卖点文案
      */
-    private Boolean earnestMoney;
+    private String marketingCopy;
 
     /**
-     * 意向金价格
+     * 车型图标
      */
-    private BigDecimal earnestMoneyPrice;
+    private String icon;
 
     /**
-     * 是否允许定金
+     * 排序权重
      */
-    private Boolean downPayment;
-
-    /**
-     * 定金价格
-     */
-    private BigDecimal downPaymentPrice;
+    private Integer sortWeight;
 
 }

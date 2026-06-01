@@ -4,6 +4,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.hwyz.iov.cloud.otd.vso.service.common.exception.MdmProjectionStaleException;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.MdmProjectionRepository;
+import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.MdmProjectionCarlinePo;
+import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.MdmProjectionModelPo;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.MdmProjectionVariantPo;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.MdmProjectionConfigurationPo;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.MdmProjectionOptionPo;
@@ -23,6 +25,82 @@ import java.util.Optional;
 public class MdmProjectionService {
 
     private final MdmProjectionRepository projectionRepository;
+
+    /**
+     * 获取 Carline 投影
+     */
+    public MdmProjectionCarlinePo getCarline(String carlineCode) {
+        return projectionRepository.findCarlineByCode(carlineCode)
+            .orElseThrow(() -> new MdmProjectionStaleException(
+                String.format("Carline [%s] 在本地投影中不存在", carlineCode)));
+    }
+
+    /**
+     * 获取 Carline 投影（可选）
+     */
+    public Optional<MdmProjectionCarlinePo> getCarlineOptional(String carlineCode) {
+        return projectionRepository.findCarlineByCode(carlineCode);
+    }
+
+    /**
+     * 获取所有 Carline 投影
+     */
+    public List<MdmProjectionCarlinePo> getAllCarlines() {
+        return projectionRepository.findAllCarlines();
+    }
+
+    /**
+     * 保存或更新 Carline 投影
+     */
+    public void saveOrUpdateCarline(MdmProjectionCarlinePo po) {
+        Optional<MdmProjectionCarlinePo> existing = projectionRepository.findCarlineByCode(po.getCarlineCode());
+        if (existing.isPresent()) {
+            po.setId(existing.get().getId());
+            projectionRepository.updateCarline(po);
+            log.info("更新 Carline 投影: {}", po.getCarlineCode());
+        } else {
+            projectionRepository.saveCarline(po);
+            log.info("新增 Carline 投影: {}", po.getCarlineCode());
+        }
+    }
+
+    /**
+     * 获取 Model 投影
+     */
+    public MdmProjectionModelPo getModel(String modelCode) {
+        return projectionRepository.findModelByCode(modelCode)
+            .orElseThrow(() -> new MdmProjectionStaleException(
+                String.format("Model [%s] 在本地投影中不存在", modelCode)));
+    }
+
+    /**
+     * 获取 Model 投影（可选）
+     */
+    public Optional<MdmProjectionModelPo> getModelOptional(String modelCode) {
+        return projectionRepository.findModelByCode(modelCode);
+    }
+
+    /**
+     * 获取 Carline 下的所有 Model
+     */
+    public List<MdmProjectionModelPo> getModelsByCarlineCode(String carlineCode) {
+        return projectionRepository.findModelsByCarlineCode(carlineCode);
+    }
+
+    /**
+     * 保存或更新 Model 投影
+     */
+    public void saveOrUpdateModel(MdmProjectionModelPo po) {
+        Optional<MdmProjectionModelPo> existing = projectionRepository.findModelByCode(po.getModelCode());
+        if (existing.isPresent()) {
+            po.setId(existing.get().getId());
+            projectionRepository.updateModel(po);
+            log.info("更新 Model 投影: {}", po.getModelCode());
+        } else {
+            projectionRepository.saveModel(po);
+            log.info("新增 Model 投影: {}", po.getModelCode());
+        }
+    }
 
     /**
      * 获取 Variant 投影

@@ -45,6 +45,7 @@ import net.hwyz.iov.cloud.otd.vso.service.domain.repository.OrderAssignmentRepos
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.OrderRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.PaymentRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.SaleModelRepository;
+import net.hwyz.iov.cloud.otd.vso.service.domain.repository.SaleModelVariantPolicyRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.WishlistRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.AuditRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.OrderVehicleSnapshotRepository;
@@ -62,6 +63,7 @@ import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.OrderVeh
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.PaymentPo;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.RefundPo;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.SaleModelPo;
+import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.SaleModelVariantPolicyPo;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.RefundRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.SupplementaryPaymentRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.ConfigChangeRefundRepository;
@@ -136,6 +138,7 @@ public class OrderAppService {
     private final VehicleAssignmentRepository vehicleAssignmentRepository;
     private final VehicleInventoryGateway vehicleInventoryGateway;
     private final SalesPolicyService salesPolicyService;
+    private final SaleModelVariantPolicyRepository saleModelVariantPolicyRepository;
 
     private final Map<String, String> cityNameCache = new ConcurrentHashMap<>();
     private volatile long cityNameCacheLastRefresh = 0;
@@ -1509,33 +1512,27 @@ public class OrderAppService {
     }
 
     private BigDecimal getEarnestMoneyAmount(String saleModelCode) {
-        if (saleModelCode == null || saleModelCode.isEmpty()) {
-            return BigDecimal.ZERO;
-        }
-        Optional<SaleModelPo> saleModelOpt = saleModelRepository.findBySaleModelCode(saleModelCode);
-        if (saleModelOpt.isEmpty()) {
-            return BigDecimal.ZERO;
-        }
-        SaleModelPo saleModel = saleModelOpt.get();
-        if (saleModel.getEarnestMoneyPrice() == null) {
-            return BigDecimal.ZERO;
-        }
-        return saleModel.getEarnestMoneyPrice();
+        // 根据 CR-011 要求，意向金价格从命中的 Variant 销售策略行获取
+        // 取该 SaleModel 下当前可售 Variant 销售策略行 earnestMoneyPrice 的最低值
+        List<SaleModelVariantPolicyPo> variantPolicies = saleModelVariantPolicyRepository.findBySaleModelCode(saleModelCode);
+        return variantPolicies.stream()
+            .filter(p -> "active".equals(p.getSaleStatus()))
+            .filter(p -> p.getEarnestMoneyPrice() != null)
+            .map(SaleModelVariantPolicyPo::getEarnestMoneyPrice)
+            .min(BigDecimal::compareTo)
+            .orElse(BigDecimal.ZERO);
     }
 
     private BigDecimal getDownPaymentAmount(String saleModelCode) {
-        if (saleModelCode == null || saleModelCode.isEmpty()) {
-            return BigDecimal.ZERO;
-        }
-        Optional<SaleModelPo> saleModelOpt = saleModelRepository.findBySaleModelCode(saleModelCode);
-        if (saleModelOpt.isEmpty()) {
-            return BigDecimal.ZERO;
-        }
-        SaleModelPo saleModel = saleModelOpt.get();
-        if (saleModel.getDownPaymentPrice() == null) {
-            return BigDecimal.ZERO;
-        }
-        return saleModel.getDownPaymentPrice();
+        // 根据 CR-011 要求，定金价格从命中的 Variant 销售策略行获取
+        // 取该 SaleModel 下当前可售 Variant 销售策略行 downPaymentPrice 的最低值
+        List<SaleModelVariantPolicyPo> variantPolicies = saleModelVariantPolicyRepository.findBySaleModelCode(saleModelCode);
+        return variantPolicies.stream()
+            .filter(p -> "active".equals(p.getSaleStatus()))
+            .filter(p -> p.getDownPaymentPrice() != null)
+            .map(SaleModelVariantPolicyPo::getDownPaymentPrice)
+            .min(BigDecimal::compareTo)
+            .orElse(BigDecimal.ZERO);
     }
 
     private List<EarnestMoneyOrderResult.PaymentChannelInfo> buildPaymentChannelInfoList() {

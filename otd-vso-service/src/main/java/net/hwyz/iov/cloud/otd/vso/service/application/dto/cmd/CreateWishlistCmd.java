@@ -16,6 +16,8 @@ public class CreateWishlistCmd {
 
     private String accountId;
     private String saleModelCode;
+    private String modelCode;
+    private String variantCode;
     private String configurationCode;
     private List<String> optionCodes;
 

@@ -57,6 +57,18 @@ public class OrderVehicleSnapshotPo implements Serializable {
     private Integer rowValid;
 
     /**
+     * Carline 编码
+     */
+    @TableField("carline_code")
+    private String carlineCode;
+
+    /**
+     * Model 编码
+     */
+    @TableField("model_code")
+    private String modelCode;
+
+    /**
      * Variant 编码
      */
     @TableField("variant_code")
@@ -85,4 +97,22 @@ public class OrderVehicleSnapshotPo implements Serializable {
      */
     @TableField("sale_policy_snapshot")
     private String salePolicySnapshot;
+
+    /**
+     * Model 销售策略快照（JSON）
+     */
+    @TableField("model_policy_snapshot")
+    private String modelPolicySnapshot;
+
+    /**
+     * Variant 销售策略快照（JSON）
+     */
+    @TableField("variant_policy_snapshot")
+    private String variantPolicySnapshot;
+
+    /**
+     * Configuration 销售白名单快照（JSON）
+     */
+    @TableField("config_policy_snapshot")
+    private String configPolicySnapshot;
 }

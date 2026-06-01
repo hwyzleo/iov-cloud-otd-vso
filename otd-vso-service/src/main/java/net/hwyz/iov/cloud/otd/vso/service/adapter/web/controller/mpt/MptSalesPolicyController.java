@@ -2,9 +2,13 @@ package net.hwyz.iov.cloud.otd.vso.service.adapter.web.controller.mpt;
 
 import lombok.RequiredArgsConstructor;
 import net.hwyz.iov.cloud.framework.common.bean.ApiResponse;
+import net.hwyz.iov.cloud.otd.vso.service.adapter.web.vo.ModelPolicyVo;
+import net.hwyz.iov.cloud.otd.vso.service.adapter.web.vo.VariantPolicyVo;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.CreateConfigPolicyCmd;
+import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.CreateModelPolicyCmd;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.CreateOptionFamilyPolicyCmd;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.CreateOptionPolicyCmd;
+import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.CreateVariantPolicyCmd;
 import net.hwyz.iov.cloud.otd.vso.service.application.service.SaleModelAppService;
 import org.springframework.web.bind.annotation.*;
 
@@ -14,6 +18,94 @@ import org.springframework.web.bind.annotation.*;
 public class MptSalesPolicyController {
 
     private final SaleModelAppService saleModelAppService;
+
+    // ==================== Model 销售策略 ====================
+
+    /**
+     * 获取 Model 销售策略列表
+     * 返回该 carlineCode 下全部 Model 列表，标注是否已配置策略及 saleStatus
+     */
+    @GetMapping("/{saleModelCode}/modelPolicy")
+    public ApiResponse<?> getModelPolicy(@PathVariable String saleModelCode) {
+        return ApiResponse.ok(saleModelAppService.getModelPolicies(saleModelCode));
+    }
+
+    /**
+     * 获取单个 Model 销售策略详情
+     */
+    @GetMapping("/{saleModelCode}/modelPolicy/{modelCode}")
+    public ApiResponse<ModelPolicyVo> getModelPolicyDetail(
+            @PathVariable String saleModelCode,
+            @PathVariable String modelCode) {
+        return ApiResponse.ok(saleModelAppService.getModelPolicy(saleModelCode, modelCode));
+    }
+
+    /**
+     * 创建/更新 Model 销售策略
+     */
+    @PostMapping("/{saleModelCode}/modelPolicy")
+    public ApiResponse<?> createModelPolicy(
+            @PathVariable String saleModelCode,
+            @RequestBody CreateModelPolicyCmd cmd) {
+        cmd.setSaleModelCode(saleModelCode);
+        return ApiResponse.ok(saleModelAppService.createModelPolicy(cmd));
+    }
+
+    /**
+     * 删除 Model 销售策略
+     */
+    @DeleteMapping("/{saleModelCode}/modelPolicy/{modelCode}")
+    public ApiResponse<?> deleteModelPolicy(
+            @PathVariable String saleModelCode,
+            @PathVariable String modelCode) {
+        return ApiResponse.ok(saleModelAppService.deleteModelPolicy(saleModelCode, modelCode));
+    }
+
+    // ==================== Variant 销售策略 ====================
+
+    /**
+     * 获取 Variant 销售策略列表
+     * 返回指定 Model 下全部 Variant 列表，标注是否已配置策略及价格/saleStatus
+     */
+    @GetMapping("/{saleModelCode}/variantPolicy")
+    public ApiResponse<?> getVariantPolicy(
+            @PathVariable String saleModelCode,
+            @RequestParam(required = false) String modelCode) {
+        return ApiResponse.ok(saleModelAppService.getVariantPolicies(saleModelCode, modelCode));
+    }
+
+    /**
+     * 获取单个 Variant 销售策略详情
+     */
+    @GetMapping("/{saleModelCode}/variantPolicy/{variantCode}")
+    public ApiResponse<VariantPolicyVo> getVariantPolicyDetail(
+            @PathVariable String saleModelCode,
+            @PathVariable String variantCode) {
+        return ApiResponse.ok(saleModelAppService.getVariantPolicy(saleModelCode, variantCode));
+    }
+
+    /**
+     * 创建/更新 Variant 销售策略
+     */
+    @PostMapping("/{saleModelCode}/variantPolicy")
+    public ApiResponse<?> createVariantPolicy(
+            @PathVariable String saleModelCode,
+            @RequestBody CreateVariantPolicyCmd cmd) {
+        cmd.setSaleModelCode(saleModelCode);
+        return ApiResponse.ok(saleModelAppService.createVariantPolicy(cmd));
+    }
+
+    /**
+     * 删除 Variant 销售策略
+     */
+    @DeleteMapping("/{saleModelCode}/variantPolicy/{variantCode}")
+    public ApiResponse<?> deleteVariantPolicy(
+            @PathVariable String saleModelCode,
+            @PathVariable String variantCode) {
+        return ApiResponse.ok(saleModelAppService.deleteVariantPolicy(saleModelCode, variantCode));
+    }
+
+    // ==================== Configuration 白名单 ====================
 
     /**
      * 获取 Configuration 白名单
@@ -64,6 +156,16 @@ public class MptSalesPolicyController {
             @RequestParam(defaultValue = "1") Integer page,
             @RequestParam(defaultValue = "10") Integer size) {
         return ApiResponse.ok(saleModelAppService.getOptionPolicies(saleModelCode, optionFamilyCode, saleStatus, page, size));
+    }
+
+    /**
+     * 获取 OptionCode 销售策略详情
+     */
+    @GetMapping("/{saleModelCode}/optionPolicy/{id}")
+    public ApiResponse<?> getOptionPolicyById(
+            @PathVariable String saleModelCode,
+            @PathVariable Long id) {
+        return ApiResponse.ok(saleModelAppService.getOptionPolicyById(id));
     }
 
     /**
