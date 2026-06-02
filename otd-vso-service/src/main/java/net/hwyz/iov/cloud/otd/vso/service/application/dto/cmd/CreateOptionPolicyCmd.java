@@ -16,6 +16,8 @@ import java.util.List;
 public class CreateOptionPolicyCmd {
     private String saleModelCode;
 
+    private String modelCode;
+
     @NotBlank(message = "Option代码不能为空")
     private String optionCode;
 

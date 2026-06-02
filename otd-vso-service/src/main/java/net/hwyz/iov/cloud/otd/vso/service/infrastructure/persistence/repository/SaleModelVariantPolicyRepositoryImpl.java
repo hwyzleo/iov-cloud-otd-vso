@@ -45,9 +45,10 @@ public class SaleModelVariantPolicyRepositoryImpl implements SaleModelVariantPol
 
     @Override
     public List<SaleModelVariantPolicyPo> findBySaleModelCodeAndModelCode(String saleModelCode, String modelCode) {
-        // 需要关联查询 MDM 投影表来获取 modelCode 对应的 variantCode
-        // 这里暂时返回空列表，实际实现需要根据业务逻辑调整
-        return List.of();
+        LambdaQueryWrapper<SaleModelVariantPolicyPo> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(SaleModelVariantPolicyPo::getSaleModelCode, saleModelCode)
+               .eq(SaleModelVariantPolicyPo::getModelCode, modelCode);
+        return mapper.selectList(wrapper);
     }
 
     @Override

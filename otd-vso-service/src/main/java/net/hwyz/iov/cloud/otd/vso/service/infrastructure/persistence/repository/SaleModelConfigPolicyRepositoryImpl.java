@@ -27,6 +27,23 @@ public class SaleModelConfigPolicyRepositoryImpl implements SaleModelConfigPolic
     }
 
     @Override
+    public List<SaleModelConfigPolicyPo> findBySaleModelCodeAndVariantCode(String saleModelCode, String variantCode) {
+        LambdaQueryWrapper<SaleModelConfigPolicyPo> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(SaleModelConfigPolicyPo::getSaleModelCode, saleModelCode)
+               .eq(SaleModelConfigPolicyPo::getVariantCode, variantCode);
+        return mapper.selectList(wrapper);
+    }
+
+    @Override
+    public List<SaleModelConfigPolicyPo> findBySaleModelCodeAndModelCodeAndVariantCode(String saleModelCode, String modelCode, String variantCode) {
+        LambdaQueryWrapper<SaleModelConfigPolicyPo> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(SaleModelConfigPolicyPo::getSaleModelCode, saleModelCode)
+               .eq(SaleModelConfigPolicyPo::getModelCode, modelCode)
+               .eq(SaleModelConfigPolicyPo::getVariantCode, variantCode);
+        return mapper.selectList(wrapper);
+    }
+
+    @Override
     public boolean existsBySaleModelCode(String saleModelCode) {
         LambdaQueryWrapper<SaleModelConfigPolicyPo> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(SaleModelConfigPolicyPo::getSaleModelCode, saleModelCode);

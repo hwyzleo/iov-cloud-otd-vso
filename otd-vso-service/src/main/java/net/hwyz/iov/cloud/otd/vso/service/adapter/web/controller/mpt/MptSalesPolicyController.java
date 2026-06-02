@@ -112,8 +112,10 @@ public class MptSalesPolicyController {
      * 获取 Configuration 白名单
      */
     @GetMapping("/{saleModelCode}/configPolicy")
-    public ApiResponse<?> getConfigPolicy(@PathVariable String saleModelCode) {
-        return ApiResponse.ok(saleModelAppService.getConfigPolicies(saleModelCode));
+    public ApiResponse<?> getConfigPolicy(
+            @PathVariable String saleModelCode,
+            @RequestParam(required = false) String variantCode) {
+        return ApiResponse.ok(saleModelAppService.getConfigPolicies(saleModelCode, variantCode));
     }
 
     /**

@@ -10,17 +10,17 @@ import java.util.List;
 @Builder
 public class ConfiguratorResult {
     /**
-     * Carline 编码
+     * 销售车型编码
      */
-    private String carlineCode;
+    private String saleModelCode;
 
     /**
-     * Carline 名称
+     * 销售车型名称
      */
-    private String carlineName;
+    private String modelName;
 
     /**
-     * 三段式结构：Carline → Model → Variant
+     * 三段式结构：Model → Variant → Option
      */
     private List<ModelItem> models;
 
@@ -29,6 +29,9 @@ public class ConfiguratorResult {
     public static class ModelItem {
         private String modelCode;
         private String modelName;
+        private String marketingImage;
+        private String marketingCopy;
+        private Integer sortWeight;
         private List<VariantItem> variants;
     }
 
@@ -37,16 +40,13 @@ public class ConfiguratorResult {
     public static class VariantItem {
         private String variantCode;
         private String variantName;
+        private String marketingImage;
+        private String marketingCopy;
+        private Integer sortWeight;
         private BigDecimal variantPrice;
         private BigDecimal earnestMoneyPrice;
         private BigDecimal downPaymentPrice;
-    }
-
-    @Data
-    @Builder
-    public static class StandardOption {
-        private String optionCode;
-        private String optionName;
+        private List<SelectableFamily> selectableFamilies;
     }
 
     @Data
@@ -54,8 +54,9 @@ public class ConfiguratorResult {
     public static class SelectableFamily {
         private String optionFamilyCode;
         private String optionFamilyName;
+        private String marketingImage;
+        private String marketingDesc;
         private Integer sortWeight;
-        private Boolean required;
         private List<OptionItem> options;
     }
 
@@ -68,7 +69,6 @@ public class ConfiguratorResult {
         private BigDecimal price;
         private String image;
         private String marketingCopy;
-        private List<String> badges;
         private List<String> bundleWith;
         private List<String> mutexWith;
     }

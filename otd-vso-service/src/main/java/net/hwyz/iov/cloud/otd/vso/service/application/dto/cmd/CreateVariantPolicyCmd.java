@@ -23,6 +23,8 @@ public class CreateVariantPolicyCmd {
 
     private String saleModelCode;
 
+    private String modelCode;
+
     @NotBlank(message = "Variant代码不能为空")
     private String variantCode;
 

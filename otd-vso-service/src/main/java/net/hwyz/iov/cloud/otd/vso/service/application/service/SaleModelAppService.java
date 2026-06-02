@@ -371,82 +371,189 @@ public class SaleModelAppService {
 
     /**
      * 获取选配器数据
+     * 三段式结构：SaleModel → Model → Variant → Option
+     * 数据全部来自 VSO 销售策略表，自包含不依赖 MDM 投影
      */
     public ConfiguratorResult getConfigurator(GetConfiguratorCmd cmd) {
-        SaleModelPo saleModel = saleModelRepository.findBySaleModelCode(cmd.getSaleModelCode())
-            .orElseThrow(() -> new SaleModelNotExistException("销售车型不存在: " + cmd.getSaleModelCode()));
+        String saleModelCode = cmd.getSaleModelCode();
+
+        // 1. 校验 SaleModel 在售
+        SaleModelPo saleModel = saleModelRepository.findBySaleModelCode(saleModelCode)
+            .orElseThrow(() -> new SaleModelNotExistException("销售车型不存在: " + saleModelCode));
 
         if (!"active".equals(saleModel.getListingStatus())) {
-            throw new SaleModelNotExistException("销售车型已下架: " + cmd.getSaleModelCode());
+            throw new SaleModelNotExistException("销售车型已下架: " + saleModelCode);
         }
 
-        // 根据 CR-011 要求，选配器现在采用三段式结构（Carline → Model → Variant）
-        String carlineCode = saleModel.getCarlineCode();
-        if (carlineCode == null || carlineCode.isEmpty()) {
-            return null;
+        // 2. 获取 Model 销售策略（空表=ALL 全开）
+        List<SaleModelModelPolicyPo> modelPolicies = saleModelModelPolicyRepository.findBySaleModelCode(saleModelCode);
+        // 过滤可售 Model
+        List<SaleModelModelPolicyPo> activeModelPolicies = modelPolicies.stream()
+            .filter(p -> "active".equals(p.getSaleStatus()))
+            .collect(Collectors.toList());
+        // 空表=ALL 全开：如果没有任何策略记录，需要从 MDM 投影获取 Model 列表
+        if (modelPolicies.isEmpty()) {
+            log.debug("Model 策略表为空，ALL 全开，saleModelCode: {}", saleModelCode);
         }
 
-        // 1. 获取 Carline 下的所有 Model
-        List<MdmProjectionModelPo> models = mdmProjectionService.getModelsByCarlineCode(carlineCode);
-        if (models.isEmpty()) {
-            return null;
-        }
+        // 3. 获取 Variant 销售策略
+        List<SaleModelVariantPolicyPo> allVariantPolicies = saleModelVariantPolicyRepository.findBySaleModelCode(saleModelCode);
 
-        // 2. 获取每个 Model 下的所有 Variant，并组装三段式结构
+        // 4. 获取 Option 销售策略
+        List<SaleModelOptionPolicyPo> allOptionPolicies = optionPolicyRepository.findBySaleModelCode(saleModelCode);
+
+        // 5. 获取 OptionFamily 营销策略
+        List<SaleModelOptionFamilyPolicyPo> allOptionFamilyPolicies = optionFamilyPolicyRepository.findBySaleModelCode(saleModelCode);
+
+        // 6. 组装三段式结构
         List<ConfiguratorResult.ModelItem> modelItems = new ArrayList<>();
-        for (MdmProjectionModelPo model : models) {
-            if (model.getVariantCodes() == null) {
-                continue;
+
+        if (modelPolicies.isEmpty()) {
+            // 空表=ALL 全开：从 MDM 投影获取 Model 列表，用 Variant 策略过滤
+            String carlineCode = saleModel.getCarlineCode();
+            if (carlineCode == null || carlineCode.isEmpty()) {
+                log.warn("销售车型 [{}] 未绑定 Carline，无法获取 Model 列表", saleModelCode);
+                return buildResult(saleModelCode, saleModel.getModelName(), modelItems);
             }
-
-            List<String> variantCodes = cn.hutool.json.JSONUtil.toList(model.getVariantCodes(), String.class);
-            List<ConfiguratorResult.VariantItem> variantItems = new ArrayList<>();
-
-            for (String variantCode : variantCodes) {
-                MdmProjectionVariantPo variant = mdmProjectionService.getVariantOptional(variantCode).orElse(null);
-                if (variant == null) {
-                    continue;
+            List<MdmProjectionModelPo> mdmModels = mdmProjectionService.getModelsByCarlineCode(carlineCode);
+            for (MdmProjectionModelPo mdmModel : mdmModels) {
+                List<ConfiguratorResult.VariantItem> variantItems = buildVariantItems(
+                    saleModelCode, mdmModel.getModelCode(), null, allVariantPolicies, allOptionPolicies, allOptionFamilyPolicies, cmd.getRegionCode());
+                if (!variantItems.isEmpty()) {
+                    modelItems.add(ConfiguratorResult.ModelItem.builder()
+                        .modelCode(mdmModel.getModelCode())
+                        .modelName(mdmModel.getModelName())
+                        .sortWeight(0)
+                        .variants(variantItems)
+                        .build());
                 }
-
-                // 获取 Variant 销售策略
-                SaleModelVariantPolicyPo variantPolicy = saleModelVariantPolicyRepository
-                    .findBySaleModelCodeAndVariantCode(cmd.getSaleModelCode(), variantCode)
-                    .orElse(null);
-
-                // 获取该 Variant 下的 Configuration 列表
-                List<MdmProjectionConfigurationPo> configs = mdmProjectionService.getConfigurationsByVariant(variantCode);
-
-                // 获取该 Variant 下的 OptionCode 销售策略
-                List<SaleModelOptionPolicyPo> optionPolicies = optionPolicyRepository.findBySaleModelCode(cmd.getSaleModelCode());
-
-                ConfiguratorResult.VariantItem variantItem = ConfiguratorResult.VariantItem.builder()
-                    .variantCode(variantCode)
-                    .variantName(variant.getVariantName())
-                    .variantPrice(variantPolicy != null ? variantPolicy.getVariantPrice() : null)
-                    .earnestMoneyPrice(variantPolicy != null ? variantPolicy.getEarnestMoneyPrice() : null)
-                    .downPaymentPrice(variantPolicy != null ? variantPolicy.getDownPaymentPrice() : null)
-                    .build();
-                variantItems.add(variantItem);
             }
-
-            if (!variantItems.isEmpty()) {
-                ConfiguratorResult.ModelItem modelItem = ConfiguratorResult.ModelItem.builder()
-                    .modelCode(model.getModelCode())
-                    .modelName(model.getModelName())
-                    .variants(variantItems)
-                    .build();
-                modelItems.add(modelItem);
+        } else {
+            // 按策略表过滤
+            for (SaleModelModelPolicyPo modelPolicy : activeModelPolicies) {
+                List<ConfiguratorResult.VariantItem> variantItems = buildVariantItems(
+                    saleModelCode, modelPolicy.getModelCode(), modelPolicy, allVariantPolicies, allOptionPolicies, allOptionFamilyPolicies, cmd.getRegionCode());
+                if (!variantItems.isEmpty()) {
+                    modelItems.add(ConfiguratorResult.ModelItem.builder()
+                        .modelCode(modelPolicy.getModelCode())
+                        .modelName(modelPolicy.getMarketingName())
+                        .marketingImage(modelPolicy.getMarketingImage())
+                        .marketingCopy(modelPolicy.getMarketingCopy())
+                        .sortWeight(modelPolicy.getSortWeight() != null ? modelPolicy.getSortWeight() : 0)
+                        .variants(variantItems)
+                        .build());
+                }
             }
         }
 
-        // 3. 获取 Carline 信息
-        MdmProjectionCarlinePo carline = mdmProjectionService.getCarlineOptional(carlineCode).orElse(null);
+        return buildResult(saleModelCode, saleModel.getModelName(), modelItems);
+    }
 
+    private ConfiguratorResult buildResult(String saleModelCode, String modelName, List<ConfiguratorResult.ModelItem> modelItems) {
         return ConfiguratorResult.builder()
-            .carlineCode(carlineCode)
-            .carlineName(carline != null ? carline.getCarlineName() : null)
+            .saleModelCode(saleModelCode)
+            .modelName(modelName)
             .models(modelItems)
             .build();
+    }
+
+    /**
+     * 组装某个 Model 下的 Variant 列表
+     */
+    private List<ConfiguratorResult.VariantItem> buildVariantItems(
+            String saleModelCode, String modelCode, SaleModelModelPolicyPo modelPolicy,
+            List<SaleModelVariantPolicyPo> allVariantPolicies,
+            List<SaleModelOptionPolicyPo> allOptionPolicies,
+            List<SaleModelOptionFamilyPolicyPo> allOptionFamilyPolicies,
+            String regionCode) {
+
+        // 筛选该 Model 下的 Variant 策略
+        List<SaleModelVariantPolicyPo> variantPolicies = allVariantPolicies.stream()
+            .filter(p -> modelCode.equals(p.getModelCode()))
+            .collect(Collectors.toList());
+
+        // 空表=ALL 全开：如果该 SaleModel 没有任何 Variant 策略，无法组装
+        if (allVariantPolicies.isEmpty()) {
+            log.debug("Variant 策略表为空，saleModelCode: {}, modelCode: {}", saleModelCode, modelCode);
+            return new ArrayList<>();
+        }
+
+        List<ConfiguratorResult.VariantItem> variantItems = new ArrayList<>();
+        for (SaleModelVariantPolicyPo variantPolicy : variantPolicies) {
+            // 过滤不可售 Variant
+            if (!"active".equals(variantPolicy.getSaleStatus())) {
+                continue;
+            }
+            if (variantPolicy.getVariantPrice() == null) {
+                continue;
+            }
+            // 区域过滤（简化：非空时检查）
+            if (regionCode != null && !regionCode.isEmpty()
+                && variantPolicy.getAvailableRegions() != null && !variantPolicy.getAvailableRegions().isEmpty()) {
+                if (!variantPolicy.getAvailableRegions().contains(regionCode)) {
+                    continue;
+                }
+            }
+
+            String variantCode = variantPolicy.getVariantCode();
+
+            // 筛选该 Variant 下的 Option 策略，按 optionFamilyCode 分组
+            List<SaleModelOptionPolicyPo> variantOptionPolicies = allOptionPolicies.stream()
+                .filter(p -> modelCode.equals(p.getModelCode()) && variantCode.equals(p.getVariantCode()))
+                .filter(p -> "active".equals(p.getSaleStatus()) && p.getOptionPrice() != null)
+                .collect(Collectors.toList());
+
+            // 按 optionFamilyCode 分组
+            Map<String, List<SaleModelOptionPolicyPo>> familyGroups = variantOptionPolicies.stream()
+                .collect(Collectors.groupingBy(SaleModelOptionPolicyPo::getOptionFamilyCode, LinkedHashMap::new, Collectors.toList()));
+
+            // 构建 selectableFamilies
+            List<ConfiguratorResult.SelectableFamily> families = new ArrayList<>();
+            for (Map.Entry<String, List<SaleModelOptionPolicyPo>> entry : familyGroups.entrySet()) {
+                String familyCode = entry.getKey();
+                List<SaleModelOptionPolicyPo> familyOptions = entry.getValue();
+
+                // 查找 OptionFamily 营销策略
+                SaleModelOptionFamilyPolicyPo familyPolicy = allOptionFamilyPolicies.stream()
+                    .filter(fp -> familyCode.equals(fp.getOptionFamilyCode()))
+                    .findFirst().orElse(null);
+
+                List<ConfiguratorResult.OptionItem> optionItems = familyOptions.stream()
+                    .map(po -> ConfiguratorResult.OptionItem.builder()
+                        .optionCode(po.getOptionCode())
+                        .optionName(po.getMarketingTitle())
+                        .saleStatus(po.getSaleStatus())
+                        .price(po.getOptionPrice())
+                        .image(po.getMarketingImage())
+                        .bundleWith(parseJsonToList(po.getBundleWith()))
+                        .mutexWith(parseJsonToList(po.getMutexWith()))
+                        .build())
+                    .collect(Collectors.toList());
+
+                families.add(ConfiguratorResult.SelectableFamily.builder()
+                    .optionFamilyCode(familyCode)
+                    .optionFamilyName(familyPolicy != null ? familyPolicy.getMarketingTitle() : familyCode)
+                    .marketingImage(familyPolicy != null ? familyPolicy.getMarketingImage() : null)
+                    .marketingDesc(familyPolicy != null ? familyPolicy.getMarketingDesc() : null)
+                    .sortWeight(familyPolicy != null && familyPolicy.getSortWeight() != null ? familyPolicy.getSortWeight() : 0)
+                    .options(optionItems)
+                    .build());
+            }
+
+            variantItems.add(ConfiguratorResult.VariantItem.builder()
+                .variantCode(variantCode)
+                .variantName(variantPolicy.getMarketingName())
+                .marketingImage(variantPolicy.getMarketingImage())
+                .marketingCopy(variantPolicy.getMarketingCopy())
+                .sortWeight(variantPolicy.getSortWeight() != null ? variantPolicy.getSortWeight() : 0)
+                .variantPrice(variantPolicy.getVariantPrice())
+                .earnestMoneyPrice(variantPolicy.getEarnestMoneyPrice())
+                .downPaymentPrice(variantPolicy.getDownPaymentPrice())
+                .selectableFamilies(families)
+                .build());
+        }
+
+        return variantItems;
     }
 
     /**
@@ -1467,7 +1574,10 @@ public class SaleModelAppService {
     /**
      * 获取 Configuration 白名单
      */
-    public List<SaleModelConfigPolicyPo> getConfigPolicies(String saleModelCode) {
+    public List<SaleModelConfigPolicyPo> getConfigPolicies(String saleModelCode, String variantCode) {
+        if (variantCode != null && !variantCode.isEmpty()) {
+            return configPolicyRepository.findBySaleModelCodeAndVariantCode(saleModelCode, variantCode);
+        }
         return configPolicyRepository.findBySaleModelCode(saleModelCode);
     }
 
@@ -1623,7 +1733,7 @@ public class SaleModelAppService {
         Set<String> uniqueConfigCodes = new LinkedHashSet<>(cmd.getConfigurationCodes());
 
         for (String configurationCode : uniqueConfigCodes) {
-            // 检查是否已存在
+            // 检查是否已存在（按完整归属键查找）
             Optional<SaleModelConfigPolicyPo> existing = configPolicyRepository.findBySaleModelCodeAndConfigCode(
                 cmd.getSaleModelCode(), configurationCode);
 
@@ -1644,6 +1754,8 @@ public class SaleModelAppService {
                 // 不存在则创建
                 SaleModelConfigPolicyPo po = SaleModelConfigPolicyPo.builder()
                     .saleModelCode(cmd.getSaleModelCode())
+                    .modelCode(cmd.getModelCode())
+                    .variantCode(cmd.getVariantCode())
                     .configurationCode(configurationCode)
                     .status(cmd.getStatus() != null ? cmd.getStatus() : "active")
                     .build();
@@ -1730,6 +1842,7 @@ public class SaleModelAppService {
 
         SaleModelOptionPolicyPo po = SaleModelOptionPolicyPo.builder()
             .saleModelCode(cmd.getSaleModelCode())
+            .modelCode(cmd.getModelCode())
             .optionCode(cmd.getOptionCode())
             .variantCode(cmd.getVariantCode())
             .optionFamilyCode(cmd.getOptionFamilyCode())
@@ -2124,6 +2237,7 @@ public class SaleModelAppService {
             java.util.Date now = new java.util.Date();
             SaleModelVariantPolicyPo po = SaleModelVariantPolicyPo.builder()
                 .saleModelCode(cmd.getSaleModelCode())
+                .modelCode(cmd.getModelCode())
                 .variantCode(cmd.getVariantCode())
                 .saleStatus(cmd.getSaleStatus() != null ? cmd.getSaleStatus() : "active")
                 .variantPrice(cmd.getVariantPrice())

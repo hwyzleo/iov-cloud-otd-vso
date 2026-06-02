@@ -19,6 +19,16 @@ public class CreateConfigPolicyCmd {
     private String saleModelCode;
 
     /**
+     * Model 编码
+     */
+    private String modelCode;
+
+    /**
+     * Variant 编码
+     */
+    private String variantCode;
+
+    /**
      * Configuration 编码列表
      */
     @NotEmpty(message = "Configuration编码列表不能为空")

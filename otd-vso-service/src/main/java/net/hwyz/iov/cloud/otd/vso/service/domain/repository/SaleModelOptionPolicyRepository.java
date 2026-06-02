@@ -9,6 +9,7 @@ public interface SaleModelOptionPolicyRepository {
     Optional<SaleModelOptionPolicyPo> findBySaleModelCodeAndOptionCode(String saleModelCode, String optionCode);
     List<SaleModelOptionPolicyPo> findBySaleModelCode(String saleModelCode);
     List<SaleModelOptionPolicyPo> findBySaleModelCodeAndOptionCodes(String saleModelCode, List<String> optionCodes);
+    List<SaleModelOptionPolicyPo> findBySaleModelCodeAndModelCodeAndVariantCode(String saleModelCode, String modelCode, String variantCode);
     void save(SaleModelOptionPolicyPo po);
     void update(SaleModelOptionPolicyPo po);
     void delete(Long id);

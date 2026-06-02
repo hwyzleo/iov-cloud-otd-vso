@@ -7,6 +7,8 @@ import java.util.Optional;
 public interface SaleModelConfigPolicyRepository {
     Optional<SaleModelConfigPolicyPo> findBySaleModelCodeAndConfigCode(String saleModelCode, String configurationCode);
     List<SaleModelConfigPolicyPo> findBySaleModelCode(String saleModelCode);
+    List<SaleModelConfigPolicyPo> findBySaleModelCodeAndVariantCode(String saleModelCode, String variantCode);
+    List<SaleModelConfigPolicyPo> findBySaleModelCodeAndModelCodeAndVariantCode(String saleModelCode, String modelCode, String variantCode);
     boolean existsBySaleModelCode(String saleModelCode);
     void save(SaleModelConfigPolicyPo po);
     void update(SaleModelConfigPolicyPo po);

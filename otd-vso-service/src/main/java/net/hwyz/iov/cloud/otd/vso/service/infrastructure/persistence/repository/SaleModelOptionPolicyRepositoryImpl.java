@@ -36,6 +36,15 @@ public class SaleModelOptionPolicyRepositoryImpl implements SaleModelOptionPolic
     }
 
     @Override
+    public List<SaleModelOptionPolicyPo> findBySaleModelCodeAndModelCodeAndVariantCode(String saleModelCode, String modelCode, String variantCode) {
+        LambdaQueryWrapper<SaleModelOptionPolicyPo> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(SaleModelOptionPolicyPo::getSaleModelCode, saleModelCode)
+               .eq(SaleModelOptionPolicyPo::getModelCode, modelCode)
+               .eq(SaleModelOptionPolicyPo::getVariantCode, variantCode);
+        return mapper.selectList(wrapper);
+    }
+
+    @Override
     public void save(SaleModelOptionPolicyPo po) {
         mapper.insert(po);
     }

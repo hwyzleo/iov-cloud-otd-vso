@@ -241,9 +241,10 @@ classDiagram
 |------|------|---------|
 | `tb_sale_model` | 销售车型主表（1:1 关联 Carline，含 carlineCode；起售价/意向金/定金下沉至 Variant 策略层） | US-001, US-016 |
 | `tb_sale_model_model_policy` | Model 销售策略（saleStatus/区域/渠道/营销元数据，不直接定价；空表=ALL 全开），归属键 (saleModelCode, modelCode) | US-022, US-003, US-004, US-021 |
-| `tb_sale_model_variant_policy` | Variant 销售策略（variantPrice/earnestMoneyPrice/downPaymentPrice/saleStatus/区域/渠道/营销元数据；空表=ALL 全开但价格必填），归属键 (saleModelCode, variantCode) | US-022, US-001, US-003, US-004, US-007, US-021 |
-| `tb_sale_model_config_policy` | Configuration 销售白名单（空表=ALL 全开），归属键 (saleModelCode, variantCode, configurationCode) | US-022, US-003, US-004, US-007 |
-| `tb_sale_model_option_policy` | OptionCode 销售策略（价格/区域/渠道/上下架；未配置即过滤），归属键 (saleModelCode, variantCode, optionCode) | US-022, US-003, US-004, US-007, US-021 |
+| `tb_sale_model_variant_policy` | Variant 销售策略（variantPrice/earnestMoneyPrice/downPaymentPrice/saleStatus/区域/渠道/营销元数据；空表=ALL 全开但价格必填），归属键 (saleModelCode, modelCode, variantCode) | US-022, US-001, US-003, US-004, US-007, US-021 |
+| `tb_sale_model_config_policy` | Configuration 销售白名单（空表=ALL 全开），归属键 (saleModelCode, modelCode, variantCode, configurationCode) | US-022, US-003, US-004, US-007 |
+| `tb_sale_model_option_policy` | OptionCode 销售策略（价格/区域/渠道/上下架；未配置即过滤），归属键 (saleModelCode, modelCode, variantCode, optionCode) | US-022, US-003, US-004, US-007, US-021 |
+| `tb_sale_model_option_family_policy` | OptionFamily 营销策略（营销标题/图片/描述/排序），归属键 (saleModelCode, optionFamilyCode) | US-021 |
 | `mdm_projection_carline` | MDM Carline 本地投影（含下属 modelCodes[]） | US-023, US-016 |
 | `mdm_projection_model` | MDM Model 本地投影（含 carlineCode、下属 variantCodes[]） | US-023, US-021 |
 | `mdm_projection_variant` | MDM Variant 本地投影 | US-023, US-021 |
@@ -1410,39 +1411,42 @@ sequenceDiagram
 
 ### 4.16 选配器数据组装与实时报价流程（US-021）
 
-**背景**：CR-011 将选配器由"单 Variant 的 selectableFamilies"重构为"车系 → Model → Variant"三段式逐层选择；Model/Variant 两层叠加销售策略过滤与营销元数据，价格下沉至 Variant 层。报价校验顺序与下单六步对齐（去防刷单步）。
+**背景**：CR-011 将选配器由"单 Variant 的 selectableFamilies"重构为"车系 → Model → Variant"三段式逐层选择；Model/Variant 两层叠加销售策略过滤与营销元数据，价格下沉至 Variant 层。报价校验顺序与下单六步对齐（去防刷单步）。CR-014 将数据来源由 MDM 投影改为 VSO 销售策略表自包含，variant/config/option 三层策略表补充 model_code 字段，选配器返回结构顶层由 carlineCode/carlineName 改为 saleModelCode/modelName。
 
 **配置器数据组装流程（三段式）**：
 
 ```mermaid
 sequenceDiagram
     participant U as C端用户
-    participant MC as MobileVsoController
+    participant MC as MobileSaleModelController
     participant SMAS as SaleModelAppService
-    participant MDM as MDM 投影 (本地+Redis)
-    participant MPOL as Model/Variant PolicyRepository
-    participant POL as OptionPolicyRepository
+    participant MREPO as ModelPolicyRepository
+    participant VREPO as VariantPolicyRepository
+    participant OREPO as OptionPolicyRepository
+    participant OFREPO as OptionFamilyPolicyRepository
 
     U->>MC: GET /configurator/{saleModelCode}?regionCode=xxx
     MC->>SMAS: getConfigurator(saleModelCode, regionCode)
-    SMAS->>SMAS: validate SaleModel (active, time window, region)
+    SMAS->>SMAS: validate SaleModel (active, time window)
 
-    SMAS->>MDM: getCarlineChain(carlineCode)
-    MDM-->>SMAS: carline + models[] + variants[] + optionTree
+    SMAS->>MREPO: findBySaleModelCode(saleModelCode)
+    MREPO-->>SMAS: modelPolicies[]
+    SMAS->>SMAS: 过滤可售 Model (saleStatus=active; 空表=ALL 全开)
 
-    SMAS->>MPOL: findModelPolicy / findVariantPolicy(saleModelCode)
-    MPOL-->>SMAS: modelPolicies[] / variantPolicies[]
+    SMAS->>VREPO: findBySaleModelCode(saleModelCode)
+    VREPO-->>SMAS: allVariantPolicies[]
+    SMAS->>SMAS: 按 modelCode 分组，过滤可售 Variant (saleStatus=active, variantPrice 非空, 区域命中)
 
-    SMAS->>SMAS: Model 过滤 (off_shelf/区域渠道未命中; 空表=ALL 全开)
-    SMAS->>SMAS: Variant 过滤 (off_shelf/variantPrice=null/区域时间窗; 空表=ALL 全开)
-    SMAS->>SMAS: 移除无可售 Variant 的 Model
+    SMAS->>OREPO: findBySaleModelCode(saleModelCode)
+    OREPO-->>SMAS: allOptionPolicies[]
+    SMAS->>SMAS: 按 modelCode+variantCode 分组，按 optionFamilyCode 聚合
 
-    SMAS->>POL: findOptionPolicy(saleModelCode, variantCode)
-    POL-->>SMAS: optionPolicies[]
-    SMAS->>SMAS: 每个 Variant 组装 standardOptions + selectableFamilies (沿用 CR-010 过滤)
+    SMAS->>OFREPO: findBySaleModelCode(saleModelCode)
+    OFREPO-->>SMAS: allOptionFamilyPolicies[]
+    SMAS->>SMAS: 关联 Family 营销元数据
 
-    SMAS-->>MC: { carlineCode, carlineName, models[ {modelCode, ..., variants[ {variantCode, variantPrice, ...} ]} ] }
-    MC-->>U: 三段式选配器结构
+    SMAS-->>MC: { saleModelCode, modelName, models[ {modelCode, ..., variants[ {variantCode, variantPrice, ..., selectableFamilies[]} ]} ] }
+    MC-->>U: 三段式选配器结构（零 MDM 投影依赖）
 ```
 
 **实时报价流程（六步）**：
@@ -1450,7 +1454,7 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
     participant U as C端用户
-    participant MC as MobileVsoController
+    participant MC as MobileSaleModelController
     participant SMAS as SaleModelAppService
     participant POL as Policy Repositories
     participant MDM as MDM Service (实时)
@@ -1475,18 +1479,21 @@ sequenceDiagram
 
 | 场景 | 策略 | 说明 |
 |------|------|------|
-| 选配器只读展示（三段式数据组装） | 可降级到本地投影 | 标注"数据可能延迟"，用户可见 |
-| 实时报价（下单前） | 不允许降级 | 返回服务暂不可用提示，避免脏数据下单 |
+| 选配器只读展示（三段式数据组装） | VSO 策略表自包含，不依赖 MDM | 无需降级，数据完全来自 VSO 表 |
+| 实时报价（下单前） | 不允许降级（MDM resolveConfiguration） | 返回服务暂不可用提示，避免脏数据下单 |
 
 **关键设计决策**：
 
 | 维度 | 决策 | 理由 |
 |------|------|------|
-| 三段式结构 | carline → models[] → variants[] | 与 SaleModel 1:1 Carline 粒度对齐，逐层选择 |
+| 三段式结构 | saleModel → models[] → variants[] | 与 SaleModel 1:1 Carline 粒度对齐，逐层选择 |
+| 数据来源 | VSO 销售策略表自包含，不依赖 MDM 投影 | MDM 投影仅用于管理端同步辅助参考，手机端数据完全自包含 |
 | Model/Variant 空表语义 | ALL 全开 | 降低运营初始配置成本，逐步精细化 |
+| 展示名称 | 统一使用营销名称（marketing_name/marketing_title） | 不冗余 MDM 名称，管理端可自定义覆盖 |
 | 价格归属 | variantPrice/earnestMoneyPrice/downPaymentPrice 落 Variant 层 | SaleModel 不再直接定价，起售价为派生值 |
 | 报价计价 | variantPrice + Σ(optionPrice) | basePrice 废弃，价格来源唯一化 |
-| 未配置策略的 option | 直接过滤不展示 | 价格必须显式配置才能上架（MDM 无价格） |
+| 未配置策略的 option | 直接过滤不展示 | 价格必须显式配置才能上架 |
+| model_code 字段 | variant/config/option 三层策略表均加 model_code | VSO 表体系自包含完整树形结构，无需关联 MDM 投影遍历 Model→Variant→Option |
 
 ### 4.17 销售策略管理流程（US-022）
 
@@ -1497,9 +1504,9 @@ sequenceDiagram
 | 层级 | 表 | 归属键 | 空表语义 | 价格 |
 |------|------|--------|----------|------|
 | Model | `tb_sale_model_model_policy` | (saleModelCode, modelCode) | ALL 全开 | 不定价 |
-| Variant | `tb_sale_model_variant_policy` | (saleModelCode, variantCode) | ALL 全开（价格仍必填） | variantPrice/earnestMoneyPrice/downPaymentPrice |
-| Configuration | `tb_sale_model_config_policy` | (saleModelCode, variantCode, configurationCode) | ALL 全开 | 无（指导价来自 MDM 投影） |
-| Option | `tb_sale_model_option_policy` | (saleModelCode, variantCode, optionCode) | 未配置即过滤 | optionPrice |
+| Variant | `tb_sale_model_variant_policy` | (saleModelCode, modelCode, variantCode) | ALL 全开（价格仍必填） | variantPrice/earnestMoneyPrice/downPaymentPrice |
+| Configuration | `tb_sale_model_config_policy` | (saleModelCode, modelCode, variantCode, configurationCode) | ALL 全开 | 无（指导价来自 MDM 投影） |
+| Option | `tb_sale_model_option_policy` | (saleModelCode, modelCode, variantCode, optionCode) | 未配置即过滤 | optionPrice |
 
 **Model / Variant 层校验流程**：
 
@@ -1754,8 +1761,8 @@ sequenceDiagram
 
 **GET** `/api/mobile/saleModel/v1/{saleModelCode}/configurator`
 - Query: `regionCode` (必填)
-- Response: `ConfiguratorResponse` — 三段式选配器数据 `{ carlineCode, carlineName, models[ { modelCode, modelName, marketingName?, saleStatus, sortWeight, variants[ { variantCode, variantName, variantPrice, earnestMoneyPrice, downPaymentPrice, standardOptions[], selectableFamilies[] } ] } ] }`
-- 说明：Model/Variant 两层叠加销售策略过滤（空表 ALL 全开），移除无可售 Variant 的 Model；Option 过滤沿用 CR-010 逻辑
+- Response: `ConfiguratorResponse` — 三段式选配器数据 `{ saleModelCode, modelName, models[ { modelCode, modelName, marketingImage?, marketingCopy?, sortWeight, variants[ { variantCode, variantName, marketingImage?, marketingCopy?, sortWeight, variantPrice, earnestMoneyPrice, downPaymentPrice, selectableFamilies[ { optionFamilyCode, optionFamilyName, marketingImage?, marketingDesc?, sortWeight, options[ { optionCode, optionName, saleStatus, price, image?, marketingCopy?, bundleWith[], mutexWith[] } ] } ] } ] } ] }`
+- 说明：数据全部来自 VSO 销售策略表自包含（不依赖 MDM 投影）；Model/Variant 两层叠加销售策略过滤（空表 ALL 全开），移除无可售 Variant 的 Model；Option 按 optionFamilyCode 分组组装 selectableFamilies；展示名称统一使用营销名称；model_code 字段使 VSO 表体系自包含完整树形结构
 
 **POST** `/api/mobile/saleModel/v1/quote`
 - Request: `{ saleModelCode, modelCode, variantCode, optionCodes[], regionCode }`
@@ -2137,7 +2144,7 @@ sequenceDiagram
 | US-018 | §4.4(签名规范), §5.5, §3.2(vso_callback_log) | 支付回调处理，含 HMAC-SHA256 + timestamp/nonce 验签 |
 | US-019 | §3.2(vso_config_timeout), §4.5(多实例警告), Domain(TimeoutNotifyService) | 超时调度，含多实例部署警告 |
 | US-020 | Domain(OrderLockService), §4.3 | 分布式锁并发控制 |
-| US-021 | §4.16(三段式选配器+六步报价), §5.1(configurator/quote APIs) | 选配器三段式 carline→models→variants，Model/Variant 策略过滤，报价六步对齐下单 |
+| US-021 | §4.16(三段式选配器+六步报价), §5.1(configurator/quote APIs) | 选配器三段式 saleModel→models→variants，数据来自 VSO 策略表自包含（零 MDM 依赖），Model/Variant 策略过滤，报价六步对齐下单 |
 | US-022 | §4.17(四层销售策略管理流程), §5.3.2(model/variant/config/option Policy APIs) | Model/Variant/Configuration/Option 四层策略 CRUD/批量导入/必选层警告，归属键含 variantCode |
 | US-023 | §4.18(MDM 投影流程), §3.2(mdm_projection_* 表) | MDM 本地投影五类对象（Carline/Model/Variant/Configuration/Option），Kafka 订阅含 carline/model+初始化+强制同步 |
 
@@ -2185,3 +2192,4 @@ sequenceDiagram
 | 2026-06-01 | CR-013    | Changed/Added | 销售车型粒度上提至 Carline 重构（对齐 requirements.md CR-011）：① §3.1 数据模型 Wishlist 新增 modelCode/variantCode，VehicleInfo 新增 carlineCode + modelPolicySnapshot/variantPolicySnapshot/configPolicySnapshot 五层快照字段；② §3.2 tb_sale_model 改 1:1 Carline，新增 tb_sale_model_model_policy/tb_sale_model_variant_policy 与 mdm_projection_carline/model 表，Config/Option 策略归属键扩为 (saleModelCode, variantCode, ...)，快照固化五层；③ §4.1 下单流程改为六步校验+五层快照固化（替换遗留 VMD buildConfig 调用为 MDM）；④ §4.3 改配新增跨 Model/SaleModel 边界校验与 variantCode 变更；⑤ §4.16 选配器重写为三段式 carline→models→variants + 报价六步；⑥ §4.17 销售策略扩展为 Model/Variant/Configuration/Option 四层 + 空表语义；⑦ §4.18 MDM 投影扩为五类对象 + carline/model Kafka 主题；⑧ §5.1/§5.2/§5.3.1/§5.3.2 API 同步（卡片 carlineCode/startingPrice、三段式选配器、下单/报价/改配入参增 modelCode/variantCode、SaleModel 改 carlineCode、新增 Model/Variant 策略 API）；⑨ §5.7 新增错误码 301040~301044，301038 描述更新（Variant 锁定）、301010 说明 variantCode 来自入参；⑩ §6 Coverage Mapping 与 §7 Impact Analysis 同步更新 |
 | 2026-06-01 | CR-014    | Added | §5.3.2 新增 Model/Variant 策略详情查询接口：GET `/{saleModelCode}/modelPolicy/{modelCode}` 获取单个 Model 策略详情，GET `/{saleModelCode}/variantPolicy/{variantCode}` 获取单个 Variant 策略详情；未配置策略时返回 404 |
 | 2026-06-01 | CR-015    | Added | §4.19 新增删除销售车型级联标记失效流程：删除销售车型时在同一事务内级联将 Model/Variant/Configuration/Option 四层销售策略标记为失效（off_shelf），保留历史订单快照可追溯性；更新 §5.3.1 DELETE API 说明；更新 §6 Coverage Mapping 补充 US-016 设计章节引用；同步更新 requirements.md US-016 补充级联标记失效业务规则 |
+| 2026-06-02 | CR-016    | Changed | 选配器重构为 VSO 策略表自包含：① §3.2 variant/config/option 三层策略表归属键扩展为含 model_code，新增 tb_sale_model_option_family_policy 表；② §4.16 选配器数据来源由 MDM 投影改为 VSO 销售策略表自包含（零 MDM 依赖），序列图更新；③ §4.17 四层归属表归属键同步更新；④ §5.1 ConfiguratorResponse 顶层由 carlineCode/carlineName 改为 saleModelCode/modelName，内部类 ModelItem/VariantItem/SelectableFamily/OptionItem 全部启用，展示名称统一使用营销名称；⑤ 选配器只读展示不再依赖 MDM 投影（MDM 仅用于管理端同步辅助参考和报价时 resolveConfiguration） |
