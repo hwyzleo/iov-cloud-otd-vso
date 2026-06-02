@@ -32,4 +32,6 @@ public class VariantPolicyAvailableVo {
     private BigDecimal earnestMoneyPrice;
 
     private BigDecimal downPaymentPrice;
+
+    private String marketingName;
 }

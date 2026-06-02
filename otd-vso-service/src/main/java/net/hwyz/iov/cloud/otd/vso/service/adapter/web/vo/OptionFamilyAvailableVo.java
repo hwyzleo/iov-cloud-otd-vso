@@ -86,5 +86,10 @@ public class OptionFamilyAvailableVo {
          * 价格（无策略时为 null）
          */
         private BigDecimal optionPrice;
+
+        /**
+         * 营销标题（无策略时为 null）
+         */
+        private String marketingTitle;
     }
 }

@@ -22,4 +22,6 @@ public class ModelPolicyAvailableVo {
     private Boolean inPolicy;
 
     private String saleStatus;
+
+    private String marketingName;
 }

@@ -1608,6 +1608,7 @@ public class SaleModelAppService {
                     .inPolicy(policy != null)
                     .saleStatus(policy != null ? policy.getSaleStatus() : null)
                     .optionPrice(policy != null ? policy.getOptionPrice() : null)
+                    .marketingTitle(policy != null ? policy.getMarketingTitle() : null)
                     .build();
                 optionVos.add(optionVo);
             }
@@ -1915,6 +1916,7 @@ public class SaleModelAppService {
                 .status(model.getStatus())
                 .inPolicy(policy != null)
                 .saleStatus(policy != null ? policy.getSaleStatus() : null)
+                .marketingName(policy != null ? policy.getMarketingName() : null)
                 .build();
             result.add(vo);
         }
@@ -2062,6 +2064,7 @@ public class SaleModelAppService {
                 .variantPrice(policy != null ? policy.getVariantPrice() : null)
                 .earnestMoneyPrice(policy != null ? policy.getEarnestMoneyPrice() : null)
                 .downPaymentPrice(policy != null ? policy.getDownPaymentPrice() : null)
+                .marketingName(policy != null ? policy.getMarketingName() : null)
                 .build();
             result.add(vo);
         }
