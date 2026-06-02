@@ -1,14 +1,19 @@
 package net.hwyz.iov.cloud.otd.vso.service.application.service;
 
 import net.hwyz.iov.cloud.otd.vso.service.adapter.web.vo.ConfigPolicyAvailableVo;
+import net.hwyz.iov.cloud.otd.vso.service.adapter.web.vo.OptionFamilyAvailableVo;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.CreateConfigPolicyCmd;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.CreateOptionPolicyCmd;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.SaleModelConfigPolicyRepository;
+import net.hwyz.iov.cloud.otd.vso.service.domain.repository.SaleModelOptionFamilyPolicyRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.SaleModelOptionPolicyRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.SaleModelRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.service.MdmProjectionService;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.MdmProjectionConfigurationPo;
+import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.MdmProjectionOptionFamilyPo;
+import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.MdmProjectionOptionPo;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.SaleModelConfigPolicyPo;
+import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.SaleModelOptionFamilyPolicyPo;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.SaleModelOptionPolicyPo;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.SaleModelPo;
 import org.junit.jupiter.api.DisplayName;
@@ -41,6 +46,9 @@ class SaleModelAppServicePolicyTest {
 
     @Mock
     private SaleModelOptionPolicyRepository optionPolicyRepository;
+
+    @Mock
+    private SaleModelOptionFamilyPolicyRepository optionFamilyPolicyRepository;
 
     @Mock
     private MdmProjectionService mdmProjectionService;
@@ -418,6 +426,292 @@ class SaleModelAppServicePolicyTest {
 
             assertEquals(1, result);
             verify(optionPolicyRepository).delete(1L);
+        }
+    }
+
+    @Nested
+    @DisplayName("getAvailableOptionPolicies 方法")
+    class GetAvailableOptionPoliciesTest {
+
+        @Test
+        @DisplayName("按 variantCode 获取可用 OptionCode 列表成功")
+        void should_get_available_option_policies_by_variant_code() {
+            SaleModelPo saleModel = SaleModelPo.builder()
+                .saleModelCode(SALE_MODEL_CODE)
+                .carlineCode(CARLINE_CODE)
+                .build();
+
+            MdmProjectionConfigurationPo config = MdmProjectionConfigurationPo.builder()
+                .configurationCode(CONFIG_CODE)
+                .variantCode(VARIANT_CODE)
+                .optionCodes("[\"OPT_001\",\"OPT_002\"]")
+                .build();
+
+            MdmProjectionOptionFamilyPo family = MdmProjectionOptionFamilyPo.builder()
+                .optionFamilyCode("COLOR")
+                .optionFamilyName("车身颜色")
+                .build();
+
+            MdmProjectionOptionPo option1 = MdmProjectionOptionPo.builder()
+                .optionCode("OPT_001")
+                .optionFamilyCode("COLOR")
+                .optionName("珍珠白")
+                .build();
+
+            MdmProjectionOptionPo option2 = MdmProjectionOptionPo.builder()
+                .optionCode("OPT_002")
+                .optionFamilyCode("COLOR")
+                .optionName("星空黑")
+                .build();
+
+            when(saleModelRepository.findBySaleModelCode(SALE_MODEL_CODE))
+                .thenReturn(Optional.of(saleModel));
+            when(mdmProjectionService.getConfigurationsByVariant(VARIANT_CODE))
+                .thenReturn(Arrays.asList(config));
+            when(mdmProjectionService.getAllOptionFamilies())
+                .thenReturn(Arrays.asList(family));
+            when(mdmProjectionService.getOptionsByOptionFamily("COLOR"))
+                .thenReturn(Arrays.asList(option1, option2));
+            when(optionPolicyRepository.findBySaleModelCode(SALE_MODEL_CODE))
+                .thenReturn(List.of());
+            when(optionFamilyPolicyRepository.findBySaleModelCode(SALE_MODEL_CODE))
+                .thenReturn(List.of());
+
+            List<OptionFamilyAvailableVo> result = saleModelAppService.getAvailableOptionPolicies(SALE_MODEL_CODE, VARIANT_CODE);
+
+            assertEquals(1, result.size());
+            assertEquals("COLOR", result.get(0).getOptionFamilyCode());
+            assertEquals("车身颜色", result.get(0).getOptionFamilyName());
+            assertEquals(2, result.get(0).getOptions().size());
+            assertEquals("OPT_001", result.get(0).getOptions().get(0).getOptionCode());
+            assertEquals("OPT_002", result.get(0).getOptions().get(1).getOptionCode());
+            assertFalse(result.get(0).getOptions().get(0).getInPolicy());
+            assertFalse(result.get(0).getOptions().get(1).getInPolicy());
+        }
+
+        @Test
+        @DisplayName("已有销售策略的 OptionCode 应标记 inPolicy=true")
+        void should_mark_option_with_policy() {
+            SaleModelPo saleModel = SaleModelPo.builder()
+                .saleModelCode(SALE_MODEL_CODE)
+                .carlineCode(CARLINE_CODE)
+                .build();
+
+            MdmProjectionConfigurationPo config = MdmProjectionConfigurationPo.builder()
+                .configurationCode(CONFIG_CODE)
+                .variantCode(VARIANT_CODE)
+                .optionCodes("[\"OPT_001\"]")
+                .build();
+
+            MdmProjectionOptionFamilyPo family = MdmProjectionOptionFamilyPo.builder()
+                .optionFamilyCode("COLOR")
+                .optionFamilyName("车身颜色")
+                .build();
+
+            MdmProjectionOptionPo option = MdmProjectionOptionPo.builder()
+                .optionCode("OPT_001")
+                .optionFamilyCode("COLOR")
+                .optionName("珍珠白")
+                .build();
+
+            SaleModelOptionPolicyPo policy = SaleModelOptionPolicyPo.builder()
+                .id(1L)
+                .saleModelCode(SALE_MODEL_CODE)
+                .optionCode("OPT_001")
+                .optionFamilyCode("COLOR")
+                .saleStatus("active")
+                .optionPrice(BigDecimal.valueOf(5000))
+                .marketingTitle("珍珠白（推荐）")
+                .build();
+
+            when(saleModelRepository.findBySaleModelCode(SALE_MODEL_CODE))
+                .thenReturn(Optional.of(saleModel));
+            when(mdmProjectionService.getConfigurationsByVariant(VARIANT_CODE))
+                .thenReturn(Arrays.asList(config));
+            when(mdmProjectionService.getAllOptionFamilies())
+                .thenReturn(Arrays.asList(family));
+            when(mdmProjectionService.getOptionsByOptionFamily("COLOR"))
+                .thenReturn(Arrays.asList(option));
+            when(optionPolicyRepository.findBySaleModelCode(SALE_MODEL_CODE))
+                .thenReturn(Arrays.asList(policy));
+            when(optionFamilyPolicyRepository.findBySaleModelCode(SALE_MODEL_CODE))
+                .thenReturn(List.of());
+
+            List<OptionFamilyAvailableVo> result = saleModelAppService.getAvailableOptionPolicies(SALE_MODEL_CODE, VARIANT_CODE);
+
+            assertEquals(1, result.size());
+            OptionFamilyAvailableVo.OptionAvailableVo optionVo = result.get(0).getOptions().get(0);
+            assertTrue(optionVo.getInPolicy());
+            assertEquals(1L, optionVo.getId());
+            assertEquals("active", optionVo.getSaleStatus());
+            assertEquals(BigDecimal.valueOf(5000), optionVo.getOptionPrice());
+            assertEquals("珍珠白（推荐）", optionVo.getMarketingTitle());
+        }
+
+        @Test
+        @DisplayName("不同 variantCode 应返回不同的 OptionCode 列表")
+        void should_return_different_options_for_different_variant_codes() {
+            SaleModelPo saleModel = SaleModelPo.builder()
+                .saleModelCode(SALE_MODEL_CODE)
+                .carlineCode(CARLINE_CODE)
+                .build();
+
+            MdmProjectionConfigurationPo config1 = MdmProjectionConfigurationPo.builder()
+                .configurationCode("CONFIG_001")
+                .variantCode("VARIANT_001")
+                .optionCodes("[\"OPT_001\"]")
+                .build();
+
+            MdmProjectionConfigurationPo config2 = MdmProjectionConfigurationPo.builder()
+                .configurationCode("CONFIG_002")
+                .variantCode("VARIANT_002")
+                .optionCodes("[\"OPT_002\"]")
+                .build();
+
+            MdmProjectionOptionFamilyPo family = MdmProjectionOptionFamilyPo.builder()
+                .optionFamilyCode("COLOR")
+                .optionFamilyName("车身颜色")
+                .build();
+
+            MdmProjectionOptionPo option1 = MdmProjectionOptionPo.builder()
+                .optionCode("OPT_001")
+                .optionFamilyCode("COLOR")
+                .optionName("珍珠白")
+                .build();
+
+            MdmProjectionOptionPo option2 = MdmProjectionOptionPo.builder()
+                .optionCode("OPT_002")
+                .optionFamilyCode("COLOR")
+                .optionName("星空黑")
+                .build();
+
+            when(saleModelRepository.findBySaleModelCode(SALE_MODEL_CODE))
+                .thenReturn(Optional.of(saleModel));
+            when(mdmProjectionService.getAllOptionFamilies())
+                .thenReturn(Arrays.asList(family));
+            when(mdmProjectionService.getOptionsByOptionFamily("COLOR"))
+                .thenReturn(Arrays.asList(option1, option2));
+            when(optionPolicyRepository.findBySaleModelCode(SALE_MODEL_CODE))
+                .thenReturn(List.of());
+            when(optionFamilyPolicyRepository.findBySaleModelCode(SALE_MODEL_CODE))
+                .thenReturn(List.of());
+
+            // VARIANT_001 只有 OPT_001
+            when(mdmProjectionService.getConfigurationsByVariant("VARIANT_001"))
+                .thenReturn(Arrays.asList(config1));
+            List<OptionFamilyAvailableVo> result1 = saleModelAppService.getAvailableOptionPolicies(SALE_MODEL_CODE, "VARIANT_001");
+
+            // VARIANT_002 只有 OPT_002
+            when(mdmProjectionService.getConfigurationsByVariant("VARIANT_002"))
+                .thenReturn(Arrays.asList(config2));
+            List<OptionFamilyAvailableVo> result2 = saleModelAppService.getAvailableOptionPolicies(SALE_MODEL_CODE, "VARIANT_002");
+
+            // 验证返回不同的 OptionCode
+            assertEquals(1, result1.get(0).getOptions().size());
+            assertEquals("OPT_001", result1.get(0).getOptions().get(0).getOptionCode());
+
+            assertEquals(1, result2.get(0).getOptions().size());
+            assertEquals("OPT_002", result2.get(0).getOptions().get(0).getOptionCode());
+        }
+
+        @Test
+        @DisplayName("variantCode 下无 Configuration 时返回空列表")
+        void should_return_empty_list_when_no_configurations() {
+            SaleModelPo saleModel = SaleModelPo.builder()
+                .saleModelCode(SALE_MODEL_CODE)
+                .carlineCode(CARLINE_CODE)
+                .build();
+
+            when(saleModelRepository.findBySaleModelCode(SALE_MODEL_CODE))
+                .thenReturn(Optional.of(saleModel));
+            when(mdmProjectionService.getConfigurationsByVariant(VARIANT_CODE))
+                .thenReturn(List.of());
+
+            List<OptionFamilyAvailableVo> result = saleModelAppService.getAvailableOptionPolicies(SALE_MODEL_CODE, VARIANT_CODE);
+
+            assertTrue(result.isEmpty());
+        }
+
+        @Test
+        @DisplayName("销售车型不存在时应抛出异常")
+        void should_throw_when_sale_model_not_found() {
+            when(saleModelRepository.findBySaleModelCode("NON_EXIST"))
+                .thenReturn(Optional.empty());
+
+            assertThrows(Exception.class, () ->
+                saleModelAppService.getAvailableOptionPolicies("NON_EXIST", VARIANT_CODE));
+        }
+
+        @Test
+        @DisplayName("销售车型无 carlineCode 时返回空列表")
+        void should_return_empty_list_when_no_carline_code() {
+            SaleModelPo saleModel = SaleModelPo.builder()
+                .saleModelCode(SALE_MODEL_CODE)
+                .carlineCode(null)
+                .build();
+
+            when(saleModelRepository.findBySaleModelCode(SALE_MODEL_CODE))
+                .thenReturn(Optional.of(saleModel));
+
+            List<OptionFamilyAvailableVo> result = saleModelAppService.getAvailableOptionPolicies(SALE_MODEL_CODE, VARIANT_CODE);
+
+            assertTrue(result.isEmpty());
+            verify(mdmProjectionService, never()).getConfigurationsByVariant(any());
+        }
+
+        @Test
+        @DisplayName("OptionFamily 营销信息应正确返回")
+        void should_return_option_family_marketing_info() {
+            SaleModelPo saleModel = SaleModelPo.builder()
+                .saleModelCode(SALE_MODEL_CODE)
+                .carlineCode(CARLINE_CODE)
+                .build();
+
+            MdmProjectionConfigurationPo config = MdmProjectionConfigurationPo.builder()
+                .configurationCode(CONFIG_CODE)
+                .variantCode(VARIANT_CODE)
+                .optionCodes("[\"OPT_001\"]")
+                .build();
+
+            MdmProjectionOptionFamilyPo family = MdmProjectionOptionFamilyPo.builder()
+                .optionFamilyCode("COLOR")
+                .optionFamilyName("车身颜色")
+                .build();
+
+            MdmProjectionOptionPo option = MdmProjectionOptionPo.builder()
+                .optionCode("OPT_001")
+                .optionFamilyCode("COLOR")
+                .optionName("珍珠白")
+                .build();
+
+            SaleModelOptionFamilyPolicyPo familyPolicy = SaleModelOptionFamilyPolicyPo.builder()
+                .id(1L)
+                .saleModelCode(SALE_MODEL_CODE)
+                .optionFamilyCode("COLOR")
+                .marketingTitle("选择您喜爱的车身颜色")
+                .marketingImage("https://example.com/color.png")
+                .marketingDesc("多种颜色可选")
+                .build();
+
+            when(saleModelRepository.findBySaleModelCode(SALE_MODEL_CODE))
+                .thenReturn(Optional.of(saleModel));
+            when(mdmProjectionService.getConfigurationsByVariant(VARIANT_CODE))
+                .thenReturn(Arrays.asList(config));
+            when(mdmProjectionService.getAllOptionFamilies())
+                .thenReturn(Arrays.asList(family));
+            when(mdmProjectionService.getOptionsByOptionFamily("COLOR"))
+                .thenReturn(Arrays.asList(option));
+            when(optionPolicyRepository.findBySaleModelCode(SALE_MODEL_CODE))
+                .thenReturn(List.of());
+            when(optionFamilyPolicyRepository.findBySaleModelCode(SALE_MODEL_CODE))
+                .thenReturn(Arrays.asList(familyPolicy));
+
+            List<OptionFamilyAvailableVo> result = saleModelAppService.getAvailableOptionPolicies(SALE_MODEL_CODE, VARIANT_CODE);
+
+            assertEquals(1, result.size());
+            assertEquals("选择您喜爱的车身颜色", result.get(0).getMarketingTitle());
+            assertEquals("https://example.com/color.png", result.get(0).getMarketingImage());
+            assertEquals("多种颜色可选", result.get(0).getMarketingDesc());
         }
     }
 }

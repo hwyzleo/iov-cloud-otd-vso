@@ -1523,9 +1523,10 @@ public class SaleModelAppService {
      * 用于销售策略页展示可选 OptionCode 列表
      *
      * @param saleModelCode 销售车型编码
+     * @param variantCode   变体编码
      * @return MDM 投影中的 OptionCode 列表（按 OptionFamily 分组），标注是否已有销售策略
      */
-    public List<OptionFamilyAvailableVo> getAvailableOptionPolicies(String saleModelCode) {
+    public List<OptionFamilyAvailableVo> getAvailableOptionPolicies(String saleModelCode, String variantCode) {
         // 获取销售车型信息
         SaleModelPo saleModel = saleModelRepository.findBySaleModelCode(saleModelCode)
             .orElseThrow(() -> new SaleModelNotExistException("销售车型不存在: " + saleModelCode));
@@ -1535,35 +1536,17 @@ public class SaleModelAppService {
             return List.of();
         }
 
-        // 1. 获取 Carline 下的所有 Model
-        List<MdmProjectionModelPo> models = mdmProjectionService.getModelsByCarlineCode(carlineCode);
-        if (models.isEmpty()) {
-            return List.of();
-        }
-
-        // 2. 获取每个 Model 下的所有 Variant
-        List<MdmProjectionVariantPo> allVariants = new ArrayList<>();
-        for (MdmProjectionModelPo model : models) {
-            if (model.getVariantCodes() != null) {
-                List<String> variantCodes = cn.hutool.json.JSONUtil.toList(model.getVariantCodes(), String.class);
-                for (String variantCode : variantCodes) {
-                    MdmProjectionVariantPo variant = mdmProjectionService.getVariantOptional(variantCode).orElse(null);
-                    if (variant != null) {
-                        allVariants.add(variant);
-                    }
-                }
-            }
-        }
-
-        // 3. 获取每个 Variant 下的所有 Configuration，然后获取关联的 OptionCode
+        // 1. 获取指定 Variant 下的所有 Configuration，然后获取关联的 OptionCode
         Set<String> allOptionCodes = new HashSet<>();
-        for (MdmProjectionVariantPo variant : allVariants) {
-            List<MdmProjectionConfigurationPo> configs = mdmProjectionService.getConfigurationsByVariant(variant.getVariantCode());
-            for (MdmProjectionConfigurationPo config : configs) {
-                if (config.getOptionCodes() != null) {
-                    allOptionCodes.addAll(cn.hutool.json.JSONUtil.toList(config.getOptionCodes(), String.class));
-                }
+        List<MdmProjectionConfigurationPo> configs = mdmProjectionService.getConfigurationsByVariant(variantCode);
+        for (MdmProjectionConfigurationPo config : configs) {
+            if (config.getOptionCodes() != null) {
+                allOptionCodes.addAll(cn.hutool.json.JSONUtil.toList(config.getOptionCodes(), String.class));
             }
+        }
+
+        if (allOptionCodes.isEmpty()) {
+            return List.of();
         }
 
         // 4. 获取所有 OptionFamily

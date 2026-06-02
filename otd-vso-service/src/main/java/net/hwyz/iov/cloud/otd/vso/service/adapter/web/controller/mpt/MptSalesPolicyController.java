@@ -175,8 +175,10 @@ public class MptSalesPolicyController {
      * 用于销售策略页展示可选 OptionCode 列表
      */
     @GetMapping("/{saleModelCode}/optionPolicy/available")
-    public ApiResponse<?> getAvailableOptionPolicies(@PathVariable String saleModelCode) {
-        return ApiResponse.ok(saleModelAppService.getAvailableOptionPolicies(saleModelCode));
+    public ApiResponse<?> getAvailableOptionPolicies(
+            @PathVariable String saleModelCode,
+            @RequestParam String variantCode) {
+        return ApiResponse.ok(saleModelAppService.getAvailableOptionPolicies(saleModelCode, variantCode));
     }
 
     /**
