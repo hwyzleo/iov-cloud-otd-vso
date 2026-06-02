@@ -1475,9 +1475,10 @@ public class SaleModelAppService {
      * 获取可用的 Configuration 列表（MDM 投影 + 白名单状态）
      *
      * @param saleModelCode 销售车型编码
-     * @return MDM 投影中的 Configuration 列表，标注是否在白名单
+     * @param variantCode   Variant 编码
+     * @return MDM 投影中该 variantCode 下的 Configuration 列表，标注是否在白名单
      */
-    public List<ConfigPolicyAvailableVo> getAvailableConfigPolicies(String saleModelCode) {
+    public List<ConfigPolicyAvailableVo> getAvailableConfigPolicies(String saleModelCode, String variantCode) {
         // 获取销售车型信息
         SaleModelPo saleModel = saleModelRepository.findBySaleModelCode(saleModelCode)
             .orElseThrow(() -> new SaleModelNotExistException("销售车型不存在: " + saleModelCode));
@@ -1487,42 +1488,20 @@ public class SaleModelAppService {
             return List.of();
         }
 
-        // 1. 获取 Carline 下的所有 Model
-        List<MdmProjectionModelPo> models = mdmProjectionService.getModelsByCarlineCode(carlineCode);
-        if (models.isEmpty()) {
+        // 1. 获取该 Variant 下的所有 Configuration
+        List<MdmProjectionConfigurationPo> configs = mdmProjectionService.getConfigurationsByVariant(variantCode);
+        if (configs.isEmpty()) {
             return List.of();
         }
 
-        // 2. 获取每个 Model 下的所有 Variant
-        List<MdmProjectionVariantPo> allVariants = new ArrayList<>();
-        for (MdmProjectionModelPo model : models) {
-            // 从 Model 的 variantCodes 字段获取 Variant 列表
-            if (model.getVariantCodes() != null) {
-                List<String> variantCodes = cn.hutool.json.JSONUtil.toList(model.getVariantCodes(), String.class);
-                for (String variantCode : variantCodes) {
-                    MdmProjectionVariantPo variant = mdmProjectionService.getVariantOptional(variantCode).orElse(null);
-                    if (variant != null) {
-                        allVariants.add(variant);
-                    }
-                }
-            }
-        }
-
-        // 3. 获取每个 Variant 下的所有 Configuration
-        List<MdmProjectionConfigurationPo> allConfigs = new ArrayList<>();
-        for (MdmProjectionVariantPo variant : allVariants) {
-            List<MdmProjectionConfigurationPo> configs = mdmProjectionService.getConfigurationsByVariant(variant.getVariantCode());
-            allConfigs.addAll(configs);
-        }
-
-        // 4. 获取白名单列表
+        // 2. 获取白名单列表
         List<SaleModelConfigPolicyPo> whitelist = configPolicyRepository.findBySaleModelCode(saleModelCode);
         Map<String, SaleModelConfigPolicyPo> whitelistMap = whitelist.stream()
             .collect(Collectors.toMap(SaleModelConfigPolicyPo::getConfigurationCode, po -> po));
 
-        // 5. 合并结果
+        // 3. 合并结果
         List<ConfigPolicyAvailableVo> result = new ArrayList<>();
-        for (MdmProjectionConfigurationPo mdmConfig : allConfigs) {
+        for (MdmProjectionConfigurationPo mdmConfig : configs) {
             SaleModelConfigPolicyPo policy = whitelistMap.get(mdmConfig.getConfigurationCode());
             ConfigPolicyAvailableVo vo = ConfigPolicyAvailableVo.builder()
                 .configurationCode(mdmConfig.getConfigurationCode())

@@ -121,8 +121,9 @@ public class MptSalesPolicyController {
      * 用于销售策略页展示可选 Configuration 列表
      */
     @GetMapping("/{saleModelCode}/configPolicy/available")
-    public ApiResponse<?> getAvailableConfigPolicies(@PathVariable String saleModelCode) {
-        return ApiResponse.ok(saleModelAppService.getAvailableConfigPolicies(saleModelCode));
+    public ApiResponse<?> getAvailableConfigPolicies(@PathVariable String saleModelCode,
+                                                     @RequestParam String variantCode) {
+        return ApiResponse.ok(saleModelAppService.getAvailableConfigPolicies(saleModelCode, variantCode));
     }
 
     /**

@@ -1,11 +1,16 @@
 package net.hwyz.iov.cloud.otd.vso.service.application.service;
 
+import net.hwyz.iov.cloud.otd.vso.service.adapter.web.vo.ConfigPolicyAvailableVo;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.CreateConfigPolicyCmd;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.CreateOptionPolicyCmd;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.SaleModelConfigPolicyRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.SaleModelOptionPolicyRepository;
+import net.hwyz.iov.cloud.otd.vso.service.domain.repository.SaleModelRepository;
+import net.hwyz.iov.cloud.otd.vso.service.domain.service.MdmProjectionService;
+import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.MdmProjectionConfigurationPo;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.SaleModelConfigPolicyPo;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.SaleModelOptionPolicyPo;
+import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.SaleModelPo;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -29,15 +34,23 @@ import static org.mockito.Mockito.*;
 class SaleModelAppServicePolicyTest {
 
     @Mock
+    private SaleModelRepository saleModelRepository;
+
+    @Mock
     private SaleModelConfigPolicyRepository configPolicyRepository;
 
     @Mock
     private SaleModelOptionPolicyRepository optionPolicyRepository;
 
+    @Mock
+    private MdmProjectionService mdmProjectionService;
+
     @InjectMocks
     private SaleModelAppService saleModelAppService;
 
     private static final String SALE_MODEL_CODE = "TEST_MODEL";
+    private static final String CARLINE_CODE = "CARLINE_001";
+    private static final String VARIANT_CODE = "VARIANT_001";
     private static final String CONFIG_CODE = "CONFIG_001";
     private static final String OPTION_CODE = "OPT_001";
 
@@ -128,6 +141,140 @@ class SaleModelAppServicePolicyTest {
 
             assertEquals(1, result.size());
             assertEquals("active", result.get(0).getStatus());
+        }
+    }
+
+    @Nested
+    @DisplayName("getAvailableConfigPolicies 方法")
+    class GetAvailableConfigPoliciesTest {
+
+        @Test
+        @DisplayName("按 variantCode 获取可用 Configuration 列表成功")
+        void should_get_available_config_policies_by_variant_code() {
+            SaleModelPo saleModel = SaleModelPo.builder()
+                .saleModelCode(SALE_MODEL_CODE)
+                .carlineCode(CARLINE_CODE)
+                .build();
+
+            MdmProjectionConfigurationPo config1 = MdmProjectionConfigurationPo.builder()
+                .configurationCode("CONFIG_001")
+                .variantCode(VARIANT_CODE)
+                .optionCodes("[\"OPT_001\",\"OPT_002\"]")
+                .guidePrice(BigDecimal.valueOf(100000))
+                .build();
+
+            MdmProjectionConfigurationPo config2 = MdmProjectionConfigurationPo.builder()
+                .configurationCode("CONFIG_002")
+                .variantCode(VARIANT_CODE)
+                .optionCodes("[\"OPT_003\"]")
+                .guidePrice(BigDecimal.valueOf(120000))
+                .build();
+
+            when(saleModelRepository.findBySaleModelCode(SALE_MODEL_CODE))
+                .thenReturn(Optional.of(saleModel));
+            when(mdmProjectionService.getConfigurationsByVariant(VARIANT_CODE))
+                .thenReturn(Arrays.asList(config1, config2));
+            when(configPolicyRepository.findBySaleModelCode(SALE_MODEL_CODE))
+                .thenReturn(List.of());
+
+            List<ConfigPolicyAvailableVo> result = saleModelAppService.getAvailableConfigPolicies(SALE_MODEL_CODE, VARIANT_CODE);
+
+            assertEquals(2, result.size());
+            assertEquals("CONFIG_001", result.get(0).getConfigurationCode());
+            assertEquals("CONFIG_002", result.get(1).getConfigurationCode());
+            assertFalse(result.get(0).getInWhitelist());
+            assertFalse(result.get(1).getInWhitelist());
+        }
+
+        @Test
+        @DisplayName("白名单中的 Configuration 应标记 inWhitelist=true")
+        void should_mark_whitelisted_configurations() {
+            SaleModelPo saleModel = SaleModelPo.builder()
+                .saleModelCode(SALE_MODEL_CODE)
+                .carlineCode(CARLINE_CODE)
+                .build();
+
+            MdmProjectionConfigurationPo config1 = MdmProjectionConfigurationPo.builder()
+                .configurationCode("CONFIG_001")
+                .variantCode(VARIANT_CODE)
+                .optionCodes("[\"OPT_001\"]")
+                .guidePrice(BigDecimal.valueOf(100000))
+                .build();
+
+            MdmProjectionConfigurationPo config2 = MdmProjectionConfigurationPo.builder()
+                .configurationCode("CONFIG_002")
+                .variantCode(VARIANT_CODE)
+                .optionCodes("[\"OPT_002\"]")
+                .guidePrice(BigDecimal.valueOf(120000))
+                .build();
+
+            SaleModelConfigPolicyPo policy = SaleModelConfigPolicyPo.builder()
+                .id(1L)
+                .saleModelCode(SALE_MODEL_CODE)
+                .variantCode(VARIANT_CODE)
+                .configurationCode("CONFIG_001")
+                .status("active")
+                .build();
+
+            when(saleModelRepository.findBySaleModelCode(SALE_MODEL_CODE))
+                .thenReturn(Optional.of(saleModel));
+            when(mdmProjectionService.getConfigurationsByVariant(VARIANT_CODE))
+                .thenReturn(Arrays.asList(config1, config2));
+            when(configPolicyRepository.findBySaleModelCode(SALE_MODEL_CODE))
+                .thenReturn(Arrays.asList(policy));
+
+            List<ConfigPolicyAvailableVo> result = saleModelAppService.getAvailableConfigPolicies(SALE_MODEL_CODE, VARIANT_CODE);
+
+            assertEquals(2, result.size());
+            assertTrue(result.get(0).getInWhitelist());
+            assertEquals("active", result.get(0).getPolicyStatus());
+            assertFalse(result.get(1).getInWhitelist());
+            assertNull(result.get(1).getPolicyStatus());
+        }
+
+        @Test
+        @DisplayName("variantCode 下无 Configuration 时返回空列表")
+        void should_return_empty_list_when_no_configurations() {
+            SaleModelPo saleModel = SaleModelPo.builder()
+                .saleModelCode(SALE_MODEL_CODE)
+                .carlineCode(CARLINE_CODE)
+                .build();
+
+            when(saleModelRepository.findBySaleModelCode(SALE_MODEL_CODE))
+                .thenReturn(Optional.of(saleModel));
+            when(mdmProjectionService.getConfigurationsByVariant(VARIANT_CODE))
+                .thenReturn(List.of());
+
+            List<ConfigPolicyAvailableVo> result = saleModelAppService.getAvailableConfigPolicies(SALE_MODEL_CODE, VARIANT_CODE);
+
+            assertTrue(result.isEmpty());
+        }
+
+        @Test
+        @DisplayName("销售车型不存在时应抛出异常")
+        void should_throw_when_sale_model_not_found() {
+            when(saleModelRepository.findBySaleModelCode("NON_EXIST"))
+                .thenReturn(Optional.empty());
+
+            assertThrows(Exception.class, () ->
+                saleModelAppService.getAvailableConfigPolicies("NON_EXIST", VARIANT_CODE));
+        }
+
+        @Test
+        @DisplayName("销售车型无 carlineCode 时返回空列表")
+        void should_return_empty_list_when_no_carline_code() {
+            SaleModelPo saleModel = SaleModelPo.builder()
+                .saleModelCode(SALE_MODEL_CODE)
+                .carlineCode(null)
+                .build();
+
+            when(saleModelRepository.findBySaleModelCode(SALE_MODEL_CODE))
+                .thenReturn(Optional.of(saleModel));
+
+            List<ConfigPolicyAvailableVo> result = saleModelAppService.getAvailableConfigPolicies(SALE_MODEL_CODE, VARIANT_CODE);
+
+            assertTrue(result.isEmpty());
+            verify(mdmProjectionService, never()).getConfigurationsByVariant(any());
         }
     }
 
