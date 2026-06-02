@@ -153,11 +153,12 @@ public class MptSalesPolicyController {
     @GetMapping("/{saleModelCode}/optionPolicy")
     public ApiResponse<?> getOptionPolicy(
             @PathVariable String saleModelCode,
+            @RequestParam(required = false) String variantCode,
             @RequestParam(required = false) String optionFamilyCode,
             @RequestParam(required = false) String saleStatus,
             @RequestParam(defaultValue = "1") Integer page,
             @RequestParam(defaultValue = "10") Integer size) {
-        return ApiResponse.ok(saleModelAppService.getOptionPolicies(saleModelCode, optionFamilyCode, saleStatus, page, size));
+        return ApiResponse.ok(saleModelAppService.getOptionPolicies(saleModelCode, variantCode, optionFamilyCode, saleStatus, page, size));
     }
 
     /**

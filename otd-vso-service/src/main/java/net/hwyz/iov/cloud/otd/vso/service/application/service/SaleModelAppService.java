@@ -1682,8 +1682,14 @@ public class SaleModelAppService {
     /**
      * 获取 OptionCode 销售策略
      */
-    public PageResult<SaleModelOptionPolicyPo> getOptionPolicies(String saleModelCode, String optionFamilyCode, String saleStatus, Integer page, Integer size) {
+    public PageResult<SaleModelOptionPolicyPo> getOptionPolicies(String saleModelCode, String variantCode, String optionFamilyCode, String saleStatus, Integer page, Integer size) {
         List<SaleModelOptionPolicyPo> policies = optionPolicyRepository.findBySaleModelCode(saleModelCode);
+
+        if (variantCode != null && !variantCode.isEmpty()) {
+            policies = policies.stream()
+                .filter(p -> variantCode.equals(p.getVariantCode()))
+                .collect(Collectors.toList());
+        }
 
         if (optionFamilyCode != null && !optionFamilyCode.isEmpty()) {
             policies = policies.stream()

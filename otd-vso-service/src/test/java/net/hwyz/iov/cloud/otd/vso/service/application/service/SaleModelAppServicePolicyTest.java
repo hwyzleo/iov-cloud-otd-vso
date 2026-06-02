@@ -1,5 +1,6 @@
 package net.hwyz.iov.cloud.otd.vso.service.application.service;
 
+import net.hwyz.iov.cloud.framework.common.bean.PageResult;
 import net.hwyz.iov.cloud.otd.vso.service.adapter.web.vo.ConfigPolicyAvailableVo;
 import net.hwyz.iov.cloud.otd.vso.service.adapter.web.vo.OptionFamilyAvailableVo;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.CreateConfigPolicyCmd;
@@ -26,6 +27,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -426,6 +428,187 @@ class SaleModelAppServicePolicyTest {
 
             assertEquals(1, result);
             verify(optionPolicyRepository).delete(1L);
+        }
+    }
+
+    @Nested
+    @DisplayName("getOptionPolicies 方法")
+    class GetOptionPoliciesTest {
+
+        @Test
+        @DisplayName("按 variantCode 过滤 Option 销售策略成功")
+        void should_filter_by_variant_code() {
+            SaleModelOptionPolicyPo policy1 = SaleModelOptionPolicyPo.builder()
+                .id(1L)
+                .saleModelCode(SALE_MODEL_CODE)
+                .variantCode("VARIANT_001")
+                .optionCode("OPT_001")
+                .optionFamilyCode("COLOR")
+                .saleStatus("active")
+                .build();
+
+            SaleModelOptionPolicyPo policy2 = SaleModelOptionPolicyPo.builder()
+                .id(2L)
+                .saleModelCode(SALE_MODEL_CODE)
+                .variantCode("VARIANT_002")
+                .optionCode("OPT_002")
+                .optionFamilyCode("COLOR")
+                .saleStatus("active")
+                .build();
+
+            SaleModelOptionPolicyPo policy3 = SaleModelOptionPolicyPo.builder()
+                .id(3L)
+                .saleModelCode(SALE_MODEL_CODE)
+                .variantCode("VARIANT_001")
+                .optionCode("OPT_003")
+                .optionFamilyCode("INTERIOR")
+                .saleStatus("active")
+                .build();
+
+            when(optionPolicyRepository.findBySaleModelCode(SALE_MODEL_CODE))
+                .thenReturn(Arrays.asList(policy1, policy2, policy3));
+
+            PageResult<SaleModelOptionPolicyPo> result = saleModelAppService.getOptionPolicies(
+                SALE_MODEL_CODE, "VARIANT_001", null, null, 1, 10);
+
+            assertEquals(2, result.getTotal());
+            assertEquals(2, result.getItems().size());
+            assertEquals("OPT_001", result.getItems().get(0).getOptionCode());
+            assertEquals("OPT_003", result.getItems().get(1).getOptionCode());
+        }
+
+        @Test
+        @DisplayName("不同 variantCode 应返回不同的策略列表")
+        void should_return_different_policies_for_different_variant_codes() {
+            SaleModelOptionPolicyPo policy1 = SaleModelOptionPolicyPo.builder()
+                .id(1L)
+                .saleModelCode(SALE_MODEL_CODE)
+                .variantCode("VARIANT_001")
+                .optionCode("OPT_001")
+                .optionFamilyCode("COLOR")
+                .saleStatus("active")
+                .build();
+
+            SaleModelOptionPolicyPo policy2 = SaleModelOptionPolicyPo.builder()
+                .id(2L)
+                .saleModelCode(SALE_MODEL_CODE)
+                .variantCode("VARIANT_002")
+                .optionCode("OPT_002")
+                .optionFamilyCode("COLOR")
+                .saleStatus("active")
+                .build();
+
+            when(optionPolicyRepository.findBySaleModelCode(SALE_MODEL_CODE))
+                .thenReturn(Arrays.asList(policy1, policy2));
+
+            PageResult<SaleModelOptionPolicyPo> result1 = saleModelAppService.getOptionPolicies(
+                SALE_MODEL_CODE, "VARIANT_001", null, null, 1, 10);
+
+            PageResult<SaleModelOptionPolicyPo> result2 = saleModelAppService.getOptionPolicies(
+                SALE_MODEL_CODE, "VARIANT_002", null, null, 1, 10);
+
+            assertEquals(1, result1.getTotal());
+            assertEquals("OPT_001", result1.getItems().get(0).getOptionCode());
+
+            assertEquals(1, result2.getTotal());
+            assertEquals("OPT_002", result2.getItems().get(0).getOptionCode());
+        }
+
+        @Test
+        @DisplayName("variantCode 为空时不进行过滤")
+        void should_not_filter_when_variant_code_is_null() {
+            SaleModelOptionPolicyPo policy1 = SaleModelOptionPolicyPo.builder()
+                .id(1L)
+                .saleModelCode(SALE_MODEL_CODE)
+                .variantCode("VARIANT_001")
+                .optionCode("OPT_001")
+                .build();
+
+            SaleModelOptionPolicyPo policy2 = SaleModelOptionPolicyPo.builder()
+                .id(2L)
+                .saleModelCode(SALE_MODEL_CODE)
+                .variantCode("VARIANT_002")
+                .optionCode("OPT_002")
+                .build();
+
+            when(optionPolicyRepository.findBySaleModelCode(SALE_MODEL_CODE))
+                .thenReturn(Arrays.asList(policy1, policy2));
+
+            PageResult<SaleModelOptionPolicyPo> result = saleModelAppService.getOptionPolicies(
+                SALE_MODEL_CODE, null, null, null, 1, 10);
+
+            assertEquals(2, result.getTotal());
+        }
+
+        @Test
+        @DisplayName("按 variantCode + optionFamilyCode 组合过滤")
+        void should_filter_by_variant_code_and_option_family_code() {
+            SaleModelOptionPolicyPo policy1 = SaleModelOptionPolicyPo.builder()
+                .id(1L)
+                .saleModelCode(SALE_MODEL_CODE)
+                .variantCode("VARIANT_001")
+                .optionCode("OPT_001")
+                .optionFamilyCode("COLOR")
+                .saleStatus("active")
+                .build();
+
+            SaleModelOptionPolicyPo policy2 = SaleModelOptionPolicyPo.builder()
+                .id(2L)
+                .saleModelCode(SALE_MODEL_CODE)
+                .variantCode("VARIANT_001")
+                .optionCode("OPT_002")
+                .optionFamilyCode("INTERIOR")
+                .saleStatus("active")
+                .build();
+
+            SaleModelOptionPolicyPo policy3 = SaleModelOptionPolicyPo.builder()
+                .id(3L)
+                .saleModelCode(SALE_MODEL_CODE)
+                .variantCode("VARIANT_002")
+                .optionCode("OPT_003")
+                .optionFamilyCode("COLOR")
+                .saleStatus("active")
+                .build();
+
+            when(optionPolicyRepository.findBySaleModelCode(SALE_MODEL_CODE))
+                .thenReturn(Arrays.asList(policy1, policy2, policy3));
+
+            PageResult<SaleModelOptionPolicyPo> result = saleModelAppService.getOptionPolicies(
+                SALE_MODEL_CODE, "VARIANT_001", "COLOR", null, 1, 10);
+
+            assertEquals(1, result.getTotal());
+            assertEquals("OPT_001", result.getItems().get(0).getOptionCode());
+        }
+
+        @Test
+        @DisplayName("分页功能正常")
+        void should_paginate_correctly() {
+            List<SaleModelOptionPolicyPo> policies = new ArrayList<>();
+            for (int i = 1; i <= 15; i++) {
+                policies.add(SaleModelOptionPolicyPo.builder()
+                    .id((long) i)
+                    .saleModelCode(SALE_MODEL_CODE)
+                    .variantCode(VARIANT_CODE)
+                    .optionCode("OPT_" + String.format("%03d", i))
+                    .build());
+            }
+
+            when(optionPolicyRepository.findBySaleModelCode(SALE_MODEL_CODE))
+                .thenReturn(policies);
+
+            PageResult<SaleModelOptionPolicyPo> page1 = saleModelAppService.getOptionPolicies(
+                SALE_MODEL_CODE, VARIANT_CODE, null, null, 1, 10);
+
+            PageResult<SaleModelOptionPolicyPo> page2 = saleModelAppService.getOptionPolicies(
+                SALE_MODEL_CODE, VARIANT_CODE, null, null, 2, 10);
+
+            assertEquals(15, page1.getTotal());
+            assertEquals(10, page1.getItems().size());
+            assertEquals(1, page1.getPage());
+
+            assertEquals(15, page2.getTotal());
+            assertEquals(5, page2.getItems().size());
+            assertEquals(2, page2.getPage());
         }
     }
 
