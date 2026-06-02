@@ -333,6 +333,7 @@ class SaleModelAppServicePolicyTest {
             CreateOptionPolicyCmd cmd = CreateOptionPolicyCmd.builder()
                 .saleModelCode(SALE_MODEL_CODE)
                 .optionCode(OPTION_CODE)
+                .variantCode(VARIANT_CODE)
                 .optionFamilyCode("COLOR")
                 .saleStatus("active")
                 .optionPrice(BigDecimal.valueOf(5000))
@@ -343,6 +344,7 @@ class SaleModelAppServicePolicyTest {
             assertNotNull(result);
             assertEquals(SALE_MODEL_CODE, result.getSaleModelCode());
             assertEquals(OPTION_CODE, result.getOptionCode());
+            assertEquals(VARIANT_CODE, result.getVariantCode());
             assertEquals("COLOR", result.getOptionFamilyCode());
             assertEquals("active", result.getSaleStatus());
             assertEquals(BigDecimal.valueOf(5000), result.getOptionPrice());
@@ -355,6 +357,7 @@ class SaleModelAppServicePolicyTest {
             CreateOptionPolicyCmd cmd = CreateOptionPolicyCmd.builder()
                 .saleModelCode(SALE_MODEL_CODE)
                 .optionCode(OPTION_CODE)
+                .variantCode(VARIANT_CODE)
                 .optionFamilyCode("COLOR")
                 .saleStatus(null)
                 .optionPrice(BigDecimal.valueOf(5000))
@@ -376,6 +379,7 @@ class SaleModelAppServicePolicyTest {
             CreateOptionPolicyCmd cmd = CreateOptionPolicyCmd.builder()
                 .saleModelCode(SALE_MODEL_CODE)
                 .optionCode(OPTION_CODE)
+                .variantCode(VARIANT_CODE)
                 .optionFamilyCode("COLOR")
                 .saleStatus("off_shelf")
                 .optionPrice(BigDecimal.valueOf(6000))
@@ -385,6 +389,7 @@ class SaleModelAppServicePolicyTest {
                 .id(1L)
                 .saleModelCode(SALE_MODEL_CODE)
                 .optionCode(OPTION_CODE)
+                .variantCode(VARIANT_CODE)
                 .optionFamilyCode("COLOR")
                 .saleStatus("active")
                 .optionPrice(BigDecimal.valueOf(5000))
@@ -407,6 +412,7 @@ class SaleModelAppServicePolicyTest {
             CreateOptionPolicyCmd cmd = CreateOptionPolicyCmd.builder()
                 .saleModelCode(SALE_MODEL_CODE)
                 .optionCode(OPTION_CODE)
+                .variantCode(VARIANT_CODE)
                 .build();
 
             when(optionPolicyRepository.findById(999L))

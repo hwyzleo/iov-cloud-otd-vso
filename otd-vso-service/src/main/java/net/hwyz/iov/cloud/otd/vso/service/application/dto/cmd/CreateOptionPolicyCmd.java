@@ -19,6 +19,9 @@ public class CreateOptionPolicyCmd {
     @NotBlank(message = "Option代码不能为空")
     private String optionCode;
 
+    @NotBlank(message = "Variant代码不能为空")
+    private String variantCode;
+
     private String optionFamilyCode;
 
     @NotBlank(message = "销售状态不能为空")

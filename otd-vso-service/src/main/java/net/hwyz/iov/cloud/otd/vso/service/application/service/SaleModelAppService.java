@@ -1731,6 +1731,7 @@ public class SaleModelAppService {
         SaleModelOptionPolicyPo po = SaleModelOptionPolicyPo.builder()
             .saleModelCode(cmd.getSaleModelCode())
             .optionCode(cmd.getOptionCode())
+            .variantCode(cmd.getVariantCode())
             .optionFamilyCode(cmd.getOptionFamilyCode())
             .saleStatus(cmd.getSaleStatus() != null ? cmd.getSaleStatus() : "active")
             .optionPrice(cmd.getOptionPrice())
