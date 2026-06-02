@@ -1,5 +1,6 @@
 package net.hwyz.iov.cloud.otd.vso.service.adapter.web.vo;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
 import java.math.BigDecimal;
@@ -30,6 +31,7 @@ public class SaleModelVo {
 
     private Boolean enable;
 
+    @JsonProperty("sortWeight")
     private Integer sort;
 
     private String icon;

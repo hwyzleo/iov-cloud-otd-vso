@@ -12,6 +12,9 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Arrays;
+import java.util.Collections;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 @DisplayName("SaleModelAppService - 创建/修改销售车型集成测试")
@@ -82,6 +85,64 @@ class SaleModelAppServiceCreateIntegrationTest extends BaseTest {
             assertTrue(savedPo.getEnable());
             assertEquals(0, savedPo.getSort());
         }
+
+        @Test
+        @DisplayName("创建销售车型 - images 字段应正确序列化为 JSON")
+        void should_serialize_images_to_json_when_create() {
+            String saleModelCode = "TEST_" + System.currentTimeMillis();
+            SaleModelCreateDto dto = new SaleModelCreateDto();
+            dto.setSaleModelCode(saleModelCode);
+            dto.setModelName("测试车型");
+            dto.setCarlineCode("CARLINE_" + System.currentTimeMillis());
+            dto.setListingStatus("active");
+            dto.setImages(Arrays.asList("https://example.com/img1.jpg", "https://example.com/img2.jpg"));
+
+            Long id = saleModelAppService.createSaleModel(dto, USER_ID);
+
+            SaleModelPo savedPo = saleModelRepository.findById(id).orElse(null);
+            assertNotNull(savedPo);
+            assertNotNull(savedPo.getImages());
+            assertTrue(savedPo.getImages().startsWith("["));
+            assertTrue(savedPo.getImages().endsWith("]"));
+            assertTrue(savedPo.getImages().contains("https://example.com/img1.jpg"));
+            assertTrue(savedPo.getImages().contains("https://example.com/img2.jpg"));
+        }
+
+        @Test
+        @DisplayName("创建销售车型 - images 为空列表时应序列化为空数组 JSON")
+        void should_serialize_empty_images_to_empty_array_json() {
+            String saleModelCode = "TEST_" + System.currentTimeMillis();
+            SaleModelCreateDto dto = new SaleModelCreateDto();
+            dto.setSaleModelCode(saleModelCode);
+            dto.setModelName("测试车型");
+            dto.setCarlineCode("CARLINE_" + System.currentTimeMillis());
+            dto.setListingStatus("active");
+            dto.setImages(Collections.emptyList());
+
+            Long id = saleModelAppService.createSaleModel(dto, USER_ID);
+
+            SaleModelPo savedPo = saleModelRepository.findById(id).orElse(null);
+            assertNotNull(savedPo);
+            assertEquals("[]", savedPo.getImages());
+        }
+
+        @Test
+        @DisplayName("创建销售车型 - images 为 null 时应保持 null")
+        void should_keep_images_null_when_not_provided() {
+            String saleModelCode = "TEST_" + System.currentTimeMillis();
+            SaleModelCreateDto dto = new SaleModelCreateDto();
+            dto.setSaleModelCode(saleModelCode);
+            dto.setModelName("测试车型");
+            dto.setCarlineCode("CARLINE_" + System.currentTimeMillis());
+            dto.setListingStatus("active");
+            dto.setImages(null);
+
+            Long id = saleModelAppService.createSaleModel(dto, USER_ID);
+
+            SaleModelPo savedPo = saleModelRepository.findById(id).orElse(null);
+            assertNotNull(savedPo);
+            assertNull(savedPo.getImages());
+        }
     }
 
     @Nested
@@ -118,6 +179,98 @@ class SaleModelAppServiceCreateIntegrationTest extends BaseTest {
             assertEquals("https://example.com/icon.png", updatedPo.getIcon());
             assertEquals("新的卖点文案", updatedPo.getMarketingCopy());
             assertEquals("2", updatedPo.getModifyBy());
+        }
+
+        @Test
+        @DisplayName("修改销售车型 - images 字段应正确序列化为 JSON")
+        void should_serialize_images_to_json_when_modify() {
+            // 先创建
+            String saleModelCode = "TEST_" + System.currentTimeMillis();
+            SaleModelCreateDto createDto = new SaleModelCreateDto();
+            createDto.setSaleModelCode(saleModelCode);
+            createDto.setModelName("测试车型");
+            createDto.setCarlineCode("CARLINE_" + System.currentTimeMillis());
+            createDto.setListingStatus("active");
+
+            Long id = saleModelAppService.createSaleModel(createDto, USER_ID);
+
+            // 修改 - 设置 images
+            SaleModelUpdateDto updateDto = new SaleModelUpdateDto();
+            updateDto.setId(id);
+            updateDto.setSaleModelCode(saleModelCode);
+            updateDto.setImages(Arrays.asList("https://example.com/img1.jpg", "https://example.com/img2.jpg"));
+
+            saleModelAppService.modifySaleModel(updateDto, USER_ID);
+
+            // 验证数据库更新 - images 应为有效的 JSON 数组
+            SaleModelPo updatedPo = saleModelRepository.findById(id).orElse(null);
+            assertNotNull(updatedPo);
+            assertNotNull(updatedPo.getImages());
+            assertTrue(updatedPo.getImages().startsWith("["));
+            assertTrue(updatedPo.getImages().endsWith("]"));
+            assertTrue(updatedPo.getImages().contains("https://example.com/img1.jpg"));
+            assertTrue(updatedPo.getImages().contains("https://example.com/img2.jpg"));
+        }
+
+        @Test
+        @DisplayName("修改销售车型 - images 为空列表时应序列化为空数组 JSON")
+        void should_serialize_empty_images_to_empty_array_json() {
+            // 先创建
+            String saleModelCode = "TEST_" + System.currentTimeMillis();
+            SaleModelCreateDto createDto = new SaleModelCreateDto();
+            createDto.setSaleModelCode(saleModelCode);
+            createDto.setModelName("测试车型");
+            createDto.setCarlineCode("CARLINE_" + System.currentTimeMillis());
+            createDto.setListingStatus("active");
+            createDto.setImages(Arrays.asList("old_image.jpg"));
+
+            Long id = saleModelAppService.createSaleModel(createDto, USER_ID);
+
+            // 修改 - 设置 images 为空列表
+            SaleModelUpdateDto updateDto = new SaleModelUpdateDto();
+            updateDto.setId(id);
+            updateDto.setSaleModelCode(saleModelCode);
+            updateDto.setImages(Collections.emptyList());
+
+            saleModelAppService.modifySaleModel(updateDto, USER_ID);
+
+            // 验证数据库更新 - images 应为空数组 JSON
+            SaleModelPo updatedPo = saleModelRepository.findById(id).orElse(null);
+            assertNotNull(updatedPo);
+            assertEquals("[]", updatedPo.getImages());
+        }
+
+        @Test
+        @DisplayName("修改销售车型 - availableRegions 和 channels 应正确序列化为 JSON")
+        void should_serialize_regions_and_channels_to_json() {
+            // 先创建
+            String saleModelCode = "TEST_" + System.currentTimeMillis();
+            SaleModelCreateDto createDto = new SaleModelCreateDto();
+            createDto.setSaleModelCode(saleModelCode);
+            createDto.setModelName("测试车型");
+            createDto.setCarlineCode("CARLINE_" + System.currentTimeMillis());
+            createDto.setListingStatus("active");
+
+            Long id = saleModelAppService.createSaleModel(createDto, USER_ID);
+
+            // 修改 - 设置 availableRegions 和 channels
+            SaleModelUpdateDto updateDto = new SaleModelUpdateDto();
+            updateDto.setId(id);
+            updateDto.setSaleModelCode(saleModelCode);
+            updateDto.setAvailableRegions(Arrays.asList("北京", "上海"));
+            updateDto.setChannels(Arrays.asList("线上", "线下"));
+
+            saleModelAppService.modifySaleModel(updateDto, USER_ID);
+
+            // 验证数据库更新
+            SaleModelPo updatedPo = saleModelRepository.findById(id).orElse(null);
+            assertNotNull(updatedPo);
+            assertNotNull(updatedPo.getAvailableRegions());
+            assertTrue(updatedPo.getAvailableRegions().contains("北京"));
+            assertTrue(updatedPo.getAvailableRegions().contains("上海"));
+            assertNotNull(updatedPo.getChannels());
+            assertTrue(updatedPo.getChannels().contains("线上"));
+            assertTrue(updatedPo.getChannels().contains("线下"));
         }
     }
 

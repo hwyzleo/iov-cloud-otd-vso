@@ -30,7 +30,7 @@ public interface SaleModelPoAssembler {
     @Mapping(target = "description", ignore = true)
     @Mapping(target = "rowVersion", ignore = true)
     @Mapping(target = "rowValid", ignore = true)
-    @Mapping(target = "images", expression = "java(dto.getImages() != null ? String.join(\",\", dto.getImages()) : null)")
+    @Mapping(target = "images", expression = "java(dto.getImages() != null ? cn.hutool.json.JSONUtil.toJsonStr(dto.getImages()) : null)")
     @Mapping(target = "availableRegions", expression = "java(dto.getAvailableRegions() != null ? cn.hutool.json.JSONUtil.toJsonStr(dto.getAvailableRegions()) : null)")
     @Mapping(target = "channels", expression = "java(dto.getChannels() != null ? cn.hutool.json.JSONUtil.toJsonStr(dto.getChannels()) : null)")
     SaleModelPo toDo(SaleModelCreateDto dto);
@@ -43,7 +43,7 @@ public interface SaleModelPoAssembler {
     @Mapping(target = "rowVersion", ignore = true)
     @Mapping(target = "rowValid", ignore = true)
     @Mapping(target = "parameters", ignore = true)
-    @Mapping(target = "images", expression = "java(dto.getImages() != null ? String.join(\",\", dto.getImages()) : null)")
+    @Mapping(target = "images", expression = "java(dto.getImages() != null ? cn.hutool.json.JSONUtil.toJsonStr(dto.getImages()) : null)")
     @Mapping(target = "availableRegions", expression = "java(dto.getAvailableRegions() != null ? cn.hutool.json.JSONUtil.toJsonStr(dto.getAvailableRegions()) : null)")
     @Mapping(target = "channels", expression = "java(dto.getChannels() != null ? cn.hutool.json.JSONUtil.toJsonStr(dto.getChannels()) : null)")
     SaleModelPo toUpdateDo(SaleModelUpdateDto dto);
