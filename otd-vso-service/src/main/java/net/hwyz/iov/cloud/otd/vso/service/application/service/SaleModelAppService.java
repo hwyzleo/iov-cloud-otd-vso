@@ -43,6 +43,7 @@ import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.GetQuoteCmd;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.ConfiguratorResult;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.QuoteResult;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.SaleModelConfigResult;
+import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.SaleModelPriceResult;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.SaleModelResult;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.SelectedSaleModelResult;
 import net.hwyz.iov.cloud.otd.vso.service.common.exception.ConfigurationNotMatchedException;
@@ -558,33 +559,54 @@ public class SaleModelAppService {
 
     /**
      * 获取实时报价
+     * 订单总价 = variantPrice + Σ(optionPrice)
      */
     public QuoteResult getQuote(GetQuoteCmd cmd) {
         SaleModelPo saleModel = saleModelRepository.findBySaleModelCode(cmd.getSaleModelCode())
             .orElseThrow(() -> new SaleModelNotExistException("销售车型不存在: " + cmd.getSaleModelCode()));
 
+        // 校验 Option 销售策略
         salesPolicyService.validateOptionsForSale(cmd.getSaleModelCode(), cmd.getOptionCodes(), cmd.getRegionCode());
 
+        // 获取 Configuration
         String configurationCode = vmdVehicleModelConfigService.getBuildConfigCodeByOptionCodes(cmd.getSaleModelCode(), cmd.getOptionCodes());
         if (configurationCode == null) {
             throw new ConfigurationNotMatchedException("OptionCode 组合无法匹配到合法 Configuration");
         }
 
+        // 校验 Configuration 白名单
         salesPolicyService.validateConfigurationForSale(cmd.getSaleModelCode(), configurationCode);
 
-        // TODO: 实现从 Variant 销售策略获取价格的逻辑
-        // 根据 CR-011 要求，订单总价 = variantPrice + Σ(optionPrice)
-        BigDecimal totalPrice = BigDecimal.ZERO;
+        // 获取 Variant 价格
+        BigDecimal variantPrice = BigDecimal.ZERO;
+        if (cmd.getVariantCode() != null && !cmd.getVariantCode().isEmpty()) {
+            SaleModelVariantPolicyPo variantPolicy = saleModelVariantPolicyRepository
+                .findBySaleModelCodeAndVariantCode(cmd.getSaleModelCode(), cmd.getVariantCode())
+                .orElse(null);
+            if (variantPolicy != null && variantPolicy.getVariantPrice() != null) {
+                variantPrice = variantPolicy.getVariantPrice();
+            }
+        }
 
-        List<QuoteResult.OptionPriceItem> breakdown = cmd.getOptionCodes().stream()
-            .map(code -> QuoteResult.OptionPriceItem.builder()
-                .optionCode(code)
-                .optionPrice(salesPolicyService.getOptionPrice(cmd.getSaleModelCode(), code))
-                .build())
-            .collect(Collectors.toList());
+        // 计算 Option 总价
+        BigDecimal optionTotalPrice = BigDecimal.ZERO;
+        List<QuoteResult.OptionPriceItem> breakdown = new ArrayList<>();
+        for (String optionCode : cmd.getOptionCodes()) {
+            BigDecimal optionPrice = salesPolicyService.getOptionPrice(cmd.getSaleModelCode(), optionCode);
+            breakdown.add(QuoteResult.OptionPriceItem.builder()
+                .optionCode(optionCode)
+                .optionPrice(optionPrice)
+                .build());
+            optionTotalPrice = optionTotalPrice.add(optionPrice);
+        }
+
+        // 计算总价 = variantPrice + Σ(optionPrice)
+        BigDecimal totalPrice = variantPrice.add(optionTotalPrice);
 
         return QuoteResult.builder()
             .configurationCode(configurationCode)
+            .variantPrice(variantPrice)
+            .optionTotalPrice(optionTotalPrice)
             .totalPrice(totalPrice)
             .optionPriceBreakdown(breakdown)
             .build();
@@ -888,6 +910,69 @@ public class SaleModelAppService {
     }
 
     /**
+     * 获取销售车型价格信息（起售价、意向金、首付）
+     * 基于 Variant 销售策略实时计算
+     *
+     * @param saleModelCode 销售车型编码
+     * @param regionCode 区域编码（可选）
+     * @return 价格信息
+     */
+    public SaleModelPriceResult getSaleModelPrices(String saleModelCode, String regionCode) {
+        // 获取该销售车型下所有可售 Variant
+        List<SaleModelVariantPolicyPo> variantPolicies = saleModelVariantPolicyRepository.findBySaleModelCode(saleModelCode);
+
+        // 过滤可售 Variant
+        List<SaleModelVariantPolicyPo> activeVariants = variantPolicies.stream()
+            .filter(p -> "active".equals(p.getSaleStatus()))
+            .filter(p -> p.getVariantPrice() != null)
+            .filter(p -> {
+                if (regionCode == null || regionCode.isEmpty()) {
+                    return true;
+                }
+                if (p.getAvailableRegions() == null || p.getAvailableRegions().isEmpty()) {
+                    return true;
+                }
+                List<String> regions = cn.hutool.json.JSONUtil.toList(p.getAvailableRegions(), String.class);
+                return regions.isEmpty() || regions.contains(regionCode);
+            })
+            .collect(Collectors.toList());
+
+        if (activeVariants.isEmpty()) {
+            return SaleModelPriceResult.builder()
+                .startingPrice(BigDecimal.ZERO)
+                .earnestMoneyPrice(BigDecimal.ZERO)
+                .downPaymentPrice(BigDecimal.ZERO)
+                .build();
+        }
+
+        // 计算起售价 = min(variantPrice)
+        BigDecimal startingPrice = activeVariants.stream()
+            .map(SaleModelVariantPolicyPo::getVariantPrice)
+            .min(BigDecimal::compareTo)
+            .orElse(BigDecimal.ZERO);
+
+        // 计算意向金 = min(earnestMoneyPrice)
+        BigDecimal earnestMoneyPrice = activeVariants.stream()
+            .map(SaleModelVariantPolicyPo::getEarnestMoneyPrice)
+            .filter(Objects::nonNull)
+            .min(BigDecimal::compareTo)
+            .orElse(BigDecimal.ZERO);
+
+        // 计算首付 = min(downPaymentPrice)
+        BigDecimal downPaymentPrice = activeVariants.stream()
+            .map(SaleModelVariantPolicyPo::getDownPaymentPrice)
+            .filter(Objects::nonNull)
+            .min(BigDecimal::compareTo)
+            .orElse(BigDecimal.ZERO);
+
+        return SaleModelPriceResult.builder()
+            .startingPrice(startingPrice)
+            .earnestMoneyPrice(earnestMoneyPrice)
+            .downPaymentPrice(downPaymentPrice)
+            .build();
+    }
+
+    /**
      * 根据动态特征值获取已选择的销售车型（新方法）
      *
      * @param saleModelCode     销售代码
@@ -979,13 +1064,16 @@ public class SaleModelAppService {
             }
         }
 
+        // 获取价格信息
+        SaleModelPriceResult priceResult = getSaleModelPrices(saleModelCode, null);
+
         return SelectedSaleModelResult.builder()
                 .saleModelCode(saleModelCode)
                 .modelName(modelName)
                 .earnestMoney(model.getEarnestMoney())
-                .earnestMoneyPrice(BigDecimal.ZERO) // TODO: 从 Variant 销售策略获取
+                .earnestMoneyPrice(priceResult.getEarnestMoneyPrice()) // 从 Variant 销售策略获取
                 .downPayment(model.getDownPayment())
-                .downPaymentPrice(BigDecimal.ZERO) // TODO: 从 Variant 销售策略获取
+                .downPaymentPrice(priceResult.getDownPaymentPrice()) // 从 Variant 销售策略获取
                 .buildConfigCode(buildConfigCode)
                 .saleModelImages(images)
                 .saleModelDesc(desc.toString())

@@ -15,7 +15,17 @@ public class QuoteResult {
     private String configurationCode;
 
     /**
-     * 总价
+     * Variant 价格
+     */
+    private BigDecimal variantPrice;
+
+    /**
+     * Option 总价
+     */
+    private BigDecimal optionTotalPrice;
+
+    /**
+     * 总价 = variantPrice + optionTotalPrice
      */
     private BigDecimal totalPrice;
 

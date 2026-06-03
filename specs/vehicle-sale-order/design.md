@@ -1759,6 +1759,11 @@ sequenceDiagram
 **GET** `/api/mobile/saleModel/v1/{saleModelCode}`
 - Response: `SaleModelCardVo` — 销售车型卡片详情
 
+**GET** `/api/mobile/saleModel/v1/{saleModelCode}/prices`
+- Query: `regionCode` (可选，区域过滤)
+- Response: `SaleModelPriceResponse` — 价格信息 `{ startingPrice, earnestMoneyPrice, downPaymentPrice }`
+- 说明：基于 Variant 销售策略实时计算；startingPrice = min(当前可售 Variant 的 variantPrice)，earnestMoneyPrice = min(当前可售 Variant 的 earnestMoneyPrice)，downPaymentPrice = min(当前可售 Variant 的 downPaymentPrice)；当前可售 Variant 判定条件：saleStatus = active、variantPrice 非空、availableRegions 包含 regionCode 或为空
+
 **GET** `/api/mobile/saleModel/v1/{saleModelCode}/configurator`
 - Query: `regionCode` (必填)
 - Response: `ConfiguratorResponse` — 三段式选配器数据 `{ saleModelCode, modelName, models[ { modelCode, modelName, marketingImage?, marketingCopy?, sortWeight, variants[ { variantCode, variantName, marketingImage?, marketingCopy?, sortWeight, variantPrice, earnestMoneyPrice, downPaymentPrice, selectableFamilies[ { optionFamilyCode, optionFamilyName, marketingImage?, marketingDesc?, sortWeight, options[ { optionCode, optionName, saleStatus, price, image?, marketingCopy?, bundleWith[], mutexWith[] } ] } ] } ] } ] }`
@@ -1766,11 +1771,30 @@ sequenceDiagram
 
 **POST** `/api/mobile/saleModel/v1/quote`
 - Request: `{ saleModelCode, modelCode, variantCode, optionCodes[], regionCode }`
-- Response: `{ configurationCode, totalPrice, variantPrice, optionPriceBreakdown[] }` — 实时报价结果
+- Response: `{ configurationCode, totalPrice, variantPrice, optionTotalPrice, optionPriceBreakdown[] }` — 实时报价结果
 - 说明：六步校验（SaleModel→Model→Variant→Option→resolveConfiguration→Config 白名单），总价 = variantPrice + Σ(optionPrice)
 
 **GET** `/api/mobile/saleModel/v1/regions`
 - Response: `List<RegionVo>` — 可选上牌地区列表（字典服务缓存）
+
+**GET** `/api/mobile/saleModel/v1/{saleModelCode}/config`
+- Response: `List<SaleModelConfigVo>` — 销售车型配置列表（旧模式，已废弃）
+- @deprecated 使用 `/configurator` 接口替代
+
+**GET** `/api/mobile/saleModel/v1/{saleModelCode}/featureCodeRanges`
+- Response: `List<FeatureCodeRangeVo>` — 可选特征值范围（旧模式，已废弃）
+- @deprecated 使用 `/configurator` 接口替代
+
+**POST** `/api/mobile/saleModel/v1/selectedSaleModel`
+- Request: `{ saleModelCode, saleModelConfigType: Map<String, String> }` — 旧模式，已废弃
+- Response: `SelectedSaleModelVo` — 已选择的销售车型信息
+- @deprecated 使用 `/configurator` + `/quote` 接口替代
+
+**GET** `/api/mobile/saleModel/v1/purchaseBenefits/{saleModelCode}`
+- Response: `PurchaseBenefits` — 销售车型购车权益
+
+**GET** `/api/mobile/saleModel/v1/licenseArea`
+- Response: `List<LicenseArea>` — 上牌区域列表（字典服务缓存）
 
 ### 5.2 Mobile Order APIs
 
@@ -2193,3 +2217,4 @@ sequenceDiagram
 | 2026-06-01 | CR-014    | Added | §5.3.2 新增 Model/Variant 策略详情查询接口：GET `/{saleModelCode}/modelPolicy/{modelCode}` 获取单个 Model 策略详情，GET `/{saleModelCode}/variantPolicy/{variantCode}` 获取单个 Variant 策略详情；未配置策略时返回 404 |
 | 2026-06-01 | CR-015    | Added | §4.19 新增删除销售车型级联标记失效流程：删除销售车型时在同一事务内级联将 Model/Variant/Configuration/Option 四层销售策略标记为失效（off_shelf），保留历史订单快照可追溯性；更新 §5.3.1 DELETE API 说明；更新 §6 Coverage Mapping 补充 US-016 设计章节引用；同步更新 requirements.md US-016 补充级联标记失效业务规则 |
 | 2026-06-02 | CR-016    | Changed | 选配器重构为 VSO 策略表自包含：① §3.2 variant/config/option 三层策略表归属键扩展为含 model_code，新增 tb_sale_model_option_family_policy 表；② §4.16 选配器数据来源由 MDM 投影改为 VSO 销售策略表自包含（零 MDM 依赖），序列图更新；③ §4.17 四层归属表归属键同步更新；④ §5.1 ConfiguratorResponse 顶层由 carlineCode/carlineName 改为 saleModelCode/modelName，内部类 ModelItem/VariantItem/SelectableFamily/OptionItem 全部启用，展示名称统一使用营销名称；⑤ 选配器只读展示不再依赖 MDM 投影（MDM 仅用于管理端同步辅助参考和报价时 resolveConfiguration） |
+| 2026-06-02 | CR-017    | Changed | §5.1 Mobile Sale Model APIs 更新：① 新增价格查询接口 `GET /{saleModelCode}/prices`，基于 Variant 销售策略实时计算 startingPrice/earnestMoneyPrice/downPaymentPrice；② 完善报价接口响应结构，新增 optionTotalPrice 字段；③ 补充旧模式接口废弃说明（featureCodeRanges、selectedSaleModel、config 标记 @deprecated）；④ 补充购车权益和上牌区域接口定义 |

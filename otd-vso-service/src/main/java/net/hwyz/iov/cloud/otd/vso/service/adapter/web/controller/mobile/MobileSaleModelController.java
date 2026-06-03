@@ -14,6 +14,7 @@ import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.GetQuoteCmd;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.ConfiguratorResult;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.QuoteResult;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.SaleModelConfigResult;
+import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.SaleModelPriceResult;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.SaleModelResult;
 import net.hwyz.iov.cloud.otd.vso.service.application.service.SaleModelAppService;
 import org.springframework.web.bind.annotation.*;
@@ -59,40 +60,53 @@ public class MobileSaleModelController extends BaseController {
     }
 
     /**
-     * 获取销售车型配置列表
+     * 获取销售车型价格信息（起售价、意向金、首付）
+     * 基于 Variant 销售策略实时计算
      *
      * @param saleModelCode 销售车型代码
-     * @return 销售车型配置列表
+     * @param regionCode 区域代码（可选）
+     * @return 价格信息
      */
+    @GetMapping("/{saleModelCode}/prices")
+    public ApiResponse<SaleModelPriceResult> getSaleModelPrices(
+            @PathVariable("saleModelCode") String saleModelCode,
+            @RequestParam(value = "regionCode", required = false) String regionCode) {
+        log.info("手机客户端[{}]获取销售车型代码[{}]价格信息, 区域[{}]", ParamHelper.getClientAccountInfo(), saleModelCode, regionCode);
+        return ApiResponse.ok(saleModelAppService.getSaleModelPrices(saleModelCode, regionCode));
+    }
+
+    /**
+     * @deprecated 使用 /configurator 接口替代
+     * 获取销售车型配置列表
+     */
+    @Deprecated
     @GetMapping("/{saleModelCode}/config")
     public ApiResponse<List<SaleModelConfigMp>> getSaleModelConfigList(@PathVariable("saleModelCode") String saleModelCode) {
-        log.info("手机客户端[{}]获取销售车型代码[{}]销售车型配置列表", ParamHelper.getClientAccountInfo(), saleModelCode);
+        log.warn("手机客户端[{}]使用已废弃的接口获取配置列表, saleModelCode: {}", ParamHelper.getClientAccountInfo(), saleModelCode);
         List<SaleModelConfigResult> resultList = saleModelAppService.getSaleModelConfigList(saleModelCode);
         return ApiResponse.ok(SaleModelConfigMpAssembler.INSTANCE.toVoList(resultList));
     }
 
     /**
+     * @deprecated 使用 /configurator 接口替代
      * 获取销售车型可选特征值范围（动态配置模式）
-     *
-     * @param saleModelCode 销售车型代码
-     * @return 特征值范围列表
      */
+    @Deprecated
     @GetMapping("/{saleModelCode}/featureCodeRanges")
     public ApiResponse<List<FeatureCodeRangeVo>> getFeatureCodeRanges(@PathVariable("saleModelCode") String saleModelCode) {
-        log.info("手机客户端[{}]获取销售车型代码[{}]可选特征值范围", ParamHelper.getClientAccountInfo(), saleModelCode);
+        log.warn("手机客户端[{}]使用已废弃的接口获取特征值范围, saleModelCode: {}", ParamHelper.getClientAccountInfo(), saleModelCode);
         SaleModelResult model = saleModelAppService.getSaleModelByCode(saleModelCode);
         return ApiResponse.ok(saleModelAppService.getAggregatedFeatureCodeRanges(model.getId()));
     }
 
     /**
+     * @deprecated 使用 /configurator + /quote 接口替代
      * 根据选择的特征值获取销售车型信息（动态配置模式）
-     *
-     * @param requestVo 包含saleModelCode和选择的特征值Map
-     * @return 已选择的销售车型及配置
      */
+    @Deprecated
     @PostMapping("/selectedSaleModel")
     public ApiResponse<SelectedSaleModel> getSelectedSaleModel(@RequestBody SelectedSaleModelRequestVo requestVo) {
-        log.info("手机客户端[{}]根据特征值获取销售车型信息", ParamHelper.getClientAccountInfo());
+        log.warn("手机客户端[{}]使用已废弃的接口获取已选车型信息, saleModelCode: {}", ParamHelper.getClientAccountInfo(), requestVo.getSaleModelCode());
         return ApiResponse.ok(SelectedSaleModelAssembler.INSTANCE.toVo(
                 saleModelAppService.getSelectedSaleModelByFeatureCodes(requestVo.getSaleModelCode(), requestVo.getSaleModelConfigType())));
     }
@@ -141,13 +155,15 @@ public class MobileSaleModelController extends BaseController {
 
     /**
      * 获取实时报价
+     * 订单总价 = variantPrice + Σ(optionPrice)
      *
      * @param cmd 报价请求参数
      * @return 报价结果
      */
     @PostMapping("/quote")
     public ApiResponse<QuoteResult> getQuote(@RequestBody GetQuoteCmd cmd) {
-        log.info("手机客户端[{}]获取实时报价, 销售车型[{}]", ParamHelper.getClientAccountInfo(), cmd.getSaleModelCode());
+        log.info("手机客户端[{}]获取实时报价, 销售车型[{}], Variant[{}]",
+            ParamHelper.getClientAccountInfo(), cmd.getSaleModelCode(), cmd.getVariantCode());
         return ApiResponse.ok(saleModelAppService.getQuote(cmd));
     }
 }
