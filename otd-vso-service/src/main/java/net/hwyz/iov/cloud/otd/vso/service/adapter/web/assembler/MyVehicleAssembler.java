@@ -22,10 +22,10 @@ public interface MyVehicleAssembler {
     @Mapping(target = "id", source = "wishlistId")
     @Mapping(target = "type", constant = "WISHLIST")
     @Mapping(target = "state", expression = "java(100)")
-    @Mapping(target = "displayName", source = "displayName")
-    @Mapping(target = "saleModelImages", source = "saleModelImages")
-    @Mapping(target = "totalPrice", source = "totalPrice")
-    @Mapping(target = "saleModelDesc", source = "saleModelDesc")
+    @Mapping(target = "displayName", ignore = true)
+    @Mapping(target = "saleModelImages", ignore = true)
+    @Mapping(target = "totalPrice", ignore = true)
+    @Mapping(target = "saleModelDesc", ignore = true)
     MyVehicleVo fromWishlist(WishlistListResult wishlist);
 
     @Mapping(target = "id", source = "orderNo")

@@ -11,6 +11,8 @@
         <result column="wishlist_name" property="wishlistName" />
         <result column="status" property="status" />
         <result column="sale_model_code" property="saleModelCode" />
+        <result column="model_code" property="modelCode" />
+        <result column="variant_code" property="variantCode" />
         <result column="configuration_code" property="configurationCode" />
         <result column="option_codes" property="optionCodes" />
         <result column="option_codes_hash" property="optionCodesHash" />
@@ -26,19 +28,19 @@
 
     <sql id="baseColumnList">
         id, wishlist_id, user_id, sale_model, build_config_code, wishlist_name, status,
-        sale_model_code, configuration_code, option_codes, option_codes_hash, invalid_reason,
+        sale_model_code, model_code, variant_code, configuration_code, option_codes, option_codes_hash, invalid_reason,
         description, create_time, create_by, modify_time, modify_by, row_version, row_valid
     </sql>
 
     <insert id="insertPo" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO vso_wishlist (
             id, wishlist_id, user_id, sale_model, build_config_code, wishlist_name, status,
-            sale_model_code, configuration_code, option_codes, option_codes_hash, invalid_reason,
+            sale_model_code, model_code, variant_code, configuration_code, option_codes, option_codes_hash, invalid_reason,
             description, create_time, create_by, modify_time, modify_by, row_version, row_valid
         )
         VALUES (
             #{id}, #{wishlistId}, #{userId}, #{saleModel}, #{buildConfigCode}, #{wishlistName}, #{status},
-            #{saleModelCode}, #{configurationCode}, #{optionCodes}, #{optionCodesHash}, #{invalidReason},
+            #{saleModelCode}, #{modelCode}, #{variantCode}, #{configurationCode}, #{optionCodes}, #{optionCodesHash}, #{invalidReason},
             #{description}, now(), #{createBy}, now(), #{modifyBy}, 1, 1
         )
     </insert>
@@ -59,6 +61,12 @@
         </if>
         <if test="saleModelCode != null">
             t.sale_model_code = #{saleModelCode},
+        </if>
+        <if test="modelCode != null">
+            t.model_code = #{modelCode},
+        </if>
+        <if test="variantCode != null">
+            t.variant_code = #{variantCode},
         </if>
         <if test="configurationCode != null">
             t.configuration_code = #{configurationCode},
@@ -156,21 +164,29 @@
         AND t.row_valid = 1
     </select>
 
-    <select id="selectByUserIdAndConfigurationCode" resultMap="baseResultMap">
+    <select id="selectByUniqueKey" resultMap="baseResultMap">
         SELECT <include refid="baseColumnList"/>
         FROM vso_wishlist t
         WHERE t.user_id = #{userId}
+        AND t.sale_model_code = #{saleModelCode}
+        AND t.model_code = #{modelCode}
+        AND t.variant_code = #{variantCode}
         AND t.configuration_code = #{configurationCode}
+        AND t.option_codes_hash = #{optionCodesHash}
         AND t.status = 'ACTIVE'
         AND t.row_valid = 1
         LIMIT 1
     </select>
 
-    <select id="selectByUserIdAndConfigurationCodeExcluding" resultMap="baseResultMap">
+    <select id="selectByUniqueKeyExcluding" resultMap="baseResultMap">
         SELECT <include refid="baseColumnList"/>
         FROM vso_wishlist t
         WHERE t.user_id = #{userId}
+        AND t.sale_model_code = #{saleModelCode}
+        AND t.model_code = #{modelCode}
+        AND t.variant_code = #{variantCode}
         AND t.configuration_code = #{configurationCode}
+        AND t.option_codes_hash = #{optionCodesHash}
         AND t.wishlist_id != #{excludeWishlistId}
         AND t.status = 'ACTIVE'
         AND t.row_valid = 1

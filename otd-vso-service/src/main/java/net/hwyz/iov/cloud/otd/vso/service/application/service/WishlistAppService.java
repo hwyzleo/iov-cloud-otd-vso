@@ -2,23 +2,20 @@ package net.hwyz.iov.cloud.otd.vso.service.application.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import net.hwyz.iov.cloud.edd.vmd.api.service.VmdVehicleModelConfigService;
-import net.hwyz.iov.cloud.edd.vmd.api.vo.response.VmdBuildConfigFeatureCodeResponse;
-import net.hwyz.iov.cloud.edd.vmd.api.vo.response.VmdBuildConfigResponse;
-import net.hwyz.iov.cloud.otd.vso.service.adapter.web.vo.SaleModelConfigFamilyVo;
+import net.hwyz.iov.cloud.edd.mdm.api.service.ConfigurationService;
+import net.hwyz.iov.cloud.edd.mdm.api.vo.request.ConfigurationByVariantAndOptionCodesRequest;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.CreateWishlistCmd;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.DeleteWishlistCmd;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.ModifyWishlistCmd;
-import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.SaleModelConfigItemResult;
-import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.SelectedSaleModelResult;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.WishlistDetailResult;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.WishlistListResult;
-import net.hwyz.iov.cloud.otd.vso.service.common.exception.BuildConfigNotMatchedException;
+import net.hwyz.iov.cloud.otd.vso.service.common.exception.ConfigurationNotMatchedException;
 import net.hwyz.iov.cloud.otd.vso.service.common.exception.DuplicateWishlistException;
 import net.hwyz.iov.cloud.otd.vso.service.common.exception.SaleModelNotExistException;
 import net.hwyz.iov.cloud.otd.vso.service.common.exception.WishlistLimitExceededException;
 import net.hwyz.iov.cloud.otd.vso.service.common.exception.WishlistNotExistException;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.Wishlist;
+import net.hwyz.iov.cloud.otd.vso.service.domain.model.WishlistInvalidReason;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.SaleModelRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.WishlistRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.service.SalesPolicyService;
@@ -26,11 +23,9 @@ import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.SaleMode
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.HashMap;
+import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -44,52 +39,52 @@ import java.util.stream.Collectors;
 public class WishlistAppService {
 
     private final WishlistRepository wishlistRepository;
-    private final SaleModelAppService saleModelAppService;
-    private final VmdVehicleModelConfigService vmdVehicleModelConfigService;
     private final SaleModelRepository saleModelRepository;
     private final SalesPolicyService salesPolicyService;
+    private final ConfigurationService configurationService;
 
     @Transactional(rollbackFor = Exception.class)
     public String createWishlist(CreateWishlistCmd cmd) {
-        log.info("创建心愿单：accountId={}, saleModelCode={}, configurationCode={}, optionCodes={}",
-                cmd.getAccountId(), cmd.getSaleModelCode(), cmd.getConfigurationCode(), cmd.getOptionCodes());
+        log.info("创建心愿单：accountId={}, saleModelCode={}, modelCode={}, variantCode={}, optionCodes={}",
+                cmd.getAccountId(), cmd.getSaleModelCode(), cmd.getModelCode(),
+                cmd.getVariantCode(), cmd.getOptionCodes());
 
         validateWishlistLimit(cmd.getAccountId());
-        validateWishlistBeforeCreate(cmd.getSaleModelCode(), cmd.getConfigurationCode(), cmd.getOptionCodes());
 
-        String buildConfigCode = cmd.getConfigurationCode();
+        // 五项校验 + resolveConfiguration
+        String configurationCode = validateAndResolveConfiguration(
+                cmd.getSaleModelCode(), cmd.getModelCode(), cmd.getVariantCode(), cmd.getOptionCodes());
 
-        if (buildConfigCode == null || buildConfigCode.isEmpty()) {
-            throw new BuildConfigNotMatchedException(cmd.getSaleModelCode());
-        }
+        // 唯一性校验
+        validateDuplicateWishlist(cmd.getAccountId(), cmd.getSaleModelCode(), cmd.getModelCode(),
+                cmd.getVariantCode(), configurationCode, cmd.getOptionCodes(), null);
 
-        validateDuplicateWishlist(cmd.getAccountId(), buildConfigCode, null);
-
-        Wishlist wishlist = Wishlist.create(cmd.getAccountId(), cmd.getSaleModelCode(), buildConfigCode, null);
+        Wishlist wishlist = Wishlist.create(cmd.getAccountId(), cmd.getSaleModelCode(),
+                cmd.getModelCode(), cmd.getVariantCode(), configurationCode, cmd.getOptionCodes());
         wishlistRepository.save(wishlist);
-        log.info("心愿单创建成功：wishlistId={}, buildConfigCode={}", wishlist.getId(), buildConfigCode);
+        log.info("心愿单创建成功：wishlistId={}, configurationCode={}", wishlist.getId(), configurationCode);
         return wishlist.getId();
     }
 
     @Transactional(rollbackFor = Exception.class)
     public void modifyWishlist(ModifyWishlistCmd cmd) {
-        log.info("修改心愿单：wishlistId={}, accountId={}, configurationCode={}, optionCodes={}",
-                cmd.getWishlistId(), cmd.getAccountId(), cmd.getConfigurationCode(), cmd.getOptionCodes());
+        log.info("修改心愿单：wishlistId={}, accountId={}, modelCode={}, variantCode={}, optionCodes={}",
+                cmd.getWishlistId(), cmd.getAccountId(), cmd.getModelCode(),
+                cmd.getVariantCode(), cmd.getOptionCodes());
 
         Wishlist wishlist = findWishlistById(cmd.getAccountId(), cmd.getWishlistId());
-        validateWishlistBeforeCreate(wishlist.getSaleModelCode(), cmd.getConfigurationCode(), cmd.getOptionCodes());
 
-        String buildConfigCode = cmd.getConfigurationCode();
+        // 五项校验 + resolveConfiguration（saleModelCode 取原心愿单的）
+        String configurationCode = validateAndResolveConfiguration(
+                wishlist.getSaleModelCode(), cmd.getModelCode(), cmd.getVariantCode(), cmd.getOptionCodes());
 
-        if (buildConfigCode == null || buildConfigCode.isEmpty()) {
-            throw new BuildConfigNotMatchedException(wishlist.getSaleModelCode());
-        }
+        // 唯一性校验（排除当前心愿单）
+        validateDuplicateWishlist(cmd.getAccountId(), wishlist.getSaleModelCode(), cmd.getModelCode(),
+                cmd.getVariantCode(), configurationCode, cmd.getOptionCodes(), cmd.getWishlistId());
 
-        validateDuplicateWishlist(cmd.getAccountId(), buildConfigCode, cmd.getWishlistId());
-
-        wishlist.modify(buildConfigCode, null);
+        wishlist.modify(cmd.getModelCode(), cmd.getVariantCode(), configurationCode, cmd.getOptionCodes());
         wishlistRepository.save(wishlist);
-        log.info("心愿单修改成功：wishlistId={}, buildConfigCode={}", wishlist.getId(), buildConfigCode);
+        log.info("心愿单修改成功：wishlistId={}", wishlist.getId());
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -105,13 +100,17 @@ public class WishlistAppService {
         log.info("获取心愿单列表：accountId={}", accountId);
         List<Wishlist> wishlists = wishlistRepository.findByUserId(accountId);
         return wishlists.stream()
-                .map(this::toWishlistListResult)
+                .map(wishlist -> {
+                    refreshWishlistStatus(wishlist);
+                    return toWishlistListResult(wishlist);
+                })
                 .collect(Collectors.toList());
     }
 
     public WishlistDetailResult getWishlistDetail(String accountId, String wishlistId) {
         log.info("获取心愿单详情：wishlistId={}, accountId={}", wishlistId, accountId);
         Wishlist wishlist = findWishlistById(accountId, wishlistId);
+        refreshWishlistStatus(wishlist);
         return toWishlistDetailResult(wishlist);
     }
 
@@ -121,160 +120,157 @@ public class WishlistAppService {
     }
 
     private WishlistListResult toWishlistListResult(Wishlist wishlist) {
-        Map<String, String> featureCodes = parseBuildConfigToFeatureCodes(wishlist.getConfigurationCode());
-        SelectedSaleModelResult selectedModel = saleModelAppService.getSelectedSaleModelByFeatureCodes(
-                wishlist.getSaleModelCode(), featureCodes);
-
-        String displayName = "";
-        if (selectedModel.getSaleModelConfigName() != null) {
-            // 优先使用 BASE_MODEL，如果没有则使用 MODEL
-            displayName = selectedModel.getSaleModelConfigName().getOrDefault("BASE_MODEL",
-                    selectedModel.getSaleModelConfigName().getOrDefault("MODEL", ""));
-        }
-
         return WishlistListResult.builder()
                 .wishlistId(wishlist.getId())
                 .saleModelCode(wishlist.getSaleModelCode())
-                .buildConfigCode(wishlist.getConfigurationCode())
+                .modelCode(wishlist.getModelCode())
+                .variantCode(wishlist.getVariantCode())
+                .configurationCode(wishlist.getConfigurationCode())
+                .optionCodes(wishlist.getOptionCodes())
                 .createTime(wishlist.getCreateTime())
                 .modifyTime(wishlist.getModifyTime())
-                .displayName(displayName)
-                .saleModelConfigType(selectedModel.getSaleModelConfigType())
-                .saleModelConfigName(selectedModel.getSaleModelConfigName())
-                .saleModelImages(selectedModel.getSaleModelImages())
-                .totalPrice(selectedModel.getTotalPrice())
-                .saleModelDesc(selectedModel.getSaleModelDesc())
-                .isValid(checkBuildConfigValid(wishlist.getConfigurationCode()))
+                .invalidReason(wishlist.getInvalidReason())
                 .build();
     }
 
     private WishlistDetailResult toWishlistDetailResult(Wishlist wishlist) {
-        Map<String, String> featureCodes = parseBuildConfigToFeatureCodes(wishlist.getConfigurationCode());
-        SelectedSaleModelResult selectedModel = saleModelAppService.getSelectedSaleModelByFeatureCodes(
-                wishlist.getSaleModelCode(), featureCodes);
-
-        // 构建 displayName
-        String displayName = "";
-        if (selectedModel.getSaleModelConfigName() != null) {
-            displayName = selectedModel.getSaleModelConfigName().getOrDefault("BASE_MODEL",
-                    selectedModel.getSaleModelConfigName().getOrDefault("MODEL", ""));
-        }
-
-        // 将 Map 转换为配置项列表
-        List<SaleModelConfigItemResult> saleModelConfigs = buildConfigItems(wishlist.getSaleModelCode(), selectedModel);
-
         return WishlistDetailResult.builder()
                 .wishlistId(wishlist.getId())
                 .saleModelCode(wishlist.getSaleModelCode())
-                .buildConfigCode(wishlist.getConfigurationCode())
+                .modelCode(wishlist.getModelCode())
+                .variantCode(wishlist.getVariantCode())
+                .configurationCode(wishlist.getConfigurationCode())
+                .optionCodes(wishlist.getOptionCodes())
                 .createTime(wishlist.getCreateTime())
                 .modifyTime(wishlist.getModifyTime())
-                .displayName(displayName)
-                .saleModelConfigs(saleModelConfigs)
-                .saleModelImages(selectedModel.getSaleModelImages())
-                .saleModelDesc(selectedModel.getSaleModelDesc())
-                .totalPrice(selectedModel.getTotalPrice())
-                .isValid(checkBuildConfigValid(wishlist.getConfigurationCode()))
+                .invalidReason(wishlist.getInvalidReason())
                 .build();
     }
 
     /**
-     * 从 SelectedSaleModelResult 构建配置项列表
+     * 实时校验心愿单状态，更新 invalidReason
+     * 五项校验：① SaleModel 在售 ② Model 在售 ③ Variant 在售 ④ Configuration 白名单 ⑤ Option 在售
      */
-    private List<SaleModelConfigItemResult> buildConfigItems(String saleModelCode, SelectedSaleModelResult selectedModel) {
-        List<SaleModelConfigItemResult> configItems = new ArrayList<>();
+    private void refreshWishlistStatus(Wishlist wishlist) {
+        WishlistInvalidReason reason = checkWishlistInvalidReason(wishlist);
+        String currentReason = wishlist.getInvalidReason();
+        String newReason = reason != null ? reason.getCode() : null;
 
-        if (selectedModel.getSaleModelConfigType() == null) {
-            return configItems;
+        if (currentReason == null && newReason == null) {
+            return;
+        }
+        if (currentReason != null && currentReason.equals(newReason)) {
+            return;
         }
 
-        Map<String, String> typeMap = selectedModel.getSaleModelConfigType();
-        Map<String, String> nameMap = selectedModel.getSaleModelConfigName();
-        Map<String, BigDecimal> priceMap = selectedModel.getSaleModelConfigPrice();
-
-        for (String familyCode : typeMap.keySet()) {
-            String featureCode = typeMap.get(familyCode);
-            String featureName = nameMap != null ? nameMap.getOrDefault(familyCode, featureCode) : featureCode;
-            BigDecimal featurePrice = priceMap != null ? priceMap.getOrDefault(familyCode, BigDecimal.ZERO) : BigDecimal.ZERO;
-
-            // 从 featureCode 获取特征族名称（通过调用 VMD 接口获取）
-            String familyName = getFamilyName(saleModelCode, familyCode);
-
-            configItems.add(SaleModelConfigItemResult.builder()
-                    .familyCode(familyCode)
-                    .familyName(familyName)
-                    .featureCode(featureCode)
-                    .featureName(featureName)
-                    .featurePrice(featurePrice)
-                    .featureImages(null)  // 可以从 selectedSaleModel 中提取图片
-                    .build());
+        if (newReason != null) {
+            wishlist.markInvalid(newReason);
+            log.info("心愿单失效：wishlistId={}, reason={}", wishlist.getId(), newReason);
+        } else {
+            wishlist.clearInvalid();
+            log.info("心愿单恢复有效：wishlistId={}", wishlist.getId());
         }
-
-        return configItems;
+        wishlistRepository.save(wishlist);
     }
 
     /**
-     * 获取特征族名称
+     * 逐项校验心愿单，返回第一个失效原因（null 表示全部有效）
      */
-private String getFamilyName(String saleModelCode, String familyCode) {
-        try {
-            List<SaleModelConfigFamilyVo> ranges = saleModelAppService.getSaleModelConfigFamilyList(saleModelCode);
-            for (SaleModelConfigFamilyVo range : ranges) {
-                if (range.getFamilyCode().equals(familyCode)) {
-                    return range.getFamilyName();
-                }
+    private WishlistInvalidReason checkWishlistInvalidReason(Wishlist wishlist) {
+        String saleModelCode = wishlist.getSaleModelCode();
+
+        // ① SaleModel 在售（listingStatus = active，时间窗有效）
+        SaleModelPo saleModel = saleModelRepository.findBySaleModelCode(saleModelCode).orElse(null);
+        if (saleModel == null || !"active".equals(saleModel.getListingStatus())) {
+            return WishlistInvalidReason.SALE_MODEL_OFF_SHELF;
+        }
+        if (saleModel.getEffectiveFrom() != null && saleModel.getEffectiveTo() != null) {
+            Timestamp now = Timestamp.from(Instant.now());
+            if (now.before(saleModel.getEffectiveFrom()) || now.after(saleModel.getEffectiveTo())) {
+                return WishlistInvalidReason.SALE_MODEL_OFF_SHELF;
             }
-        } catch (Exception e) {
-            log.warn("获取特征族名称失败: saleModelCode={}, familyCode={}", saleModelCode, familyCode, e);
-        }
-        return familyCode;  // 默认返回代码本身
-    }
-
-    private Map<String, String> parseBuildConfigToFeatureCodes(String buildConfigCode) {
-        Map<String, String> featureCodes = new HashMap<>();
-
-        try {
-            VmdBuildConfigResponse buildConfig = vmdVehicleModelConfigService.getBuildConfigByCode(buildConfigCode);
-
-            if (buildConfig != null && buildConfig.getFeatureCodes() != null) {
-                for (VmdBuildConfigFeatureCodeResponse fc : buildConfig.getFeatureCodes()) {
-                    String familyCode = fc.getFamilyCode();
-                    if (fc.getFeatureCode() != null && fc.getFeatureCode().length > 0) {
-                        featureCodes.put(familyCode, fc.getFeatureCode()[0]);
-                    }
-                }
-
-                if (buildConfig.getBaseModelCode() != null && !buildConfig.getBaseModelCode().isEmpty()) {
-                    featureCodes.put("BASE_MODEL", buildConfig.getBaseModelCode());
-                }
-            }
-        } catch (Exception e) {
-            log.warn("解析生产配置失败: buildConfigCode={}", buildConfigCode, e);
         }
 
-        return featureCodes;
-    }
-
-    private boolean checkBuildConfigValid(String buildConfigCode) {
-        try {
-            VmdBuildConfigResponse buildConfig = vmdVehicleModelConfigService.getBuildConfigByCode(buildConfigCode);
-            return buildConfig != null && buildConfig.getEnable() != null && buildConfig.getEnable();
-        } catch (Exception e) {
-            log.warn("检查生产配置有效性失败: buildConfigCode={}", buildConfigCode, e);
-            return false;
+        // ② Model 在售
+        WishlistInvalidReason modelReason = salesPolicyService.checkModelForSale(saleModelCode, wishlist.getModelCode());
+        if (modelReason != null) {
+            return modelReason;
         }
+
+        // ③ Variant 在售
+        WishlistInvalidReason variantReason = salesPolicyService.checkVariantForSale(saleModelCode, wishlist.getVariantCode());
+        if (variantReason != null) {
+            return variantReason;
+        }
+
+        // ④ Configuration 白名单
+        WishlistInvalidReason configReason = salesPolicyService.checkConfigurationForSale(saleModelCode, wishlist.getConfigurationCode());
+        if (configReason != null) {
+            return configReason;
+        }
+
+        // ⑤ Option 在售
+        WishlistInvalidReason optionReason = salesPolicyService.checkOptionsForSale(saleModelCode, wishlist.getOptionCodes());
+        if (optionReason != null) {
+            return optionReason;
+        }
+
+        return null;
     }
 
     /**
-     * 创建心愿单前的校验
+     * 五项校验 + resolveConfiguration
+     * ① SaleModel 存在 ② Model 在售 ③ Variant 在售 ④ resolveConfiguration ⑤ Option 在售
+     *
+     * @return 解析出的 configurationCode
      */
-    private void validateWishlistBeforeCreate(String saleModelCode, String configurationCode, List<String> optionCodes) {
+    private String validateAndResolveConfiguration(String saleModelCode, String modelCode,
+                                                   String variantCode, List<String> optionCodes) {
+        // ① 校验 SaleModel 存在
         SaleModelPo saleModel = saleModelRepository.findBySaleModelCode(saleModelCode)
             .orElseThrow(() -> new SaleModelNotExistException("销售车型不存在: " + saleModelCode));
 
-        salesPolicyService.validateOptionsForSale(saleModelCode, optionCodes, null);
+        // ② Model 销售策略校验（空表全开）
+        salesPolicyService.validateModelForSale(saleModelCode, modelCode);
 
+        // ③ Variant 销售策略校验（空表全开，但 variantPrice 必须非空）
+        salesPolicyService.validateVariantForSale(saleModelCode, variantCode);
+
+        // ④ OptionCode 销售策略校验
+        if (optionCodes != null && !optionCodes.isEmpty()) {
+            salesPolicyService.validateOptionsForSale(saleModelCode, optionCodes, null);
+        }
+
+        // ⑤ MDM resolveConfiguration(variantCode, optionCodes) → configurationCode
+        String configurationCode = resolveConfiguration(variantCode, optionCodes);
+        if (configurationCode == null || configurationCode.isEmpty()) {
+            throw new ConfigurationNotMatchedException(saleModelCode);
+        }
+
+        // ⑥ Configuration 销售白名单校验（空白名单视为 ALL 全开）
         salesPolicyService.validateConfigurationForSale(saleModelCode, configurationCode);
+
+        return configurationCode;
+    }
+
+    /**
+     * 调用 MDM 服务，根据 variantCode + optionCodes 反查 configurationCode
+     */
+    private String resolveConfiguration(String variantCode, List<String> optionCodes) {
+        try {
+            ConfigurationByVariantAndOptionCodesRequest request = ConfigurationByVariantAndOptionCodesRequest.builder()
+                    .variantCode(variantCode)
+                    .optionCodes(optionCodes)
+                    .build();
+            String configCode = configurationService.resolveConfiguration(request);
+            log.debug("resolveConfiguration: variantCode={}, optionCodes={} -> configurationCode={}",
+                    variantCode, optionCodes, configCode);
+            return configCode;
+        } catch (Exception e) {
+            log.error("调用 MDM resolveConfiguration 失败: variantCode={}, optionCodes={}",
+                    variantCode, optionCodes, e);
+            return null;
+        }
     }
 
     private static final int WISHLIST_LIMIT = 5;
@@ -286,16 +282,39 @@ private String getFamilyName(String saleModelCode, String familyCode) {
         }
     }
 
-    private void validateDuplicateWishlist(String userId, String configurationCode, String excludeWishlistId) {
+    /**
+     * 唯一性校验
+     * 唯一键: (userId, saleModelCode, modelCode, variantCode, configurationCode, optionCodesHash)
+     */
+    private void validateDuplicateWishlist(String userId, String saleModelCode, String modelCode,
+                                           String variantCode, String configurationCode,
+                                           List<String> optionCodes, String excludeWishlistId) {
+        String optionCodesHash = calculateOptionCodesHash(optionCodes);
+
         boolean exists;
         if (excludeWishlistId == null || excludeWishlistId.isEmpty()) {
-            exists = wishlistRepository.existsByUserIdAndConfigurationCode(userId, configurationCode);
+            exists = wishlistRepository.existsByUniqueKey(userId, saleModelCode, modelCode,
+                    variantCode, configurationCode, optionCodesHash);
         } else {
-            exists = wishlistRepository.existsByUserIdAndConfigurationCodeExcluding(userId, configurationCode, excludeWishlistId);
+            exists = wishlistRepository.existsByUniqueKeyExcluding(userId, saleModelCode, modelCode,
+                    variantCode, configurationCode, optionCodesHash, excludeWishlistId);
         }
         if (exists) {
             throw new DuplicateWishlistException(userId);
         }
+    }
+
+    /**
+     * 计算 optionCodes 排序后的哈希值
+     */
+    private String calculateOptionCodesHash(List<String> optionCodes) {
+        if (optionCodes == null || optionCodes.isEmpty()) {
+            return "";
+        }
+        List<String> sorted = new java.util.ArrayList<>(optionCodes);
+        java.util.Collections.sort(sorted);
+        String joined = String.join(",", sorted);
+        return cn.hutool.crypto.digest.DigestUtil.md5Hex(joined);
     }
 
 }

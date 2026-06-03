@@ -21,6 +21,8 @@ public class Wishlist {
     private String id;
     private String userId;
     private String saleModelCode;
+    private String modelCode;
+    private String variantCode;
     private String configurationCode;
     private List<String> optionCodes;
     private String optionCodesHash;
@@ -33,11 +35,14 @@ public class Wishlist {
     /**
      * 创建心愿单
      */
-    public static Wishlist create(String userId, String saleModelCode, String configurationCode, List<String> optionCodes) {
+    public static Wishlist create(String userId, String saleModelCode, String modelCode,
+                                  String variantCode, String configurationCode, List<String> optionCodes) {
         Wishlist wishlist = new Wishlist();
         wishlist.id = IdUtil.nanoId(15);
         wishlist.userId = userId;
         wishlist.saleModelCode = saleModelCode;
+        wishlist.modelCode = modelCode;
+        wishlist.variantCode = variantCode;
         wishlist.configurationCode = configurationCode;
         wishlist.optionCodes = optionCodes != null ? new ArrayList<>(optionCodes) : new ArrayList<>();
         wishlist.optionCodesHash = calculateOptionCodesHash(wishlist.optionCodes);
@@ -50,7 +55,9 @@ public class Wishlist {
     /**
      * 修改心愿单
      */
-    public void modify(String configurationCode, List<String> optionCodes) {
+    public void modify(String modelCode, String variantCode, String configurationCode, List<String> optionCodes) {
+        this.modelCode = modelCode;
+        this.variantCode = variantCode;
         this.configurationCode = configurationCode;
         this.optionCodes = optionCodes != null ? new ArrayList<>(optionCodes) : new ArrayList<>();
         this.optionCodesHash = calculateOptionCodesHash(this.optionCodes);
@@ -71,6 +78,14 @@ public class Wishlist {
      */
     public void markInvalid(String reason) {
         this.invalidReason = reason;
+        this.modifyTime = new Date();
+    }
+
+    /**
+     * 清除心愿单失效标记
+     */
+    public void clearInvalid() {
+        this.invalidReason = null;
         this.modifyTime = new Date();
     }
 

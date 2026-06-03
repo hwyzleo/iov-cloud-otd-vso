@@ -3,7 +3,6 @@ package net.hwyz.iov.cloud.otd.vso.service.application.dto.result;
 import lombok.Builder;
 import lombok.Data;
 
-import java.math.BigDecimal;
 import java.util.Date;
 import java.util.List;
 
@@ -18,15 +17,12 @@ public class WishlistDetailResult {
 
     private String wishlistId;
     private String saleModelCode;
-    private String buildConfigCode;
+    private String modelCode;
+    private String variantCode;
+    private String configurationCode;
+    private List<String> optionCodes;
     private Date createTime;
     private Date modifyTime;
-
-    private String displayName;
-    private List<SaleModelConfigItemResult> saleModelConfigs;
-    private List<String> saleModelImages;
-    private String saleModelDesc;
-    private BigDecimal totalPrice;
-    private Boolean isValid;
+    private String invalidReason;
 
 }

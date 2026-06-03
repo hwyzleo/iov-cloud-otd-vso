@@ -24,9 +24,19 @@ public interface WishlistRepository {
 
     long countByUserId(String userId);
 
-    boolean existsByUserIdAndConfigurationCode(String userId, String configurationCode);
+    /**
+     * 检查是否存在相同配置的有效心愿单
+     * 唯一键: (userId, saleModelCode, modelCode, variantCode, configurationCode, optionCodesHash)
+     */
+    boolean existsByUniqueKey(String userId, String saleModelCode, String modelCode,
+                              String variantCode, String configurationCode, String optionCodesHash);
 
-    boolean existsByUserIdAndConfigurationCodeExcluding(String userId, String configurationCode, String excludeWishlistId);
+    /**
+     * 检查是否存在相同配置的有效心愿单（排除指定心愿单）
+     */
+    boolean existsByUniqueKeyExcluding(String userId, String saleModelCode, String modelCode,
+                                       String variantCode, String configurationCode,
+                                       String optionCodesHash, String excludeWishlistId);
 
     /**
      * 检查是否存在指定销售车型的活跃心愿单

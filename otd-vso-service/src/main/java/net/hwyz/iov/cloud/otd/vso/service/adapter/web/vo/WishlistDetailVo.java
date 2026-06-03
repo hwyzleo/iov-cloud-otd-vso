@@ -2,7 +2,6 @@ package net.hwyz.iov.cloud.otd.vso.service.adapter.web.vo;
 
 import lombok.*;
 
-import java.math.BigDecimal;
 import java.util.Date;
 import java.util.List;
 
@@ -24,13 +23,6 @@ public class WishlistDetailVo {
     private List<String> optionCodes;
     private Date createTime;
     private Date modifyTime;
-
-    private String displayName;
-    private List<SaleModelConfigItemVo> saleModelConfigs;
-    private List<String> saleModelImages;
-    private String saleModelDesc;
-    private BigDecimal totalPrice;
-    private Boolean isValid;
     private String invalidReason;
 
 }

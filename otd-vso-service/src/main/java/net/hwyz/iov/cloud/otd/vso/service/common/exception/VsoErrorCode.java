@@ -72,7 +72,11 @@ public enum VsoErrorCode implements ErrorCode {
     SALE_MODEL_VARIANT_LOCKED("201037", "SaleModel 已有活跃订单或心愿单，不可修改 variantCode"),
 
     // MDM 投影
-    MDM_PROJECTION_STALE("201038", "MDM 本地投影过期或不一致，需触发强制同步");
+    MDM_PROJECTION_STALE("201038", "MDM 本地投影过期或不一致，需触发强制同步"),
+
+    // Model/Variant 销售
+    MODEL_NOT_FOR_SALE("301040", "Model 销售策略校验失败"),
+    VARIANT_NOT_FOR_SALE("301041", "Variant 销售策略校验失败");
 
     private final String code;
     private final String message;

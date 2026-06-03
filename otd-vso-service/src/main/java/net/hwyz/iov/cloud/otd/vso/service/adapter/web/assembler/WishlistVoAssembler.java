@@ -4,7 +4,6 @@ import net.hwyz.iov.cloud.otd.vso.service.adapter.web.vo.*;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.CreateWishlistCmd;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.DeleteWishlistCmd;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.ModifyWishlistCmd;
-import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.SaleModelConfigItemResult;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.WishlistDetailResult;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.WishlistListResult;
 import org.mapstruct.Mapper;
@@ -24,9 +23,12 @@ public interface WishlistVoAssembler {
     WishlistVoAssembler INSTANCE = Mappers.getMapper(WishlistVoAssembler.class);
 
     @Mapping(target = "accountId", source = "accountId")
+    @Mapping(target = "configurationCode", ignore = true)
     CreateWishlistCmd toCreateWishlistCmd(String accountId, CreateWishlistRequestVo vo);
 
     @Mapping(target = "accountId", source = "accountId")
+    @Mapping(target = "saleModelCode", ignore = true)
+    @Mapping(target = "configurationCode", ignore = true)
     ModifyWishlistCmd toModifyWishlistCmd(String accountId, ModifyWishlistRequestVo vo);
 
     @Mapping(target = "accountId", source = "accountId")
@@ -37,9 +39,5 @@ public interface WishlistVoAssembler {
     List<WishlistListVo> toVoList(List<WishlistListResult> results);
 
     WishlistDetailVo toDetailVo(WishlistDetailResult result);
-
-    SaleModelConfigItemVo toConfigItemVo(SaleModelConfigItemResult result);
-
-    List<SaleModelConfigItemVo> toConfigItemVoList(List<SaleModelConfigItemResult> results);
 
 }

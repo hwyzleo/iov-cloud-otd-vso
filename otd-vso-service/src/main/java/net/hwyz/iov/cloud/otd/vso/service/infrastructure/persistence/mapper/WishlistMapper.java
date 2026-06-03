@@ -28,9 +28,20 @@ public interface WishlistMapper extends BaseDao<WishlistPo, Long> {
 
     long countByUserId(@Param("userId") String userId);
 
-    WishlistPo selectByUserIdAndConfigurationCode(@Param("userId") String userId, @Param("configurationCode") String configurationCode);
+    WishlistPo selectByUniqueKey(@Param("userId") String userId,
+                                 @Param("saleModelCode") String saleModelCode,
+                                 @Param("modelCode") String modelCode,
+                                 @Param("variantCode") String variantCode,
+                                 @Param("configurationCode") String configurationCode,
+                                 @Param("optionCodesHash") String optionCodesHash);
 
-    WishlistPo selectByUserIdAndConfigurationCodeExcluding(@Param("userId") String userId, @Param("configurationCode") String configurationCode, @Param("excludeWishlistId") String excludeWishlistId);
+    WishlistPo selectByUniqueKeyExcluding(@Param("userId") String userId,
+                                          @Param("saleModelCode") String saleModelCode,
+                                          @Param("modelCode") String modelCode,
+                                          @Param("variantCode") String variantCode,
+                                          @Param("configurationCode") String configurationCode,
+                                          @Param("optionCodesHash") String optionCodesHash,
+                                          @Param("excludeWishlistId") String excludeWishlistId);
 
     List<WishlistPo> selectBySaleModelCode(@Param("saleModelCode") String saleModelCode);
 

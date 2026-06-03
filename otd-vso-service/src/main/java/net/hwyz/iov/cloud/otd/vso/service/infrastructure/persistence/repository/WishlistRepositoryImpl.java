@@ -66,13 +66,18 @@ public class WishlistRepositoryImpl implements WishlistRepository {
     }
 
     @Override
-    public boolean existsByUserIdAndConfigurationCode(String userId, String configurationCode) {
-        return wishlistMapper.selectByUserIdAndConfigurationCode(userId, configurationCode) != null;
+    public boolean existsByUniqueKey(String userId, String saleModelCode, String modelCode,
+                                     String variantCode, String configurationCode, String optionCodesHash) {
+        return wishlistMapper.selectByUniqueKey(userId, saleModelCode, modelCode,
+                variantCode, configurationCode, optionCodesHash) != null;
     }
 
     @Override
-    public boolean existsByUserIdAndConfigurationCodeExcluding(String userId, String configurationCode, String excludeWishlistId) {
-        return wishlistMapper.selectByUserIdAndConfigurationCodeExcluding(userId, configurationCode, excludeWishlistId) != null;
+    public boolean existsByUniqueKeyExcluding(String userId, String saleModelCode, String modelCode,
+                                              String variantCode, String configurationCode,
+                                              String optionCodesHash, String excludeWishlistId) {
+        return wishlistMapper.selectByUniqueKeyExcluding(userId, saleModelCode, modelCode,
+                variantCode, configurationCode, optionCodesHash, excludeWishlistId) != null;
     }
 
     @Override

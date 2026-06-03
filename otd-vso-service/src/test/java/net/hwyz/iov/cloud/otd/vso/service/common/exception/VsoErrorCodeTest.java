@@ -26,7 +26,8 @@ class VsoErrorCodeTest {
     void should_have_valid_error_code_format() {
         for (VsoErrorCode errorCode : VsoErrorCode.values()) {
             assertEquals(6, errorCode.getCode().length(), "错误码长度应为6位: " + errorCode.getCode());
-            assertTrue(errorCode.getCode().startsWith("201"), "错误码应以201开头: " + errorCode.getCode());
+            assertTrue(errorCode.getCode().startsWith("201") || errorCode.getCode().startsWith("301"),
+                    "错误码应以201或301开头: " + errorCode.getCode());
         }
     }
 
@@ -40,6 +41,6 @@ class VsoErrorCodeTest {
 
     @Test
     void should_have_correct_error_code_count() {
-        assertEquals(35, VsoErrorCode.values().length, "错误码数量应为35个");
+        assertEquals(37, VsoErrorCode.values().length, "错误码数量应为37个");
     }
 }
