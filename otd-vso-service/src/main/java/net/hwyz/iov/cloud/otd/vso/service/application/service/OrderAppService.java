@@ -9,6 +9,8 @@ import net.hwyz.iov.cloud.edd.org.api.vo.DealershipExService;
 import net.hwyz.iov.cloud.edd.vmd.api.service.VmdVehicleModelConfigService;
 import net.hwyz.iov.cloud.edd.vmd.api.vo.response.VmdBuildConfigFeatureCodeResponse;
 import net.hwyz.iov.cloud.edd.vmd.api.vo.response.VmdBuildConfigResponse;
+import net.hwyz.iov.cloud.edd.mdm.api.service.ConfigurationService;
+import net.hwyz.iov.cloud.edd.mdm.api.vo.request.ConfigurationByVariantAndOptionCodesRequest;
 import net.hwyz.iov.cloud.framework.web.util.PageUtil;
 import net.hwyz.iov.cloud.otd.vso.api.enums.CustomerType;
 import net.hwyz.iov.cloud.otd.vso.api.enums.OrderType;
@@ -120,6 +122,7 @@ public class OrderAppService {
     private final OrderAssignmentRepository orderAssignmentRepository;
     private final WishlistRepository wishlistRepository;
     private final VmdVehicleModelConfigService vmdVehicleModelConfigService;
+    private final ConfigurationService configurationService;
     private final OrderPhysicalDeleteService orderPhysicalDeleteService;
     private final PaymentChannelConfig paymentChannelConfig;
     private final SaleModelRepository saleModelRepository;
@@ -151,7 +154,7 @@ public class OrderAppService {
     public OrderCreateResult createSmallOrder(CreateSmallOrderCmd cmd) {
         log.info("创建小订单：userId={}, modelCode={}", cmd.getUserId(), cmd.getModelCode());
 
-        validateOrderBeforeCreate(cmd.getSaleModelCode(), cmd.getOptionCodes(), cmd.getRegionCode());
+        validateOrderBeforeCreate(cmd.getSaleModelCode(), cmd.getVariantCode(), cmd.getOptionCodes(), cmd.getRegionCode());
 
         CustomerInfo customerInfo = new CustomerInfo(
                 cmd.getUserId(),
@@ -190,7 +193,7 @@ public class OrderAppService {
     public OrderCreateResult createFormalOrder(CreateFormalOrderCmd cmd) {
         log.info("创建正式订单：userId={}, modelCode={}", cmd.getUserId(), cmd.getModelCode());
 
-        validateOrderBeforeCreate(cmd.getSaleModelCode(), cmd.getOptionCodes(), cmd.getRegionCode());
+        validateOrderBeforeCreate(cmd.getSaleModelCode(), cmd.getVariantCode(), cmd.getOptionCodes(), cmd.getRegionCode());
 
         CustomerInfo customerInfo = new CustomerInfo(
                 cmd.getUserId(),
@@ -610,7 +613,7 @@ public class OrderAppService {
     /**
      * 下单前的四步校验
      */
-    private void validateOrderBeforeCreate(String saleModelCode, List<String> optionCodes, String regionCode) {
+    private void validateOrderBeforeCreate(String saleModelCode, String variantCode, List<String> optionCodes, String regionCode) {
         SaleModelPo saleModel = saleModelRepository.findBySaleModelCode(saleModelCode)
             .orElseThrow(() -> new SaleModelNotExistException("销售车型不存在: " + saleModelCode));
 
@@ -620,12 +623,32 @@ public class OrderAppService {
 
         salesPolicyService.validateOptionsForSale(saleModelCode, optionCodes, regionCode);
 
-        String configurationCode = vmdVehicleModelConfigService.getBuildConfigCodeByOptionCodes(saleModelCode, optionCodes);
-        if (configurationCode == null) {
+        String configurationCode = resolveConfiguration(variantCode, optionCodes);
+        if (configurationCode == null || configurationCode.isEmpty()) {
             throw new ConfigurationNotMatchedException("OptionCode 组合无法匹配到合法 Configuration");
         }
 
         salesPolicyService.validateConfigurationForSale(saleModelCode, configurationCode);
+    }
+
+    /**
+     * 调用 MDM 服务，根据 variantCode + optionCodes 反查 configurationCode
+     */
+    private String resolveConfiguration(String variantCode, List<String> optionCodes) {
+        try {
+            ConfigurationByVariantAndOptionCodesRequest request = ConfigurationByVariantAndOptionCodesRequest.builder()
+                    .variantCode(variantCode)
+                    .optionCodes(optionCodes)
+                    .build();
+            String configCode = configurationService.resolveConfiguration(request);
+            log.debug("resolveConfiguration: variantCode={}, optionCodes={} -> configurationCode={}",
+                    variantCode, optionCodes, configCode);
+            return configCode;
+        } catch (Exception e) {
+            log.error("调用 MDM resolveConfiguration 失败: variantCode={}, optionCodes={}",
+                    variantCode, optionCodes, e);
+            return null;
+        }
     }
 
     // --- 以下为兼容旧接口的方法 ---
@@ -1166,9 +1189,8 @@ public class OrderAppService {
             // 2. 校验订单状态
             validateOrderStateForModifyConfig(order);
 
-            // 3. 获取新的 buildConfigCode（通过 optionCodes）
-            String newBuildConfigCode = vmdVehicleModelConfigService.getBuildConfigCodeByOptionCodes(
-                    order.getSaleModel(), cmd.getOptionCodes());
+            // 3. 获取新的 buildConfigCode（通过 variantCode + optionCodes）
+            String newBuildConfigCode = resolveConfiguration(cmd.getVariantCode(), cmd.getOptionCodes());
             if (newBuildConfigCode == null || newBuildConfigCode.isEmpty()) {
                 throw new BuildConfigNotMatchedException(order.getSaleModel());
             }

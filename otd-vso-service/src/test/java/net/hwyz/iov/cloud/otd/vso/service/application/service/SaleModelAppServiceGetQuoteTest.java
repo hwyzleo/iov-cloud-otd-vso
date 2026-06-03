@@ -1,5 +1,7 @@
 package net.hwyz.iov.cloud.otd.vso.service.application.service;
 
+import net.hwyz.iov.cloud.edd.mdm.api.service.ConfigurationService;
+import net.hwyz.iov.cloud.edd.mdm.api.vo.request.ConfigurationByVariantAndOptionCodesRequest;
 import net.hwyz.iov.cloud.edd.vmd.api.service.VmdVehicleModelConfigService;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.GetQuoteCmd;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.QuoteResult;
@@ -40,6 +42,8 @@ class SaleModelAppServiceGetQuoteTest {
     private SalesPolicyService salesPolicyService;
     @Mock
     private VmdVehicleModelConfigService vmdVehicleModelConfigService;
+    @Mock
+    private ConfigurationService configurationService;
 
     @InjectMocks
     private SaleModelAppService saleModelAppService;
@@ -98,7 +102,7 @@ class SaleModelAppServiceGetQuoteTest {
             when(saleModelRepository.findBySaleModelCode(SALE_MODEL_CODE))
                 .thenReturn(java.util.Optional.of(buildActiveSaleModel()));
             doNothing().when(salesPolicyService).validateOptionsForSale(eq(SALE_MODEL_CODE), anyList(), eq("CN"));
-            when(vmdVehicleModelConfigService.getBuildConfigCodeByOptionCodes(SALE_MODEL_CODE, Arrays.asList(OPTION_CODE_1)))
+            when(configurationService.resolveConfiguration(any(ConfigurationByVariantAndOptionCodesRequest.class)))
                 .thenReturn(null);
 
             assertThrows(ConfigurationNotMatchedException.class,
@@ -116,7 +120,7 @@ class SaleModelAppServiceGetQuoteTest {
             when(saleModelRepository.findBySaleModelCode(SALE_MODEL_CODE))
                 .thenReturn(java.util.Optional.of(buildActiveSaleModel()));
             doNothing().when(salesPolicyService).validateOptionsForSale(eq(SALE_MODEL_CODE), anyList(), eq("CN"));
-            when(vmdVehicleModelConfigService.getBuildConfigCodeByOptionCodes(SALE_MODEL_CODE, Arrays.asList(OPTION_CODE_1, OPTION_CODE_2)))
+            when(configurationService.resolveConfiguration(any(ConfigurationByVariantAndOptionCodesRequest.class)))
                 .thenReturn(CONFIGURATION_CODE);
             doNothing().when(salesPolicyService).validateConfigurationForSale(SALE_MODEL_CODE, CONFIGURATION_CODE);
             when(saleModelVariantPolicyRepository.findBySaleModelCodeAndVariantCode(SALE_MODEL_CODE, VARIANT_CODE))
@@ -140,7 +144,7 @@ class SaleModelAppServiceGetQuoteTest {
             when(saleModelRepository.findBySaleModelCode(SALE_MODEL_CODE))
                 .thenReturn(java.util.Optional.of(buildActiveSaleModel()));
             doNothing().when(salesPolicyService).validateOptionsForSale(eq(SALE_MODEL_CODE), anyList(), eq("CN"));
-            when(vmdVehicleModelConfigService.getBuildConfigCodeByOptionCodes(SALE_MODEL_CODE, Arrays.asList(OPTION_CODE_1)))
+            when(configurationService.resolveConfiguration(any(ConfigurationByVariantAndOptionCodesRequest.class)))
                 .thenReturn(CONFIGURATION_CODE);
             doNothing().when(salesPolicyService).validateConfigurationForSale(SALE_MODEL_CODE, CONFIGURATION_CODE);
             when(saleModelVariantPolicyRepository.findBySaleModelCodeAndVariantCode(SALE_MODEL_CODE, VARIANT_CODE))
@@ -161,7 +165,7 @@ class SaleModelAppServiceGetQuoteTest {
             when(saleModelRepository.findBySaleModelCode(SALE_MODEL_CODE))
                 .thenReturn(java.util.Optional.of(buildActiveSaleModel()));
             doNothing().when(salesPolicyService).validateOptionsForSale(eq(SALE_MODEL_CODE), anyList(), eq("CN"));
-            when(vmdVehicleModelConfigService.getBuildConfigCodeByOptionCodes(SALE_MODEL_CODE, Arrays.asList(OPTION_CODE_1)))
+            when(configurationService.resolveConfiguration(any(ConfigurationByVariantAndOptionCodesRequest.class)))
                 .thenReturn(CONFIGURATION_CODE);
             doNothing().when(salesPolicyService).validateConfigurationForSale(SALE_MODEL_CODE, CONFIGURATION_CODE);
             when(salesPolicyService.getOptionPrice(SALE_MODEL_CODE, OPTION_CODE_1)).thenReturn(BigDecimal.valueOf(3000));
@@ -180,7 +184,7 @@ class SaleModelAppServiceGetQuoteTest {
             when(saleModelRepository.findBySaleModelCode(SALE_MODEL_CODE))
                 .thenReturn(java.util.Optional.of(buildActiveSaleModel()));
             doNothing().when(salesPolicyService).validateOptionsForSale(eq(SALE_MODEL_CODE), anyList(), eq("CN"));
-            when(vmdVehicleModelConfigService.getBuildConfigCodeByOptionCodes(SALE_MODEL_CODE, Collections.emptyList()))
+            when(configurationService.resolveConfiguration(any(ConfigurationByVariantAndOptionCodesRequest.class)))
                 .thenReturn(CONFIGURATION_CODE);
             doNothing().when(salesPolicyService).validateConfigurationForSale(SALE_MODEL_CODE, CONFIGURATION_CODE);
             when(saleModelVariantPolicyRepository.findBySaleModelCodeAndVariantCode(SALE_MODEL_CODE, VARIANT_CODE))
@@ -206,7 +210,7 @@ class SaleModelAppServiceGetQuoteTest {
             when(saleModelRepository.findBySaleModelCode(SALE_MODEL_CODE))
                 .thenReturn(java.util.Optional.of(buildActiveSaleModel()));
             doNothing().when(salesPolicyService).validateOptionsForSale(eq(SALE_MODEL_CODE), anyList(), eq("CN"));
-            when(vmdVehicleModelConfigService.getBuildConfigCodeByOptionCodes(SALE_MODEL_CODE, Arrays.asList(OPTION_CODE_1)))
+            when(configurationService.resolveConfiguration(any(ConfigurationByVariantAndOptionCodesRequest.class)))
                 .thenReturn(CONFIGURATION_CODE);
             doNothing().when(salesPolicyService).validateConfigurationForSale(SALE_MODEL_CODE, CONFIGURATION_CODE);
             when(saleModelVariantPolicyRepository.findBySaleModelCodeAndVariantCode(SALE_MODEL_CODE, VARIANT_CODE))
@@ -230,7 +234,7 @@ class SaleModelAppServiceGetQuoteTest {
             when(saleModelRepository.findBySaleModelCode(SALE_MODEL_CODE))
                 .thenReturn(java.util.Optional.of(buildActiveSaleModel()));
             doNothing().when(salesPolicyService).validateOptionsForSale(eq(SALE_MODEL_CODE), anyList(), eq("CN"));
-            when(vmdVehicleModelConfigService.getBuildConfigCodeByOptionCodes(SALE_MODEL_CODE, Arrays.asList(OPTION_CODE_1)))
+            when(configurationService.resolveConfiguration(any(ConfigurationByVariantAndOptionCodesRequest.class)))
                 .thenReturn(CONFIGURATION_CODE);
             doNothing().when(salesPolicyService).validateConfigurationForSale(SALE_MODEL_CODE, CONFIGURATION_CODE);
             when(saleModelVariantPolicyRepository.findBySaleModelCodeAndVariantCode(SALE_MODEL_CODE, VARIANT_CODE))

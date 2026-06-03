@@ -10,6 +10,7 @@ import net.hwyz.iov.cloud.edd.mdm.api.service.OptionFamilyService;
 import net.hwyz.iov.cloud.edd.mdm.api.service.CarLineService;
 import net.hwyz.iov.cloud.edd.mdm.api.service.ModelService;
 import net.hwyz.iov.cloud.edd.mdm.api.service.VariantService;
+import net.hwyz.iov.cloud.edd.mdm.api.vo.request.ConfigurationByVariantAndOptionCodesRequest;
 import net.hwyz.iov.cloud.edd.mdm.api.vo.response.CarLineResponse;
 import net.hwyz.iov.cloud.edd.mdm.api.vo.response.ModelPageResponse;
 import net.hwyz.iov.cloud.edd.mdm.api.vo.response.ModelResponse;
@@ -569,8 +570,8 @@ public class SaleModelAppService {
         salesPolicyService.validateOptionsForSale(cmd.getSaleModelCode(), cmd.getOptionCodes(), cmd.getRegionCode());
 
         // 获取 Configuration
-        String configurationCode = vmdVehicleModelConfigService.getBuildConfigCodeByOptionCodes(cmd.getSaleModelCode(), cmd.getOptionCodes());
-        if (configurationCode == null) {
+        String configurationCode = resolveConfiguration(cmd.getVariantCode(), cmd.getOptionCodes());
+        if (configurationCode == null || configurationCode.isEmpty()) {
             throw new ConfigurationNotMatchedException("OptionCode 组合无法匹配到合法 Configuration");
         }
 
@@ -610,6 +611,26 @@ public class SaleModelAppService {
             .totalPrice(totalPrice)
             .optionPriceBreakdown(breakdown)
             .build();
+    }
+
+    /**
+     * 调用 MDM 服务，根据 variantCode + optionCodes 反查 configurationCode
+     */
+    private String resolveConfiguration(String variantCode, List<String> optionCodes) {
+        try {
+            ConfigurationByVariantAndOptionCodesRequest request = ConfigurationByVariantAndOptionCodesRequest.builder()
+                    .variantCode(variantCode)
+                    .optionCodes(optionCodes)
+                    .build();
+            String configCode = configurationService.resolveConfiguration(request);
+            log.debug("resolveConfiguration: variantCode={}, optionCodes={} -> configurationCode={}",
+                    variantCode, optionCodes, configCode);
+            return configCode;
+        } catch (Exception e) {
+            log.error("调用 MDM resolveConfiguration 失败: variantCode={}, optionCodes={}",
+                    variantCode, optionCodes, e);
+            return null;
+        }
     }
 
     /**
