@@ -27,12 +27,6 @@ public class WishlistPo extends BasePo {
     @TableField("user_id")
     private String userId;
 
-    @TableField("sale_model")
-    private String saleModel;
-
-    @TableField("build_config_code")
-    private String buildConfigCode;
-
     @TableField("wishlist_name")
     private String wishlistName;
 

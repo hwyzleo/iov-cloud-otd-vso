@@ -6,8 +6,6 @@
         <id column="id" property="id" />
         <result column="wishlist_id" property="wishlistId" />
         <result column="user_id" property="userId" />
-        <result column="sale_model" property="saleModel" />
-        <result column="build_config_code" property="buildConfigCode" />
         <result column="wishlist_name" property="wishlistName" />
         <result column="status" property="status" />
         <result column="sale_model_code" property="saleModelCode" />
@@ -27,19 +25,19 @@
     </resultMap>
 
     <sql id="baseColumnList">
-        id, wishlist_id, user_id, sale_model, build_config_code, wishlist_name, status,
+        id, wishlist_id, user_id, wishlist_name, status,
         sale_model_code, model_code, variant_code, configuration_code, option_codes, option_codes_hash, invalid_reason,
         description, create_time, create_by, modify_time, modify_by, row_version, row_valid
     </sql>
 
     <insert id="insertPo" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO vso_wishlist (
-            id, wishlist_id, user_id, sale_model, build_config_code, wishlist_name, status,
+            id, wishlist_id, user_id, wishlist_name, status,
             sale_model_code, model_code, variant_code, configuration_code, option_codes, option_codes_hash, invalid_reason,
             description, create_time, create_by, modify_time, modify_by, row_version, row_valid
         )
         VALUES (
-            #{id}, #{wishlistId}, #{userId}, #{saleModel}, #{buildConfigCode}, #{wishlistName}, #{status},
+            #{id}, #{wishlistId}, #{userId}, #{wishlistName}, #{status},
             #{saleModelCode}, #{modelCode}, #{variantCode}, #{configurationCode}, #{optionCodes}, #{optionCodesHash}, #{invalidReason},
             #{description}, now(), #{createBy}, now(), #{modifyBy}, 1, 1
         )
@@ -47,12 +45,6 @@
 
     <update id="updatePo" parameterType="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.WishlistPo">
         UPDATE vso_wishlist t SET
-        <if test="saleModel != null">
-            t.sale_model = #{saleModel},
-        </if>
-        <if test="buildConfigCode != null">
-            t.build_config_code = #{buildConfigCode},
-        </if>
         <if test="wishlistName != null">
             t.wishlist_name = #{wishlistName},
         </if>
@@ -126,9 +118,6 @@
         <if test="userId != null and userId != ''">
             AND t.user_id = #{userId}
         </if>
-        <if test="saleModel != null and saleModel != ''">
-            AND t.sale_model = #{saleModel}
-        </if>
         <if test="status != null and status != ''">
             AND t.status = #{status}
         </if>
@@ -141,9 +130,6 @@
         WHERE t.row_valid = 1
         <if test="userId != null and userId != ''">
             AND t.user_id = #{userId}
-        </if>
-        <if test="saleModel != null and saleModel != ''">
-            AND t.sale_model = #{saleModel}
         </if>
         <if test="status != null and status != ''">
             AND t.status = #{status}
