@@ -38,6 +38,9 @@ public interface WishlistVoAssembler {
 
     List<WishlistListVo> toVoList(List<WishlistListResult> results);
 
+    @Mapping(target = "optionDetails", source = "optionDetails")
     WishlistDetailVo toDetailVo(WishlistDetailResult result);
+
+    WishlistDetailVo.OptionDetailVo toOptionDetailVo(WishlistListResult.OptionDetail detail);
 
 }

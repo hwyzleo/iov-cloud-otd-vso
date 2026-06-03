@@ -1,7 +1,9 @@
 package net.hwyz.iov.cloud.otd.vso.service.application.dto.result;
 
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.util.Date;
@@ -27,7 +29,7 @@ public class WishlistListResult {
     private String invalidReason;
 
     /**
-     * 展示名称（销售车型名 + 车型营销名 + 版本营销名）
+     * 展示名称（销售车型名 + 车型销售名 + 版本销售名）
      */
     private String displayName;
 
@@ -45,5 +47,40 @@ public class WishlistListResult {
      * 总价格（版本价格 + 选项价格）
      */
     private BigDecimal totalPrice;
+
+    /**
+     * 选项详情列表
+     */
+    private List<OptionDetail> optionDetails;
+
+    /**
+     * 选项详情
+     */
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class OptionDetail {
+        /**
+         * 选项家族编码
+         */
+        private String optionFamilyCode;
+        /**
+         * 选项编码
+         */
+        private String optionCode;
+        /**
+         * 营销名称（中文说明）
+         */
+        private String marketingTitle;
+        /**
+         * 选项价格
+         */
+        private BigDecimal optionPrice;
+        /**
+         * 营销图片
+         */
+        private String marketingImage;
+    }
 
 }

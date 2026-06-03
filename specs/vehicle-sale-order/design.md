@@ -274,6 +274,7 @@ classDiagram
 | `vso_config_change_refund` | 改配退款记录 | US-007 |
 | `vso_config_timeout` | 超时配置 | US-019 |
 | `vso_order_shadow_delete` | 物理删除影子审计 | US-015 |
+| `vso_wishlist` | 心愿单表（saleModelCode/modelCode/variantCode/configurationCode/optionCodes/optionCodesHash，V1.33.0 移除遗留列 sale_model/build_config_code） | US-002 |
 
 **防刷单唯一索引**（US-003, US-004）：
 
@@ -1842,6 +1843,71 @@ sequenceDiagram
 **GET** `/api/mobile/vso/v1/order/{orderNo}`
 - Response: `OrderResponseVo` — 订单详情
 
+### 5.2.1 Mobile Wishlist & MyVehicle APIs
+
+**GET** `/api/mobile/vso/v1/myVehicleList`
+- Response: `List<MyVehicleVo>` — 我的车辆列表（合并心愿单和订单，按 modifyTime 倒序）
+- 说明：心愿单部分返回概要展示信息
+
+**心愿单列表项（MyVehicleVo - WISHLIST 类型）响应结构**：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| id | String | 心愿单 ID |
+| type | String | 固定 `WISHLIST` |
+| state | Integer | 固定 `100` |
+| displayName | String | 展示名称 = saleModelName + modelMarketingName + variantMarketingName |
+| saleModelDesc | String | 用户选择的 option 营销名称拼接 |
+| saleModelImages | List\<String\> | 用户选择的 option 营销图片数组 |
+| totalPrice | BigDecimal | variantPrice + ΣoptionPrice |
+
+**POST** `/api/mobile/vso/v1/wishlist/action/create`
+- Request: `{ saleModelCode, modelCode, variantCode, optionCodes[] }`
+- Response: `String` — 心愿单 ID
+- 说明：五项校验（SaleModel 存在 → Model 策略 → Variant 策略 → MDM resolveConfiguration → Configuration 白名单 → Option 策略）
+
+**POST** `/api/mobile/vso/v1/wishlist/action/modify`
+- Request: `{ wishlistId, modelCode?, variantCode?, optionCodes[] }`
+- Response: void
+
+**POST** `/api/mobile/vso/v1/wishlist/action/delete`
+- Request: `{ wishlistId }`
+- Response: void
+
+**GET** `/api/mobile/vso/v1/wishlist/{wishlistId}`
+- Response: `WishlistDetailVo` — 心愿单详情
+
+**心愿单详情（WishlistDetailVo）响应结构**：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| wishlistId | String | 心愿单 ID |
+| saleModelCode | String | 销售车型编码 |
+| modelCode | String | 车型编码 |
+| variantCode | String | 版本编码 |
+| configurationCode | String | 配置编码 |
+| optionCodes | List\<String\> | 选项编码列表 |
+| saleModelName | String | 销售车型名称（来自 SaleModelPo.modelName） |
+| modelMarketingName | String | 车型营销名称（来自 SaleModelModelPolicyPo.marketingName） |
+| variantMarketingName | String | 版本营销名称（来自 SaleModelVariantPolicyPo.marketingName） |
+| variantPrice | BigDecimal | 版本价格（来自 SaleModelVariantPolicyPo.variantPrice） |
+| saleModelImages | List\<String\> | 选项营销图片数组 |
+| totalPrice | BigDecimal | variantPrice + ΣoptionPrice |
+| optionDetails | List\<OptionDetail\> | 选项详情列表 |
+| invalidReason | String | 失效原因（null 表示有效） |
+| createTime | Date | 创建时间 |
+| modifyTime | Date | 修改时间 |
+
+**选项详情（OptionDetail）结构**：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| optionFamilyCode | String | 选项家族编码 |
+| optionCode | String | 选项编码 |
+| marketingTitle | String | 营销名称（中文说明） |
+| optionPrice | BigDecimal | 选项价格 |
+| marketingImage | String | 营销图片 |
+
 ### 5.3 MPT Order APIs
 
 **GET** `/api/mpt/vso/v1/list`
@@ -2218,3 +2284,4 @@ sequenceDiagram
 | 2026-06-01 | CR-015    | Added | §4.19 新增删除销售车型级联标记失效流程：删除销售车型时在同一事务内级联将 Model/Variant/Configuration/Option 四层销售策略标记为失效（off_shelf），保留历史订单快照可追溯性；更新 §5.3.1 DELETE API 说明；更新 §6 Coverage Mapping 补充 US-016 设计章节引用；同步更新 requirements.md US-016 补充级联标记失效业务规则 |
 | 2026-06-02 | CR-016    | Changed | 选配器重构为 VSO 策略表自包含：① §3.2 variant/config/option 三层策略表归属键扩展为含 model_code，新增 tb_sale_model_option_family_policy 表；② §4.16 选配器数据来源由 MDM 投影改为 VSO 销售策略表自包含（零 MDM 依赖），序列图更新；③ §4.17 四层归属表归属键同步更新；④ §5.1 ConfiguratorResponse 顶层由 carlineCode/carlineName 改为 saleModelCode/modelName，内部类 ModelItem/VariantItem/SelectableFamily/OptionItem 全部启用，展示名称统一使用营销名称；⑤ 选配器只读展示不再依赖 MDM 投影（MDM 仅用于管理端同步辅助参考和报价时 resolveConfiguration） |
 | 2026-06-02 | CR-017    | Changed | §5.1 Mobile Sale Model APIs 更新：① 新增价格查询接口 `GET /{saleModelCode}/prices`，基于 Variant 销售策略实时计算 startingPrice/earnestMoneyPrice/downPaymentPrice；② 完善报价接口响应结构，新增 optionTotalPrice 字段；③ 补充旧模式接口废弃说明（featureCodeRanges、selectedSaleModel、config 标记 @deprecated）；④ 补充购车权益和上牌区域接口定义 |
+| 2026-06-03 | CR-018    | Changed/Added | 心愿单冗余字段清理与展示信息完善：① §3.2 新增 vso_wishlist 表说明（V1.33.0 移除遗留列 sale_model/build_config_code）；② §5.2.1 新增 Mobile Wishlist & MyVehicle APIs（心愿单 CRUD、我的车辆列表、心愿单详情响应结构），心愿单详情新增 saleModelName/modelMarketingName/variantMarketingName/variantPrice/optionDetails（含 optionFamilyCode/optionCode/marketingTitle/optionPrice/marketingImage），我的车辆列表心愿单新增 displayName/saleModelDesc/saleModelImages/totalPrice 概要展示信息 |

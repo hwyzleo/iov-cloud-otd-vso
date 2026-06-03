@@ -17,6 +17,7 @@ import net.hwyz.iov.cloud.otd.vso.service.common.exception.WishlistNotExistExcep
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.Wishlist;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.WishlistInvalidReason;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.SaleModelRepository;
+import net.hwyz.iov.cloud.otd.vso.service.domain.repository.SaleModelModelPolicyRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.SaleModelVariantPolicyRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.SaleModelOptionPolicyRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.WishlistRepository;
@@ -49,6 +50,7 @@ public class WishlistAppService {
 
     private final WishlistRepository wishlistRepository;
     private final SaleModelRepository saleModelRepository;
+    private final SaleModelModelPolicyRepository modelPolicyRepository;
     private final SaleModelVariantPolicyRepository variantPolicyRepository;
     private final SaleModelOptionPolicyRepository optionPolicyRepository;
     private final SalesPolicyService salesPolicyService;
@@ -149,7 +151,7 @@ public class WishlistAppService {
     }
 
     private WishlistDetailResult toWishlistDetailResult(Wishlist wishlist) {
-        return WishlistDetailResult.builder()
+        WishlistDetailResult result = WishlistDetailResult.builder()
                 .wishlistId(wishlist.getId())
                 .saleModelCode(wishlist.getSaleModelCode())
                 .modelCode(wishlist.getModelCode())
@@ -160,6 +162,9 @@ public class WishlistAppService {
                 .modifyTime(wishlist.getModifyTime())
                 .invalidReason(wishlist.getInvalidReason())
                 .build();
+
+        enrichDisplayInfo(result);
+        return result;
     }
 
     /**
@@ -333,16 +338,22 @@ public class WishlistAppService {
     }
 
     /**
-     * 组装心愿单展示信息：displayName、saleModelDesc、saleModelImages、totalPrice
+     * 组装心愿单展示信息：displayName、saleModelDesc、saleModelImages、totalPrice、optionDetails
      */
     private void enrichDisplayInfo(WishlistListResult result) {
         try {
-            // 1. 获取销售车型名称
+            // 1. 销售车型名称
             String saleModelName = saleModelRepository.findBySaleModelCode(result.getSaleModelCode())
                     .map(SaleModelPo::getModelName)
                     .orElse("");
 
-            // 2. 获取 Variant 营销名称和价格
+            // 2. 车型销售名称（SaleModelModelPolicyPo.marketingName）
+            String modelMarketingName = modelPolicyRepository
+                    .findBySaleModelCodeAndModelCode(result.getSaleModelCode(), result.getModelCode())
+                    .map(p -> p.getMarketingName() != null ? p.getMarketingName() : "")
+                    .orElse("");
+
+            // 3. 版本销售名称和价格
             String variantMarketingName = "";
             BigDecimal variantPrice = BigDecimal.ZERO;
             SaleModelVariantPolicyPo variantPolicy = variantPolicyRepository
@@ -353,10 +364,10 @@ public class WishlistAppService {
                 variantPrice = variantPolicy.getVariantPrice() != null ? variantPolicy.getVariantPrice() : BigDecimal.ZERO;
             }
 
-            // 3. displayName = 销售车型名 + 版本营销名称
-            result.setDisplayName((saleModelName + " " + variantMarketingName).trim());
+            // 4. displayName = 销售车型名称 + 车型销售名称 + 版本销售名称
+            result.setDisplayName((saleModelName + " " + modelMarketingName + " " + variantMarketingName).trim());
 
-            // 4. 获取用户选择的 Option 信息
+            // 5. 获取用户选择的 Option 信息
             List<String> optionCodes = result.getOptionCodes();
             if (optionCodes != null && !optionCodes.isEmpty()) {
                 List<SaleModelOptionPolicyPo> optionPolicies = optionPolicyRepository
@@ -376,6 +387,18 @@ public class WishlistAppService {
                         .collect(Collectors.toList());
                 result.setSaleModelImages(images);
 
+                // optionDetails = 选项详情列表
+                List<WishlistListResult.OptionDetail> optionDetails = optionPolicies.stream()
+                        .map(p -> WishlistListResult.OptionDetail.builder()
+                                .optionFamilyCode(p.getOptionFamilyCode())
+                                .optionCode(p.getOptionCode())
+                                .marketingTitle(p.getMarketingTitle())
+                                .optionPrice(p.getOptionPrice())
+                                .marketingImage(p.getMarketingImage())
+                                .build())
+                        .collect(Collectors.toList());
+                result.setOptionDetails(optionDetails);
+
                 // option 总价
                 BigDecimal optionTotalPrice = optionPolicies.stream()
                         .map(p -> p.getOptionPrice() != null ? p.getOptionPrice() : BigDecimal.ZERO)
@@ -386,10 +409,78 @@ public class WishlistAppService {
             } else {
                 result.setSaleModelDesc("");
                 result.setSaleModelImages(Collections.emptyList());
+                result.setOptionDetails(Collections.emptyList());
                 result.setTotalPrice(variantPrice);
             }
         } catch (Exception e) {
             log.warn("组装心愿单展示信息失败: wishlistId={}", result.getWishlistId(), e);
+        }
+    }
+
+    /**
+     * 组装心愿单详情展示信息
+     */
+    private void enrichDisplayInfo(WishlistDetailResult result) {
+        try {
+            // 销售车型名称
+            String saleModelName = saleModelRepository.findBySaleModelCode(result.getSaleModelCode())
+                    .map(SaleModelPo::getModelName)
+                    .orElse("");
+            result.setSaleModelName(saleModelName);
+
+            // 车型营销名称
+            String modelMarketingName = modelPolicyRepository
+                    .findBySaleModelCodeAndModelCode(result.getSaleModelCode(), result.getModelCode())
+                    .map(p -> p.getMarketingName() != null ? p.getMarketingName() : "")
+                    .orElse("");
+            result.setModelMarketingName(modelMarketingName);
+
+            // 版本营销名称和价格
+            String variantMarketingName = "";
+            BigDecimal variantPrice = BigDecimal.ZERO;
+            SaleModelVariantPolicyPo variantPolicy = variantPolicyRepository
+                    .findBySaleModelCodeAndVariantCode(result.getSaleModelCode(), result.getVariantCode())
+                    .orElse(null);
+            if (variantPolicy != null) {
+                variantMarketingName = variantPolicy.getMarketingName() != null ? variantPolicy.getMarketingName() : "";
+                variantPrice = variantPolicy.getVariantPrice() != null ? variantPolicy.getVariantPrice() : BigDecimal.ZERO;
+            }
+            result.setVariantMarketingName(variantMarketingName);
+            result.setVariantPrice(variantPrice);
+
+            List<String> optionCodes = result.getOptionCodes();
+            if (optionCodes != null && !optionCodes.isEmpty()) {
+                List<SaleModelOptionPolicyPo> optionPolicies = optionPolicyRepository
+                        .findBySaleModelCodeAndOptionCodes(result.getSaleModelCode(), optionCodes);
+
+                List<String> images = optionPolicies.stream()
+                        .map(SaleModelOptionPolicyPo::getMarketingImage)
+                        .filter(img -> img != null && !img.isEmpty())
+                        .collect(Collectors.toList());
+                result.setSaleModelImages(images);
+
+                List<WishlistListResult.OptionDetail> optionDetails = optionPolicies.stream()
+                        .map(p -> WishlistListResult.OptionDetail.builder()
+                                .optionFamilyCode(p.getOptionFamilyCode())
+                                .optionCode(p.getOptionCode())
+                                .marketingTitle(p.getMarketingTitle())
+                                .optionPrice(p.getOptionPrice())
+                                .marketingImage(p.getMarketingImage())
+                                .build())
+                        .collect(Collectors.toList());
+                result.setOptionDetails(optionDetails);
+
+                BigDecimal optionTotalPrice = optionPolicies.stream()
+                        .map(p -> p.getOptionPrice() != null ? p.getOptionPrice() : BigDecimal.ZERO)
+                        .reduce(BigDecimal.ZERO, BigDecimal::add);
+                result.setTotalPrice(variantPrice.add(optionTotalPrice));
+            } else {
+                result.setSaleModelImages(Collections.emptyList());
+                result.setOptionDetails(Collections.emptyList());
+                result.setTotalPrice(variantPrice);
+            }
+        } catch (Exception e) {
+            log.warn("组装心愿单详情展示信息失败: wishlistId={}", result.getWishlistId(), e);
         }
     }
 
