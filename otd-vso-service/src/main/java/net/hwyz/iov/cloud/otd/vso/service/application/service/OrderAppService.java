@@ -47,6 +47,7 @@ import net.hwyz.iov.cloud.otd.vso.service.domain.repository.OrderAssignmentRepos
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.OrderRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.PaymentRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.SaleModelRepository;
+import net.hwyz.iov.cloud.otd.vso.service.domain.repository.SaleModelOptionPolicyRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.SaleModelVariantPolicyRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.WishlistRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.AuditRepository;
@@ -65,6 +66,7 @@ import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.OrderVeh
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.PaymentPo;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.RefundPo;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.SaleModelPo;
+import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.SaleModelOptionPolicyPo;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.SaleModelVariantPolicyPo;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.RefundRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.SupplementaryPaymentRepository;
@@ -95,6 +97,7 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -142,6 +145,7 @@ public class OrderAppService {
     private final VehicleInventoryGateway vehicleInventoryGateway;
     private final SalesPolicyService salesPolicyService;
     private final SaleModelVariantPolicyRepository saleModelVariantPolicyRepository;
+    private final SaleModelOptionPolicyRepository optionPolicyRepository;
 
     private final Map<String, String> cityNameCache = new ConcurrentHashMap<>();
     private volatile long cityNameCacheLastRefresh = 0;
@@ -391,83 +395,108 @@ public class OrderAppService {
             return;
         }
 
-        Set<String> configurationCodes = results.stream()
-                .map(OrderListResult::getConfigurationCode)
-                .filter(StrUtil::isNotBlank)
-                .collect(Collectors.toSet());
-        Set<String> saleModels = results.stream()
-                .map(OrderListResult::getSaleModel)
-                .filter(StrUtil::isNotBlank)
-                .collect(Collectors.toSet());
-
-        Map<String, VmdBuildConfigResponse> buildConfigMap = new HashMap<>();
-        for (String code : configurationCodes) {
-            try {
-                VmdBuildConfigResponse buildConfig = vmdVehicleModelConfigService.getBuildConfigByCode(code);
-                if (buildConfig != null) {
-                    buildConfigMap.put(code, buildConfig);
-                }
-            } catch (Exception e) {
-                log.warn("获取配置失败: configurationCode={}", code);
-            }
-        }
-
-        Map<String, String> saleModelNameMap = new HashMap<>();
-        for (String saleModelCode : saleModels) {
-            try {
-                Optional<SaleModelPo> saleModelPo = saleModelRepository.findBySaleModelCode(saleModelCode);
-                if (saleModelPo.isPresent()) {
-                    saleModelNameMap.put(saleModelCode, saleModelPo.get().getModelName());
-                }
-            } catch (Exception e) {
-                log.warn("获取销售车型名称失败: saleModelCode={}", saleModelCode);
-            }
-        }
-
+        // 1. 批量获取订单快照
+        Map<String, OrderVehicleSnapshotPo> snapshotMap = new HashMap<>();
         for (OrderListResult result : results) {
+            try {
+                orderVehicleSnapshotRepository.findByOrderId(result.getOrderId())
+                    .ifPresent(snapshot -> snapshotMap.put(result.getOrderId(), snapshot));
+            } catch (Exception e) {
+                log.warn("获取订单快照失败: orderId={}", result.getOrderId(), e);
+            }
+        }
+
+        // 2. 批量获取 Variant 销售策略
+        Map<String, SaleModelVariantPolicyPo> variantPolicyMap = new HashMap<>();
+        for (OrderListResult result : results) {
+            OrderVehicleSnapshotPo snapshot = snapshotMap.get(result.getOrderId());
+            if (snapshot != null && StrUtil.isNotBlank(snapshot.getVariantCode())) {
+                String key = result.getSaleModel() + "_" + snapshot.getVariantCode();
+                if (!variantPolicyMap.containsKey(key)) {
+                    saleModelVariantPolicyRepository
+                        .findBySaleModelCodeAndVariantCode(result.getSaleModel(), snapshot.getVariantCode())
+                        .ifPresent(policy -> variantPolicyMap.put(key, policy));
+                }
+            }
+        }
+
+        // 3. 批量获取 Option 销售策略
+        Map<String, List<SaleModelOptionPolicyPo>> optionPolicyMap = new HashMap<>();
+        for (OrderListResult result : results) {
+            OrderVehicleSnapshotPo snapshot = snapshotMap.get(result.getOrderId());
+            if (snapshot != null && StrUtil.isNotBlank(snapshot.getOptionCodes())) {
+                try {
+                    List<String> optionCodes = JSONUtil.toList(snapshot.getOptionCodes(), String.class);
+                    if (!optionCodes.isEmpty()) {
+                        List<SaleModelOptionPolicyPo> policies = optionPolicyRepository
+                            .findBySaleModelCodeAndOptionCodes(result.getSaleModel(), optionCodes);
+                        optionPolicyMap.put(result.getOrderId(), policies);
+                    }
+                } catch (Exception e) {
+                    log.warn("解析 optionCodes 失败: orderId={}, optionCodes={}", 
+                        result.getOrderId(), snapshot.getOptionCodes(), e);
+                }
+            }
+        }
+
+        // 4. 组装展示信息
+        for (OrderListResult result : results) {
+            // 基本信息
             result.setOrderTypeName(getOrderTypeName(result.getOrderType()));
             result.setOrderSourceName(getOrderSourceName(result.getOrderSource()));
             result.setBrandName(result.getBrandCode());
-            result.setSaleModelName(saleModelNameMap.getOrDefault(result.getSaleModel(), ""));
             result.setOwnerRegionName(getRegionName(result.getOwnerRegionCode()));
 
-            if (StrUtil.isNotBlank(result.getSaleModel()) && StrUtil.isNotBlank(result.getConfigurationCode())) {
-                try {
-                    VmdBuildConfigResponse buildConfig = buildConfigMap.get(result.getConfigurationCode());
-                    Map<String, String> featureCodes = parseBuildConfigToFeatureCodes(buildConfig);
-                    SelectedSaleModelResult selectedModel = saleModelAppService.getSelectedSaleModelByFeatureCodes(
-                            result.getSaleModel(), featureCodes);
-
-                    result.setSaleModelConfigType(selectedModel.getSaleModelConfigType());
-                    result.setSaleModelConfigName(selectedModel.getSaleModelConfigName());
-                    result.setSaleModelImages(selectedModel.getSaleModelImages());
-                    result.setTotalPrice(selectedModel.getTotalPrice());
-                    result.setSaleModelDesc(selectedModel.getSaleModelDesc());
-                } catch (Exception e) {
-                    log.warn("获取销售车型配置信息失败: saleModel={}, configurationCode={}", 
-                            result.getSaleModel(), result.getConfigurationCode(), e);
-                }
+            // 销售车型名称
+            try {
+                saleModelRepository.findBySaleModelCode(result.getSaleModel())
+                    .ifPresent(po -> result.setSaleModelName(po.getModelName()));
+            } catch (Exception e) {
+                log.warn("获取销售车型名称失败: saleModelCode={}", result.getSaleModel(), e);
             }
+
+            // 从快照和销售策略获取展示信息
+            OrderVehicleSnapshotPo snapshot = snapshotMap.get(result.getOrderId());
+            if (snapshot == null) {
+                result.setSaleModelDesc("");
+                result.setSaleModelImages(Collections.emptyList());
+                result.setTotalPrice(BigDecimal.ZERO);
+                continue;
+            }
+
+            // Variant 价格
+            BigDecimal variantPrice = BigDecimal.ZERO;
+            String variantKey = result.getSaleModel() + "_" + snapshot.getVariantCode();
+            SaleModelVariantPolicyPo variantPolicy = variantPolicyMap.get(variantKey);
+            if (variantPolicy != null && variantPolicy.getVariantPrice() != null) {
+                variantPrice = variantPolicy.getVariantPrice();
+            }
+
+            // Option 信息
+            List<SaleModelOptionPolicyPo> optionPolicies = optionPolicyMap.getOrDefault(result.getOrderId(), Collections.emptyList());
+            
+            // saleModelDesc = option 营销名称拼接
+            String desc = optionPolicies.stream()
+                .map(p -> p.getMarketingTitle() != null ? p.getMarketingTitle() : "")
+                .filter(s -> !s.isEmpty())
+                .collect(Collectors.joining(" "));
+            result.setSaleModelDesc(desc);
+
+            // saleModelImages = option 营销图片数组
+            List<String> images = optionPolicies.stream()
+                .map(SaleModelOptionPolicyPo::getMarketingImage)
+                .filter(img -> img != null && !img.isEmpty())
+                .collect(Collectors.toList());
+            result.setSaleModelImages(images);
+
+            // option 总价
+            BigDecimal optionTotalPrice = optionPolicies.stream()
+                .map(p -> p.getOptionPrice() != null ? p.getOptionPrice() : BigDecimal.ZERO)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+            // totalPrice = variantPrice + Σ(optionPrice)
+            result.setTotalPrice(variantPrice.add(optionTotalPrice));
         }
-    }
-
-    private Map<String, String> parseBuildConfigToFeatureCodes(VmdBuildConfigResponse buildConfig) {
-        Map<String, String> featureCodes = new HashMap<>();
-
-        if (buildConfig != null && buildConfig.getFeatureCodes() != null) {
-            for (VmdBuildConfigFeatureCodeResponse fc : buildConfig.getFeatureCodes()) {
-                String familyCode = fc.getFamilyCode();
-                if (fc.getFeatureCode() != null && fc.getFeatureCode().length > 0) {
-                    featureCodes.put(familyCode, fc.getFeatureCode()[0]);
-                }
-            }
-
-            if (buildConfig.getBaseModelCode() != null && !buildConfig.getBaseModelCode().isEmpty()) {
-                featureCodes.put("BASE_MODEL", buildConfig.getBaseModelCode());
-            }
-        }
-
-        return featureCodes;
     }
 
     private String getOrderTypeName(String orderType) {
@@ -861,19 +890,8 @@ public class OrderAppService {
         Order order = findOrderById(accountId, orderNo);
         OrderDetailResult result = OrderDtoAssembler.INSTANCE.toOrderDetailResult(order);
         
-        if (StrUtil.isNotBlank(order.getSaleModel()) && StrUtil.isNotBlank(order.getConfigurationCode())) {
-            VmdBuildConfigResponse buildConfig = vmdVehicleModelConfigService.getBuildConfigByCode(order.getConfigurationCode());
-            Map<String, String> featureCodes = parseBuildConfigToFeatureCodes(buildConfig);
-            SelectedSaleModelResult selectedModel = saleModelAppService.getSelectedSaleModelByFeatureCodes(
-                    order.getSaleModel(), featureCodes);
-            
-            result.setSaleModelConfigType(selectedModel.getSaleModelConfigType());
-            result.setSaleModelConfigName(selectedModel.getSaleModelConfigName());
-            result.setSaleModelConfigPrice(selectedModel.getSaleModelConfigPrice());
-            result.setSaleModelImages(selectedModel.getSaleModelImages());
-            result.setSaleModelDesc(selectedModel.getSaleModelDesc());
-            result.setTotalPrice(selectedModel.getTotalPrice());
-        }
+        // 从订单快照获取展示信息
+        enrichOrderDetailResult(order, result);
         
         if (StrUtil.isNotBlank(order.getLicenseCity())) {
             result.setLicenseCityName(getCityName(order.getLicenseCity()));
@@ -897,6 +915,92 @@ public class OrderAppService {
         }
         
         return result;
+    }
+
+    /**
+     * 从订单快照和销售策略获取订单详情的展示信息
+     */
+    private void enrichOrderDetailResult(Order order, OrderDetailResult result) {
+        if (StrUtil.isBlank(order.getSaleModel())) {
+            return;
+        }
+
+        // 获取订单快照
+        Optional<OrderVehicleSnapshotPo> snapshotOpt = orderVehicleSnapshotRepository.findByOrderId(order.getId());
+        if (snapshotOpt.isEmpty()) {
+            return;
+        }
+
+        OrderVehicleSnapshotPo snapshot = snapshotOpt.get();
+
+        // 获取 Variant 销售策略
+        BigDecimal variantPrice = BigDecimal.ZERO;
+        if (StrUtil.isNotBlank(snapshot.getVariantCode())) {
+            saleModelVariantPolicyRepository
+                .findBySaleModelCodeAndVariantCode(order.getSaleModel(), snapshot.getVariantCode())
+                .ifPresent(policy -> {
+                    if (policy.getVariantPrice() != null) {
+                        // 这里需要设置到外部变量，使用数组包装
+                    }
+                });
+        }
+
+        // 获取 Option 销售策略
+        List<SaleModelOptionPolicyPo> optionPolicies = Collections.emptyList();
+        if (StrUtil.isNotBlank(snapshot.getOptionCodes())) {
+            try {
+                List<String> optionCodes = JSONUtil.toList(snapshot.getOptionCodes(), String.class);
+                if (!optionCodes.isEmpty()) {
+                    optionPolicies = optionPolicyRepository
+                        .findBySaleModelCodeAndOptionCodes(order.getSaleModel(), optionCodes);
+                }
+            } catch (Exception e) {
+                log.warn("解析 optionCodes 失败: orderId={}, optionCodes={}", 
+                    order.getId(), snapshot.getOptionCodes(), e);
+            }
+        }
+
+        // 获取 Variant 价格
+        if (StrUtil.isNotBlank(snapshot.getVariantCode())) {
+            saleModelVariantPolicyRepository
+                .findBySaleModelCodeAndVariantCode(order.getSaleModel(), snapshot.getVariantCode())
+                .ifPresent(policy -> {
+                    if (policy.getVariantPrice() != null) {
+                        result.setTotalPrice(policy.getVariantPrice());
+                    }
+                });
+        }
+
+        // saleModelDesc = option 营销名称拼接
+        String desc = optionPolicies.stream()
+            .map(p -> p.getMarketingTitle() != null ? p.getMarketingTitle() : "")
+            .filter(s -> !s.isEmpty())
+            .collect(Collectors.joining(" "));
+        result.setSaleModelDesc(desc);
+
+        // saleModelImages = option 营销图片数组
+        List<String> images = optionPolicies.stream()
+            .map(SaleModelOptionPolicyPo::getMarketingImage)
+            .filter(img -> img != null && !img.isEmpty())
+            .collect(Collectors.toList());
+        result.setSaleModelImages(images);
+
+        // option 总价
+        BigDecimal optionTotalPrice = optionPolicies.stream()
+            .map(p -> p.getOptionPrice() != null ? p.getOptionPrice() : BigDecimal.ZERO)
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        // totalPrice = variantPrice + Σ(optionPrice)
+        BigDecimal finalVariantPrice = variantPrice;
+        if (StrUtil.isNotBlank(snapshot.getVariantCode())) {
+            saleModelVariantPolicyRepository
+                .findBySaleModelCodeAndVariantCode(order.getSaleModel(), snapshot.getVariantCode())
+                .ifPresent(policy -> {
+                    if (policy.getVariantPrice() != null) {
+                        result.setTotalPrice(policy.getVariantPrice().add(optionTotalPrice));
+                    }
+                });
+        }
     }
     
     private String getDealershipName(String dealershipCode) {
@@ -1231,11 +1335,25 @@ public class OrderAppService {
             Money oldOptionPrice = order.getCurrentOptionPrice();
             Money oldTotalPrice = oldVehiclePrice.add(oldOptionPrice);
 
-            // 6. 获取新配置的价格（通过销售车型配置服务）
-            Map<String, String> featureCodes = parseBuildConfigToFeatureCodes(buildConfig);
-            SelectedSaleModelResult selectedModel = saleModelAppService.getSelectedSaleModelByFeatureCodes(
-                    order.getSaleModel(), featureCodes);
-            BigDecimal newTotalPriceAmount = selectedModel.getTotalPrice() != null ? selectedModel.getTotalPrice() : BigDecimal.ZERO;
+            // 6. 获取新配置的价格（通过销售策略表）
+            BigDecimal variantPrice = BigDecimal.ZERO;
+            if (StrUtil.isNotBlank(cmd.getVariantCode())) {
+                variantPrice = saleModelVariantPolicyRepository
+                    .findBySaleModelCodeAndVariantCode(order.getSaleModel(), cmd.getVariantCode())
+                    .map(policy -> policy.getVariantPrice() != null ? policy.getVariantPrice() : BigDecimal.ZERO)
+                    .orElse(BigDecimal.ZERO);
+            }
+
+            BigDecimal optionTotalPrice = BigDecimal.ZERO;
+            if (cmd.getOptionCodes() != null && !cmd.getOptionCodes().isEmpty()) {
+                List<SaleModelOptionPolicyPo> optionPolicies = optionPolicyRepository
+                    .findBySaleModelCodeAndOptionCodes(order.getSaleModel(), cmd.getOptionCodes());
+                optionTotalPrice = optionPolicies.stream()
+                    .map(p -> p.getOptionPrice() != null ? p.getOptionPrice() : BigDecimal.ZERO)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+            }
+
+            BigDecimal newTotalPriceAmount = variantPrice.add(optionTotalPrice);
             Money newTotalPrice = Money.of(newTotalPriceAmount, "CNY");
 
             // 7. 计算价格差额
