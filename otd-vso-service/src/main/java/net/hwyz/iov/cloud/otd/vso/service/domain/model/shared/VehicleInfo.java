@@ -63,6 +63,11 @@ public class VehicleInfo {
     private String variantCode;
 
     /**
+     * Variant 名称
+     */
+    private String variantName;
+
+    /**
      * Configuration 编码
      */
     private String configurationCode;
@@ -75,7 +80,7 @@ public class VehicleInfo {
     /**
      * Option 价格明细
      */
-    private List<OptionPriceItem> optionPriceBreakdown;
+    private List<OptionBreakdownItem> optionBreakdown;
 
     /**
      * 销售策略快照（JSON 字符串）
@@ -143,9 +148,11 @@ public class VehicleInfo {
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
-    public static class OptionPriceItem {
-        private String optionFamilyCode;
+    public static class OptionBreakdownItem {
         private String optionCode;
+        private String optionFamilyCode;
+        private String optionFamilyName;
+        private String optionName;
         private BigDecimal optionPrice;
     }
 
