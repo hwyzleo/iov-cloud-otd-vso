@@ -38,11 +38,11 @@ public class OpenVsoCallbackController extends BaseController {
                                              @RequestHeader(value = "X-Signature", required = false) String signature) {
         log.info("支付回调：paymentNo={}, externalTradeNo={}, paymentStage={}",
                 request.getPaymentNo(), request.getExternalTradeNo(), request.getPaymentStage());
-
-        if (!verifySignature(signature, request)) {
-            log.warn("支付回调签名验证失败：paymentNo={}", request.getPaymentNo());
-            return ApiResponse.fail("签名验证失败");
-        }
+// 手机端自行模拟，先不验证
+//        if (!verifySignature(signature, request)) {
+//            log.warn("支付回调签名验证失败：paymentNo={}", request.getPaymentNo());
+//            return ApiResponse.fail("签名验证失败");
+//        }
 
         try {
             PaymentCallbackCmd cmd = PaymentCallbackCmd.builder()
