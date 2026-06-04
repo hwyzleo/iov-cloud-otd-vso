@@ -10,7 +10,6 @@ import net.hwyz.iov.cloud.otd.vso.service.domain.model.shared.VehicleInfo;
 import java.math.BigDecimal;
 import java.util.Date;
 import java.util.List;
-import java.util.Map;
 
 /**
  * 订单详情结果
@@ -166,24 +165,44 @@ private String saleCode;
     private String deliveryRegionName;
 
     /**
-     * 车型配置类型
+     * 车型编码
      */
-    private Map<String, String> saleModelConfigType;
+    private String modelCode;
 
     /**
-     * 车型配置名称
+     * 车型名称
      */
-    private Map<String, String> saleModelConfigName;
+    private String modelName;
 
     /**
-     * 车型配置价格
+     * 配置编码
      */
-    private Map<String, BigDecimal> saleModelConfigPrice;
+    private String variantCode;
+
+    /**
+     * 配置名称
+     */
+    private String variantName;
+
+    /**
+     * 配置代码
+     */
+    private String configurationCode;
+
+    /**
+     * 选项编码列表
+     */
+    private List<String> optionCodes;
+
+    /**
+     * 选项明细列表
+     */
+    private List<VehicleInfo.OptionBreakdownItem> optionBreakdown;
 
     /**
      * 车型图片列表
      */
-    private java.util.List<String> saleModelImages;
+    private List<String> saleModelImages;
 
     /**
      * 车型描述
@@ -193,5 +212,5 @@ private String saleCode;
     /**
      * 总价
      */
-    private java.math.BigDecimal totalPrice;
+    private BigDecimal totalPrice;
 }
