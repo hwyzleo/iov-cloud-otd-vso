@@ -23,9 +23,16 @@ public interface OrderVoAssembler {
 
     OrderVoAssembler INSTANCE = Mappers.getMapper(OrderVoAssembler.class);
 
+    @Mapping(target = "modelCode", source = "vehicleInfo.modelCode")
+    @Mapping(target = "modelName", source = "vehicleInfo.modelName")
+    @Mapping(target = "variantCode", source = "vehicleInfo.variantCode")
+    @Mapping(target = "variantName", source = "vehicleInfo.variantName")
+    @Mapping(target = "configurationCode", source = "vehicleInfo.configurationCode")
+    @Mapping(target = "optionCodes", source = "vehicleInfo.optionCodes")
+    @Mapping(target = "optionBreakdown", source = "vehicleInfo.optionBreakdown")
     OrderVo toVo(OrderListResult result);
 
-    List<OrderVo> toVoList(List<OrderListResult> result);
+    List<OrderVo> toVoList(List<OrderListResult> results);
 
     @Mapping(target = "accountId", source = "accountId")
     DeleteWishlistCmd toDeleteWishlistCmd(String accountId, DeleteWishlistRequestVo vo);

@@ -2,6 +2,7 @@ package net.hwyz.iov.cloud.otd.vso.service.application.dto.result;
 
 import lombok.Builder;
 import lombok.Data;
+import net.hwyz.iov.cloud.otd.vso.service.domain.model.shared.VehicleInfo;
 
 import java.math.BigDecimal;
 import java.util.Date;
@@ -170,5 +171,10 @@ public class OrderListResult {
      * 上牌城市
      */
     private String licenseCity;
+
+    /**
+     * 车辆信息
+     */
+    private VehicleInfo vehicleInfo;
 
 }
