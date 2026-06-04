@@ -32,7 +32,7 @@ public class QuoteResult {
     /**
      * Option 价格明细
      */
-    private List<OptionPriceItem> optionPriceBreakdown;
+    private List<OptionPriceItem> optionBreakdown;
 
     @Data
     @Builder

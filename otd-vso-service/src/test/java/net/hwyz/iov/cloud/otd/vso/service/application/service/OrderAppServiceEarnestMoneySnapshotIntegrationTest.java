@@ -127,7 +127,7 @@ class OrderAppServiceEarnestMoneySnapshotIntegrationTest {
             assertEquals(1, snapshot.getSnapshotVersion());
             assertNotNull(snapshot.getOptionCodes());
             assertNotNull(snapshot.getVariantPolicySnapshot());
-            assertNotNull(snapshot.getOptionPriceBreakdown());
+            assertNotNull(snapshot.getOptionBreakdown());
         });
     }
 }

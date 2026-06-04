@@ -7,6 +7,7 @@ import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.EarnestMoneyOrd
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.Order;
 import net.hwyz.iov.cloud.otd.vso.service.domain.policy.DuplicateOrderSpecification;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.*;
+import net.hwyz.iov.cloud.otd.vso.service.domain.service.MdmProjectionService;
 import net.hwyz.iov.cloud.otd.vso.service.domain.service.SalesPolicyService;
 import net.hwyz.iov.cloud.otd.vso.service.domain.service.TimeoutNotifyService;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.config.PaymentChannelConfig;
@@ -56,6 +57,8 @@ class OrderAppServiceEarnestMoneySnapshotTest {
     private TimeoutNotifyService timeoutNotifyService;
     @Mock
     private PaymentChannelConfig paymentChannelConfig;
+    @Mock
+    private MdmProjectionService mdmProjectionService;
 
     @InjectMocks
     private OrderAppService orderAppService;
@@ -155,7 +158,7 @@ class OrderAppServiceEarnestMoneySnapshotTest {
         assertTrue(snapshot.getOptionCodes().contains("OPT_001"), "optionCodes 应包含 OPT_001");
         assertTrue(snapshot.getOptionCodes().contains("OPT_002"), "optionCodes 应包含 OPT_002");
         assertNotNull(snapshot.getVariantPolicySnapshot(), "快照的 variantPolicySnapshot 不应为空");
-        assertNotNull(snapshot.getOptionPriceBreakdown(), "快照的 optionPriceBreakdown 不应为空");
+        assertNotNull(snapshot.getOptionBreakdown(), "快照的 optionBreakdown 不应为空");
     }
 
     @Test

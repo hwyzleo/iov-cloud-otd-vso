@@ -33,6 +33,56 @@ public class OrderVo {
     private Date orderTime;
 
     /**
+     * 客户类型
+     */
+    private String customerType;
+
+    /**
+     * 支付方式
+     */
+    private String paymentMethod;
+
+    /**
+     * 购车人类型
+     */
+    private Integer orderPersonType;
+
+    /**
+     * 购车人姓名
+     */
+    private String orderPersonName;
+
+    /**
+     * 购车人证件类型
+     */
+    private Integer orderPersonIdType;
+
+    /**
+     * 购车人证件号码
+     */
+    private String orderPersonIdNum;
+
+    /**
+     * 购车计划
+     */
+    private Integer purchasePlan;
+
+    /**
+     * 上牌城市代码
+     */
+    private String licenseCityCode;
+
+    /**
+     * 下单门店编码
+     */
+    private String orderStoreCode;
+
+    /**
+     * 交付门店编码
+     */
+    private String deliveryStoreCode;
+
+    /**
      * 销售车型代码
      */
     private String saleModelCode;

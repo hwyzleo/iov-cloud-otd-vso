@@ -609,7 +609,7 @@ public class SaleModelAppService {
             .variantPrice(variantPrice)
             .optionTotalPrice(optionTotalPrice)
             .totalPrice(totalPrice)
-            .optionPriceBreakdown(breakdown)
+            .optionBreakdown(breakdown)
             .build();
     }
 

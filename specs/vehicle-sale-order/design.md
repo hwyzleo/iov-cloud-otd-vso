@@ -179,28 +179,31 @@ classDiagram
         +String saleModelCode
         +String carlineCode
         +String modelCode
+        +String modelName
         +String variantCode
+        +String variantName
         +String configurationCode
         +List~String~ optionCodes
-        +List~OptionPriceItem~ optionPriceBreakdown
+        +List~OptionBreakdownItem~ optionBreakdown
         +String modelPolicySnapshot
         +String variantPolicySnapshot
         +String configPolicySnapshot
         +String salePolicySnapshot
-        +String modelName
         +String configCode
         +String configName
         +String vin
     }
 
-    class OptionPriceItem {
+    class OptionBreakdownItem {
         <<Value Object>>
-        +String optionFamilyCode
         +String optionCode
+        +String optionFamilyCode
+        +String optionFamilyName
+        +String optionName
         +BigDecimal optionPrice
     }
 
-    VehicleInfo *-- OptionPriceItem
+    VehicleInfo *-- OptionBreakdownItem
 
     class OrganizationInfo {
         <<Value Object>>
@@ -253,7 +256,7 @@ classDiagram
 | `tb_purchase_benefits` | 购车权益 | US-001 |
 | `vso_order` | 订单主表 | US-003~US-015 |
 | `vso_order_party` | 订单参与方 | US-003, US-004 |
-| `vso_order_vehicle_snapshot` | 车辆配置快照（版本化，固化 carlineCode/modelCode/variantCode/configurationCode/optionCodes + model/variant/config/option 四层 salePolicySnapshot） | US-003, US-004, US-007 |
+| `vso_order_vehicle_snapshot` | 车辆配置快照（版本化，固化 carlineCode/modelCode/modelName/variantCode/variantName/configurationCode/optionCodes + option_breakdown（含 optionCode/optionFamilyCode/optionFamilyName/optionName/optionPrice）+ model/variant/config/option 四层 salePolicySnapshot） | US-003, US-004, US-007 |
 | `vso_order_amount` | 订单金额 | US-003~US-006 |
 | `vso_order_assignment` | 订单归属/转派 | US-011, US-013 |
 | `vso_order_status_dimension` | 多维度状态 | US-009~US-014 |
@@ -1842,6 +1845,48 @@ sequenceDiagram
 
 **GET** `/api/mobile/vso/v1/order/{orderNo}`
 - Response: `OrderResponseVo` — 订单详情
+
+**订单详情（OrderResponseVo）响应结构**：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| orderNo | String | 订单编号 |
+| orderState | Integer | 订单状态 |
+| orderTime | Date | 下单时间 |
+| customerType | String | 客户类型 |
+| paymentMethod | String | 支付方式 |
+| orderPersonType | Integer | 购车人类型 |
+| orderPersonName | String | 购车人姓名 |
+| orderPersonIdType | Integer | 购车人证件类型 |
+| orderPersonIdNum | String | 购车人证件号码 |
+| purchasePlan | Integer | 购车计划 |
+| licenseCityCode | String | 上牌城市编码 |
+| licenseCityName | String | 上牌城市名称 |
+| orderStoreCode | String | 下单门店编码 |
+| orderStoreName | String | 下单门店名称 |
+| deliveryStoreCode | String | 交付门店编码 |
+| deliveryStoreName | String | 交付门店名称 |
+| saleModelCode | String | 销售车型编码 |
+| modelCode | String | 车型编码 |
+| modelName | String | 车型营销名称（来自 tb_sale_model_model_policy.marketing_name） |
+| variantCode | String | 版本编码 |
+| variantName | String | 版本营销名称（来自 tb_sale_model_variant_policy.marketing_name） |
+| configurationCode | String | 配置编码 |
+| optionCodes | List\<String\> | 选项编码列表 |
+| optionBreakdown | List\<OptionBreakdownItem\> | 选项明细列表 |
+| totalPrice | BigDecimal | 总价 = variantPrice + ΣoptionPrice |
+| saleModelImages | List\<String\> | 车型图片列表 |
+| saleModelDesc | String | 车型描述（用户选择的 option 营销名称拼接） |
+
+**选项明细（OptionBreakdownItem）结构**：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| optionCode | String | 选项编码 |
+| optionFamilyCode | String | 选项族编码 |
+| optionFamilyName | String | 选项族营销名称（来自 tb_sale_model_option_family_policy.marketing_title） |
+| optionName | String | 选项营销名称（来自 tb_sale_model_option_policy.marketing_title） |
+| optionPrice | BigDecimal | 选项价格 |
 
 ### 5.2.1 Mobile Wishlist & MyVehicle APIs
 

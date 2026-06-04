@@ -9,113 +9,124 @@ import net.hwyz.iov.cloud.otd.vso.service.domain.model.OrderState;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.OrderRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.OrderVehicleSnapshotRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.SaleModelOptionPolicyRepository;
+import net.hwyz.iov.cloud.otd.vso.service.domain.repository.SaleModelRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.SaleModelVariantPolicyRepository;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.OrderVehicleSnapshotPo;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.SaleModelOptionPolicyPo;
+import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.SaleModelPo;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.SaleModelVariantPolicyPo;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.transaction.annotation.Transactional;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
-import java.sql.Timestamp;
-import java.time.Instant;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
 
-@SpringBootTest
-@Transactional
+@ExtendWith(MockitoExtension.class)
+@DisplayName("订单搜索测试")
 class OrderAppServiceSearchTest {
 
-    @Autowired
+    @Mock
+    private OrderRepository orderRepository;
+    @Mock
+    private OrderVehicleSnapshotRepository orderVehicleSnapshotRepository;
+    @Mock
+    private SaleModelVariantPolicyRepository saleModelVariantPolicyRepository;
+    @Mock
+    private SaleModelOptionPolicyRepository saleModelOptionPolicyRepository;
+    @Mock
+    private SaleModelRepository saleModelRepository;
+
+    @InjectMocks
     private OrderAppService orderAppService;
 
-    @Autowired
-    private OrderRepository orderRepository;
-
-    @Autowired
-    private OrderVehicleSnapshotRepository orderVehicleSnapshotRepository;
-
-    @Autowired
-    private SaleModelVariantPolicyRepository saleModelVariantPolicyRepository;
-
-    @Autowired
-    private SaleModelOptionPolicyRepository saleModelOptionPolicyRepository;
-
-    @Test
-    void testSearchWithNullQuery() {
-        List<OrderListResult> results = orderAppService.search(null);
-        
-        assertNotNull(results, "返回结果应该不为空");
-        assertTrue(results.isEmpty(), "空查询应该返回空列表");
-    }
-
-    @Test
-    void testSearchWithOrderNo() {
-        Order order = Order.builder()
-                .id("test_order_" + System.currentTimeMillis())
-                .orderNo("TEST_ORDER_NO_" + System.currentTimeMillis())
-                .orderType(OrderType.SMALL)
-                .orderSource("capp")
+    private Order buildOrder(String id, String orderNo, OrderType orderType, String orderSource, OrderState orderState) {
+        return Order.builder()
+                .id(id)
+                .orderNo(orderNo)
+                .orderType(orderType)
+                .orderSource(orderSource)
                 .customerType("personal")
                 .brandCode("BRAND001")
                 .saleModel("SALE_MODEL_001")
                 .ownerRegionCode("REGION001")
                 .configurationCode("BUILD_CONFIG_001")
                 .currentVersionNo(1)
-                .orderState(OrderState.EARNEST_MONEY_UNPAID)
+                .orderState(orderState)
                 .build();
-        orderRepository.save(order);
-        
-        OrderQuery query = OrderQuery.builder()
-                .orderNo(order.getOrderNo())
-                .build();
-        
-        List<OrderListResult> results = orderAppService.search(query);
-        
-        assertNotNull(results, "返回结果应该不为空");
-        assertFalse(results.isEmpty(), "应该找到订单");
-        
-        OrderListResult result = results.get(0);
-        assertEquals(order.getOrderNo(), result.getOrderNo(), "订单号应该匹配");
-        assertEquals(order.getOrderType().name().toLowerCase(), result.getOrderType().toLowerCase(), "订单类型编码应该匹配");
-        assertEquals("小订单", result.getOrderTypeName(), "订单类型名称应该是小订单");
-        assertEquals(order.getOrderSource(), result.getOrderSource(), "订单来源编码应该匹配");
-        assertEquals("C端自主下单", result.getOrderSourceName(), "订单来源名称应该是C端自主下单");
-        assertEquals(order.getBrandCode(), result.getBrandCode(), "品牌编码应该匹配");
-        assertEquals(order.getSaleModel(), result.getSaleModel(), "销售车型编码应该匹配");
-        assertEquals(order.getOwnerRegionCode(), result.getOwnerRegionCode(), "归属区域编码应该匹配");
-        assertEquals(order.getConfigurationCode(), result.getConfigurationCode(), "生产配置编码应该匹配");
     }
 
     @Test
-    void testSearchWithOrderTypeFormal() {
-        Order order = Order.builder()
-                .id("test_order_formal_" + System.currentTimeMillis())
-                .orderNo("FORMAL_ORDER_NO_" + System.currentTimeMillis())
-                .orderType(OrderType.FORMAL)
-                .orderSource("sales")
-                .customerType("personal")
-                .brandCode("BRAND001")
-                .saleModel("SALE_MODEL_001")
-                .configurationCode("BUILD_CONFIG_001")
-                .currentVersionNo(1)
-                .orderState(OrderState.DOWN_PAYMENT_UNPAID)
-                .build();
-        orderRepository.save(order);
-        
+    @DisplayName("空查询应返回空列表")
+    void testSearchWithNullQuery() {
+        List<OrderListResult> results = orderAppService.search(null);
+
+        assertNotNull(results, "返回结果应该不为空");
+        assertTrue(results.isEmpty(), "空查询应该返回空列表");
+    }
+
+    @Test
+    @DisplayName("按订单号搜索应返回匹配订单")
+    void testSearchWithOrderNo() {
+        String orderId = "test_order_" + System.currentTimeMillis();
+        String orderNo = "TEST_ORDER_NO_" + System.currentTimeMillis();
+
+        Order order = buildOrder(orderId, orderNo, OrderType.SMALL, "capp", OrderState.EARNEST_MONEY_UNPAID);
+
+        when(orderRepository.search(any(), any(), any(), any(), any(), any()))
+                .thenReturn(Collections.singletonList(order));
+
         OrderQuery query = OrderQuery.builder()
-                .orderNo(order.getOrderNo())
+                .orderNo(orderNo)
                 .build();
-        
+
         List<OrderListResult> results = orderAppService.search(query);
-        
+
         assertNotNull(results, "返回结果应该不为空");
         assertFalse(results.isEmpty(), "应该找到订单");
-        
+
+        OrderListResult result = results.get(0);
+        assertEquals(orderNo, result.getOrderNo(), "订单号应该匹配");
+        assertEquals("small", result.getOrderType().toLowerCase(), "订单类型编码应该匹配");
+        assertEquals("小订单", result.getOrderTypeName(), "订单类型名称应该是小订单");
+        assertEquals("capp", result.getOrderSource(), "订单来源编码应该匹配");
+        assertEquals("C端自主下单", result.getOrderSourceName(), "订单来源名称应该是C端自主下单");
+        assertEquals("BRAND001", result.getBrandCode(), "品牌编码应该匹配");
+        assertEquals("SALE_MODEL_001", result.getSaleModel(), "销售车型编码应该匹配");
+        assertEquals("REGION001", result.getOwnerRegionCode(), "归属区域编码应该匹配");
+        assertEquals("BUILD_CONFIG_001", result.getConfigurationCode(), "生产配置编码应该匹配");
+    }
+
+    @Test
+    @DisplayName("搜索正式订单应返回正确的类型信息")
+    void testSearchWithOrderTypeFormal() {
+        String orderId = "test_order_formal_" + System.currentTimeMillis();
+        String orderNo = "FORMAL_ORDER_NO_" + System.currentTimeMillis();
+
+        Order order = buildOrder(orderId, orderNo, OrderType.FORMAL, "sales", OrderState.DOWN_PAYMENT_UNPAID);
+
+        when(orderRepository.search(any(), any(), any(), any(), any(), any()))
+                .thenReturn(Collections.singletonList(order));
+
+        OrderQuery query = OrderQuery.builder()
+                .orderNo(orderNo)
+                .build();
+
+        List<OrderListResult> results = orderAppService.search(query);
+
+        assertNotNull(results, "返回结果应该不为空");
+        assertFalse(results.isEmpty(), "应该找到订单");
+
         OrderListResult result = results.get(0);
         assertEquals("formal", result.getOrderType().toLowerCase(), "订单类型编码应该是 formal");
         assertEquals("正式订单", result.getOrderTypeName(), "订单类型名称应该是正式订单");
@@ -124,69 +135,38 @@ class OrderAppServiceSearchTest {
     }
 
     @Test
+    @DisplayName("搜索应正确设置订单来源名称")
     void testSearchWithMultipleOrderSources() {
         String timestamp = String.valueOf(System.currentTimeMillis());
-        
-        Order orderCapp = Order.builder()
-                .id("test_capp_" + timestamp)
-                .orderNo("ORDER_CAPP_" + timestamp)
-                .orderSource("capp")
-                .orderType(OrderType.SMALL)
-                .customerType("personal")
-                .brandCode("BRAND001")
-                .saleModel("SALE_MODEL_001")
-                .configurationCode("BUILD_CONFIG_001")
-                .currentVersionNo(1)
-                .orderState(OrderState.EARNEST_MONEY_UNPAID)
-                .build();
-        orderRepository.save(orderCapp);
-        
-        Order orderStore = Order.builder()
-                .id("test_store_" + timestamp)
-                .orderNo("ORDER_STORE_" + timestamp)
-                .orderSource("store")
-                .orderType(OrderType.SMALL)
-                .customerType("personal")
-                .brandCode("BRAND001")
-                .saleModel("SALE_MODEL_001")
-                .configurationCode("BUILD_CONFIG_001")
-                .currentVersionNo(1)
-                .orderState(OrderState.EARNEST_MONEY_UNPAID)
-                .build();
-        orderRepository.save(orderStore);
-        
-        Order orderImport = Order.builder()
-                .id("test_import_" + timestamp)
-                .orderNo("ORDER_IMPORT_" + timestamp)
-                .orderSource("import")
-                .orderType(OrderType.SMALL)
-                .customerType("personal")
-                .brandCode("BRAND001")
-                .saleModel("SALE_MODEL_001")
-                .configurationCode("BUILD_CONFIG_001")
-                .currentVersionNo(1)
-                .orderState(OrderState.EARNEST_MONEY_UNPAID)
-                .build();
-        orderRepository.save(orderImport);
-        
+
+        Order orderCapp = buildOrder("test_capp_" + timestamp, "ORDER_CAPP_" + timestamp,
+                OrderType.SMALL, "capp", OrderState.EARNEST_MONEY_UNPAID);
+        Order orderStore = buildOrder("test_store_" + timestamp, "ORDER_STORE_" + timestamp,
+                OrderType.SMALL, "store", OrderState.EARNEST_MONEY_UNPAID);
+        Order orderImport = buildOrder("test_import_" + timestamp, "ORDER_IMPORT_" + timestamp,
+                OrderType.SMALL, "import", OrderState.EARNEST_MONEY_UNPAID);
+
+        when(orderRepository.search(any(), any(), any(), any(), any(), any()))
+                .thenReturn(Arrays.asList(orderCapp, orderStore, orderImport));
+
         List<OrderListResult> results = orderAppService.search(OrderQuery.builder().build());
-        
+
         assertTrue(results.size() >= 3, "应该至少找到3个订单");
-        
+
         OrderListResult cappResult = results.stream()
                 .filter(r -> "capp".equals(r.getOrderSource()))
                 .findFirst()
                 .orElse(null);
         assertNotNull(cappResult, "应该找到capp来源的订单");
         assertEquals("C端自主下单", cappResult.getOrderSourceName());
-        
+
         OrderListResult storeResult = results.stream()
                 .filter(r -> "store".equals(r.getOrderSource()))
                 .findFirst()
                 .orElse(null);
         assertNotNull(storeResult, "应该找到store来源的订单");
         assertEquals("门店代客下单", storeResult.getOrderSourceName());
-        
+
         OrderListResult importResult = results.stream()
                 .filter(r -> "import".equals(r.getOrderSource()))
                 .findFirst()
@@ -196,29 +176,24 @@ class OrderAppServiceSearchTest {
     }
 
     @Test
+    @DisplayName("搜索应正确设置小订单类型名称")
     void testSearchWithEmptyOrderType() {
-        Order order = Order.builder()
-                .id("test_empty_type_" + System.currentTimeMillis())
-                .orderNo("EMPTY_TYPE_ORDER_" + System.currentTimeMillis())
-                .orderType(OrderType.SMALL)
-                .orderSource("capp")
-                .customerType("personal")
-                .brandCode("BRAND001")
-                .saleModel("SALE_MODEL_001")
-                .configurationCode("BUILD_CONFIG_001")
-                .currentVersionNo(1)
-                .orderState(OrderState.EARNEST_MONEY_UNPAID)
-                .build();
-        orderRepository.save(order);
-        
+        String orderId = "test_empty_type_" + System.currentTimeMillis();
+        String orderNo = "EMPTY_TYPE_ORDER_" + System.currentTimeMillis();
+
+        Order order = buildOrder(orderId, orderNo, OrderType.SMALL, "capp", OrderState.EARNEST_MONEY_UNPAID);
+
+        when(orderRepository.search(any(), any(), any(), any(), any(), any()))
+                .thenReturn(Collections.singletonList(order));
+
         OrderQuery query = OrderQuery.builder()
-                .orderNo(order.getOrderNo())
+                .orderNo(orderNo)
                 .build();
-        
+
         List<OrderListResult> results = orderAppService.search(query);
-        
+
         assertFalse(results.isEmpty(), "应该找到订单");
-        
+
         OrderListResult result = results.get(0);
         assertEquals("small", result.getOrderType().toLowerCase(), "订单类型编码应该是 small");
         assertEquals("小订单", result.getOrderTypeName(), "订单类型名称应该是小订单");
@@ -227,17 +202,19 @@ class OrderAppServiceSearchTest {
     }
 
     @Test
+    @DisplayName("搜索结果应包含快照和销售策略的展示信息")
     void testSearchWithEnrichment() {
         String timestamp = String.valueOf(System.currentTimeMillis());
         String saleModelCode = "SALE_MODEL_ENRICH_" + timestamp;
         String variantCode = "VARIANT_001_" + timestamp;
         String optionCode1 = "OPT_001_" + timestamp;
         String optionCode2 = "OPT_002_" + timestamp;
+        String orderId = "test_order_enrich_" + timestamp;
+        String orderNo = "ORDER_ENRICH_" + timestamp;
 
-        // 1. 创建订单
         Order order = Order.builder()
-                .id("test_order_enrich_" + timestamp)
-                .orderNo("ORDER_ENRICH_" + timestamp)
+                .id(orderId)
+                .orderNo(orderNo)
                 .orderType(OrderType.SMALL)
                 .orderSource("capp")
                 .customerType("personal")
@@ -247,30 +224,23 @@ class OrderAppServiceSearchTest {
                 .currentVersionNo(1)
                 .orderState(OrderState.EARNEST_MONEY_UNPAID)
                 .build();
-        orderRepository.save(order);
 
-        // 2. 创建订单快照
         OrderVehicleSnapshotPo snapshot = new OrderVehicleSnapshotPo();
         snapshot.setSnapshotId("SNAPSHOT_" + timestamp);
-        snapshot.setOrderId(order.getId());
+        snapshot.setOrderId(orderId);
         snapshot.setSaleModelCode(saleModelCode);
         snapshot.setSaleModelName("测试车型_" + timestamp);
         snapshot.setVariantCode(variantCode);
         snapshot.setOptionCodes(JSONUtil.toJsonStr(Arrays.asList(optionCode1, optionCode2)));
         snapshot.setSnapshotVersion(1);
-        orderVehicleSnapshotRepository.save(snapshot);
 
-        // 3. 创建 Variant 销售策略
         SaleModelVariantPolicyPo variantPolicy = SaleModelVariantPolicyPo.builder()
                 .saleModelCode(saleModelCode)
                 .variantCode(variantCode)
                 .variantPrice(new BigDecimal("100000"))
                 .saleStatus("active")
-                .createTime(new Timestamp(System.currentTimeMillis()))
                 .build();
-        saleModelVariantPolicyRepository.insert(variantPolicy);
 
-        // 4. 创建 Option 销售策略
         SaleModelOptionPolicyPo optionPolicy1 = SaleModelOptionPolicyPo.builder()
                 .saleModelCode(saleModelCode)
                 .optionCode(optionCode1)
@@ -279,9 +249,7 @@ class OrderAppServiceSearchTest {
                 .marketingTitle("高级内饰")
                 .marketingImage("http://example.com/img1.jpg")
                 .saleStatus("active")
-                .createTime(new Timestamp(System.currentTimeMillis()))
                 .build();
-        saleModelOptionPolicyRepository.save(optionPolicy1);
 
         SaleModelOptionPolicyPo optionPolicy2 = SaleModelOptionPolicyPo.builder()
                 .saleModelCode(saleModelCode)
@@ -291,21 +259,33 @@ class OrderAppServiceSearchTest {
                 .marketingTitle("运动轮毂")
                 .marketingImage("http://example.com/img2.jpg")
                 .saleStatus("active")
-                .createTime(new Timestamp(System.currentTimeMillis()))
                 .build();
-        saleModelOptionPolicyRepository.save(optionPolicy2);
 
-        // 5. 调用 search()
+        SaleModelPo saleModelPo = SaleModelPo.builder()
+                .id(1L)
+                .saleModelCode(saleModelCode)
+                .modelName("测试车型_" + timestamp)
+                .build();
+
+        when(orderRepository.search(any(), any(), any(), any(), any(), any()))
+                .thenReturn(Collections.singletonList(order));
+        when(orderVehicleSnapshotRepository.findByOrderId(orderId))
+                .thenReturn(Optional.of(snapshot));
+        when(saleModelVariantPolicyRepository.findBySaleModelCodeAndVariantCode(saleModelCode, variantCode))
+                .thenReturn(Optional.of(variantPolicy));
+        when(saleModelOptionPolicyRepository.findBySaleModelCodeAndOptionCodes(eq(saleModelCode), anyList()))
+                .thenReturn(Arrays.asList(optionPolicy1, optionPolicy2));
+        when(saleModelRepository.findBySaleModelCode(saleModelCode))
+                .thenReturn(Optional.of(saleModelPo));
+
         OrderQuery query = OrderQuery.builder()
-                .orderNo(order.getOrderNo())
+                .orderNo(orderNo)
                 .build();
         List<OrderListResult> results = orderAppService.search(query);
 
-        // 6. 验证结果
         assertFalse(results.isEmpty(), "应该找到订单");
         OrderListResult result = results.get(0);
 
-        // 验证展示信息
         assertNotNull(result.getSaleModelImages(), "saleModelImages 不应为空");
         assertEquals(2, result.getSaleModelImages().size(), "应有 2 张图片");
         assertTrue(result.getSaleModelImages().contains("http://example.com/img1.jpg"), "应包含图片1");
@@ -320,13 +300,15 @@ class OrderAppServiceSearchTest {
     }
 
     @Test
+    @DisplayName("搜索无快照订单应返回默认展示信息")
     void testSearchWithoutSnapshot() {
         String timestamp = String.valueOf(System.currentTimeMillis());
+        String orderId = "test_order_no_snapshot_" + timestamp;
+        String orderNo = "ORDER_NO_SNAPSHOT_" + timestamp;
 
-        // 创建订单但不创建快照
         Order order = Order.builder()
-                .id("test_order_no_snapshot_" + timestamp)
-                .orderNo("ORDER_NO_SNAPSHOT_" + timestamp)
+                .id(orderId)
+                .orderNo(orderNo)
                 .orderType(OrderType.SMALL)
                 .orderSource("capp")
                 .customerType("personal")
@@ -336,17 +318,20 @@ class OrderAppServiceSearchTest {
                 .currentVersionNo(1)
                 .orderState(OrderState.EARNEST_MONEY_UNPAID)
                 .build();
-        orderRepository.save(order);
+
+        when(orderRepository.search(any(), any(), any(), any(), any(), any()))
+                .thenReturn(Collections.singletonList(order));
+        when(orderVehicleSnapshotRepository.findByOrderId(orderId))
+                .thenReturn(Optional.empty());
 
         OrderQuery query = OrderQuery.builder()
-                .orderNo(order.getOrderNo())
+                .orderNo(orderNo)
                 .build();
         List<OrderListResult> results = orderAppService.search(query);
 
         assertFalse(results.isEmpty(), "应该找到订单");
         OrderListResult result = results.get(0);
 
-        // 没有快照时，这些字段应为空或默认值
         assertTrue(result.getSaleModelImages() == null || result.getSaleModelImages().isEmpty(),
                 "没有快照时 saleModelImages 应为空");
         assertEquals("", result.getSaleModelDesc(), "没有快照时 saleModelDesc 应为空字符串");

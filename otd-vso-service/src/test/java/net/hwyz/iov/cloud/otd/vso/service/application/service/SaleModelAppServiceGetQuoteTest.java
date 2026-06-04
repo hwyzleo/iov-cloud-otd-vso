@@ -135,7 +135,7 @@ class SaleModelAppServiceGetQuoteTest {
             assertEquals(BigDecimal.valueOf(199900), result.getVariantPrice());
             assertEquals(BigDecimal.valueOf(8000), result.getOptionTotalPrice());
             assertEquals(BigDecimal.valueOf(207900), result.getTotalPrice());
-            assertEquals(2, result.getOptionPriceBreakdown().size());
+            assertEquals(2, result.getOptionBreakdown().size());
         }
 
         @Test
@@ -196,7 +196,7 @@ class SaleModelAppServiceGetQuoteTest {
             assertEquals(BigDecimal.valueOf(199900), result.getVariantPrice());
             assertEquals(BigDecimal.ZERO, result.getOptionTotalPrice());
             assertEquals(BigDecimal.valueOf(199900), result.getTotalPrice());
-            assertTrue(result.getOptionPriceBreakdown().isEmpty());
+            assertTrue(result.getOptionBreakdown().isEmpty());
         }
     }
 
@@ -224,8 +224,8 @@ class SaleModelAppServiceGetQuoteTest {
             assertNotNull(result.getVariantPrice());
             assertNotNull(result.getOptionTotalPrice());
             assertNotNull(result.getTotalPrice());
-            assertNotNull(result.getOptionPriceBreakdown());
-            assertFalse(result.getOptionPriceBreakdown().isEmpty());
+            assertNotNull(result.getOptionBreakdown());
+            assertFalse(result.getOptionBreakdown().isEmpty());
         }
 
         @Test
@@ -243,7 +243,7 @@ class SaleModelAppServiceGetQuoteTest {
 
             QuoteResult result = saleModelAppService.getQuote(buildCmd(VARIANT_CODE, Arrays.asList(OPTION_CODE_1)));
 
-            QuoteResult.OptionPriceItem item = result.getOptionPriceBreakdown().get(0);
+            QuoteResult.OptionPriceItem item = result.getOptionBreakdown().get(0);
             assertEquals(OPTION_CODE_1, item.getOptionCode());
             assertEquals(BigDecimal.valueOf(3000), item.getOptionPrice());
         }

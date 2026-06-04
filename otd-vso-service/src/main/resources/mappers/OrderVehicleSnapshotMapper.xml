@@ -14,7 +14,7 @@
         <result column="model_code" property="modelCode" />
         <result column="variant_code" property="variantCode" />
         <result column="option_codes" property="optionCodes" />
-        <result column="option_price_breakdown" property="optionPriceBreakdown" />
+        <result column="option_breakdown" property="optionBreakdown" />
         <result column="sale_policy_snapshot" property="salePolicySnapshot" />
         <result column="model_policy_snapshot" property="modelPolicySnapshot" />
         <result column="variant_policy_snapshot" property="variantPolicySnapshot" />
@@ -31,7 +31,7 @@
     <sql id="baseColumnList">
         t.id, t.snapshot_id, t.order_id, t.sale_model_code, t.sale_model_name, 
         t.configuration_code, t.configuration_name,
-        t.carline_code, t.model_code, t.variant_code, t.option_codes, t.option_price_breakdown,
+        t.carline_code, t.model_code, t.variant_code, t.option_codes, t.option_breakdown,
         t.sale_policy_snapshot, t.model_policy_snapshot, t.variant_policy_snapshot, t.config_policy_snapshot,
         t.snapshot_version,
         t.create_time, t.create_by, t.modify_time, t.modify_by, t.row_version, t.row_valid
@@ -98,13 +98,13 @@
     <insert id="insertPo" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO vso_order_vehicle_snapshot (
             snapshot_id, order_id, sale_model_code, sale_model_name, configuration_code, configuration_name,
-            carline_code, model_code, variant_code, option_codes, option_price_breakdown,
+            carline_code, model_code, variant_code, option_codes, option_breakdown,
             sale_policy_snapshot, model_policy_snapshot, variant_policy_snapshot, config_policy_snapshot,
             snapshot_version, create_time, create_by, modify_time, modify_by, row_version, row_valid
         )
         VALUES (
             #{snapshotId}, #{orderId}, #{saleModelCode}, #{saleModelName}, #{configurationCode}, #{configurationName},
-            #{carlineCode}, #{modelCode}, #{variantCode}, #{optionCodes}, #{optionPriceBreakdown},
+            #{carlineCode}, #{modelCode}, #{variantCode}, #{optionCodes}, #{optionBreakdown},
             #{salePolicySnapshot}, #{modelPolicySnapshot}, #{variantPolicySnapshot}, #{configPolicySnapshot},
             #{snapshotVersion}, now(), #{createBy}, now(), #{modifyBy}, 1, 1
         )
@@ -113,7 +113,7 @@
     <insert id="batchInsertPo">
         INSERT INTO vso_order_vehicle_snapshot (
             snapshot_id, order_id, sale_model_code, sale_model_name, configuration_code, configuration_name,
-            carline_code, model_code, variant_code, option_codes, option_price_breakdown,
+            carline_code, model_code, variant_code, option_codes, option_breakdown,
             sale_policy_snapshot, model_policy_snapshot, variant_policy_snapshot, config_policy_snapshot,
             snapshot_version, create_time, create_by, modify_time, modify_by, row_version, row_valid
         )
@@ -121,7 +121,7 @@
         <foreach collection="list" item="item" separator=",">
             (
                 #{item.snapshotId}, #{item.orderId}, #{item.saleModelCode}, #{item.saleModelName}, #{item.configurationCode}, #{item.configurationName},
-                #{item.carlineCode}, #{item.modelCode}, #{item.variantCode}, #{item.optionCodes}, #{item.optionPriceBreakdown},
+                #{item.carlineCode}, #{item.modelCode}, #{item.variantCode}, #{item.optionCodes}, #{item.optionBreakdown},
                 #{item.salePolicySnapshot}, #{item.modelPolicySnapshot}, #{item.variantPolicySnapshot}, #{item.configPolicySnapshot},
                 #{item.snapshotVersion}, now(), #{item.createBy}, now(), #{item.modifyBy}, 1, 1
             )
