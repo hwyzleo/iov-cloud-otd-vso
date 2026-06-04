@@ -5,7 +5,6 @@ import lombok.*;
 import java.math.BigDecimal;
 import java.util.Date;
 import java.util.List;
-import java.util.Map;
 
 @Data
 @Builder
@@ -30,11 +29,26 @@ public class OrderResponseVo {
     private String deliveryStoreCode;
     private String deliveryStoreName;
     private String saleModelCode;
-    private Map<String, String> saleModelConfigType;
-    private Map<String, String> saleModelConfigName;
-    private Map<String, BigDecimal> saleModelConfigPrice;
+    private String modelCode;
+    private String modelName;
+    private String variantCode;
+    private String variantName;
+    private String configurationCode;
+    private List<String> optionCodes;
+    private List<OptionBreakdownItem> optionBreakdown;
     private BigDecimal totalPrice;
     private List<String> saleModelImages;
     private String saleModelDesc;
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class OptionBreakdownItem {
+        private String optionCode;
+        private String optionFamilyCode;
+        private String optionFamilyName;
+        private String optionName;
+        private BigDecimal optionPrice;
+    }
 
 }
