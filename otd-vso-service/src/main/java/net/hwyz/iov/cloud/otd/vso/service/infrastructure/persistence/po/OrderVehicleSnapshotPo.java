@@ -32,9 +32,6 @@ public class OrderVehicleSnapshotPo implements Serializable {
     @TableField("configuration_name")
     private String configurationName;
 
-    @TableField("feature_config_snapshot")
-    private String featureConfigSnapshot;
-
     @TableField("snapshot_version")
     private Integer snapshotVersion;
 

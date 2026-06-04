@@ -1335,7 +1335,6 @@ public class OrderAppService {
         snapshotPo.setSaleModelName(saleModelName);
         snapshotPo.setConfigurationCode(buildConfig.getCode());
         snapshotPo.setConfigurationName(buildConfig.getName());
-        snapshotPo.setFeatureConfigSnapshot(JSONUtil.toJsonStr(buildConfig.getFeatureCodes()));
         snapshotPo.setSnapshotVersion(newVersion);
         
         orderVehicleSnapshotRepository.save(snapshotPo);
@@ -1491,7 +1490,6 @@ public class OrderAppService {
         snapshotPo.setSaleModelName(saleModelName);
         snapshotPo.setConfigurationCode(buildConfig.getCode());
         snapshotPo.setConfigurationName(buildConfig.getName());
-        snapshotPo.setFeatureConfigSnapshot(JSONUtil.toJsonStr(buildConfig.getFeatureCodes()));
         snapshotPo.setSnapshotVersion(1);
         
         orderVehicleSnapshotRepository.save(snapshotPo);
