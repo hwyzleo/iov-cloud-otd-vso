@@ -20,7 +20,7 @@ public interface OrderDtoAssembler {
 
     @Mapping(target = "orderId", source = "id")
     @Mapping(target = "orderState", expression = "java(order.getOrderState() != null ? order.getOrderState().getValue() : null)")
-    @Mapping(target = "displayName", expression = "java(order.getDeliveryVin() != null ? order.getDeliveryVin() : order.getBuildConfigCode())")
+    @Mapping(target = "displayName", expression = "java(order.getDeliveryVin() != null ? order.getDeliveryVin() : order.getConfigurationCode())")
     @Mapping(target = "orderType", source = "orderType")
     @Mapping(target = "orderSource", source = "orderSource")
     @Mapping(target = "brandCode", source = "brandCode")
@@ -30,7 +30,7 @@ public interface OrderDtoAssembler {
     @Mapping(target = "ownerRegionCode", source = "ownerRegionCode")
     @Mapping(target = "deliveryStoreCode", source = "deliveryStoreCode")
     @Mapping(target = "deliveryRegionCode", source = "deliveryRegionCode")
-    @Mapping(target = "buildConfigCode", source = "buildConfigCode")
+    @Mapping(target = "configurationCode", source = "configurationCode")
     @Mapping(target = "createTime", source = "createTime")
     @Mapping(target = "modifyTime", source = "modifyTime")
     @Mapping(target = "licenseCity", source = "licenseCity")

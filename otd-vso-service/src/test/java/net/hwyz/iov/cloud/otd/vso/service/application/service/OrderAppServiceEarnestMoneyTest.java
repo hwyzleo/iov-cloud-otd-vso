@@ -8,6 +8,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Arrays;
+import java.util.List;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
@@ -24,12 +27,16 @@ class OrderAppServiceEarnestMoneyTest {
     void testEarnestMoneyOrder() {
         String userId = "test_user_" + System.currentTimeMillis();
         String saleModel = "TEST_SALE_CODE";
-        String buildConfigCode = "TEST_BUILD_CONFIG";
+        String modelCode = "TEST_MODEL";
+        String variantCode = "TEST_VARIANT";
+        List<String> optionCodes = Arrays.asList("OPTION_1", "OPTION_2");
         
         EarnestMoneyCmd cmd = EarnestMoneyCmd.builder()
             .accountId(userId)
             .saleModel(saleModel)
-            .buildConfigCode(buildConfigCode)
+            .modelCode(modelCode)
+            .variantCode(variantCode)
+            .optionCodes(optionCodes)
             .licenseCityCode("TEST_CITY")
             .build();
         
@@ -42,11 +49,14 @@ class OrderAppServiceEarnestMoneyTest {
     @Test
     void testEarnestMoneyOrderDirectOrder() {
         String userId = "test_user_direct_" + System.currentTimeMillis();
+        List<String> optionCodes = Arrays.asList("DIRECT_OPTION_1");
         
         EarnestMoneyCmd cmd = EarnestMoneyCmd.builder()
             .accountId(userId)
             .saleModel("DIRECT_SALE_CODE")
-            .buildConfigCode("DIRECT_BUILD_CONFIG")
+            .modelCode("DIRECT_MODEL")
+            .variantCode("DIRECT_VARIANT")
+            .optionCodes(optionCodes)
             .licenseCityCode("TEST_CITY")
             .build();
         

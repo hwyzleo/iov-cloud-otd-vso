@@ -391,8 +391,8 @@ public class OrderAppService {
             return;
         }
 
-        Set<String> buildConfigCodes = results.stream()
-                .map(OrderListResult::getBuildConfigCode)
+        Set<String> configurationCodes = results.stream()
+                .map(OrderListResult::getConfigurationCode)
                 .filter(StrUtil::isNotBlank)
                 .collect(Collectors.toSet());
         Set<String> saleModels = results.stream()
@@ -401,14 +401,14 @@ public class OrderAppService {
                 .collect(Collectors.toSet());
 
         Map<String, VmdBuildConfigResponse> buildConfigMap = new HashMap<>();
-        for (String code : buildConfigCodes) {
+        for (String code : configurationCodes) {
             try {
                 VmdBuildConfigResponse buildConfig = vmdVehicleModelConfigService.getBuildConfigByCode(code);
                 if (buildConfig != null) {
                     buildConfigMap.put(code, buildConfig);
                 }
             } catch (Exception e) {
-                log.warn("获取生产配置失败: buildConfigCode={}", code);
+                log.warn("获取配置失败: configurationCode={}", code);
             }
         }
 
@@ -431,9 +431,9 @@ public class OrderAppService {
             result.setSaleModelName(saleModelNameMap.getOrDefault(result.getSaleModel(), ""));
             result.setOwnerRegionName(getRegionName(result.getOwnerRegionCode()));
 
-            if (StrUtil.isNotBlank(result.getSaleModel()) && StrUtil.isNotBlank(result.getBuildConfigCode())) {
+            if (StrUtil.isNotBlank(result.getSaleModel()) && StrUtil.isNotBlank(result.getConfigurationCode())) {
                 try {
-                    VmdBuildConfigResponse buildConfig = buildConfigMap.get(result.getBuildConfigCode());
+                    VmdBuildConfigResponse buildConfig = buildConfigMap.get(result.getConfigurationCode());
                     Map<String, String> featureCodes = parseBuildConfigToFeatureCodes(buildConfig);
                     SelectedSaleModelResult selectedModel = saleModelAppService.getSelectedSaleModelByFeatureCodes(
                             result.getSaleModel(), featureCodes);
@@ -444,8 +444,8 @@ public class OrderAppService {
                     result.setTotalPrice(selectedModel.getTotalPrice());
                     result.setSaleModelDesc(selectedModel.getSaleModelDesc());
                 } catch (Exception e) {
-                    log.warn("获取销售车型配置信息失败: saleModel={}, buildConfigCode={}", 
-                            result.getSaleModel(), result.getBuildConfigCode(), e);
+                    log.warn("获取销售车型配置信息失败: saleModel={}, configurationCode={}", 
+                            result.getSaleModel(), result.getConfigurationCode(), e);
                 }
             }
         }
@@ -654,42 +654,74 @@ public class OrderAppService {
     // --- 以下为兼容旧接口的方法 ---
 
     public EarnestMoneyOrderResult earnestMoneyOrder(EarnestMoneyCmd cmd) {
-        log.info("意向金下单：accountId={}, saleModel={}, featureConfig={}", 
-                cmd.getAccountId(), cmd.getSaleModel(), cmd.getFeatureConfig());
+        log.info("意向金下单：accountId={}, saleModel={}, modelCode={}, variantCode={}, optionCodes={}", 
+                cmd.getAccountId(), cmd.getSaleModel(), cmd.getModelCode(), cmd.getVariantCode(), cmd.getOptionCodes());
         
         duplicateOrderSpecification.check(cmd.getAccountId(), null);
         
         Order order = createOrFindOrder(cmd.getAccountId(), cmd.getOrderNo());
         
-        String buildConfigCode = null;
         String saleModel = cmd.getSaleModel();
+        String modelCode = cmd.getModelCode();
+        String variantCode = cmd.getVariantCode();
+        List<String> optionCodes = cmd.getOptionCodes() != null ? cmd.getOptionCodes() : new ArrayList<>();
         
-        if (cmd.getFeatureConfig() != null && !cmd.getFeatureConfig().isEmpty()) {
-            Map<String, String> featureConfig = new HashMap<>(cmd.getFeatureConfig());
-            featureConfig.remove("BASE_MODEL");
-            log.info("调用VMD获取buildConfigCode，featureConfig={}", featureConfig);
-            buildConfigCode = vmdVehicleModelConfigService.getVehicleBuildConfigCode(featureConfig);
-            log.info("VMD返回buildConfigCode={}", buildConfigCode);
-        } else if (cmd.getBuildConfigCode() != null) {
-            buildConfigCode = cmd.getBuildConfigCode();
+        // 六步校验
+        // ① SaleModel 在售校验
+        SaleModelPo saleModelPo = saleModelRepository.findBySaleModelCode(saleModel)
+                .orElseThrow(() -> new SaleModelNotExistException("销售车型不存在: " + saleModel));
+        if (!"active".equals(saleModelPo.getListingStatus())) {
+            throw new SaleModelNotExistException("销售车型已下架: " + saleModel);
         }
         
-        if (buildConfigCode == null || buildConfigCode.isEmpty()) {
-            throw new BuildConfigNotMatchedException(saleModel);
+        // ② Model 销售策略校验
+        salesPolicyService.validateModelForSale(saleModel, modelCode);
+        
+        // ③ Variant 销售策略校验
+        salesPolicyService.validateVariantForSale(saleModel, variantCode);
+        
+        // ④ OptionCode 销售策略校验
+        if (!optionCodes.isEmpty()) {
+            salesPolicyService.validateOptionsForSale(saleModel, optionCodes, null);
         }
         
-        order.saveBuildConfig(buildConfigCode, cmd.getModelConfigMap());
-        VmdBuildConfigResponse buildConfig = vmdVehicleModelConfigService.getBuildConfigByCode(buildConfigCode);
-        log.info("VMD返回buildConfig详情={}", buildConfig);
-        if (buildConfig == null || buildConfig.getBrandCode() == null) {
-            throw new BrandCodeNotExistException(buildConfigCode);
+        // ⑤ MDM 调用 resolveConfiguration(variantCode, optionCodes)
+        String configurationCode = resolveConfiguration(variantCode, optionCodes);
+        if (configurationCode == null || configurationCode.isEmpty()) {
+            throw new ConfigurationNotMatchedException("OptionCode 组合无法匹配到合法 Configuration");
         }
-        order.saveBrandCode(buildConfig.getBrandCode());
+        
+        // ⑥ Configuration 销售白名单校验
+        salesPolicyService.validateConfigurationForSale(saleModel, configurationCode);
+        
+        // 获取 Variant 价格信息
+        SaleModelVariantPolicyPo variantPolicy = saleModelVariantPolicyRepository
+                .findBySaleModelCodeAndVariantCode(saleModel, variantCode)
+                .orElse(null);
+        
+        BigDecimal variantPrice = BigDecimal.ZERO;
+        BigDecimal earnestMoneyAmount = BigDecimal.ZERO;
+        if (variantPolicy != null && "active".equals(variantPolicy.getSaleStatus())) {
+            variantPrice = variantPolicy.getVariantPrice() != null ? variantPolicy.getVariantPrice() : BigDecimal.ZERO;
+            earnestMoneyAmount = variantPolicy.getEarnestMoneyPrice() != null ? variantPolicy.getEarnestMoneyPrice() : BigDecimal.ZERO;
+        }
+        
+        // 计算 Option 总价
+        BigDecimal optionTotalPrice = BigDecimal.ZERO;
+        for (String optionCode : optionCodes) {
+            BigDecimal optionPrice = salesPolicyService.getOptionPrice(saleModel, optionCode);
+            optionTotalPrice = optionTotalPrice.add(optionPrice);
+        }
+        
+        // 保存订单配置
+        order.saveConfiguration(configurationCode, cmd.getModelConfigMap());
+        order.saveBrandCode(saleModelPo.getCarlineCode());
         order.saveSaleModel(saleModel);
-        String saleModelName = saleModelRepository.findBySaleModelCode(saleModel)
-                .map(SaleModelPo::getModelName)
-                .orElse("");
-        saveOrderVehicleSnapshot(order, saleModel, saleModelName, buildConfig);
+        
+        // 保存车辆配置快照
+        saveOrderVehicleSnapshot(order, saleModel, saleModelPo.getModelName(), 
+                saleModelPo.getCarlineCode(), modelCode, variantCode, configurationCode, optionCodes,
+                variantPolicy, optionCodes);
         
         order.earnestMoneyOrder();
         order.saveLicenseCity(cmd.getLicenseCityCode());
@@ -703,12 +735,11 @@ public class OrderAppService {
         timeoutNotifyService.createTimeoutTask(order.getId(), "SMALL_ORDER_PAY_TIMEOUT", "invalid", 
                 paymentChannelConfig.getSmallOrderTimeoutMinutes());
         
-        BigDecimal earnestMoneyAmount = getEarnestMoneyAmount(saleModel);
         Instant expireTime = Instant.now().plusSeconds(paymentChannelConfig.getSmallOrderTimeoutMinutes() * 60);
         List<EarnestMoneyOrderResult.PaymentChannelInfo> paymentChannels = buildPaymentChannelInfoList();
         
-        log.info("意向金下单完成：orderId={}, orderNo={}, buildConfigCode={}, earnestMoneyAmount={}", 
-                order.getId(), order.getOrderNo(), order.getBuildConfigCode(), earnestMoneyAmount);
+        log.info("意向金下单完成：orderId={}, orderNo={}, configurationCode={}, earnestMoneyAmount={}", 
+                order.getId(), order.getOrderNo(), configurationCode, earnestMoneyAmount);
         
         return EarnestMoneyOrderResult.builder()
                 .orderNo(order.getOrderNo())
@@ -724,7 +755,7 @@ public class OrderAppService {
         
         duplicateOrderSpecification.check(cmd.getAccountId(), null);
         
-        String buildConfigCode;
+        String configurationCode;
         String saleModel;
         Order order;
         
@@ -733,10 +764,10 @@ public class OrderAppService {
             if (orderOpt.isPresent()) {
                 order = orderOpt.get();
                 if (order.getOrderState() == OrderState.EARNEST_MONEY_PAID) {
-                    log.info("意向金转定金：orderNo={}, saleModel={}, buildConfigCode={}", 
-                            order.getOrderNo(), order.getSaleModel(), order.getBuildConfigCode());
+                    log.info("意向金转定金：orderNo={}, saleModel={}, configurationCode={}", 
+                            order.getOrderNo(), order.getSaleModel(), order.getConfigurationCode());
                     saleModel = order.getSaleModel();
-                    buildConfigCode = order.getBuildConfigCode();
+                    configurationCode = order.getConfigurationCode();
                 } else {
                     log.warn("订单状态不允许定金下单：orderNo={}, orderState={}", 
                             order.getOrderNo(), order.getOrderState());
@@ -745,38 +776,31 @@ public class OrderAppService {
             } else {
                 order = Order.fromWishlist(cmd.getAccountId(), null);
                 saleModel = cmd.getSaleModel();
-                buildConfigCode = cmd.getBuildConfigCode();
+                configurationCode = cmd.getConfigurationCode();
                 order.saveSaleModel(saleModel);
             }
         } else {
             order = Order.fromWishlist(cmd.getAccountId(), null);
             saleModel = cmd.getSaleModel();
-            buildConfigCode = cmd.getBuildConfigCode();
+            configurationCode = cmd.getConfigurationCode();
             order.saveSaleModel(saleModel);
         }
         
-        if (buildConfigCode == null || buildConfigCode.isEmpty()) {
-            if (cmd.getFeatureConfig() != null && !cmd.getFeatureConfig().isEmpty()) {
-                Map<String, String> featureConfig = new HashMap<>(cmd.getFeatureConfig());
-                featureConfig.remove("BASE_MODEL");
-                log.info("调用VMD获取buildConfigCode，featureConfig={}", featureConfig);
-                buildConfigCode = vmdVehicleModelConfigService.getVehicleBuildConfigCode(featureConfig);
-                log.info("VMD返回buildConfigCode={}", buildConfigCode);
+        if (configurationCode == null || configurationCode.isEmpty()) {
+            if (cmd.getOptionCodes() != null && !cmd.getOptionCodes().isEmpty()) {
+                // 调用 MDM 服务获取 configurationCode
+                configurationCode = resolveConfiguration(cmd.getVariantCode(), cmd.getOptionCodes());
             }
         }
         
-        if (buildConfigCode == null || buildConfigCode.isEmpty()) {
+        if (configurationCode == null || configurationCode.isEmpty()) {
             throw new BuildConfigNotMatchedException(saleModel);
         }
         
-        VmdBuildConfigResponse buildConfig = vmdVehicleModelConfigService.getBuildConfigByCode(buildConfigCode);
-        if (buildConfig == null || buildConfig.getBrandCode() == null) {
-            throw new BrandCodeNotExistException(buildConfigCode);
-        }
-        order.saveBrandCode(buildConfig.getBrandCode());
+        order.saveBrandCode(cmd.getCarlineCode());
         
         order.downPaymentOrder();
-        order.saveBuildConfig(buildConfigCode, cmd.getModelConfigMap());
+        order.saveConfiguration(configurationCode, cmd.getModelConfigMap());
         
         if (StrUtil.isNotBlank(cmd.getCustomerType())) {
             order.saveCustomerType(cmd.getCustomerType());
@@ -822,8 +846,8 @@ public class OrderAppService {
         Instant expireTime = Instant.now().plusSeconds(paymentChannelConfig.getDownPaymentTimeoutMinutes() * 60);
         List<DownPaymentOrderResult.PaymentChannelInfo> paymentChannels = buildDownPaymentChannelInfoList();
 
-        log.info("定金下单完成：orderId={}, orderNo={}, saleModel={}, buildConfigCode={}, downPaymentAmount={}", 
-                order.getId(), order.getOrderNo(), saleModel, buildConfigCode, downPaymentAmount);
+        log.info("定金下单完成：orderId={}, orderNo={}, saleModel={}, configurationCode={}, downPaymentAmount={}", 
+                order.getId(), order.getOrderNo(), saleModel, configurationCode, downPaymentAmount);
 
         return DownPaymentOrderResult.builder()
                 .orderNo(order.getOrderNo())
@@ -837,8 +861,8 @@ public class OrderAppService {
         Order order = findOrderById(accountId, orderNo);
         OrderDetailResult result = OrderDtoAssembler.INSTANCE.toOrderDetailResult(order);
         
-        if (StrUtil.isNotBlank(order.getSaleModel()) && StrUtil.isNotBlank(order.getBuildConfigCode())) {
-            VmdBuildConfigResponse buildConfig = vmdVehicleModelConfigService.getBuildConfigByCode(order.getBuildConfigCode());
+        if (StrUtil.isNotBlank(order.getSaleModel()) && StrUtil.isNotBlank(order.getConfigurationCode())) {
+            VmdBuildConfigResponse buildConfig = vmdVehicleModelConfigService.getBuildConfigByCode(order.getConfigurationCode());
             Map<String, String> featureCodes = parseBuildConfigToFeatureCodes(buildConfig);
             SelectedSaleModelResult selectedModel = saleModelAppService.getSelectedSaleModelByFeatureCodes(
                     order.getSaleModel(), featureCodes);
@@ -1202,7 +1226,7 @@ public class OrderAppService {
             }
 
             // 5. 保存旧配置信息用于价格比较
-            String oldBuildConfigCode = order.getBuildConfigCode();
+            String oldConfigurationCode = order.getConfigurationCode();
             Money oldVehiclePrice = order.getCurrentVehiclePrice();
             Money oldOptionPrice = order.getCurrentOptionPrice();
             Money oldTotalPrice = oldVehiclePrice.add(oldOptionPrice);
@@ -1218,7 +1242,7 @@ public class OrderAppService {
             Money priceDifference = newTotalPrice.subtract(oldTotalPrice);
 
             // 8. 更新订单配置
-            order.saveBuildConfig(newBuildConfigCode, null);
+            order.saveConfiguration(newBuildConfigCode, null);
             order.saveBrandCode(buildConfig.getBrandCode());
 
             // 9. 保存新的车型快照
@@ -1262,10 +1286,10 @@ public class OrderAppService {
 
             // 14. 记录操作时间线
             saveOrderTimeline(order.getId(), "MODIFY_CONFIG", "修改订单配置",
-                    oldBuildConfigCode, newBuildConfigCode,
+                    oldConfigurationCode, newBuildConfigCode,
                     cmd.getAccountId(), "order_user", "capp",
                     null, "success", null,
-                    String.format("旧配置: %s, 新配置: %s, 价格差额: %s", oldBuildConfigCode, newBuildConfigCode, priceDifference));
+                    String.format("旧配置: %s, 新配置: %s, 价格差额: %s", oldConfigurationCode, newBuildConfigCode, priceDifference));
         });
     }
 
@@ -1309,13 +1333,13 @@ public class OrderAppService {
         snapshotPo.setOrderId(order.getId());
         snapshotPo.setSaleModelCode(saleModelCode);
         snapshotPo.setSaleModelName(saleModelName);
-        snapshotPo.setBuildConfigCode(buildConfig.getCode());
-        snapshotPo.setBuildConfigName(buildConfig.getName());
+        snapshotPo.setConfigurationCode(buildConfig.getCode());
+        snapshotPo.setConfigurationName(buildConfig.getName());
         snapshotPo.setFeatureConfigSnapshot(JSONUtil.toJsonStr(buildConfig.getFeatureCodes()));
         snapshotPo.setSnapshotVersion(newVersion);
         
         orderVehicleSnapshotRepository.save(snapshotPo);
-        log.info("保存订单车型快照(新版本)：orderId={}, version={}, buildConfigCode={}", 
+        log.info("保存订单车型快照(新版本)：orderId={}, version={}, configurationCode={}", 
                 order.getId(), newVersion, buildConfig.getCode());
     }
 
@@ -1465,15 +1489,53 @@ public class OrderAppService {
         snapshotPo.setOrderId(order.getId());
         snapshotPo.setSaleModelCode(saleModelCode);
         snapshotPo.setSaleModelName(saleModelName);
-        snapshotPo.setBuildConfigCode(buildConfig.getCode());
-        snapshotPo.setBuildConfigName(buildConfig.getName());
+        snapshotPo.setConfigurationCode(buildConfig.getCode());
+        snapshotPo.setConfigurationName(buildConfig.getName());
         snapshotPo.setFeatureConfigSnapshot(JSONUtil.toJsonStr(buildConfig.getFeatureCodes()));
         snapshotPo.setSnapshotVersion(1);
         
         orderVehicleSnapshotRepository.save(snapshotPo);
-        log.info("保存订单车型快照：orderId={}, saleModelCode={}, saleModelName={}, buildConfigCode={}, buildConfigName={}", 
+        log.info("保存订单车型快照：orderId={}, saleModelCode={}, saleModelName={}, configurationCode={}, configurationName={}", 
                 order.getId(), snapshotPo.getSaleModelCode(), snapshotPo.getSaleModelName(),
-                snapshotPo.getBuildConfigCode(), snapshotPo.getBuildConfigName());
+                snapshotPo.getConfigurationCode(), snapshotPo.getConfigurationName());
+    }
+
+    private void saveOrderVehicleSnapshot(Order order, String saleModelCode, String saleModelName,
+                                           String carlineCode, String modelCode, String variantCode,
+                                           String configurationCode, List<String> optionCodes,
+                                           SaleModelVariantPolicyPo variantPolicy, List<String> optionCodeList) {
+        OrderVehicleSnapshotPo snapshotPo = new OrderVehicleSnapshotPo();
+        snapshotPo.setSnapshotId(IdUtil.nanoId(15));
+        snapshotPo.setOrderId(order.getId());
+        snapshotPo.setSaleModelCode(saleModelCode);
+        snapshotPo.setSaleModelName(saleModelName);
+        snapshotPo.setCarlineCode(carlineCode);
+        snapshotPo.setModelCode(modelCode);
+        snapshotPo.setVariantCode(variantCode);
+        snapshotPo.setConfigurationCode(configurationCode);
+        snapshotPo.setConfigurationName(configurationCode);
+        snapshotPo.setOptionCodes(JSONUtil.toJsonStr(optionCodes));
+        snapshotPo.setSnapshotVersion(1);
+        
+        // 保存 Variant 销售策略快照
+        if (variantPolicy != null) {
+            snapshotPo.setVariantPolicySnapshot(JSONUtil.toJsonStr(variantPolicy));
+        }
+        
+        // 保存 Option 价格明细
+        List<Map<String, Object>> optionPriceBreakdown = new ArrayList<>();
+        for (String optionCode : optionCodes) {
+            BigDecimal optionPrice = salesPolicyService.getOptionPrice(saleModelCode, optionCode);
+            Map<String, Object> item = new HashMap<>();
+            item.put("optionCode", optionCode);
+            item.put("optionPrice", optionPrice);
+            optionPriceBreakdown.add(item);
+        }
+        snapshotPo.setOptionPriceBreakdown(JSONUtil.toJsonStr(optionPriceBreakdown));
+        
+        orderVehicleSnapshotRepository.save(snapshotPo);
+        log.info("保存订单车型快照：orderId={}, saleModelCode={}, modelCode={}, variantCode={}, configurationCode={}", 
+                order.getId(), saleModelCode, modelCode, variantCode, configurationCode);
     }
 
     public InitiatePaymentResult initiatePayment(InitiatePaymentCmd cmd) {

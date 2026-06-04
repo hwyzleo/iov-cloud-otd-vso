@@ -4,6 +4,7 @@ import lombok.Builder;
 import lombok.Data;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.OrderModelConfig;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -18,9 +19,11 @@ public class EarnestMoneyCmd {
     private String accountId;
     private String orderNo;
     private String saleModel;
+    private String modelCode;
+    private String variantCode;
     private String licenseCityCode;
-    private String buildConfigCode;
-    private Map<String, String> featureConfig;
+    private String configurationCode;
+    private List<String> optionCodes;
     private Map<String, OrderModelConfig> modelConfigMap;
     private String wishlistId;
 

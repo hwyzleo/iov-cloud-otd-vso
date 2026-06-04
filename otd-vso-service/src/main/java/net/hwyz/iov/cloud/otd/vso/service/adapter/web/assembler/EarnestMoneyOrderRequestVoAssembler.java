@@ -18,7 +18,9 @@ public interface EarnestMoneyOrderRequestVoAssembler {
 
     @Mapping(target = "accountId", source = "accountId")
     @Mapping(target = "saleModel", source = "vo.saleModelCode")
-    @Mapping(target = "featureConfig", source = "vo.saleModelConfigType")
+    @Mapping(target = "modelCode", source = "vo.modelCode")
+    @Mapping(target = "variantCode", source = "vo.variantCode")
+    @Mapping(target = "optionCodes", source = "vo.optionCodes")
     EarnestMoneyCmd toCmd(String accountId, EarnestMoneyOrderRequestVo vo);
 
 }

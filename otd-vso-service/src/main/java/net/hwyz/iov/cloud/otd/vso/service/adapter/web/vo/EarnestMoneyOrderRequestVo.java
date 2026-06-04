@@ -4,7 +4,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import lombok.*;
 
-import java.util.Map;
+import java.util.List;
 
 @Data
 @Builder
@@ -15,10 +15,16 @@ public class EarnestMoneyOrderRequestVo {
     @NotBlank(message = "销售车型代码不能为空")
     private String saleModelCode;
 
+    @NotBlank(message = "车型代码不能为空")
+    private String modelCode;
+
+    @NotBlank(message = "版本代码不能为空")
+    private String variantCode;
+
     private String orderNo;
 
-    @NotEmpty(message = "特征配置不能为空")
-    private Map<String, String> saleModelConfigType;
+    @NotEmpty(message = "选项配置不能为空")
+    private List<String> optionCodes;
 
     private String licenseCityCode;
 

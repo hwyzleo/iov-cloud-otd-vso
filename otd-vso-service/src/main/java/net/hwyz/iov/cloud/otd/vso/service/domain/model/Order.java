@@ -154,8 +154,8 @@ public class Order {
     /** 销售车型编码 */
     private String saleModel;
 
-    /** 生产配置代码，对应VMD系统的buildConfig */
-    private String buildConfigCode;
+    /** 配置编码 */
+    private String configurationCode;
 
     /** 下单门店编码 */
     private String orderStoreCode;
@@ -291,18 +291,18 @@ public class Order {
     // ==================== 信息保存方法 ====================
 
     /**
-     * 保存生产配置
-     * 设置订单的车辆生产配置，配置锁定后不可修改
+     * 保存配置编码
+     * 设置订单的车辆配置，配置锁定后不可修改
      *
-     * @param buildConfigCode 生产配置代码
+     * @param configurationCode 配置编码
      * @param modelConfigMap 选配配置明细
      * @throws SaleModelConfigHasLockedException 配置已锁定时抛出
      */
-    public void saveBuildConfig(String buildConfigCode, Map<String, OrderModelConfig> modelConfigMap) {
+    public void saveConfiguration(String configurationCode, Map<String, OrderModelConfig> modelConfigMap) {
         if (Boolean.TRUE.equals(buildConfigLock)) {
-            throw new SaleModelConfigHasLockedException(buildConfigCode);
+            throw new SaleModelConfigHasLockedException(configurationCode);
         }
-        this.buildConfigCode = buildConfigCode;
+        this.configurationCode = configurationCode;
         this.modelConfigMap = modelConfigMap;
     }
 

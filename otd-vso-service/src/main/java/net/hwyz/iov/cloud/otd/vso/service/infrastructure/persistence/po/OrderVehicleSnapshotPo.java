@@ -26,11 +26,11 @@ public class OrderVehicleSnapshotPo implements Serializable {
     @TableField("sale_model_name")
     private String saleModelName;
 
-    @TableField("build_config_code")
-    private String buildConfigCode;
+    @TableField("configuration_code")
+    private String configurationCode;
 
-    @TableField("build_config_name")
-    private String buildConfigName;
+    @TableField("configuration_name")
+    private String configurationName;
 
     @TableField("feature_config_snapshot")
     private String featureConfigSnapshot;
@@ -73,12 +73,6 @@ public class OrderVehicleSnapshotPo implements Serializable {
      */
     @TableField("variant_code")
     private String variantCode;
-
-    /**
-     * Configuration 编码
-     */
-    @TableField("configuration_code")
-    private String configurationCode;
 
     /**
      * OptionCode 列表（JSON）

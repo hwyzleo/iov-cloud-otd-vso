@@ -118,9 +118,9 @@ public class OrderListResult {
     private String deliveryRegionName;
 
     /**
-     * 生产配置编码
+     * 配置编码
      */
-    private String buildConfigCode;
+    private String configurationCode;
 
     /**
      * 展示名称

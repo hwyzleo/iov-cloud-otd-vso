@@ -18,7 +18,7 @@ public interface DownPaymentOrderRequestVoAssembler {
 
     @Mapping(target = "accountId", source = "accountId")
     @Mapping(target = "saleModel", source = "vo.saleModelCode")
-    @Mapping(target = "featureConfig", source = "vo.saleModelConfigType")
+    @Mapping(target = "optionCodes", ignore = true)
     DownPaymentCmd toCmd(String accountId, DownPaymentOrderRequestVo vo);
 
 }
