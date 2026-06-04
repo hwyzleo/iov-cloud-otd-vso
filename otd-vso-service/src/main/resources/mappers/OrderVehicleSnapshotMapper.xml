@@ -8,8 +8,8 @@
         <result column="order_id" property="orderId" />
         <result column="sale_model_code" property="saleModelCode" />
         <result column="sale_model_name" property="saleModelName" />
-        <result column="build_config_code" property="buildConfigCode" />
-        <result column="build_config_name" property="buildConfigName" />
+        <result column="configuration_code" property="configurationCode" />
+        <result column="configuration_name" property="configurationName" />
         <result column="feature_config_snapshot" property="featureConfigSnapshot" />
         <result column="snapshot_version" property="snapshotVersion" />
         <result column="create_time" property="createTime" />
@@ -22,7 +22,7 @@
 
     <sql id="baseColumnList">
         t.id, t.snapshot_id, t.order_id, t.sale_model_code, t.sale_model_name, 
-        t.build_config_code, t.build_config_name, t.feature_config_snapshot, t.snapshot_version,
+        t.configuration_code, t.configuration_name, t.feature_config_snapshot, t.snapshot_version,
         t.create_time, t.create_by, t.modify_time, t.modify_by, t.row_version, t.row_valid
     </sql>
 
@@ -53,8 +53,8 @@
         <if test="saleModelCode != null and saleModelCode != ''">
             AND t.sale_model_code = #{saleModelCode}
         </if>
-        <if test="buildConfigCode != null and buildConfigCode != ''">
-            AND t.build_config_code = #{buildConfigCode}
+        <if test="configurationCode != null and configurationCode != ''">
+            AND t.configuration_code = #{configurationCode}
         </if>
         ORDER BY t.id DESC
     </select>
@@ -69,8 +69,8 @@
         <if test="params.saleModelCode != null and params.saleModelCode != ''">
             AND t.sale_model_code = #{params.saleModelCode}
         </if>
-        <if test="params.buildConfigCode != null and params.buildConfigCode != ''">
-            AND t.build_config_code = #{params.buildConfigCode}
+        <if test="params.configurationCode != null and params.configurationCode != ''">
+            AND t.configuration_code = #{params.configurationCode}
         </if>
         ORDER BY t.id DESC
     </select>
@@ -86,24 +86,24 @@
 
     <insert id="insertPo" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO vso_order_vehicle_snapshot (
-            snapshot_id, order_id, sale_model_code, sale_model_name, build_config_code, build_config_name,
+            snapshot_id, order_id, sale_model_code, sale_model_name, configuration_code, configuration_name,
             feature_config_snapshot, snapshot_version, create_time, create_by, modify_time, modify_by, row_version, row_valid
         )
         VALUES (
-            #{snapshotId}, #{orderId}, #{saleModelCode}, #{saleModelName}, #{buildConfigCode}, #{buildConfigName},
+            #{snapshotId}, #{orderId}, #{saleModelCode}, #{saleModelName}, #{configurationCode}, #{configurationName},
             #{featureConfigSnapshot}, #{snapshotVersion}, now(), #{createBy}, now(), #{modifyBy}, 1, 1
         )
     </insert>
 
     <insert id="batchInsertPo">
         INSERT INTO vso_order_vehicle_snapshot (
-            snapshot_id, order_id, sale_model_code, sale_model_name, build_config_code, build_config_name,
+            snapshot_id, order_id, sale_model_code, sale_model_name, configuration_code, configuration_name,
             feature_config_snapshot, snapshot_version, create_time, create_by, modify_time, modify_by, row_version, row_valid
         )
         VALUES
         <foreach collection="list" item="item" separator=",">
             (
-                #{item.snapshotId}, #{item.orderId}, #{item.saleModelCode}, #{item.saleModelName}, #{item.buildConfigCode}, #{item.buildConfigName},
+                #{item.snapshotId}, #{item.orderId}, #{item.saleModelCode}, #{item.saleModelName}, #{item.configurationCode}, #{item.configurationName},
                 #{item.featureConfigSnapshot}, #{item.snapshotVersion}, now(), #{item.createBy}, now(), #{item.modifyBy}, 1, 1
             )
         </foreach>
