@@ -66,10 +66,22 @@ public class OrderVehicleSnapshotPo implements Serializable {
     private String modelCode;
 
     /**
+     * Model 名称
+     */
+    @TableField("model_name")
+    private String modelName;
+
+    /**
      * Variant 编码
      */
     @TableField("variant_code")
     private String variantCode;
+
+    /**
+     * Variant 名称
+     */
+    @TableField("variant_name")
+    private String variantName;
 
     /**
      * OptionCode 列表（JSON）
@@ -80,8 +92,8 @@ public class OrderVehicleSnapshotPo implements Serializable {
     /**
      * Option 价格明细（JSON）
      */
-    @TableField("option_price_breakdown")
-    private String optionPriceBreakdown;
+    @TableField("option_breakdown")
+    private String optionBreakdown;
 
     /**
      * 销售策略快照（JSON）
