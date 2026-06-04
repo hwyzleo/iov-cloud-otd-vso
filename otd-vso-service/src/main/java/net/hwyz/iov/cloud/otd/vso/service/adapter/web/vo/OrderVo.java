@@ -2,29 +2,12 @@ package net.hwyz.iov.cloud.otd.vso.service.adapter.web.vo;
 
 import lombok.*;
 
+import java.math.BigDecimal;
+import java.util.Date;
+import java.util.List;
+
 /**
- * 订单操作请求对象
- * <p>
- * 该对象被多个订单操作接口复用，不同接口所需字段不同：
- * <ul>
- *     <li>取消订单(cancel)：仅需 orderNo</li>
- *     <li>退款订单(requestRefund)：仅需 orderNo</li>
- *     <li>锁定订单(lock)：仅需 orderNo</li>
- *     <li>意向金转定金(earnestMoneyToDownPayment)：需 orderNo + 以下字段(可选)：
- *         <ul>
- *             <li>customerType - 客户类型</li>
- *             <li>paymentMethod - 支付方式</li>
- *             <li>orderPersonType - 订购人类型</li>
- *             <li>orderPersonName - 订购人姓名</li>
- *             <li>orderPersonIdType - 订购人证件类型</li>
- *             <li>orderPersonIdNum - 订购人证件号码</li>
- *             <li>purchasePlan - 购买计划</li>
- *             <li>licenseCityCode - 上牌城市代码</li>
- *             <li>orderStoreCode - 下单门店代码</li>
- *             <li>deliveryStoreCode - 交付门店代码</li>
- *         </ul>
- *     </li>
- * </ul>
+ * 订单列表视图对象
  *
  * @author VSO Team
  */
@@ -45,73 +28,74 @@ public class OrderVo {
     private Integer orderState;
 
     /**
-     * 显示名称
+     * 下单时间
      */
-    private String displayName;
+    private Date orderTime;
 
     /**
-     * 客户类型
-     * <p>
-     * 可选值：
-     * <ul>
-     *     <li>personal - 个人客户（首期仅支持此类型）</li>
-     * </ul>
-     * 
-     * @see net.hwyz.iov.cloud.otd.vso.api.enums.CustomerType
+     * 销售车型代码
      */
-    private String customerType;
+    private String saleModelCode;
 
     /**
-     * 支付方式
-     * <p>
-     * 可选值：
-     * <ul>
-     *     <li>full_payment - 全款</li>
-     *     <li>loan - 贷款</li>
-     * </ul>
-     * 
-     * @see net.hwyz.iov.cloud.otd.vso.api.enums.PaymentMethod
+     * 车型代码
      */
-    private String paymentMethod;
+    private String modelCode;
 
     /**
-     * 订购人类型
+     * 车型名称
      */
-    private Integer orderPersonType;
+    private String modelName;
 
     /**
-     * 订购人姓名
+     * 版本代码
      */
-    private String orderPersonName;
+    private String variantCode;
 
     /**
-     * 订购人证件类型
+     * 版本名称
      */
-    private Integer orderPersonIdType;
+    private String variantName;
 
     /**
-     * 订购人证件号码
+     * 配置代码
      */
-    private String orderPersonIdNum;
+    private String configurationCode;
 
     /**
-     * 购买计划
+     * 选装代码列表
      */
-    private Integer purchasePlan;
+    private List<String> optionCodes;
 
     /**
-     * 上牌城市代码
+     * 选装明细
      */
-    private String licenseCityCode;
+    private List<OptionBreakdownItem> optionBreakdown;
 
     /**
-     * 下单门店代码
+     * 总价
      */
-    private String orderStoreCode;
+    private BigDecimal totalPrice;
 
     /**
-     * 交付门店代码
+     * 销售车型图片列表
      */
-    private String deliveryStoreCode;
+    private List<String> saleModelImages;
+
+    /**
+     * 销售车型描述
+     */
+    private String saleModelDesc;
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class OptionBreakdownItem {
+        private String optionCode;
+        private String optionFamilyCode;
+        private String optionFamilyName;
+        private String optionName;
+        private BigDecimal optionPrice;
+    }
 
 }
