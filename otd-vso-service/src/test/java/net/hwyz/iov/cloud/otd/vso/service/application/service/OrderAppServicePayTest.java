@@ -29,7 +29,7 @@ class OrderAppServicePayTest {
         EarnestMoneyCmd createCmd = EarnestMoneyCmd.builder()
             .accountId(userId)
             .saleModel(saleCode)
-            .buildConfigCode(buildConfigCode)
+            .configurationCode(buildConfigCode)
             .licenseCityCode("TEST_CITY")
             .build();
         

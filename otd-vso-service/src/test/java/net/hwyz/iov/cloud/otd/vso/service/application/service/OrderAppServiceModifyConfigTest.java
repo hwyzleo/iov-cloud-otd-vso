@@ -46,7 +46,7 @@ class OrderAppServiceModifyConfigTest extends BaseTest {
                 .customerType("personal")
                 .brandCode("BRAND001")
                 .saleModel("SALE_MODEL_001")
-                .buildConfigCode("BUILD_CONFIG_001")
+                .configurationCode("BUILD_CONFIG_001")
                 .currentVersionNo(1)
                 .orderState(OrderState.EARNEST_MONEY_PAID)
                 .build();
@@ -62,7 +62,7 @@ class OrderAppServiceModifyConfigTest extends BaseTest {
                 .customerType("personal")
                 .brandCode("BRAND001")
                 .saleModel("SALE_MODEL_001")
-                .buildConfigCode("BUILD_CONFIG_001")
+                .configurationCode("BUILD_CONFIG_001")
                 .currentVersionNo(1)
                 .orderState(OrderState.DELIVERED)
                 .build();

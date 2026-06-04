@@ -33,7 +33,7 @@ class OrderAppServiceDownPaymentTest {
         DownPaymentCmd cmd = DownPaymentCmd.builder()
             .accountId(userId)
             .saleModel(saleCode)
-            .buildConfigCode(buildConfigCode)
+            .configurationCode(buildConfigCode)
             .licenseCityCode("TEST_CITY")
             .build();
         

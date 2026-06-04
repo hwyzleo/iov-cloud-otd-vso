@@ -44,7 +44,7 @@ class OrderAppServiceSearchTest {
                 .brandCode("BRAND001")
                 .saleModel("SALE_MODEL_001")
                 .ownerRegionCode("REGION001")
-                .buildConfigCode("BUILD_CONFIG_001")
+                .configurationCode("BUILD_CONFIG_001")
                 .currentVersionNo(1)
                 .orderState(OrderState.EARNEST_MONEY_UNPAID)
                 .build();
@@ -68,7 +68,7 @@ class OrderAppServiceSearchTest {
         assertEquals(order.getBrandCode(), result.getBrandCode(), "品牌编码应该匹配");
         assertEquals(order.getSaleModel(), result.getSaleModel(), "销售车型编码应该匹配");
         assertEquals(order.getOwnerRegionCode(), result.getOwnerRegionCode(), "归属区域编码应该匹配");
-        assertEquals(order.getBuildConfigCode(), result.getBuildConfigCode(), "生产配置编码应该匹配");
+        assertEquals(order.getConfigurationCode(), result.getConfigurationCode(), "生产配置编码应该匹配");
     }
 
     @Test
@@ -81,7 +81,7 @@ class OrderAppServiceSearchTest {
                 .customerType("personal")
                 .brandCode("BRAND001")
                 .saleModel("SALE_MODEL_001")
-                .buildConfigCode("BUILD_CONFIG_001")
+                .configurationCode("BUILD_CONFIG_001")
                 .currentVersionNo(1)
                 .orderState(OrderState.DOWN_PAYMENT_UNPAID)
                 .build();
@@ -115,7 +115,7 @@ class OrderAppServiceSearchTest {
                 .customerType("personal")
                 .brandCode("BRAND001")
                 .saleModel("SALE_MODEL_001")
-                .buildConfigCode("BUILD_CONFIG_001")
+                .configurationCode("BUILD_CONFIG_001")
                 .currentVersionNo(1)
                 .orderState(OrderState.EARNEST_MONEY_UNPAID)
                 .build();
@@ -129,7 +129,7 @@ class OrderAppServiceSearchTest {
                 .customerType("personal")
                 .brandCode("BRAND001")
                 .saleModel("SALE_MODEL_001")
-                .buildConfigCode("BUILD_CONFIG_001")
+                .configurationCode("BUILD_CONFIG_001")
                 .currentVersionNo(1)
                 .orderState(OrderState.EARNEST_MONEY_UNPAID)
                 .build();
@@ -143,7 +143,7 @@ class OrderAppServiceSearchTest {
                 .customerType("personal")
                 .brandCode("BRAND001")
                 .saleModel("SALE_MODEL_001")
-                .buildConfigCode("BUILD_CONFIG_001")
+                .configurationCode("BUILD_CONFIG_001")
                 .currentVersionNo(1)
                 .orderState(OrderState.EARNEST_MONEY_UNPAID)
                 .build();
@@ -185,7 +185,7 @@ class OrderAppServiceSearchTest {
                 .customerType("personal")
                 .brandCode("BRAND001")
                 .saleModel("SALE_MODEL_001")
-                .buildConfigCode("BUILD_CONFIG_001")
+                .configurationCode("BUILD_CONFIG_001")
                 .currentVersionNo(1)
                 .orderState(OrderState.EARNEST_MONEY_UNPAID)
                 .build();
