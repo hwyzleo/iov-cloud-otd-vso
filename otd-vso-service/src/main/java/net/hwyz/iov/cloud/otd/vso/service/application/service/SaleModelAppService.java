@@ -489,10 +489,10 @@ public class SaleModelAppService {
             if (variantPolicy.getVariantPrice() == null) {
                 continue;
             }
-            // 区域过滤（简化：非空时检查）
-            if (regionCode != null && !regionCode.isEmpty()
-                && variantPolicy.getAvailableRegions() != null && !variantPolicy.getAvailableRegions().isEmpty()) {
-                if (!variantPolicy.getAvailableRegions().contains(regionCode)) {
+            // 区域过滤
+            if (regionCode != null && !regionCode.isEmpty()) {
+                List<String> regions = parseJsonToList(variantPolicy.getAvailableRegions());
+                if (!regions.isEmpty() && !regions.contains(regionCode)) {
                     continue;
                 }
             }
