@@ -468,6 +468,36 @@ public class OrderAppService {
                 continue;
             }
 
+            // 设置车型、版本、配置信息
+            result.setModelCode(snapshot.getModelCode());
+            result.setModelName(snapshot.getModelName());
+            result.setVariantCode(snapshot.getVariantCode());
+            result.setVariantName(snapshot.getVariantName());
+            result.setConfigurationCode(snapshot.getConfigurationCode());
+
+            // 解析 optionCodes
+            if (StrUtil.isNotBlank(snapshot.getOptionCodes())) {
+                try {
+                    List<String> optionCodes = JSONUtil.toList(snapshot.getOptionCodes(), String.class);
+                    result.setOptionCodes(optionCodes);
+                } catch (Exception e) {
+                    log.warn("解析 optionCodes 失败: orderId={}, optionCodes={}",
+                        result.getOrderId(), snapshot.getOptionCodes(), e);
+                }
+            }
+
+            // 解析 optionBreakdown
+            if (StrUtil.isNotBlank(snapshot.getOptionBreakdown())) {
+                try {
+                    List<VehicleInfo.OptionBreakdownItem> optionBreakdown = JSONUtil.toList(
+                        snapshot.getOptionBreakdown(), VehicleInfo.OptionBreakdownItem.class);
+                    result.setOptionBreakdown(optionBreakdown);
+                } catch (Exception e) {
+                    log.warn("解析 optionBreakdown 失败: orderId={}, optionBreakdown={}",
+                        result.getOrderId(), snapshot.getOptionBreakdown(), e);
+                }
+            }
+
             // Variant 价格
             BigDecimal variantPrice = BigDecimal.ZERO;
             String variantKey = result.getSaleModel() + "_" + snapshot.getVariantCode();
@@ -926,16 +956,20 @@ public class OrderAppService {
      */
     private void enrichOrderDetailResult(Order order, OrderDetailResult result) {
         if (StrUtil.isBlank(order.getSaleModel())) {
+            log.warn("enrichOrderDetailResult: saleModel is blank, orderId={}", order.getId());
             return;
         }
 
         // 获取订单快照
         Optional<OrderVehicleSnapshotPo> snapshotOpt = orderVehicleSnapshotRepository.findByOrderId(order.getId());
         if (snapshotOpt.isEmpty()) {
+            log.warn("enrichOrderDetailResult: snapshot not found, orderId={}", order.getId());
             return;
         }
 
         OrderVehicleSnapshotPo snapshot = snapshotOpt.get();
+        log.info("enrichOrderDetailResult: snapshot found, orderId={}, modelCode={}, modelName={}, variantCode={}, variantName={}, configurationCode={}, optionCodes={}, optionBreakdown={}",
+            order.getId(), snapshot.getModelCode(), snapshot.getModelName(), snapshot.getVariantCode(), snapshot.getVariantName(), snapshot.getConfigurationCode(), snapshot.getOptionCodes(), snapshot.getOptionBreakdown());
 
         // 设置车型、版本、配置信息
         result.setModelCode(snapshot.getModelCode());

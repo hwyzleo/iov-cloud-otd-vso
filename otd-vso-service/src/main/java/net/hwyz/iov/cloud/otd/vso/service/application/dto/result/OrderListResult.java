@@ -124,23 +124,39 @@ public class OrderListResult {
     private String configurationCode;
 
     /**
+     * 车型编码
+     */
+    private String modelCode;
+
+    /**
+     * 车型名称
+     */
+    private String modelName;
+
+    /**
+     * 版本编码
+     */
+    private String variantCode;
+
+    /**
+     * 版本名称
+     */
+    private String variantName;
+
+    /**
+     * 选项编码列表
+     */
+    private List<String> optionCodes;
+
+    /**
+     * 选项明细列表
+     */
+    private List<VehicleInfo.OptionBreakdownItem> optionBreakdown;
+
+    /**
      * 展示名称
      */
     private String displayName;
-
-    /**
-     * 销售车型配置类型
-     * key: 销售车型配置类型
-     * value: 销售车型配置代码
-     */
-    private Map<String, String> saleModelConfigType;
-
-    /**
-     * 销售车型配置名称
-     * key: 销售车型配置类型
-     * value: 销售车型配置名称
-     */
-    private Map<String, String> saleModelConfigName;
 
     /**
      * 销售车型图片集
