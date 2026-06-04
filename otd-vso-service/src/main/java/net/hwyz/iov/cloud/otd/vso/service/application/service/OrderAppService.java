@@ -32,6 +32,7 @@ import net.hwyz.iov.cloud.otd.vso.service.common.exception.OrderStateNotAllowedE
 import net.hwyz.iov.cloud.otd.vso.service.common.exception.PaymentChannelNotAvailableException;
 import net.hwyz.iov.cloud.otd.vso.service.common.exception.SaleModelNotExistException;
 import net.hwyz.iov.cloud.otd.vso.service.common.exception.WishlistNotExistException;
+import net.hwyz.iov.cloud.otd.vso.service.domain.service.MdmProjectionService;
 import net.hwyz.iov.cloud.otd.vso.service.domain.service.SalesPolicyService;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.Order;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.OrderAmount;
@@ -67,6 +68,8 @@ import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.PaymentP
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.RefundPo;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.SaleModelPo;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.SaleModelOptionPolicyPo;
+import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.MdmProjectionOptionFamilyPo;
+import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.MdmProjectionOptionPo;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.SaleModelVariantPolicyPo;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.RefundRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.SupplementaryPaymentRepository;
@@ -144,6 +147,7 @@ public class OrderAppService {
     private final VehicleAssignmentRepository vehicleAssignmentRepository;
     private final VehicleInventoryGateway vehicleInventoryGateway;
     private final SalesPolicyService salesPolicyService;
+    private final MdmProjectionService mdmProjectionService;
     private final SaleModelVariantPolicyRepository saleModelVariantPolicyRepository;
     private final SaleModelOptionPolicyRepository optionPolicyRepository;
 
@@ -1627,6 +1631,7 @@ public class OrderAppService {
         snapshotPo.setSaleModelName(saleModelName);
         snapshotPo.setCarlineCode(carlineCode);
         snapshotPo.setModelCode(modelCode);
+        snapshotPo.setModelName(saleModelName);
         snapshotPo.setVariantCode(variantCode);
         snapshotPo.setConfigurationCode(configurationCode);
         snapshotPo.setConfigurationName(configurationCode);
@@ -1639,15 +1644,37 @@ public class OrderAppService {
         }
         
         // 保存 Option 价格明细
-        List<Map<String, Object>> optionPriceBreakdown = new ArrayList<>();
+        List<Map<String, Object>> optionBreakdown = new ArrayList<>();
         for (String optionCode : optionCodes) {
             BigDecimal optionPrice = salesPolicyService.getOptionPrice(saleModelCode, optionCode);
             Map<String, Object> item = new HashMap<>();
             item.put("optionCode", optionCode);
+            
+            // 获取 optionFamilyCode 和 optionName
+            String optionFamilyCode = "";
+            String optionName = "";
+            Optional<MdmProjectionOptionPo> optionPoOpt = mdmProjectionService.getOptionOptional(optionCode);
+            if (optionPoOpt.isPresent()) {
+                optionFamilyCode = optionPoOpt.get().getOptionFamilyCode() != null ? optionPoOpt.get().getOptionFamilyCode() : "";
+                optionName = optionPoOpt.get().getOptionName() != null ? optionPoOpt.get().getOptionName() : "";
+            }
+            
+            // 获取 optionFamilyName
+            String optionFamilyName = "";
+            if (StrUtil.isNotBlank(optionFamilyCode)) {
+                Optional<MdmProjectionOptionFamilyPo> familyPoOpt = mdmProjectionService.getOptionFamilyOptional(optionFamilyCode);
+                if (familyPoOpt.isPresent()) {
+                    optionFamilyName = familyPoOpt.get().getOptionFamilyName() != null ? familyPoOpt.get().getOptionFamilyName() : "";
+                }
+            }
+            
+            item.put("optionFamilyCode", optionFamilyCode);
+            item.put("optionFamilyName", optionFamilyName);
+            item.put("optionName", optionName);
             item.put("optionPrice", optionPrice);
-            optionPriceBreakdown.add(item);
+            optionBreakdown.add(item);
         }
-        snapshotPo.setOptionPriceBreakdown(JSONUtil.toJsonStr(optionPriceBreakdown));
+        snapshotPo.setOptionBreakdown(JSONUtil.toJsonStr(optionBreakdown));
         
         orderVehicleSnapshotRepository.save(snapshotPo);
         log.info("保存订单车型快照：orderId={}, saleModelCode={}, modelCode={}, variantCode={}, configurationCode={}", 
