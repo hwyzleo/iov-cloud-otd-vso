@@ -937,6 +937,36 @@ public class OrderAppService {
 
         OrderVehicleSnapshotPo snapshot = snapshotOpt.get();
 
+        // 设置车型、版本、配置信息
+        result.setModelCode(snapshot.getModelCode());
+        result.setModelName(snapshot.getModelName());
+        result.setVariantCode(snapshot.getVariantCode());
+        result.setVariantName(snapshot.getVariantName());
+        result.setConfigurationCode(snapshot.getConfigurationCode());
+
+        // 解析 optionCodes
+        if (StrUtil.isNotBlank(snapshot.getOptionCodes())) {
+            try {
+                List<String> optionCodes = JSONUtil.toList(snapshot.getOptionCodes(), String.class);
+                result.setOptionCodes(optionCodes);
+            } catch (Exception e) {
+                log.warn("解析 optionCodes 失败: orderId={}, optionCodes={}",
+                    order.getId(), snapshot.getOptionCodes(), e);
+            }
+        }
+
+        // 解析 optionBreakdown
+        if (StrUtil.isNotBlank(snapshot.getOptionBreakdown())) {
+            try {
+                List<VehicleInfo.OptionBreakdownItem> optionBreakdown = JSONUtil.toList(
+                    snapshot.getOptionBreakdown(), VehicleInfo.OptionBreakdownItem.class);
+                result.setOptionBreakdown(optionBreakdown);
+            } catch (Exception e) {
+                log.warn("解析 optionBreakdown 失败: orderId={}, optionBreakdown={}",
+                    order.getId(), snapshot.getOptionBreakdown(), e);
+            }
+        }
+
         // 获取 Variant 销售策略
         BigDecimal variantPrice = BigDecimal.ZERO;
         if (StrUtil.isNotBlank(snapshot.getVariantCode())) {
