@@ -3,6 +3,7 @@ package net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po;
 import com.baomidou.mybatisplus.annotation.*;
 import lombok.Data;
 import java.io.Serializable;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Data
@@ -88,6 +89,12 @@ public class OrderVehicleSnapshotPo implements Serializable {
      */
     @TableField("option_codes")
     private String optionCodes;
+
+    /**
+     * Variant 价格
+     */
+    @TableField("variant_price")
+    private BigDecimal variantPrice;
 
     /**
      * Option 价格明细（JSON）
