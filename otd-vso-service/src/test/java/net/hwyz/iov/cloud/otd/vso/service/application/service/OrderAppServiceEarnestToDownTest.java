@@ -154,6 +154,18 @@ class OrderAppServiceEarnestToDownTest {
         });
     }
 
+    @Test
+    void shouldThrowExceptionWhenOrderAmountNotFound() {
+        // Given: 订单存在但 vso_order_amount 表无记录（旧数据或创建异常）
+        when(orderAmountRepository.findByOrderId(anyString())).thenReturn(Optional.empty());
+
+        // When & Then
+        Exception ex = assertThrows(Exception.class, () -> {
+            orderAppService.earnestMoneyToDownPayment(cmd);
+        });
+        assertTrue(ex.getMessage().contains("金额信息缺失"));
+    }
+
     private Order createOrderWithState(OrderState state, OrderType type) {
         return Order.builder()
             .id("ORDER-001")

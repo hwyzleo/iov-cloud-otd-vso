@@ -3,10 +3,13 @@ package net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.repository
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import lombok.RequiredArgsConstructor;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.Order;
+import net.hwyz.iov.cloud.otd.vso.service.domain.model.OrderAmount;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.OrderState;
+import net.hwyz.iov.cloud.otd.vso.service.domain.repository.OrderAmountRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.OrderRepository;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.converter.OrderPoConverter;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.mapper.OrderMapper;
+import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.OrderAmountPo;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.OrderPo;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,6 +29,7 @@ import java.util.stream.Collectors;
 public class OrderRepositoryImpl implements OrderRepository {
 
     private final OrderMapper orderMapper;
+    private final OrderAmountRepository orderAmountRepository;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -38,7 +42,44 @@ public class OrderRepositoryImpl implements OrderRepository {
             orderPo.setId(existingPo.getId());
             orderMapper.updatePo(orderPo);
         }
+        if (order.getOrderAmount() != null) {
+            saveOrderAmount(order.getOrderAmount(), order.getId());
+        }
         return OrderPoConverter.INSTANCE.toDomain(orderPo);
+    }
+
+    private void saveOrderAmount(OrderAmount orderAmount, String orderId) {
+        OrderAmountPo po = convertAmountToPo(orderAmount, orderId);
+        orderAmountRepository.save(po);
+    }
+
+    private OrderAmountPo convertAmountToPo(OrderAmount orderAmount, String orderId) {
+        OrderAmountPo po = new OrderAmountPo();
+        po.setAmountId(orderAmount.getAmountId());
+        po.setOrderId(orderId);
+        po.setGuidePrice(orderAmount.getGuidePrice().getAmount());
+        po.setVehiclePrice(orderAmount.getVehiclePrice().getAmount());
+        po.setOptionPrice(orderAmount.getOptionPrice().getAmount());
+        po.setColorMarkup(orderAmount.getColorMarkup().getAmount());
+        po.setServiceFee(orderAmount.getServiceFee().getAmount());
+        po.setPlateServiceFee(orderAmount.getPlateServiceFee().getAmount());
+        po.setInsuranceFee(orderAmount.getInsuranceFee().getAmount());
+        po.setDiscountTotal(orderAmount.getDiscountTotal().getAmount());
+        po.setSubsidyTotal(orderAmount.getSubsidyTotal().getAmount());
+        po.setFinanceDiscountTotal(orderAmount.getFinanceDiscountTotal().getAmount());
+        po.setDealPriceTotal(orderAmount.getDealPriceTotal().getAmount());
+        po.setDepositAmount(orderAmount.getDepositAmount().getAmount());
+        po.setDownPaymentAmount(orderAmount.getDownPaymentAmount().getAmount());
+        po.setTailPaymentAmount(orderAmount.getTailPaymentAmount().getAmount());
+        po.setPaidTotal(orderAmount.getPaidTotal().getAmount());
+        po.setRefundTotal(orderAmount.getRefundTotal().getAmount());
+        po.setReceivableTotal(orderAmount.getReceivableTotal().getAmount());
+        po.setNetReceivableTotal(orderAmount.getNetReceivableTotal().getAmount());
+        po.setUnpaidTotal(orderAmount.getUnpaidTotal().getAmount());
+        po.setInvoiceAmount(orderAmount.getInvoiceAmount().getAmount());
+        po.setCalculationVersion(orderAmount.getCalculationVersion());
+        po.setRowValid(1);
+        return po;
     }
 
     @Override

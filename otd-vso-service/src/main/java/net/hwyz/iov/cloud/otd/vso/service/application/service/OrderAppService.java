@@ -1255,6 +1255,10 @@ public class OrderAppService {
             saveSupplementaryInfo(order, cmd);
 
             // 计算差额
+            if (order.getOrderAmount() == null) {
+                log.error("订单金额信息缺失，无法执行意向金转定金：orderNo={}, orderId={}", cmd.getOrderNo(), order.getId());
+                throw new OrderStateNotAllowedException("车辆销售订单[" + order.getOrderNo() + "]金额信息缺失，请联系管理员");
+            }
             Money difference = order.getOrderAmount().calculateEarnestToDownDifference();
             log.info("意向金转定金差额计算：orderNo={}, difference={}", cmd.getOrderNo(), difference);
 
@@ -1638,10 +1642,14 @@ public class OrderAppService {
 
     private void loadOrderAmount(Order order) {
         if (order.getId() == null) {
+            log.warn("订单ID为空，无法加载金额信息：orderNo={}", order.getOrderNo());
             return;
         }
         orderAmountRepository.findByOrderId(order.getId())
-                .ifPresent(amountPo -> order.setOrderAmount(convertAmountToDomain(amountPo)));
+                .ifPresentOrElse(
+                    amountPo -> order.setOrderAmount(convertAmountToDomain(amountPo)),
+                    () -> log.warn("订单金额记录不存在：orderId={}, orderNo={}", order.getId(), order.getOrderNo())
+                );
     }
 
     private OrderAmount convertAmountToDomain(OrderAmountPo po) {

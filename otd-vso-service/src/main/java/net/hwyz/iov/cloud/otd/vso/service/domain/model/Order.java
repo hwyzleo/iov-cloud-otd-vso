@@ -888,6 +888,7 @@ public class Order {
         order.orderPersonId = accountId;
         order.saleModel = saleModel;
         order.orderState = OrderState.WISHLIST;
+        order.orderAmount = new OrderAmount("AMT" + IdUtil.nanoId(15));
         return order;
     }
 
