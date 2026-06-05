@@ -9,6 +9,8 @@ import net.hwyz.iov.cloud.otd.vso.service.domain.repository.OrderRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.OrderPartyRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.OrderVehicleSnapshotRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.SaleModelRepository;
+import net.hwyz.iov.cloud.otd.vso.service.domain.repository.SaleModelModelPolicyRepository;
+import net.hwyz.iov.cloud.otd.vso.service.domain.repository.SaleModelOptionPolicyRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.SaleModelVariantPolicyRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.WishlistRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.service.MdmProjectionService;
@@ -49,6 +51,10 @@ class OrderAppServiceEarnestMoneyTest {
     private SaleModelRepository saleModelRepository;
     @Mock
     private SaleModelVariantPolicyRepository saleModelVariantPolicyRepository;
+    @Mock
+    private SaleModelModelPolicyRepository saleModelModelPolicyRepository;
+    @Mock
+    private SaleModelOptionPolicyRepository optionPolicyRepository;
     @Mock
     private OrderVehicleSnapshotRepository orderVehicleSnapshotRepository;
     @Mock

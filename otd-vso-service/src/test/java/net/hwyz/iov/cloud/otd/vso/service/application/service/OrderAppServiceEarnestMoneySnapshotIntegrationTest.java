@@ -2,6 +2,7 @@ package net.hwyz.iov.cloud.otd.vso.service.application.service;
 
 import net.hwyz.iov.cloud.edd.mdm.api.service.ConfigurationService;
 import net.hwyz.iov.cloud.edd.mdm.api.vo.request.ConfigurationByVariantAndOptionCodesRequest;
+import net.hwyz.iov.cloud.edd.mdm.api.vo.response.ConfigurationResponse;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.EarnestMoneyCmd;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.EarnestMoneyOrderResult;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.OrderRepository;
@@ -29,6 +30,7 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 @SpringBootTest
@@ -93,6 +95,11 @@ class OrderAppServiceEarnestMoneySnapshotIntegrationTest {
 
         when(configurationService.resolveConfiguration(any(ConfigurationByVariantAndOptionCodesRequest.class)))
                 .thenReturn(CONFIGURATION_CODE);
+
+        ConfigurationResponse configResponse = mock(ConfigurationResponse.class);
+        when(configResponse.getName()).thenReturn(CONFIGURATION_CODE);
+        when(configurationService.getByCode(CONFIGURATION_CODE))
+                .thenReturn(configResponse);
 
         List<String> optionCodes = null;
         EarnestMoneyCmd cmd = EarnestMoneyCmd.builder()

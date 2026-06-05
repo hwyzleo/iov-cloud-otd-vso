@@ -2,6 +2,7 @@ package net.hwyz.iov.cloud.otd.vso.service.domain.model;
 
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 import net.hwyz.iov.cloud.otd.vso.api.enums.OrderType;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.shared.Money;
 
@@ -13,6 +14,7 @@ import java.math.BigDecimal;
  * @author VSO Team
  */
 @Getter
+@Setter
 @NoArgsConstructor
 public class OrderAmount {
 

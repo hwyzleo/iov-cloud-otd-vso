@@ -8,10 +8,13 @@
     
     <select id="selectBySaleModelCodeAndOptionCodes" resultType="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.SaleModelOptionPolicyPo">
         SELECT * FROM vso_sale_model_option_policy
-        WHERE sale_model_code = #{saleModelCode} AND option_code IN
-        <foreach collection="optionCodes" item="code" open="(" separator="," close=")">
-            #{code}
-        </foreach>
+        WHERE sale_model_code = #{saleModelCode}
+        <if test="optionCodes != null and !optionCodes.isEmpty()">
+            AND option_code IN
+            <foreach collection="optionCodes" item="code" open="(" separator="," close=")">
+                #{code}
+            </foreach>
+        </if>
         AND row_valid = 1
     </select>
     

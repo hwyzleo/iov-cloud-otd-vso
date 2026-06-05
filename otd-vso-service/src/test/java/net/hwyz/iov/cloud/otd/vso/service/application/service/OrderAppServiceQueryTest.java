@@ -7,11 +7,13 @@ import net.hwyz.iov.cloud.otd.vso.service.common.exception.OrderNotExistExceptio
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.Order;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.OrderState;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.OrderRepository;
+import net.hwyz.iov.cloud.otd.vso.service.domain.repository.OrderAmountRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.OrderPartyRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.OrderVehicleSnapshotRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.SaleModelOptionPolicyRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.SaleModelVariantPolicyRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.service.OrderDomainService;
+import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.OrderAmountPo;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.OrderVehicleSnapshotPo;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.SaleModelOptionPolicyPo;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.SaleModelVariantPolicyPo;
@@ -38,6 +40,8 @@ class OrderAppServiceQueryTest {
 
     @Mock
     private OrderRepository orderRepository;
+    @Mock
+    private OrderAmountRepository orderAmountRepository;
     @Mock
     private OrderPartyRepository orderPartyRepository;
     @Mock
@@ -189,6 +193,8 @@ class OrderAppServiceQueryTest {
 
         when(orderRepository.findByOrderNoAndAccountId(orderNo, accountId))
                 .thenReturn(Optional.of(order));
+        when(orderAmountRepository.findByOrderId(orderId))
+                .thenReturn(Optional.of(buildOrderAmountPo(orderId)));
         when(orderVehicleSnapshotRepository.findByOrderId(orderId))
                 .thenReturn(Optional.of(snapshot));
         when(saleModelVariantPolicyRepository.findBySaleModelCodeAndVariantCode(saleModelCode, variantCode))
@@ -240,6 +246,8 @@ class OrderAppServiceQueryTest {
 
         when(orderRepository.findByOrderNoAndAccountId(orderNo, accountId))
                 .thenReturn(Optional.of(order));
+        when(orderAmountRepository.findByOrderId(orderId))
+                .thenReturn(Optional.of(buildOrderAmountPo(orderId)));
         when(orderVehicleSnapshotRepository.findByOrderId(orderId))
                 .thenReturn(Optional.empty());
         when(orderPartyRepository.findByOrderIdAndRole(orderId, "buyer"))
@@ -255,5 +263,33 @@ class OrderAppServiceQueryTest {
                 "没有快照时 saleModelDesc 应为空或null");
         assertTrue(result.getTotalPrice() == null || BigDecimal.ZERO.compareTo(result.getTotalPrice()) == 0,
                 "没有快照时 totalPrice 应为0或null");
+    }
+
+    private OrderAmountPo buildOrderAmountPo(String orderId) {
+        OrderAmountPo po = new OrderAmountPo();
+        po.setAmountId("AMT_" + System.currentTimeMillis());
+        po.setOrderId(orderId);
+        po.setGuidePrice(BigDecimal.ZERO);
+        po.setVehiclePrice(BigDecimal.ZERO);
+        po.setOptionPrice(BigDecimal.ZERO);
+        po.setColorMarkup(BigDecimal.ZERO);
+        po.setServiceFee(BigDecimal.ZERO);
+        po.setPlateServiceFee(BigDecimal.ZERO);
+        po.setInsuranceFee(BigDecimal.ZERO);
+        po.setDiscountTotal(BigDecimal.ZERO);
+        po.setSubsidyTotal(BigDecimal.ZERO);
+        po.setFinanceDiscountTotal(BigDecimal.ZERO);
+        po.setDealPriceTotal(BigDecimal.ZERO);
+        po.setDepositAmount(BigDecimal.ZERO);
+        po.setDownPaymentAmount(BigDecimal.ZERO);
+        po.setTailPaymentAmount(BigDecimal.ZERO);
+        po.setPaidTotal(BigDecimal.ZERO);
+        po.setRefundTotal(BigDecimal.ZERO);
+        po.setReceivableTotal(BigDecimal.ZERO);
+        po.setNetReceivableTotal(BigDecimal.ZERO);
+        po.setUnpaidTotal(BigDecimal.ZERO);
+        po.setInvoiceAmount(BigDecimal.ZERO);
+        po.setCalculationVersion(1);
+        return po;
     }
 }

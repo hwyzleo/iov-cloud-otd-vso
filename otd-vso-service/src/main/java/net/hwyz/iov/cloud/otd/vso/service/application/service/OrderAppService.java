@@ -46,6 +46,7 @@ import net.hwyz.iov.cloud.otd.vso.service.domain.model.shared.OrganizationInfo;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.shared.VehicleInfo;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.OrderPartyRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.OrderAssignmentRepository;
+import net.hwyz.iov.cloud.otd.vso.service.domain.repository.OrderAmountRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.OrderRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.PaymentRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.SaleModelRepository;
@@ -63,6 +64,7 @@ import net.hwyz.iov.cloud.otd.vso.service.domain.service.OrderPhysicalDeleteServ
 import net.hwyz.iov.cloud.otd.vso.service.domain.service.OrderValidationService;
 import net.hwyz.iov.cloud.otd.vso.service.domain.service.TimeoutNotifyService;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.config.PaymentChannelConfig;
+import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.OrderAmountPo;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.OrderAssignmentPo;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.OrderPartyPo;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.OrderTimelinePo;
@@ -127,6 +129,7 @@ public class OrderAppService {
     private final OrderLockService orderLockService;
     private final TimeoutNotifyService timeoutNotifyService;
     private final OrderRepository orderRepository;
+    private final OrderAmountRepository orderAmountRepository;
     private final OrderPartyRepository orderPartyRepository;
     private final OrderAssignmentRepository orderAssignmentRepository;
     private final WishlistRepository wishlistRepository;
@@ -1618,7 +1621,9 @@ public class OrderAppService {
         if (orderOpt.isEmpty()) {
             throw new OrderNotExistException(orderNo);
         }
-        return orderOpt.get();
+        Order order = orderOpt.get();
+        loadOrderAmount(order);
+        return order;
     }
 
     private Order findOrderByOrderNo(String orderNo) {
@@ -1626,7 +1631,43 @@ public class OrderAppService {
         if (orderOpt.isEmpty()) {
             throw new OrderNotExistException(orderNo);
         }
-        return orderOpt.get();
+        Order order = orderOpt.get();
+        loadOrderAmount(order);
+        return order;
+    }
+
+    private void loadOrderAmount(Order order) {
+        if (order.getId() == null) {
+            return;
+        }
+        orderAmountRepository.findByOrderId(order.getId())
+                .ifPresent(amountPo -> order.setOrderAmount(convertAmountToDomain(amountPo)));
+    }
+
+    private OrderAmount convertAmountToDomain(OrderAmountPo po) {
+        OrderAmount amount = new OrderAmount(po.getAmountId());
+        amount.setGuidePrice(new Money(po.getGuidePrice()));
+        amount.setVehiclePrice(new Money(po.getVehiclePrice()));
+        amount.setOptionPrice(new Money(po.getOptionPrice()));
+        amount.setColorMarkup(new Money(po.getColorMarkup()));
+        amount.setServiceFee(new Money(po.getServiceFee()));
+        amount.setPlateServiceFee(new Money(po.getPlateServiceFee()));
+        amount.setInsuranceFee(new Money(po.getInsuranceFee()));
+        amount.setDiscountTotal(new Money(po.getDiscountTotal()));
+        amount.setSubsidyTotal(new Money(po.getSubsidyTotal()));
+        amount.setFinanceDiscountTotal(new Money(po.getFinanceDiscountTotal()));
+        amount.setDealPriceTotal(new Money(po.getDealPriceTotal()));
+        amount.setDepositAmount(new Money(po.getDepositAmount()));
+        amount.setDownPaymentAmount(new Money(po.getDownPaymentAmount()));
+        amount.setTailPaymentAmount(new Money(po.getTailPaymentAmount()));
+        amount.setPaidTotal(new Money(po.getPaidTotal()));
+        amount.setRefundTotal(new Money(po.getRefundTotal()));
+        amount.setReceivableTotal(new Money(po.getReceivableTotal()));
+        amount.setNetReceivableTotal(new Money(po.getNetReceivableTotal()));
+        amount.setUnpaidTotal(new Money(po.getUnpaidTotal()));
+        amount.setInvoiceAmount(new Money(po.getInvoiceAmount()));
+        amount.setCalculationVersion(po.getCalculationVersion());
+        return amount;
     }
 
     private Order createOrFindOrder(String accountId, String orderNo) {

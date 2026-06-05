@@ -6,11 +6,10 @@ import net.hwyz.iov.cloud.otd.vso.api.enums.SupplementaryPaymentStatus;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.EarnestToDownCmd;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.EarnestToDownResult;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.Order;
-import net.hwyz.iov.cloud.otd.vso.service.domain.model.OrderAmount;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.OrderState;
-import net.hwyz.iov.cloud.otd.vso.service.domain.model.shared.Money;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.*;
 import net.hwyz.iov.cloud.otd.vso.service.domain.service.OrderLockService;
+import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.OrderAmountPo;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.SupplementaryPaymentPo;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -33,6 +32,9 @@ class OrderAppServiceEarnestToDownTest {
 
     @Mock
     private OrderRepository orderRepository;
+
+    @Mock
+    private OrderAmountRepository orderAmountRepository;
 
     @Mock
     private SupplementaryPaymentRepository supplementaryPaymentRepository;
@@ -75,8 +77,8 @@ class OrderAppServiceEarnestToDownTest {
     @Test
     void shouldDirectConvertWhenDifferenceIsZero() {
         // Given: 差额 = 0
-        order.getOrderAmount().setDownPaymentAmount(new Money(BigDecimal.valueOf(10000)));
-        order.getOrderAmount().setDepositAmount(new Money(BigDecimal.valueOf(10000)));
+        when(orderAmountRepository.findByOrderId(anyString()))
+            .thenReturn(Optional.of(buildOrderAmountPo(BigDecimal.valueOf(10000), BigDecimal.valueOf(10000))));
 
         // When
         EarnestToDownResult result = orderAppService.earnestMoneyToDownPayment(cmd);
@@ -91,8 +93,8 @@ class OrderAppServiceEarnestToDownTest {
     @Test
     void shouldCreateSupplementaryPaymentWhenDifferenceIsPositive() {
         // Given: 差额 = 5000
-        order.getOrderAmount().setDownPaymentAmount(new Money(BigDecimal.valueOf(15000)));
-        order.getOrderAmount().setDepositAmount(new Money(BigDecimal.valueOf(10000)));
+        when(orderAmountRepository.findByOrderId(anyString()))
+            .thenReturn(Optional.of(buildOrderAmountPo(BigDecimal.valueOf(10000), BigDecimal.valueOf(15000))));
 
         // When
         EarnestToDownResult result = orderAppService.earnestMoneyToDownPayment(cmd);
@@ -100,11 +102,9 @@ class OrderAppServiceEarnestToDownTest {
         // Then
         assertNotNull(result.getSupplementaryPayment());
         assertTrue(result.getSupplementaryPayment().getAmount().getAmount().compareTo(new BigDecimal("5000.00")) == 0);
-        // 订单状态应保持不变
         assertEquals(OrderState.EARNEST_MONEY_PAID, result.getOrderState());
         assertEquals(OrderType.SMALL, result.getOrderType());
 
-        // 验证补款任务已保存
         ArgumentCaptor<SupplementaryPaymentPo> captor = ArgumentCaptor.forClass(SupplementaryPaymentPo.class);
         verify(supplementaryPaymentRepository).save(captor.capture());
         SupplementaryPaymentPo savedPo = captor.getValue();
@@ -115,8 +115,8 @@ class OrderAppServiceEarnestToDownTest {
     @Test
     void shouldDirectConvertWhenDifferenceIsNegative() {
         // Given: 差额 = -2000 (意向金 > 定金)
-        order.getOrderAmount().setDownPaymentAmount(new Money(BigDecimal.valueOf(8000)));
-        order.getOrderAmount().setDepositAmount(new Money(BigDecimal.valueOf(10000)));
+        when(orderAmountRepository.findByOrderId(anyString()))
+            .thenReturn(Optional.of(buildOrderAmountPo(BigDecimal.valueOf(10000), BigDecimal.valueOf(8000))));
 
         // When
         EarnestToDownResult result = orderAppService.earnestMoneyToDownPayment(cmd);
@@ -155,13 +155,39 @@ class OrderAppServiceEarnestToDownTest {
     }
 
     private Order createOrderWithState(OrderState state, OrderType type) {
-        OrderAmount orderAmount = new OrderAmount("AMT-001");
         return Order.builder()
             .id("ORDER-001")
             .orderNo("TEST-001")
             .orderState(state)
             .orderType(type)
-            .orderAmount(orderAmount)
             .build();
+    }
+
+    private OrderAmountPo buildOrderAmountPo(BigDecimal depositAmount, BigDecimal downPaymentAmount) {
+        OrderAmountPo po = new OrderAmountPo();
+        po.setAmountId("AMT-001");
+        po.setOrderId("ORDER-001");
+        po.setGuidePrice(BigDecimal.ZERO);
+        po.setVehiclePrice(BigDecimal.ZERO);
+        po.setOptionPrice(BigDecimal.ZERO);
+        po.setColorMarkup(BigDecimal.ZERO);
+        po.setServiceFee(BigDecimal.ZERO);
+        po.setPlateServiceFee(BigDecimal.ZERO);
+        po.setInsuranceFee(BigDecimal.ZERO);
+        po.setDiscountTotal(BigDecimal.ZERO);
+        po.setSubsidyTotal(BigDecimal.ZERO);
+        po.setFinanceDiscountTotal(BigDecimal.ZERO);
+        po.setDealPriceTotal(BigDecimal.ZERO);
+        po.setDepositAmount(depositAmount);
+        po.setDownPaymentAmount(downPaymentAmount);
+        po.setTailPaymentAmount(BigDecimal.ZERO);
+        po.setPaidTotal(BigDecimal.ZERO);
+        po.setRefundTotal(BigDecimal.ZERO);
+        po.setReceivableTotal(BigDecimal.ZERO);
+        po.setNetReceivableTotal(BigDecimal.ZERO);
+        po.setUnpaidTotal(BigDecimal.ZERO);
+        po.setInvoiceAmount(BigDecimal.ZERO);
+        po.setCalculationVersion(1);
+        return po;
     }
 }

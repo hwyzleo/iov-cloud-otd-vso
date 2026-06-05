@@ -2,6 +2,7 @@ package net.hwyz.iov.cloud.otd.vso.service.application.service;
 
 import net.hwyz.iov.cloud.edd.mdm.api.service.ConfigurationService;
 import net.hwyz.iov.cloud.edd.mdm.api.vo.request.ConfigurationByVariantAndOptionCodesRequest;
+import net.hwyz.iov.cloud.edd.mdm.api.vo.response.ConfigurationResponse;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.EarnestMoneyCmd;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.EarnestMoneyOrderResult;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.Order;
@@ -47,6 +48,10 @@ class OrderAppServiceEarnestMoneySnapshotTest {
     private SaleModelRepository saleModelRepository;
     @Mock
     private SaleModelVariantPolicyRepository saleModelVariantPolicyRepository;
+    @Mock
+    private SaleModelModelPolicyRepository saleModelModelPolicyRepository;
+    @Mock
+    private SaleModelOptionPolicyRepository optionPolicyRepository;
     @Mock
     private OrderVehicleSnapshotRepository orderVehicleSnapshotRepository;
     @Mock
@@ -113,6 +118,10 @@ class OrderAppServiceEarnestMoneySnapshotTest {
                 .thenReturn(Optional.of(buildActiveSaleModel()));
         when(configurationService.resolveConfiguration(any(ConfigurationByVariantAndOptionCodesRequest.class)))
                 .thenReturn(CONFIGURATION_CODE);
+        ConfigurationResponse configResponse = mock(ConfigurationResponse.class);
+        when(configResponse.getName()).thenReturn(CONFIGURATION_CODE);
+        when(configurationService.getByCode(CONFIGURATION_CODE))
+                .thenReturn(configResponse);
         when(saleModelVariantPolicyRepository.findBySaleModelCodeAndVariantCode(SALE_MODEL_CODE, VARIANT_CODE))
                 .thenReturn(Optional.of(buildVariantPolicy()));
         when(paymentChannelConfig.getSmallOrderTimeoutMinutes()).thenReturn(30);
@@ -170,6 +179,10 @@ class OrderAppServiceEarnestMoneySnapshotTest {
                 .thenReturn(Optional.of(buildActiveSaleModel()));
         when(configurationService.resolveConfiguration(any(ConfigurationByVariantAndOptionCodesRequest.class)))
                 .thenReturn(CONFIGURATION_CODE);
+        ConfigurationResponse configResponse2 = mock(ConfigurationResponse.class);
+        when(configResponse2.getName()).thenReturn(CONFIGURATION_CODE);
+        when(configurationService.getByCode(CONFIGURATION_CODE))
+                .thenReturn(configResponse2);
         when(saleModelVariantPolicyRepository.findBySaleModelCodeAndVariantCode(SALE_MODEL_CODE, VARIANT_CODE))
                 .thenReturn(Optional.of(buildVariantPolicy()));
         when(paymentChannelConfig.getSmallOrderTimeoutMinutes()).thenReturn(30);

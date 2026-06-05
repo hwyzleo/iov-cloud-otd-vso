@@ -7,19 +7,20 @@ import net.hwyz.iov.cloud.otd.vso.api.enums.OrderType;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.ModifyOrderConfigCmd;
 import net.hwyz.iov.cloud.otd.vso.service.common.exception.OrderStateNotAllowedException;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.Order;
-import net.hwyz.iov.cloud.otd.vso.service.domain.model.OrderAmount;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.OrderState;
-import net.hwyz.iov.cloud.otd.vso.service.domain.model.shared.Money;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.AuditRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.ConfigChangeRefundRepository;
+import net.hwyz.iov.cloud.otd.vso.service.domain.repository.OrderAmountRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.OrderRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.OrderVehicleSnapshotRepository;
+import net.hwyz.iov.cloud.otd.vso.service.domain.repository.SaleModelModelPolicyRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.SaleModelOptionPolicyRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.SaleModelRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.SaleModelVariantPolicyRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.SupplementaryPaymentRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.service.OrderDomainService;
 import net.hwyz.iov.cloud.otd.vso.service.domain.service.OrderLockService;
+import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.OrderAmountPo;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.SaleModelOptionPolicyPo;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.SaleModelVariantPolicyPo;
 import org.junit.jupiter.api.DisplayName;
@@ -48,6 +49,8 @@ class OrderAppServiceModifyConfigTest {
     @Mock
     private OrderRepository orderRepository;
     @Mock
+    private OrderAmountRepository orderAmountRepository;
+    @Mock
     private OrderDomainService orderDomainService;
     @Mock
     private OrderLockService orderLockService;
@@ -55,6 +58,8 @@ class OrderAppServiceModifyConfigTest {
     private OrderVehicleSnapshotRepository orderVehicleSnapshotRepository;
     @Mock
     private SaleModelVariantPolicyRepository saleModelVariantPolicyRepository;
+    @Mock
+    private SaleModelModelPolicyRepository saleModelModelPolicyRepository;
     @Mock
     private SaleModelOptionPolicyRepository saleModelOptionPolicyRepository;
     @Mock
@@ -78,9 +83,6 @@ class OrderAppServiceModifyConfigTest {
     private static final String SALE_MODEL_CODE = "SALE_MODEL_MODIFY_TEST";
 
     private Order buildOrder(String orderNo, OrderState orderState) {
-        OrderAmount orderAmount = new OrderAmount("AMT_" + System.currentTimeMillis());
-        orderAmount.setVehiclePrice(new Money(new BigDecimal("150000")));
-        orderAmount.setOptionPrice(new Money(BigDecimal.ZERO));
         return Order.builder()
                 .id("test_order_id_" + System.currentTimeMillis())
                 .orderNo(orderNo)
@@ -92,8 +94,35 @@ class OrderAppServiceModifyConfigTest {
                 .configurationCode("BUILD_CONFIG_001")
                 .currentVersionNo(1)
                 .orderState(orderState)
-                .orderAmount(orderAmount)
                 .build();
+    }
+
+    private OrderAmountPo buildOrderAmountPo(String orderId) {
+        OrderAmountPo po = new OrderAmountPo();
+        po.setAmountId("AMT_" + System.currentTimeMillis());
+        po.setOrderId(orderId);
+        po.setGuidePrice(BigDecimal.ZERO);
+        po.setVehiclePrice(new BigDecimal("150000"));
+        po.setOptionPrice(BigDecimal.ZERO);
+        po.setColorMarkup(BigDecimal.ZERO);
+        po.setServiceFee(BigDecimal.ZERO);
+        po.setPlateServiceFee(BigDecimal.ZERO);
+        po.setInsuranceFee(BigDecimal.ZERO);
+        po.setDiscountTotal(BigDecimal.ZERO);
+        po.setSubsidyTotal(BigDecimal.ZERO);
+        po.setFinanceDiscountTotal(BigDecimal.ZERO);
+        po.setDealPriceTotal(new BigDecimal("150000"));
+        po.setDepositAmount(BigDecimal.ZERO);
+        po.setDownPaymentAmount(BigDecimal.ZERO);
+        po.setTailPaymentAmount(BigDecimal.ZERO);
+        po.setPaidTotal(BigDecimal.ZERO);
+        po.setRefundTotal(BigDecimal.ZERO);
+        po.setReceivableTotal(BigDecimal.ZERO);
+        po.setNetReceivableTotal(BigDecimal.ZERO);
+        po.setUnpaidTotal(BigDecimal.ZERO);
+        po.setInvoiceAmount(BigDecimal.ZERO);
+        po.setCalculationVersion(1);
+        return po;
     }
 
     private SaleModelVariantPolicyPo buildVariantPolicy() {
@@ -123,6 +152,8 @@ class OrderAppServiceModifyConfigTest {
             action.run();
             return null;
         }).when(orderLockService).executeWithLock(anyString(), anyString(), anyString(), any(Runnable.class));
+        lenient().when(orderAmountRepository.findByOrderId(anyString()))
+                .thenAnswer(invocation -> Optional.of(buildOrderAmountPo(invocation.getArgument(0))));
     }
 
     @Test
