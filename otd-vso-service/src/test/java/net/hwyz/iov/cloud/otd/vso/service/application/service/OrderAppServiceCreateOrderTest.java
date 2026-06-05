@@ -12,11 +12,13 @@ import net.hwyz.iov.cloud.otd.vso.service.domain.model.shared.VehicleInfo;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.shared.OrganizationInfo;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.OrderRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.SaleModelRepository;
+import net.hwyz.iov.cloud.otd.vso.service.domain.repository.SaleModelVariantPolicyRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.service.OrderDomainService;
 import net.hwyz.iov.cloud.otd.vso.service.domain.service.SalesPolicyService;
 import net.hwyz.iov.cloud.otd.vso.service.domain.service.TimeoutNotifyService;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.WishlistRepository;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.SaleModelPo;
+import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.SaleModelVariantPolicyPo;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -48,6 +50,8 @@ class OrderAppServiceCreateOrderTest {
     private SalesPolicyService salesPolicyService;
     @Mock
     private ConfigurationService configurationService;
+    @Mock
+    private SaleModelVariantPolicyRepository saleModelVariantPolicyRepository;
 
     @InjectMocks
     private OrderAppService orderAppService;
@@ -139,6 +143,17 @@ class OrderAppServiceCreateOrderTest {
         when(configurationService.resolveConfiguration(any()))
                 .thenReturn("CONFIG_001");
 
+        // Mock variant policy
+        SaleModelVariantPolicyPo variantPolicy = SaleModelVariantPolicyPo.builder()
+                .id(1L)
+                .saleModelCode("SALE_MODEL_001")
+                .variantCode("VARIANT_001")
+                .saleStatus("active")
+                .variantPrice(new java.math.BigDecimal("150000.00"))
+                .build();
+        when(saleModelVariantPolicyRepository.findBySaleModelCodeAndVariantCode("SALE_MODEL_001", "VARIANT_001"))
+                .thenReturn(Optional.of(variantPolicy));
+
         Order mockOrder = buildFormalOrder(orderId, orderNo);
         when(orderDomainService.createFormalOrder(anyString(), any(CustomerInfo.class), any(VehicleInfo.class), any(OrganizationInfo.class), any(OrderAmount.class)))
                 .thenReturn(mockOrder);
@@ -156,6 +171,7 @@ class OrderAppServiceCreateOrderTest {
                 .colorCode("COLOR_001")
                 .colorName("测试颜色")
                 .saleModelCode("SALE_MODEL_001")
+                .variantCode("VARIANT_001")
                 .regionCode("REGION_001")
                 .ownerRegionCode("REGION_001")
                 .ownerRegionName("测试区域")

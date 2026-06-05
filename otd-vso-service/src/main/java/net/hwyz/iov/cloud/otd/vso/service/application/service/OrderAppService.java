@@ -234,14 +234,44 @@ public class OrderAppService {
                 cmd.getSalesCode(),
                 cmd.getSalesName()
         );
+
+        // 获取 Variant 价格信息
+        String saleModelCode = cmd.getSaleModelCode();
+        String variantCode = cmd.getVariantCode();
+        List<String> optionCodes = cmd.getOptionCodes() != null ? cmd.getOptionCodes() : new ArrayList<>();
+
+        SaleModelVariantPolicyPo variantPolicy = saleModelVariantPolicyRepository
+                .findBySaleModelCodeAndVariantCode(saleModelCode, variantCode)
+                .orElse(null);
+
+        BigDecimal variantPrice = BigDecimal.ZERO;
+        if (variantPolicy != null && "active".equals(variantPolicy.getSaleStatus())) {
+            variantPrice = variantPolicy.getVariantPrice() != null ? variantPolicy.getVariantPrice() : BigDecimal.ZERO;
+        }
+
+        // 计算 Option 总价
+        BigDecimal optionTotalPrice = BigDecimal.ZERO;
+        for (String optionCode : optionCodes) {
+            BigDecimal optionPrice = salesPolicyService.getOptionPrice(saleModelCode, optionCode);
+            optionTotalPrice = optionTotalPrice.add(optionPrice);
+        }
+
+        // 创建 OrderAmount 并设置价格
         OrderAmount orderAmount = new OrderAmount("AMT" + System.currentTimeMillis());
+        orderAmount.setVehiclePrice(new Money(variantPrice));
+        orderAmount.setOptionPrice(new Money(optionTotalPrice));
+        // 计算成交总价
+        orderAmount.calculateDealPrice();
+        // 计算净应收和待支付
+        orderAmount.recalculate();
 
         Order order = orderDomainService.createFormalOrder(
                 cmd.getOrderSource(), customerInfo, vehicleInfo, orgInfo, orderAmount);
 
         timeoutNotifyService.createTimeoutTask(order.getId(), "FORMAL_ORDER_AUDIT_TIMEOUT", "remind", 1440);
 
-        log.info("正式订单创建成功：orderId={}", order.getId());
+        log.info("正式订单创建成功：orderId={}, vehiclePrice={}, optionPrice={}, dealPriceTotal={}",
+                order.getId(), variantPrice, optionTotalPrice, orderAmount.getDealPriceTotal());
         return OrderCreateResult.builder()
                 .orderId(order.getId())
                 .orderNo(order.getOrderNo())
