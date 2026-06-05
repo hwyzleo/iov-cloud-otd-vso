@@ -50,6 +50,8 @@ public class OrderRepositoryImpl implements OrderRepository {
 
     private void saveOrderAmount(OrderAmount orderAmount, String orderId) {
         OrderAmountPo po = convertAmountToPo(orderAmount, orderId);
+        orderAmountRepository.findByOrderId(orderId)
+                .ifPresent(existing -> po.setId(existing.getId()));
         orderAmountRepository.save(po);
     }
 
