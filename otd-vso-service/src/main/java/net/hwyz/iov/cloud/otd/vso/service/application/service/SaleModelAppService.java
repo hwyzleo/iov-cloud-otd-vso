@@ -23,7 +23,7 @@ import net.hwyz.iov.cloud.edd.mdm.api.vo.response.OptionFamilyResponse;
 import net.hwyz.iov.cloud.edd.mdm.api.vo.response.VariantPageResponse;
 import net.hwyz.iov.cloud.edd.mdm.api.vo.response.VariantResponse;
 import net.hwyz.iov.cloud.edd.vmd.api.service.VmdVehicleModelConfigService;
-import net.hwyz.iov.cloud.edd.vmd.api.vo.response.VmdBuildConfigFeatureCodeResponse;
+import net.hwyz.iov.cloud.edd.vmd.api.vo.response.VmdBuildConfigOptionCodeResponse;
 import net.hwyz.iov.cloud.edd.vmd.api.vo.response.VmdBuildConfigResponse;
 import net.hwyz.iov.cloud.framework.common.bean.PageResult;
 import net.hwyz.iov.cloud.framework.common.enums.Symbol;
@@ -1192,10 +1192,10 @@ public class SaleModelAppService {
 
         for (SaleModelBuildConfigPo po : poList) {
             VmdBuildConfigResponse buildConfig = vmdVehicleModelConfigService.getBuildConfigByCode(po.getBuildConfigCode());
-            if (buildConfig != null && buildConfig.getFeatureCodes() != null) {
-                for (VmdBuildConfigFeatureCodeResponse fc : buildConfig.getFeatureCodes()) {
-                    String familyCode = fc.getFamilyCode();
-                    String familyName = fc.getFamilyName();
+            if (buildConfig != null && buildConfig.getOptionCodes() != null) {
+                for (VmdBuildConfigOptionCodeResponse fc : buildConfig.getOptionCodes()) {
+                    String familyCode = fc.getOptionFamilyCode();
+                    String familyName = fc.getOptionFamilyName();
 
                     FeatureCodeRangeVo range = aggregatedRanges.computeIfAbsent(familyCode, k -> {
                         FeatureCodeRangeVo newRange = new FeatureCodeRangeVo();
@@ -1227,11 +1227,11 @@ public class SaleModelAppService {
                         return newRange;
                     });
 
-                    if (fc.getFeatureCode() != null && fc.getFeatureCode().length > 0) {
+                    if (fc.getOptionCode() != null && fc.getOptionCode().length > 0) {
                         List<FeatureCodeDetailVo> existingDetails = range.getFeatureDetails();
 
-                        for (int i = 0; i < fc.getFeatureCode().length; i++) {
-                            String code = fc.getFeatureCode()[i];
+                        for (int i = 0; i < fc.getOptionCode().length; i++) {
+                            String code = fc.getOptionCode()[i];
 
                             if (!existingDetails.stream().anyMatch(d -> d.getFeatureCode().equals(code))) {
                                 String key = familyCode + "_" + code;
@@ -1240,7 +1240,7 @@ public class SaleModelAppService {
                                 FeatureCodeDetailVo detailVo = FeatureCodeDetailVo.builder()
                                         .featureCode(code)
                                         .featureName(configPo != null ? configPo.getTypeName() :
-                                                (i < fc.getFeatureName().length ? fc.getFeatureName()[i] : code))
+                                                (i < fc.getOptionName().length ? fc.getOptionName()[i] : code))
                                         .featurePrice(configPo != null ? configPo.getTypePrice() : BigDecimal.ZERO)
                                         .featureImage(configPo != null && configPo.getTypeImage() != null ?
                                                 cn.hutool.json.JSONUtil.toList(configPo.getTypeImage(), String.class) :
@@ -1411,33 +1411,33 @@ public class SaleModelAppService {
             if (!bc.getEnable()) continue;
 
             VmdBuildConfigResponse buildConfig = vmdVehicleModelConfigService.getBuildConfigByCode(bc.getBuildConfigCode());
-            log.info("VMD返回数据: buildConfig={}, featureCodes={}",
+            log.info("VMD返回数据: buildConfig={}, optionCodes={}",
                     buildConfig != null ? "存在" : "null",
-                    buildConfig != null && buildConfig.getFeatureCodes() != null ? buildConfig.getFeatureCodes().size() : "null");
+                    buildConfig != null && buildConfig.getOptionCodes() != null ? buildConfig.getOptionCodes().size() : "null");
 
-            if (buildConfig != null && buildConfig.getFeatureCodes() != null) {
-                for (VmdBuildConfigFeatureCodeResponse fc : buildConfig.getFeatureCodes()) {
-                    String familyCode = fc.getFamilyCode();
-                    String familyName = fc.getFamilyName();
-                    log.info("特征族: familyCode={}, familyName={}", familyCode, familyName);
+            if (buildConfig != null && buildConfig.getOptionCodes() != null) {
+                for (VmdBuildConfigOptionCodeResponse fc : buildConfig.getOptionCodes()) {
+                    String familyCode = fc.getOptionFamilyCode();
+                    String familyName = fc.getOptionFamilyName();
+                    log.info("选项族: familyCode={}, familyName={}", familyCode, familyName);
 
                     featureValueMap.computeIfAbsent(familyCode, k -> new LinkedHashSet<>());
                     featureNameMap.put(familyCode, familyName);
 
-                    if (fc.getFeatureCode() != null && fc.getFeatureName() != null) {
-                        for (int i = 0; i < fc.getFeatureCode().length; i++) {
-                            String code = fc.getFeatureCode()[i];
-                            String name = i < fc.getFeatureName().length ? fc.getFeatureName()[i] : null;
+                    if (fc.getOptionCode() != null && fc.getOptionName() != null) {
+                        for (int i = 0; i < fc.getOptionCode().length; i++) {
+                            String code = fc.getOptionCode()[i];
+                            String name = i < fc.getOptionName().length ? fc.getOptionName()[i] : null;
 
                             featureValueMap.get(familyCode).add(code);
                             featureValueNameMap.put(familyCode + "_" + code, name != null && !name.isEmpty() ? name : code);
-                            log.info("添加特征值: familyCode={}, featureCode={}, featureName={}", familyCode, code, name);
+                            log.info("添加选项值: familyCode={}, optionCode={}, optionName={}", familyCode, code, name);
                         }
-                    } else if (fc.getFeatureCode() != null) {
-                        for (String code : fc.getFeatureCode()) {
+                    } else if (fc.getOptionCode() != null) {
+                        for (String code : fc.getOptionCode()) {
                             featureValueMap.get(familyCode).add(code);
                             featureValueNameMap.put(familyCode + "_" + code, code);
-                            log.info("添加特征值(无名称): familyCode={}, featureCode={}", familyCode, code);
+                            log.info("添加选项值(无名称): familyCode={}, optionCode={}", familyCode, code);
                         }
                     }
                 }
