@@ -1,2 +1,11 @@
+# FW-WEB-DSN-CR-001 / OTD-VSO-DSN-CR-001：组织自有 JSON java.time 时间契约治理（兼容阶段）
+# date-format 显式固定为 epoch-millis，保持存量输出；zone-id 为已核验业务墙上时区（Asia/Shanghai）
+# 生产环境需同步配置至 Nacos 共享 application.yaml（由运维负责）
+iov:
+  web:
+    jackson:
+      date-format: epoch-millis
+      zone-id: Asia/Shanghai
+
 mybatis-plus:
   type-aliases-package: net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po
