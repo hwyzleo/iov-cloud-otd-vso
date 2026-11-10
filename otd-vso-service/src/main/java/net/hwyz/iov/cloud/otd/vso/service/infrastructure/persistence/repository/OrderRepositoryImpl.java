@@ -1,6 +1,7 @@
 package net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.repository;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.github.pagehelper.Page;
 import lombok.RequiredArgsConstructor;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.Order;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.OrderAmount;
@@ -80,6 +81,7 @@ public class OrderRepositoryImpl implements OrderRepository {
         po.setUnpaidTotal(orderAmount.getUnpaidTotal().getAmount());
         po.setInvoiceAmount(orderAmount.getInvoiceAmount().getAmount());
         po.setCalculationVersion(orderAmount.getCalculationVersion());
+        po.setUpgradedFromSmall(orderAmount.isUpgradedFromSmall() ? 1 : 0);
         po.setRowValid(1);
         return po;
     }
@@ -105,8 +107,19 @@ public class OrderRepositoryImpl implements OrderRepository {
     @Override
     public List<Order> search(String orderNo, OrderState orderState, List<OrderState> orderStateRange,
                                 Boolean hasDeliveryPerson, Date beginTime, Date endTime) {
+        return searchByAccount(null, orderNo, orderState, orderStateRange, hasDeliveryPerson, beginTime, endTime);
+    }
+
+    @Override
+    public List<Order> searchByAccount(String accountId, String orderNo, OrderState orderState,
+                                       List<OrderState> orderStateRange, Boolean hasDeliveryPerson,
+                                       Date beginTime, Date endTime) {
         java.util.Map<String, Object> params = new java.util.HashMap<>();
-        
+
+        if (accountId != null && !accountId.isEmpty()) {
+            params.put("accountId", accountId);
+        }
+
         if (orderNo != null && !orderNo.isEmpty()) {
             params.put("orderNo", orderNo);
         }
@@ -133,9 +146,29 @@ public class OrderRepositoryImpl implements OrderRepository {
             params.put("endTime", endTime);
         }
         
-        return orderMapper.selectPoByMap(params).stream()
+        List<OrderPo> poList = orderMapper.selectPoByMap(params);
+        List<Order> orders = poList.stream()
                 .map(OrderPoConverter.INSTANCE::toDomain)
                 .collect(Collectors.toList());
+        // 保留 PageHelper 分页元信息（total），否则上层 PageResult.total 退化为当前页条数
+        if (poList instanceof Page<OrderPo> page) {
+            Page<Order> paged = new Page<>(page.getPageNum(), page.getPageSize(), page.isCount());
+            paged.setTotal(page.getTotal());
+            paged.addAll(orders);
+            return paged;
+        }
+        return orders;
+    }
+
+    @Override
+    public java.util.Map<String, Integer> countUndeliveredByDeliveryPersonIds(java.util.List<String> deliveryPersonIds) {
+        if (deliveryPersonIds == null || deliveryPersonIds.isEmpty()) {
+            return java.util.Map.of();
+        }
+        java.util.Map<String, Integer> result = new java.util.HashMap<>();
+        orderMapper.selectUndeliveredCountByDeliveryPersonIds(deliveryPersonIds)
+                .forEach(po -> result.put(po.getDeliveryPersonId(), po.getOrderCount()));
+        return result;
     }
 
     @Override
@@ -158,8 +191,39 @@ public class OrderRepositoryImpl implements OrderRepository {
     }
 
     @Override
-    public List<Order> findByAccountId(String accountId, String type) {
-        throw new UnsupportedOperationException("待通过 vso_order_party 表关联查询实现");
+    public List<Order> findByAccountId(String accountId, List<OrderState> orderStateRange) {
+        List<Integer> stateValues = orderStateRange == null ? null : orderStateRange.stream()
+                .map(OrderState::getValue).collect(Collectors.toList());
+        return orderMapper.selectByAccountId(accountId, stateValues).stream()
+                .map(OrderPoConverter.INSTANCE::toDomain)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<Order> findDownPaymentPaidBefore(Date deadline, int limit) {
+        return orderMapper.selectAutoLockCandidates(OrderState.DOWN_PAYMENT_PAID.getValue(),
+                        deadline.toInstant().atZone(java.time.ZoneId.systemDefault()).toLocalDateTime(), limit)
+                .stream()
+                .map(OrderPoConverter.INSTANCE::toDomain)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public int updateStateConditional(String orderNo, OrderState targetState, List<OrderState> expectedStates) {
+        List<Integer> expected = expectedStates.stream().map(OrderState::getValue).collect(Collectors.toList());
+        return orderMapper.updateOrderStateConditional(orderNo, targetState.getValue(), expected);
+    }
+
+    @Override
+    public int updateDownPaymentTime(String orderNo, Date downPaymentTime) {
+        return orderMapper.updateDownPaymentTime(orderNo,
+                downPaymentTime.toInstant().atZone(java.time.ZoneId.systemDefault()).toLocalDateTime());
+    }
+
+    @Override
+    public Optional<Order> findByOrderIdAndAccountId(String orderId, String accountId) {
+        return Optional.ofNullable(orderMapper.selectByOrderIdAndAccountId(orderId, accountId))
+                .map(OrderPoConverter.INSTANCE::toDomain);
     }
 
     @Override

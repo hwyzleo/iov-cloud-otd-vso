@@ -76,7 +76,27 @@ public enum VsoErrorCode implements ErrorCode {
 
     // Model/Variant 销售
     MODEL_NOT_FOR_SALE("301040", "Model 销售策略校验失败"),
-    VARIANT_NOT_FOR_SALE("301041", "Variant 销售策略校验失败");
+    VARIANT_NOT_FOR_SALE("301041", "Variant 销售策略校验失败"),
+
+    // OTD-VSO-DSN-CR-002 C 端购车全流程
+    AGREEMENT_NOT_EXIST("201039", "购车协议不存在、失效或版本不匹配"),
+    AGREEMENT_CONFIRMATION_REQUIRED("201040", "必确认购车协议未提交"),
+    ORDER_ACCESS_DENIED("201041", "订单不属于当前账号"),
+    REFUND_NOT_EXIST("201042", "退款单不存在"),
+    REFUND_STATUS_NOT_ALLOWED("201043", "当前退款状态不允许操作"),
+    REFUND_CONFLICT("201044", "重复或冲突退款"),
+    DELIVERY_APPOINTMENT_NOT_EXIST("201045", "交付预约不存在"),
+    DELIVERY_APPOINTMENT_CONFLICT("201046", "已有有效交付预约"),
+    DELIVERY_APPOINTMENT_STATUS_NOT_ALLOWED("201047", "交付预约状态不允许操作"),
+    CALLBACK_SIGNATURE_INVALID("201048", "支付或退款回调签名/防重放失败"),
+    PAYMENT_AMOUNT_MISMATCH("201049", "支付、补款或退款金额不一致"),
+    ORDER_AMOUNT_SNAPSHOT_MISSING("201050", "历史订单金额快照缺失，需人工修复"),
+    PAYMENT_EXPIRED("201051", "支付单已过期"),
+    REFUND_AMOUNT_INVALID("201052", "退款金额或分摊不合法"),
+    EXTERNAL_GATEWAY_FAILED("201053", "外部支付或退款网关调用失败"),
+
+    // 后台协议管理
+    AGREEMENT_VERSION_CONFLICT("201054", "该车型下协议版本已存在");
 
     private final String code;
     private final String message;

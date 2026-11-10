@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.mapper.RefundItemMapper">
+
+    <resultMap id="baseResultMap" type="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.RefundItemPo">
+        <id column="id" property="id" />
+        <result column="refund_item_id" property="refundItemId" />
+        <result column="refund_id" property="refundId" />
+        <result column="payment_id" property="paymentId" />
+        <result column="payment_no" property="paymentNo" />
+        <result column="refund_amount" property="refundAmount" />
+        <result column="refund_status" property="refundStatus" />
+        <result column="external_refund_no" property="externalRefundNo" />
+        <result column="fail_reason" property="failReason" />
+        <result column="refund_time" property="refundTime" />
+        <result column="create_time" property="createTime" />
+        <result column="create_by" property="createBy" />
+        <result column="modify_time" property="modifyTime" />
+        <result column="modify_by" property="modifyBy" />
+        <result column="row_version" property="rowVersion" />
+        <result column="row_valid" property="rowValid" />
+    </resultMap>
+
+    <sql id="baseColumnList">
+        t.id, t.refund_item_id, t.refund_id, t.payment_id, t.payment_no, t.refund_amount,
+        t.refund_status, t.external_refund_no, t.fail_reason, t.refund_time,
+        t.create_time, t.create_by, t.modify_time, t.modify_by, t.row_version, t.row_valid
+    </sql>
+
+    <insert id="insertPo" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO vso_refund_item (
+            refund_item_id, refund_id, payment_id, payment_no, refund_amount, refund_status,
+            external_refund_no, fail_reason, refund_time, create_time, create_by,
+            modify_time, modify_by, row_version, row_valid
+        )
+        VALUES (
+            #{refundItemId}, #{refundId}, #{paymentId}, #{paymentNo}, #{refundAmount}, #{refundStatus},
+            #{externalRefundNo}, #{failReason}, #{refundTime}, now(), #{createBy},
+            now(), #{modifyBy}, 1, 1
+        )
+    </insert>
+
+    <update id="updatePo" parameterType="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.RefundItemPo">
+        UPDATE vso_refund_item t SET
+        <if test="refundStatus != null and refundStatus != ''">
+            t.refund_status = #{refundStatus},
+        </if>
+        <if test="externalRefundNo != null and externalRefundNo != ''">
+            t.external_refund_no = #{externalRefundNo},
+        </if>
+        <if test="failReason != null">
+            t.fail_reason = #{failReason},
+        </if>
+        <if test="refundTime != null">
+            t.refund_time = #{refundTime},
+        </if>
+        <if test="modifyBy != null">
+            t.modify_by = #{modifyBy},
+        </if>
+        t.row_version = t.row_version + 1,
+        t.modify_time = now()
+        WHERE t.id = #{id}
+    </update>
+
+    <select id="selectByRefundId" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_refund_item t
+        WHERE t.refund_id = #{refundId}
+        AND t.row_valid = 1
+        ORDER BY t.id ASC
+    </select>
+
+    <select id="selectByRefundIdAndStatus" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_refund_item t
+        WHERE t.refund_id = #{refundId}
+        AND t.refund_status = #{refundStatus}
+        AND t.row_valid = 1
+        ORDER BY t.id ASC
+    </select>
+
+    <select id="selectByPaymentIdAndStatus" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_refund_item t
+        WHERE t.payment_id = #{paymentId}
+        AND t.refund_status = #{refundStatus}
+        AND t.row_valid = 1
+    </select>
+
+    <select id="selectByRefundItemId" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_refund_item t
+        WHERE t.refund_item_id = #{refundItemId}
+        AND t.row_valid = 1
+    </select>
+
+</mapper>

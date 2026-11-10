@@ -27,4 +27,7 @@ public class EarnestMoneyCmd {
     private Map<String, OrderModelConfig> modelConfigMap;
     private String wishlistId;
 
+    /** 下单确认的购车协议列表（OTD-VSO-DSN-CR-002 US-001） */
+    private List<AgreementConfirmationCmd> agreementConfirmations;
+
 }

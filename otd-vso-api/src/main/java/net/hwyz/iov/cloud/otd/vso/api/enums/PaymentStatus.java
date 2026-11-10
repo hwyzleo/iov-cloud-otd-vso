@@ -33,6 +33,11 @@ public enum PaymentStatus {
     PAYMENT_FAILED,
 
     /**
+     * 支付已取消
+     */
+    CANCELLED,
+
+    /**
      * 已退款
      */
     REFUNDED,

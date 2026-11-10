@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.mapper.OrderAgreementConfirmationMapper">
+
+    <resultMap id="baseResultMap" type="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.OrderAgreementConfirmationPo">
+        <id column="id" property="id" />
+        <result column="confirmation_id" property="confirmationId" />
+        <result column="order_id" property="orderId" />
+        <result column="agreement_id" property="agreementId" />
+        <result column="agreement_code" property="agreementCode" />
+        <result column="version_no" property="versionNo" />
+        <result column="title_snapshot" property="titleSnapshot" />
+        <result column="intro_snapshot" property="introSnapshot" />
+        <result column="detail_snapshot" property="detailSnapshot" />
+        <result column="confirm_time" property="confirmTime" />
+        <result column="create_time" property="createTime" />
+        <result column="create_by" property="createBy" />
+        <result column="modify_time" property="modifyTime" />
+        <result column="modify_by" property="modifyBy" />
+        <result column="row_version" property="rowVersion" />
+        <result column="row_valid" property="rowValid" />
+    </resultMap>
+
+    <sql id="baseColumnList">
+        t.id, t.confirmation_id, t.order_id, t.agreement_id, t.agreement_code, t.version_no,
+        t.title_snapshot, t.intro_snapshot, t.detail_snapshot, t.confirm_time,
+        t.create_time, t.create_by, t.modify_time, t.modify_by, t.row_version, t.row_valid
+    </sql>
+
+    <insert id="insertPo" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO vso_order_agreement_confirmation (
+            confirmation_id, order_id, agreement_id, agreement_code, version_no,
+            title_snapshot, intro_snapshot, detail_snapshot, confirm_time,
+            create_time, create_by, modify_time, modify_by, row_version, row_valid
+        )
+        VALUES (
+            #{confirmationId}, #{orderId}, #{agreementId}, #{agreementCode}, #{versionNo},
+            #{titleSnapshot}, #{introSnapshot}, #{detailSnapshot}, #{confirmTime},
+            now(), #{createBy}, now(), #{modifyBy}, 1, 1
+        )
+    </insert>
+
+    <select id="selectByOrderId" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_order_agreement_confirmation t
+        WHERE t.order_id = #{orderId}
+        AND t.row_valid = 1
+        ORDER BY t.id ASC
+    </select>
+
+    <select id="selectByOrderIdAndAgreementId" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_order_agreement_confirmation t
+        WHERE t.order_id = #{orderId}
+        AND t.agreement_id = #{agreementId}
+        AND t.row_valid = 1
+        LIMIT 1
+    </select>
+
+</mapper>

@@ -131,6 +131,36 @@ class OrderAppServiceQueryTest {
     }
 
     @Test
+    @DisplayName("通过不存在的 orderId 查询详情应抛 ORDER_NOT_EXIST（不得冒泡 IllegalArgumentException）")
+    void testGetByIdWithNonExistentOrderShouldThrowOrderNotExist() {
+        String orderId = "missing_" + System.currentTimeMillis();
+        when(orderDomainService.loadOrder(orderId)).thenThrow(new OrderNotExistException(orderId));
+
+        assertThrows(OrderNotExistException.class, () -> orderAppService.getById(orderId));
+    }
+
+    @Test
+    @DisplayName("MPT 详情补齐金额快照（意向金/定金）与类型名称")
+    void testGetByIdShouldEnrichAmountAndTypeName() {
+        String orderId = "order_enrich_" + System.currentTimeMillis();
+        Order mockOrder = buildOrder(orderId, "ORDER_ENRICH", OrderType.FORMAL, OrderState.EARNEST_MONEY_PAID);
+        when(orderDomainService.loadOrder(orderId)).thenReturn(mockOrder);
+        OrderAmountPo amountPo = buildOrderAmountPo(orderId);
+        amountPo.setDepositAmount(new BigDecimal("5000.00"));
+        amountPo.setDownPaymentAmount(new BigDecimal("20000.00"));
+        when(orderAmountRepository.findDomainByOrderId(orderId)).thenReturn(Optional.of(toDomain(amountPo)));
+
+        OrderDetailResult result = orderAppService.getById(orderId);
+
+        assertNotNull(result.getEarnestMoneyAmount(), "意向金金额应由订单金额快照补齐");
+        assertEquals(0, new BigDecimal("5000.00").compareTo(result.getEarnestMoneyAmount()));
+        assertNotNull(result.getDownPaymentAmount(), "定金金额应由订单金额快照补齐");
+        assertEquals(0, new BigDecimal("20000.00").compareTo(result.getDownPaymentAmount()));
+        assertEquals("正式订单", result.getOrderTypeName(), "订单类型名称应补齐");
+        assertNotNull(result.getOrderSourceName(), "订单来源名称应补齐");
+    }
+
+    @Test
     @DisplayName("getUserOrder应返回包含展示信息的订单详情")
     void testGetUserOrderWithEnrichment() {
         String timestamp = String.valueOf(System.currentTimeMillis());
@@ -193,8 +223,8 @@ class OrderAppServiceQueryTest {
 
         when(orderRepository.findByOrderNoAndAccountId(orderNo, accountId))
                 .thenReturn(Optional.of(order));
-        when(orderAmountRepository.findByOrderId(orderId))
-                .thenReturn(Optional.of(buildOrderAmountPo(orderId)));
+        when(orderAmountRepository.findDomainByOrderId(orderId))
+                .thenReturn(Optional.of(toDomain(buildOrderAmountPo(orderId))));
         when(orderVehicleSnapshotRepository.findByOrderId(orderId))
                 .thenReturn(Optional.of(snapshot));
         when(saleModelVariantPolicyRepository.findBySaleModelCodeAndVariantCode(saleModelCode, variantCode))
@@ -246,8 +276,8 @@ class OrderAppServiceQueryTest {
 
         when(orderRepository.findByOrderNoAndAccountId(orderNo, accountId))
                 .thenReturn(Optional.of(order));
-        when(orderAmountRepository.findByOrderId(orderId))
-                .thenReturn(Optional.of(buildOrderAmountPo(orderId)));
+        when(orderAmountRepository.findDomainByOrderId(orderId))
+                .thenReturn(Optional.of(toDomain(buildOrderAmountPo(orderId))));
         when(orderVehicleSnapshotRepository.findByOrderId(orderId))
                 .thenReturn(Optional.empty());
         when(orderPartyRepository.findByOrderIdAndRole(orderId, "buyer"))
@@ -291,5 +321,10 @@ class OrderAppServiceQueryTest {
         po.setInvoiceAmount(BigDecimal.ZERO);
         po.setCalculationVersion(1);
         return po;
+    }
+
+    private net.hwyz.iov.cloud.otd.vso.service.domain.model.OrderAmount toDomain(
+            net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.OrderAmountPo po) {
+        return net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.converter.OrderAmountPoConverter.toDomain(po);
     }
 }

@@ -86,4 +86,24 @@ public enum OrderState {
         return valOf(val);
     }
 
+    /**
+     * 允许改配的订单状态（C 端改配校验与 MPT 可改配列表筛选共用同一事实，禁止各自维护）
+     */
+    private static final java.util.Set<OrderState> CONFIG_MODIFIABLE_STATES =
+            java.util.EnumSet.of(EARNEST_MONEY_PAID, DOWN_PAYMENT_UNPAID, DOWN_PAYMENT_PAID);
+
+    /**
+     * 允许改配的订单状态值列表（列表筛选使用）
+     */
+    public static java.util.List<Integer> configModifiableStateValues() {
+        return CONFIG_MODIFIABLE_STATES.stream().map(OrderState::getValue).collect(java.util.stream.Collectors.toList());
+    }
+
+    /**
+     * 当前状态是否允许改配
+     */
+    public boolean isConfigModifiable() {
+        return CONFIG_MODIFIABLE_STATES.contains(this);
+    }
+
 }

@@ -51,6 +51,9 @@ class OrderAppServiceEarnestToDownTest {
     @Mock
     private OrderAssignmentRepository orderAssignmentRepository;
 
+    @Mock
+    private OrderTimelineAppService orderTimelineAppService;
+
     @InjectMocks
     private OrderAppService orderAppService;
 
@@ -77,8 +80,8 @@ class OrderAppServiceEarnestToDownTest {
     @Test
     void shouldDirectConvertWhenDifferenceIsZero() {
         // Given: 差额 = 0
-        when(orderAmountRepository.findByOrderId(anyString()))
-            .thenReturn(Optional.of(buildOrderAmountPo(BigDecimal.valueOf(10000), BigDecimal.valueOf(10000))));
+        when(orderAmountRepository.findDomainByOrderId(anyString()))
+            .thenReturn(Optional.of(toDomain(buildOrderAmountPo(BigDecimal.valueOf(10000), BigDecimal.valueOf(10000)))));
 
         // When
         EarnestToDownResult result = orderAppService.earnestMoneyToDownPayment(cmd);
@@ -93,8 +96,8 @@ class OrderAppServiceEarnestToDownTest {
     @Test
     void shouldCreateSupplementaryPaymentWhenDifferenceIsPositive() {
         // Given: 差额 = 5000
-        when(orderAmountRepository.findByOrderId(anyString()))
-            .thenReturn(Optional.of(buildOrderAmountPo(BigDecimal.valueOf(10000), BigDecimal.valueOf(15000))));
+        when(orderAmountRepository.findDomainByOrderId(anyString()))
+            .thenReturn(Optional.of(toDomain(buildOrderAmountPo(BigDecimal.valueOf(10000), BigDecimal.valueOf(15000)))));
 
         // When
         EarnestToDownResult result = orderAppService.earnestMoneyToDownPayment(cmd);
@@ -115,8 +118,8 @@ class OrderAppServiceEarnestToDownTest {
     @Test
     void shouldDirectConvertWhenDifferenceIsNegative() {
         // Given: 差额 = -2000 (意向金 > 定金)
-        when(orderAmountRepository.findByOrderId(anyString()))
-            .thenReturn(Optional.of(buildOrderAmountPo(BigDecimal.valueOf(10000), BigDecimal.valueOf(8000))));
+        when(orderAmountRepository.findDomainByOrderId(anyString()))
+            .thenReturn(Optional.of(toDomain(buildOrderAmountPo(BigDecimal.valueOf(10000), BigDecimal.valueOf(8000)))));
 
         // When
         EarnestToDownResult result = orderAppService.earnestMoneyToDownPayment(cmd);
@@ -157,7 +160,7 @@ class OrderAppServiceEarnestToDownTest {
     @Test
     void shouldThrowExceptionWhenOrderAmountNotFound() {
         // Given: 订单存在但 vso_order_amount 表无记录（旧数据或创建异常）
-        when(orderAmountRepository.findByOrderId(anyString())).thenReturn(Optional.empty());
+        when(orderAmountRepository.findDomainByOrderId(anyString())).thenReturn(Optional.empty());
 
         // When & Then
         Exception ex = assertThrows(Exception.class, () -> {
@@ -201,5 +204,10 @@ class OrderAppServiceEarnestToDownTest {
         po.setInvoiceAmount(BigDecimal.ZERO);
         po.setCalculationVersion(1);
         return po;
+    }
+
+    private net.hwyz.iov.cloud.otd.vso.service.domain.model.OrderAmount toDomain(
+            net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.OrderAmountPo po) {
+        return net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.converter.OrderAmountPoConverter.toDomain(po);
     }
 }

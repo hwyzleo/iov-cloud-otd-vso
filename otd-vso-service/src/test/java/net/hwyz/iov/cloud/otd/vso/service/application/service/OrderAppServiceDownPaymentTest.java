@@ -3,13 +3,23 @@ package net.hwyz.iov.cloud.otd.vso.service.application.service;
 import net.hwyz.iov.cloud.edd.mdm.api.service.ConfigurationService;
 import net.hwyz.iov.cloud.edd.mdm.api.vo.request.ConfigurationByVariantAndOptionCodesRequest;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.DownPaymentCmd;
-import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.PayCmd;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.DownPaymentOrderResult;
-import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.PayResult;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.Order;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.OrderState;
 import net.hwyz.iov.cloud.otd.vso.service.domain.policy.DuplicateOrderSpecification;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.OrderRepository;
+import net.hwyz.iov.cloud.otd.vso.service.domain.repository.ConfigChangeRefundRepository;
+import net.hwyz.iov.cloud.otd.vso.service.domain.repository.SupplementaryPaymentRepository;
+import net.hwyz.iov.cloud.otd.vso.service.domain.repository.VehicleAssignmentRepository;
+import net.hwyz.iov.cloud.otd.vso.service.domain.repository.OrderVehicleSnapshotRepository;
+import net.hwyz.iov.cloud.otd.vso.service.domain.repository.AuditRepository;
+import net.hwyz.iov.cloud.otd.vso.service.domain.repository.OrderAssignmentRepository;
+import net.hwyz.iov.cloud.otd.vso.service.domain.repository.RefundRepository;
+import net.hwyz.iov.cloud.otd.vso.service.domain.repository.PaymentRepository;
+import net.hwyz.iov.cloud.otd.vso.service.domain.repository.OrderAmountRepository;
+import net.hwyz.iov.cloud.otd.vso.service.domain.repository.SaleModelOptionFamilyPolicyRepository;
+import net.hwyz.iov.cloud.otd.vso.service.domain.repository.SaleModelOptionPolicyRepository;
+import net.hwyz.iov.cloud.otd.vso.service.domain.repository.SaleModelModelPolicyRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.OrderPartyRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.SaleModelRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.SaleModelVariantPolicyRepository;
@@ -58,6 +68,42 @@ class OrderAppServiceDownPaymentTest {
     @Mock
     private PaymentChannelConfig paymentChannelConfig;
 
+    @Mock
+    private PurchaseAgreementAppService purchaseAgreementAppService;
+    @Mock
+    private OrderTimelineAppService orderTimelineAppService;
+
+    @Mock
+    private SaleModelModelPolicyRepository saleModelModelPolicyRepository;
+    @Mock
+    private SaleModelOptionPolicyRepository optionPolicyRepository;
+    @Mock
+    private SaleModelOptionFamilyPolicyRepository optionFamilyPolicyRepository;
+    @Mock
+    private OrderAmountRepository orderAmountRepository;
+    @Mock
+    private PaymentRepository paymentRepository;
+    @Mock
+    private RefundRepository refundRepository;
+    @Mock
+    private OrderAssignmentRepository orderAssignmentRepository;
+    @Mock
+    private AuditRepository auditRepository;
+    @Mock
+    private OrderVehicleSnapshotRepository orderVehicleSnapshotRepository;
+    @Mock
+    private VehicleAssignmentRepository vehicleAssignmentRepository;
+    @Mock
+    private SupplementaryPaymentRepository supplementaryPaymentRepository;
+    @Mock
+    private ConfigChangeRefundRepository configChangeRefundRepository;
+    @Mock
+    private PaymentAppService paymentAppService;
+    @Mock
+    private RefundAppService refundAppService;
+    @Mock
+    private DeliveryAppService deliveryAppService;
+
     @InjectMocks
     private OrderAppService orderAppService;
 
@@ -75,14 +121,22 @@ class OrderAppServiceDownPaymentTest {
                 .build();
     }
 
+    @org.junit.jupiter.api.BeforeEach
+    void stubAgreementConfirmations() {
+        org.mockito.Mockito.lenient().when(purchaseAgreementAppService.buildConfirmations(
+                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any()))
+                .thenReturn(java.util.List.of());
+    }
+
     @Test
     @DisplayName("定金下单应成功返回订单信息")
     void testDownPaymentOrder() {
         String userId = "test_user_" + System.currentTimeMillis();
         String orderNo = "ORDER_NO_" + System.currentTimeMillis();
 
-        when(saleModelVariantPolicyRepository.findBySaleModelCode(SALE_MODEL_CODE))
-                .thenReturn(Collections.singletonList(buildVariantPolicy()));
+        when(saleModelVariantPolicyRepository.findBySaleModelCodeAndVariantCode(SALE_MODEL_CODE, "VAR_001"))
+                .thenReturn(Optional.of(buildVariantPolicy()));
         when(paymentChannelConfig.getDownPaymentTimeoutMinutes()).thenReturn(30);
 
         PaymentChannelConfig.ChannelInfo channelInfo = new PaymentChannelConfig.ChannelInfo();
@@ -97,6 +151,7 @@ class OrderAppServiceDownPaymentTest {
         DownPaymentCmd cmd = DownPaymentCmd.builder()
                 .accountId(userId)
                 .saleModel(SALE_MODEL_CODE)
+                .variantCode("VAR_001")
                 .configurationCode("CONFIG_001")
                 .licenseCityCode("TEST_CITY")
                 .build();

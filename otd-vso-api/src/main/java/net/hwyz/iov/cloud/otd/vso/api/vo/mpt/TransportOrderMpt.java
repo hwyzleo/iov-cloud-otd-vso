@@ -1,12 +1,14 @@
 package net.hwyz.iov.cloud.otd.vso.api.vo.mpt;
 
 import lombok.*;
+import net.hwyz.iov.cloud.framework.common.bean.BaseRequest;
 
-import java.io.Serializable;
 import java.util.Date;
 
 /**
  * 管理后台运输相关车辆销售订单
+ * <p>
+ * 继承 BaseRequest 以复用框架 `params[beginTime]` / `params[endTime]` 查询参数契约。
  *
  * @author hwyz_leo
  */
@@ -14,12 +16,12 @@ import java.util.Date;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class TransportOrderMpt implements Serializable {
+public class TransportOrderMpt extends BaseRequest {
 
     /**
-     * 主键
+     * 订单业务 ID（MPT 订单域路由参数）
      */
-    private Long id;
+    private String orderId;
 
     /**
      * 订单号

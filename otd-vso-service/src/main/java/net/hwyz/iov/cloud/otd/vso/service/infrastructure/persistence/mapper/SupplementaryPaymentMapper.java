@@ -18,6 +18,12 @@ public interface SupplementaryPaymentMapper extends BaseDao<SupplementaryPayment
 
     SupplementaryPaymentPo selectPoById(Long id);
 
+    /**
+     * 按订单与场景查询待支付补款任务
+     */
+    SupplementaryPaymentPo selectPendingByOrderIdAndScene(@Param("orderId") String orderId,
+                                                         @Param("scene") String scene);
+
     List<SupplementaryPaymentPo> selectPoByMap(@Param("params") Map<String, Object> params);
 
     int countPoByMap(@Param("params") Map<String, Object> params);

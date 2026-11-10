@@ -37,6 +37,22 @@ public class OrderAmountRepositoryImpl implements OrderAmountRepository {
     }
 
     @Override
+    public Map<String, OrderAmountPo> findPoByOrderIds(java.util.List<String> orderIds) {
+        if (orderIds == null || orderIds.isEmpty()) {
+            return new HashMap<>();
+        }
+        Map<String, OrderAmountPo> result = new HashMap<>();
+        orderAmountMapper.selectByOrderIds(orderIds).forEach(po -> result.putIfAbsent(po.getOrderId(), po));
+        return result;
+    }
+
+    @Override
+    public Optional<net.hwyz.iov.cloud.otd.vso.service.domain.model.OrderAmount> findDomainByOrderId(String orderId) {
+        return findByOrderId(orderId)
+                .map(net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.converter.OrderAmountPoConverter::toDomain);
+    }
+
+    @Override
     @Transactional(rollbackFor = Exception.class)
     public void delete(String orderId) {
         Map<String, Object> params = new HashMap<>();

@@ -33,7 +33,10 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-@SpringBootTest
+@SpringBootTest(properties = {
+        "spring.main.allow-bean-definition-overriding=true",
+        "iov.kafka.topic-provisioning.enabled=false"
+})
 @Transactional
 @DisplayName("意向金下单 - 车辆快照集成测试")
 class OrderAppServiceEarnestMoneySnapshotIntegrationTest {

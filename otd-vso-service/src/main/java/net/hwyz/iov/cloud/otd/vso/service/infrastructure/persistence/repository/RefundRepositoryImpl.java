@@ -1,49 +1,98 @@
 package net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.repository;
 
 import lombok.RequiredArgsConstructor;
+import net.hwyz.iov.cloud.otd.vso.service.domain.model.Refund;
+import net.hwyz.iov.cloud.otd.vso.service.domain.model.RefundItem;
+import net.hwyz.iov.cloud.otd.vso.service.domain.repository.RefundItemRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.RefundRepository;
+import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.converter.RefundPoConverter;
+import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.mapper.RefundItemMapper;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.mapper.RefundMapper;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.RefundPo;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
+/**
+ * 退款主单仓储实现（领域类型）
+ *
+ * @author VSO Team
+ */
 @Repository
 @RequiredArgsConstructor
 public class RefundRepositoryImpl implements RefundRepository {
 
     private final RefundMapper refundMapper;
+    private final RefundItemMapper refundItemMapper;
+    private final RefundItemRepository refundItemRepository;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public RefundPo save(RefundPo refundPo) {
-        if (refundPo.getId() == null) {
-            refundMapper.insertPo(refundPo);
+    public Refund save(Refund refund) {
+        RefundPo po = RefundPoConverter.fromDomain(refund);
+        RefundPo existing = refundMapper.selectByRefundNo(refund.getRefundNo());
+        if (existing == null) {
+            refundMapper.insertPo(po);
         } else {
-            refundMapper.updatePo(refundPo);
+            po.setId(existing.getId());
+            refundMapper.updatePo(po);
         }
-        return refundPo;
+        if (refund.getItems() != null && !refund.getItems().isEmpty()) {
+            refundItemRepository.saveAll(refund.getItems());
+        }
+        return refund;
     }
 
     @Override
-    public Optional<RefundPo> findByRefundNo(String refundNo) {
-        Map<String, Object> params = new HashMap<>();
-        params.put("refundNo", refundNo);
-        params.put("rowValid", 1);
-        return refundMapper.selectPoByMap(params).stream().findFirst();
+    public Optional<Refund> findByRefundNo(String refundNo) {
+        RefundPo po = refundMapper.selectByRefundNo(refundNo);
+        return Optional.ofNullable(po).map(this::assemble);
+    }
+
+    @Override
+    public Optional<Refund> findByRefundId(String refundId) {
+        RefundPo po = refundMapper.selectPoByMap(java.util.Map.of("refundId", refundId)).stream()
+                .findFirst()
+                .orElse(null);
+        return Optional.ofNullable(po).map(this::assemble);
+    }
+
+    @Override
+    public Optional<Refund> findActiveByOrderId(String orderId) {
+        RefundPo po = refundMapper.selectActiveByOrderId(orderId);
+        return Optional.ofNullable(po).map(this::assemble);
+    }
+
+    @Override
+    public List<Refund> findByOrderId(String orderId) {
+        return refundMapper.selectByOrderId(orderId).stream()
+                .map(this::assemble)
+                .collect(Collectors.toList());
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void delete(String refundId) {
-        RefundPo refundPo = refundMapper.selectPoById(Long.valueOf(refundId));
-        if (refundPo != null) {
-            refundPo.setRowValid(0);
-            refundMapper.updatePo(refundPo);
+    public void updateStatus(Refund refund) {
+        RefundPo existing = refundMapper.selectByRefundNo(refund.getRefundNo());
+        if (existing == null) {
+            return;
         }
+        RefundPo po = RefundPoConverter.fromDomain(refund);
+        po.setId(existing.getId());
+        refundMapper.updatePo(po);
     }
 
+    private Refund assemble(RefundPo po) {
+        Refund refund = RefundPoConverter.toDomain(po);
+        if (refund != null) {
+            List<RefundItem> items = refundItemMapper.selectByRefundId(po.getRefundId()).stream()
+                    .map(RefundPoConverter::toDomain)
+                    .collect(Collectors.toList());
+            refund.setItems(items);
+        }
+        return refund;
+    }
 }

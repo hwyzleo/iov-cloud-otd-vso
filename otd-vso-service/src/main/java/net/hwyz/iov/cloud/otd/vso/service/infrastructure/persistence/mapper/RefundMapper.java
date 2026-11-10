@@ -18,6 +18,11 @@ public interface RefundMapper extends BaseDao<RefundPo, Long> {
 
     RefundPo selectPoById(Long id);
 
+    /**
+     * 查询订单当前活动退款主单（pending / processing / failed）
+     */
+    RefundPo selectActiveByOrderId(@Param("orderId") String orderId);
+
     List<RefundPo> selectPoByMap(@Param("params") Map<String, Object> params);
 
     int countPoByMap(@Param("params") Map<String, Object> params);

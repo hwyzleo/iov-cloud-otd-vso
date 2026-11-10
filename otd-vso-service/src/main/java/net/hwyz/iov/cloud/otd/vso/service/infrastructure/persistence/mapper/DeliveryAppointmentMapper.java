@@ -18,6 +18,21 @@ public interface DeliveryAppointmentMapper extends BaseDao<DeliveryAppointmentPo
 
     DeliveryAppointmentPo selectPoById(Long id);
 
+    /**
+     * 查询订单当前有效（booked）预约
+     */
+    DeliveryAppointmentPo selectBookedByOrderId(@Param("orderId") String orderId);
+
+    /**
+     * 查询订单最近一次预约记录
+     */
+    DeliveryAppointmentPo selectLatestByOrderId(@Param("orderId") String orderId);
+
+    /**
+     * 批量查询多个订单当前有效（booked）预约
+     */
+    List<DeliveryAppointmentPo> selectBookedByOrderIds(@Param("orderIds") List<String> orderIds);
+
     List<DeliveryAppointmentPo> selectPoByMap(@Param("params") Map<String, Object> params);
 
     int countPoByMap(@Param("params") Map<String, Object> params);

@@ -39,7 +39,10 @@ public class MobileVsoController extends BaseController {
         String accountId = SecurityContextHolder.getUserId();
 
         List<WishlistListResult> wishlists = wishlistAppService.getWishlistList(accountId);
-        List<OrderListResult> orders = vehicleSaleOrderAppService.search(OrderQuery.builder().type("valid").build());
+        List<OrderListResult> orders = vehicleSaleOrderAppService.search(OrderQuery.builder()
+                .type("valid")
+                .accountId(accountId)
+                .build());
 
         List<MyVehicleVo> myVehicles = new ArrayList<>();
         
@@ -60,6 +63,7 @@ public class MobileVsoController extends BaseController {
         log.info("手机客户端[{}]获取[{}]订单列表", ParamHelper.getClientAccountInfo(), type);
         OrderQuery query = OrderQuery.builder()
                 .type(type)
+                .accountId(SecurityContextHolder.getUserId())
                 .build();
         List<OrderListResult> result = vehicleSaleOrderAppService.search(query);
         return ApiResponse.ok(OrderVoAssembler.INSTANCE.toVoList(result));
@@ -189,28 +193,25 @@ public class MobileVsoController extends BaseController {
     }
 
     /**
-     * 支付订单
-     */
-    @PostMapping("/order/action/pay")
-    public ApiResponse<OrderPaymentResponseVo> pay(@RequestBody @Valid OrderPaymentRequestVo request) {
-        log.info("手机客户端[{}]支付订单[{}]", ParamHelper.getClientAccountInfo(), request.getOrderNo());
-        PayCmd cmd = OrderPaymentRequestVoAssembler.INSTANCE.toCmd(SecurityContextHolder.getUserId(), request);
-        PayResult result = vehicleSaleOrderAppService.pay(cmd);
-        OrderPaymentResponseVo vo = OrderPaymentResponseVoAssembler.INSTANCE.toVo(result);
-        return ApiResponse.ok(vo);
-    }
-
-    /**
      * 退款订单
      * <p>
      * 请求参数说明：仅需 orderNo（订单号）
      */
     @PostMapping("/order/action/requestRefund")
-    public ApiResponse<Void> requestRefund(@RequestBody @Valid OrderVo order) {
+    public ApiResponse<RefundResult> requestRefund(@RequestBody @Valid OrderVo order) {
         log.info("手机客户端[{}]退款订单[{}]", ParamHelper.getClientAccountInfo(), order.getOrderNo());
         RequestRefundCmd cmd = OrderResponseVoAssembler.INSTANCE.toRequestRefundCmd(SecurityContextHolder.getUserId(), order);
-        vehicleSaleOrderAppService.requestRefund(cmd);
-        return ApiResponse.ok();
+        return ApiResponse.ok(vehicleSaleOrderAppService.requestRefund(cmd));
+    }
+
+    /**
+     * 查询本人订单时间线（事件时间正序）
+     */
+    @GetMapping("/order/{orderNo}/timeline")
+    public ApiResponse<List<OrderTimelineResult>> getOrderTimeline(@PathVariable String orderNo) {
+        log.info("手机客户端[{}]查询订单[{}]时间线", ParamHelper.getClientAccountInfo(), orderNo);
+        return ApiResponse.ok(vehicleSaleOrderAppService.getOrderTimeline(
+                SecurityContextHolder.getUserId(), orderNo));
     }
 
     /**
@@ -289,7 +290,8 @@ public class MobileVsoController extends BaseController {
         log.info("C 端查询订单详情：orderId={}", orderId);
 
         try {
-            return ApiResponse.ok(vehicleSaleOrderAppService.getById(orderId));
+            return ApiResponse.ok(vehicleSaleOrderAppService.getUserOrderById(
+                    SecurityContextHolder.getUserId(), orderId));
         } catch (Exception e) {
             log.error("查询订单详情异常", e);
             return ApiResponse.fail("系统繁忙，请稍后再试");

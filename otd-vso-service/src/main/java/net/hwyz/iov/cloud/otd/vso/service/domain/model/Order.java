@@ -10,7 +10,6 @@ import net.hwyz.iov.cloud.otd.vso.api.enums.CustomerType;
 import net.hwyz.iov.cloud.otd.vso.api.enums.OrderType;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.shared.*;
 import net.hwyz.iov.cloud.otd.vso.service.common.exception.AuditResubmitLimitExceededException;
-import net.hwyz.iov.cloud.otd.vso.service.common.exception.OrderIllegalDeleteException;
 import net.hwyz.iov.cloud.otd.vso.service.common.exception.OrderStateNotAllowedException;
 import net.hwyz.iov.cloud.otd.vso.service.common.exception.SaleModelConfigHasLockedException;
 import net.hwyz.iov.cloud.otd.vso.service.common.util.OrderNoGenerator;
@@ -526,20 +525,6 @@ public class Order {
     }
 
     /**
-     * 管理端删除校验
-     * 校验订单是否允许物理删除，仅已取消订单可删除
-     *
-     * @return 是否允许删除
-     * @throws OrderIllegalDeleteException 订单状态不允许删除时抛出
-     */
-    public boolean manageDelete() {
-        if (this.orderState != OrderState.CANCEL) {
-            throw new OrderIllegalDeleteException(this.orderNo);
-        }
-        return true;
-    }
-
-    /**
      * 关闭订单
      * 将订单状态置为已关闭，记录关闭原因
      *
@@ -636,7 +621,9 @@ public class Order {
         Date now = new Date();
         this.orderStateTime = now;
         this.downPaymentTime = now;
-        if (this.orderAmount != null && this.orderAmount.getPaidTotal().isGreaterThan(this.orderAmount.getDepositAmount())) {
+        // 设计 §3.1：upgradedFromSmall = paidTotal > downPaymentAmount
+        if (this.orderAmount != null
+                && this.orderAmount.getPaidTotal().isGreaterThan(this.orderAmount.getDownPaymentAmount())) {
             this.orderAmount.setUpgradedFromSmall(true);
         }
     }
@@ -651,9 +638,12 @@ public class Order {
      * @param transportApplyPersonName 发运申请人姓名
      */
     public void applyTransportVehicle(String transportApplyPersonId, String transportApplyPersonName) {
+        OrderStateMachine.validateTransition(this.orderState.getValue(), OrderState.APPLY_TRANSPORT.getValue(), this.orderType);
         this.transportApplyPersonId = transportApplyPersonId;
         this.transportApplyPersonName = transportApplyPersonName;
         this.transportApplyTime = new Date();
+        this.orderState = OrderState.APPLY_TRANSPORT;
+        this.orderStateTime = new Date();
     }
 
     /**
@@ -816,10 +806,28 @@ public class Order {
 
     /**
      * 激活订单
-     * 将订单状态置为已激活
+     * 仅允许 DELIVERED -> ACTIVATED（OTD-VSO-DSN-CR-002 US-009）
      */
     public void activate() {
+        if (this.orderState == OrderState.ACTIVATED) {
+            // 重复激活幂等
+            return;
+        }
+        OrderStateMachine.validateTransition(this.orderState.getValue(), OrderState.ACTIVATED.getValue(), this.orderType);
         this.orderState = OrderState.ACTIVATED;
+        this.orderStateTime = new Date();
+    }
+
+    /**
+     * 退款完成
+     * 仅允许 REFUND_APPLY -> REFUND_COMPLETE
+     */
+    public void refundComplete() {
+        if (this.orderState == OrderState.REFUND_COMPLETE) {
+            return;
+        }
+        OrderStateMachine.validateTransition(this.orderState.getValue(), OrderState.REFUND_COMPLETE.getValue(), this.orderType);
+        this.orderState = OrderState.REFUND_COMPLETE;
         this.orderStateTime = new Date();
     }
 

@@ -135,6 +135,9 @@
         <if test="appointmentPlace != null and appointmentPlace != ''">
             t.appointment_place = #{appointmentPlace},
         </if>
+        <if test="appointmentStoreCode != null and appointmentStoreCode != ''">
+            t.appointment_store_code = #{appointmentStoreCode},
+        </if>
         <if test="rescheduleReason != null and rescheduleReason != ''">
             t.reschedule_reason = #{rescheduleReason},
         </if>
@@ -169,5 +172,47 @@
             #{id}
         </foreach>
     </delete>
+
+    <!-- 根据预约单号查询（具名 SQL） -->
+    <select id="selectByAppointmentNo" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_delivery_appointment t
+        WHERE t.delivery_appointment_no = #{appointmentNo}
+        AND t.row_valid = 1
+    </select>
+
+    <!-- 订单当前有效预约（booked） -->
+    <select id="selectBookedByOrderId" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_delivery_appointment t
+        WHERE t.order_id = #{orderId}
+        AND t.appointment_status = 'booked'
+        AND t.row_valid = 1
+        ORDER BY t.id DESC
+        LIMIT 1
+    </select>
+
+    <!-- 订单最近预约记录 -->
+    <select id="selectLatestByOrderId" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_delivery_appointment t
+        WHERE t.order_id = #{orderId}
+        AND t.row_valid = 1
+        ORDER BY t.id DESC
+        LIMIT 1
+    </select>
+
+    <!-- 批量查询多个订单当前有效（booked）预约，避免 N+1 -->
+    <select id="selectBookedByOrderIds" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_delivery_appointment t
+        WHERE t.order_id IN
+        <foreach collection="orderIds" item="orderId" open="(" separator="," close=")">
+            #{orderId}
+        </foreach>
+        AND t.appointment_status = 'booked'
+        AND t.row_valid = 1
+        ORDER BY t.id DESC
+    </select>
 
 </mapper>

@@ -55,7 +55,7 @@ public class VehicleAssignmentAppService {
     public void assignVehicle(AssignVehicleCmd cmd) {
         log.info("配车绑定VIN：orderNo={}, vin={}", cmd.getOrderNo(), cmd.getVin());
         orderLockService.executeWithLock(cmd.getOrderNo(), cmd.getVin(), LOCK_SCENE, () -> {
-            Order order = orderDomainService.loadOrder(cmd.getOrderNo());
+            Order order = orderDomainService.loadOrderByOrderNo(cmd.getOrderNo());
             validateForAssign(order, cmd.getVin());
             int occupancyHours = vehicleOccupancyConfigRepository.getDefaultOccupancyHours();
             VehicleAssignment assignment = VehicleAssignment.assign(order.getId(), cmd.getVin(), occupancyHours);
@@ -72,7 +72,7 @@ public class VehicleAssignmentAppService {
     public void reassignVehicle(ReassignVehicleCmd cmd) {
         log.info("换绑VIN：orderNo={}, newVin={}", cmd.getOrderNo(), cmd.getNewVin());
         orderLockService.executeWithLock(cmd.getOrderNo(), cmd.getOperatorId(), LOCK_SCENE, () -> {
-            Order order = orderDomainService.loadOrder(cmd.getOrderNo());
+            Order order = orderDomainService.loadOrderByOrderNo(cmd.getOrderNo());
             validateForReassign(order, cmd.getNewVin());
             Optional<VehicleAssignment> existingAssignment = vehicleAssignmentRepository.findDomainByOrderId(order.getId());
             if (existingAssignment.isEmpty()) {
@@ -96,7 +96,7 @@ public class VehicleAssignmentAppService {
     public void unbindVehicle(UnbindVehicleCmd cmd) {
         log.info("解绑VIN：orderNo={}, reason={}", cmd.getOrderNo(), cmd.getUnbindReason());
         orderLockService.executeWithLock(cmd.getOrderNo(), cmd.getOperatorId(), LOCK_SCENE, () -> {
-            Order order = orderDomainService.loadOrder(cmd.getOrderNo());
+            Order order = orderDomainService.loadOrderByOrderNo(cmd.getOrderNo());
             validateForUnbind(order);
             Optional<VehicleAssignment> existingAssignment = vehicleAssignmentRepository.findDomainByOrderId(order.getId());
             if (existingAssignment.isEmpty()) {

@@ -266,7 +266,15 @@ public class OrderDomainService {
      */
     public Order loadOrder(String orderId) {
         return orderRepository.findByOrderId(orderId)
-                .orElseThrow(() -> new IllegalArgumentException("订单不存在：" + orderId));
+                .orElseThrow(() -> new net.hwyz.iov.cloud.otd.vso.service.common.exception.OrderNotExistException(orderId));
+    }
+
+    /**
+     * 按订单号加载订单（MPT 与内部服务以 orderNo 为业务键）
+     */
+    public Order loadOrderByOrderNo(String orderNo) {
+        return orderRepository.findByOrderNo(orderNo)
+                .orElseThrow(() -> new net.hwyz.iov.cloud.otd.vso.service.common.exception.OrderNotExistException(orderNo));
     }
 
     /**

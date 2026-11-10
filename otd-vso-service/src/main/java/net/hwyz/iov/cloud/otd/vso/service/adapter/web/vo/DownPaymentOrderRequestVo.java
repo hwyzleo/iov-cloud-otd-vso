@@ -1,8 +1,9 @@
 package net.hwyz.iov.cloud.otd.vso.service.adapter.web.vo;
 
+import jakarta.validation.Valid;
 import lombok.*;
 
-import java.util.Map;
+import java.util.List;
 
 /**
  * 定金下单请求对象
@@ -37,11 +38,25 @@ public class DownPaymentOrderRequestVo {
     private String orderNo;
 
     /**
-     * 特征配置，必填
-     * <p>
-     * 来自意向金下单参数，Map形式，key为配置类型，value为配置值
+     * 车型代码
      */
-    private Map<String, String> saleModelConfigType;
+    private String modelCode;
+
+    /**
+     * 版本代码
+     */
+    private String variantCode;
+
+    /**
+     * 选装代码（允许空数组，元素非空且不重复）
+     */
+    private List<String> optionCodes;
+
+    /**
+     * 下单确认的购车协议
+     */
+    @Valid
+    private List<AgreementConfirmationVo> agreementConfirmations;
 
     /**
      * 客户类型，可选

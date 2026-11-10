@@ -14,4 +14,10 @@ public class ApplyTransportCmd {
 
     private String orderNo;
 
+    /** 发运申请人 */
+    private String operatorId;
+
+    /** 发运申请人姓名 */
+    private String operatorName;
+
 }

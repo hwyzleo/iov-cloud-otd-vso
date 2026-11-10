@@ -98,4 +98,9 @@ public class SupplementaryPaymentRepositoryImpl implements SupplementaryPaymentR
         params.put("limit", 1);
         return mapper.selectPoByMap(params).stream().findFirst();
     }
+
+    @Override
+    public Optional<SupplementaryPaymentPo> findPendingByOrderIdAndScene(String orderId, String scene) {
+        return Optional.ofNullable(mapper.selectPendingByOrderIdAndScene(orderId, scene));
+    }
 }

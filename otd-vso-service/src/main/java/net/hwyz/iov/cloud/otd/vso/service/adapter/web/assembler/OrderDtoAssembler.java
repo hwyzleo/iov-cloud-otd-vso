@@ -34,6 +34,9 @@ public interface OrderDtoAssembler {
     @Mapping(target = "createTime", source = "createTime")
     @Mapping(target = "modifyTime", source = "modifyTime")
     @Mapping(target = "licenseCity", source = "licenseCity")
+    @Mapping(target = "saleCode", source = "salesCode")
+    @Mapping(target = "modelConfigCode", source = "configurationCode")
+    @Mapping(target = "buildConfigCode", source = "configurationCode")
     OrderListResult toOrderListResult(Order order);
 
     List<OrderListResult> toOrderListResultList(List<Order> orders);
@@ -49,6 +52,13 @@ public interface OrderDtoAssembler {
     @Mapping(target = "deliveryRegionCode", source = "deliveryRegionCode")
     @Mapping(target = "saleModelCode", source = "saleModel")
     @Mapping(target = "saleModelDesc", expression = "java(order.getVehicleInfo() != null ? order.getVehicleInfo().getDescription() : null)")
+    @Mapping(target = "orderType", expression = "java(order.getOrderType() != null ? order.getOrderType().name().toLowerCase() : null)")
+    @Mapping(target = "brandCode", source = "brandCode")
+    @Mapping(target = "saleModel", source = "saleModel")
+    @Mapping(target = "saleCode", source = "salesCode")
+    @Mapping(target = "modelConfigCode", source = "configurationCode")
+    @Mapping(target = "buildConfigCode", source = "configurationCode")
+    @Mapping(target = "createTime", source = "createTime")
     OrderDetailResult toOrderDetailResult(Order order);
 
     WishlistDetailResult toWishlistDetailResult(Order order);

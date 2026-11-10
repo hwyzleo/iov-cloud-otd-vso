@@ -68,6 +68,11 @@ class OrderAppServiceEarnestMoneyTest {
     @Mock
     private MdmProjectionService mdmProjectionService;
 
+    @Mock
+    private PurchaseAgreementAppService purchaseAgreementAppService;
+    @Mock
+    private OrderTimelineAppService orderTimelineAppService;
+
     @InjectMocks
     private OrderAppService orderAppService;
 
@@ -91,6 +96,14 @@ class OrderAppServiceEarnestMoneyTest {
                 .earnestMoneyPrice(BigDecimal.valueOf(5000))
                 .downPaymentPrice(BigDecimal.valueOf(20000))
                 .build();
+    }
+
+    @org.junit.jupiter.api.BeforeEach
+    void stubAgreementConfirmations() {
+        org.mockito.Mockito.lenient().when(purchaseAgreementAppService.buildConfirmations(
+                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any()))
+                .thenReturn(java.util.List.of());
     }
 
     @Test

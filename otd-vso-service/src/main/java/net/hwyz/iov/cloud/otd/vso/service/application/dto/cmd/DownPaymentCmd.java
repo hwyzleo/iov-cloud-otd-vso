@@ -37,4 +37,7 @@ public class DownPaymentCmd {
     private String deliveryStoreCode;
     private String wishlistId;
 
+    /** 下单确认的购车协议列表 */
+    private List<AgreementConfirmationCmd> agreementConfirmations;
+
 }

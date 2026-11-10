@@ -10,6 +10,7 @@
         <result column="payment_id" property="paymentId" />
         <result column="refund_scene" property="refundScene" />
         <result column="refund_amount" property="refundAmount" />
+        <result column="refund_fee" property="refundFee" />
         <result column="refund_status" property="refundStatus" />
         <result column="approval_id" property="approvalId" />
         <result column="external_refund_no" property="externalRefundNo" />
@@ -25,7 +26,7 @@
     </resultMap>
 
     <sql id="baseColumnList">
-        t.id, t.refund_id, t.refund_no, t.order_id, t.payment_id, t.refund_scene,
+        t.id, t.refund_id, t.refund_no, t.order_id, t.payment_id, t.refund_scene, t.refund_fee,
         t.refund_amount, t.refund_status, t.approval_id, t.external_refund_no,
         t.apply_time, t.refund_time, t.fail_reason, t.create_time, t.create_by,
         t.modify_time, t.modify_by, t.row_version, t.row_valid
@@ -92,13 +93,13 @@
     <insert id="insertPo" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO vso_refund (
             refund_id, refund_no, order_id, payment_id, refund_scene,
-            refund_amount, refund_status, approval_id, external_refund_no,
+            refund_amount, refund_fee, refund_status, approval_id, external_refund_no,
             apply_time, refund_time, fail_reason, create_time, create_by,
             modify_time, modify_by, row_version, row_valid
         )
         VALUES (
             #{refundId}, #{refundNo}, #{orderId}, #{paymentId}, #{refundScene},
-            #{refundAmount}, #{refundStatus}, #{approvalId}, #{externalRefundNo},
+            #{refundAmount}, #{refundFee}, #{refundStatus}, #{approvalId}, #{externalRefundNo},
             #{applyTime}, #{refundTime}, #{failReason}, now(), #{createBy},
             now(), #{modifyBy}, 1, 1
         )
@@ -107,7 +108,7 @@
     <insert id="batchInsertPo">
         INSERT INTO vso_refund (
             refund_id, refund_no, order_id, payment_id, refund_scene,
-            refund_amount, refund_status, approval_id, external_refund_no,
+            refund_amount, refund_fee, refund_status, approval_id, external_refund_no,
             apply_time, refund_time, fail_reason, create_time, create_by,
             modify_time, modify_by, row_version, row_valid
         )
@@ -115,7 +116,7 @@
         <foreach collection="list" item="item" separator=",">
             (
                 #{item.refundId}, #{item.refundNo}, #{item.orderId}, #{item.paymentId}, #{item.refundScene},
-                #{item.refundAmount}, #{item.refundStatus}, #{item.approvalId}, #{item.externalRefundNo},
+                #{item.refundAmount}, #{item.refundFee}, #{item.refundStatus}, #{item.approvalId}, #{item.externalRefundNo},
                 #{item.applyTime}, #{item.refundTime}, #{item.failReason}, now(), #{item.createBy},
                 now(), #{item.modifyBy}, 1, 1
             )
@@ -124,6 +125,9 @@
 
     <update id="updatePo" parameterType="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.RefundPo">
         UPDATE vso_refund t SET
+        <if test="refundFee != null">
+            t.refund_fee = #{refundFee},
+        </if>
         <if test="refundStatus != null and refundStatus != ''">
             t.refund_status = #{refundStatus},
         </if>
@@ -164,5 +168,24 @@
             #{id}
         </foreach>
     </delete>
+
+    <!-- 根据退款单号查询（具名 SQL） -->
+    <select id="selectByRefundNo" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_refund t
+        WHERE t.refund_no = #{refundNo}
+        AND t.row_valid = 1
+    </select>
+
+    <!-- 订单当前活动退款主单（pending / processing） -->
+    <select id="selectActiveByOrderId" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_refund t
+        WHERE t.order_id = #{orderId}
+        AND t.refund_status IN ('pending', 'processing', 'failed')
+        AND t.row_valid = 1
+        ORDER BY t.id DESC
+        LIMIT 1
+    </select>
 
 </mapper>

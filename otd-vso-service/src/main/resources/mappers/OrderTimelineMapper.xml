@@ -39,7 +39,19 @@
         FROM vso_order_timeline t
         WHERE t.order_id = #{orderId}
         AND t.row_valid = 1
-        ORDER BY t.event_time DESC
+        ORDER BY t.event_time ASC, t.id ASC
+    </select>
+
+    <!-- 批量查询多个订单的最新事件时间（避免 N+1） -->
+    <select id="selectLatestEventTimeByOrderIds" resultMap="baseResultMap">
+        SELECT t.order_id, MAX(t.event_time) AS event_time
+        FROM vso_order_timeline t
+        WHERE t.order_id IN
+        <foreach collection="orderIds" item="orderId" open="(" separator="," close=")">
+            #{orderId}
+        </foreach>
+        AND t.row_valid = 1
+        GROUP BY t.order_id
     </select>
 
     <select id="selectPoById" parameterType="Long" resultMap="baseResultMap">

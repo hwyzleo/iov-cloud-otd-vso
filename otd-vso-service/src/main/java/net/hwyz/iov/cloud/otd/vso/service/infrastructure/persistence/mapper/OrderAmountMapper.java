@@ -26,6 +26,11 @@ public interface OrderAmountMapper extends BaseDao<OrderAmountPo, Long> {
 
     OrderAmountPo selectPoById(Long id);
 
+    /**
+     * 批量查询多个订单的金额信息（避免 N+1）
+     */
+    List<OrderAmountPo> selectByOrderIds(@Param("orderIds") List<String> orderIds);
+
     List<OrderAmountPo> selectPoByMap(@Param("params") Map<String, Object> params);
 
     int countPoByMap(@Param("params") Map<String, Object> params);

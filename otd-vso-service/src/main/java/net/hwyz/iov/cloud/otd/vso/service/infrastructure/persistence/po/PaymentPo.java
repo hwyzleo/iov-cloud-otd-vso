@@ -57,6 +57,9 @@ public class PaymentPo implements Serializable {
     @TableField("pay_time")
     private LocalDateTime payTime;
 
+    @TableField("expire_time")
+    private LocalDateTime expireTime;
+
     @TableField("fail_reason")
     private String failReason;
 

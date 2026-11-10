@@ -5,12 +5,15 @@ import lombok.extern.slf4j.Slf4j;
 import net.hwyz.iov.cloud.edd.dictionary.api.service.DictionaryService;
 import net.hwyz.iov.cloud.edd.dictionary.api.vo.response.DictionaryResponse;
 import net.hwyz.iov.cloud.edd.org.api.service.OrgDealershipService;
+import net.hwyz.iov.cloud.edd.org.api.service.OrgDealershipStaffService;
+import net.hwyz.iov.cloud.edd.org.api.vo.DealershipStaffExService;
 import net.hwyz.iov.cloud.edd.org.api.vo.DealershipExService;
 import net.hwyz.iov.cloud.edd.vmd.api.service.VmdVehicleModelConfigService;
 import net.hwyz.iov.cloud.edd.vmd.api.vo.response.VmdBuildConfigResponse;
 import net.hwyz.iov.cloud.edd.mdm.api.service.ConfigurationService;
 import net.hwyz.iov.cloud.edd.mdm.api.vo.request.ConfigurationByVariantAndOptionCodesRequest;
 import net.hwyz.iov.cloud.edd.mdm.api.vo.response.ConfigurationResponse;
+import net.hwyz.iov.cloud.framework.common.bean.PageResult;
 import net.hwyz.iov.cloud.framework.web.util.PageUtil;
 import net.hwyz.iov.cloud.otd.vso.api.enums.CustomerType;
 import net.hwyz.iov.cloud.otd.vso.api.enums.OrderType;
@@ -28,6 +31,7 @@ import net.hwyz.iov.cloud.otd.vso.service.common.exception.BrandCodeNotExistExce
 import net.hwyz.iov.cloud.otd.vso.service.common.exception.BuildConfigNotMatchedException;
 import net.hwyz.iov.cloud.otd.vso.service.common.exception.ConfigurationNotMatchedException;
 import net.hwyz.iov.cloud.otd.vso.service.common.exception.OrderNotExistException;
+import net.hwyz.iov.cloud.otd.vso.service.common.exception.OrderAmountSnapshotMissingException;
 import net.hwyz.iov.cloud.otd.vso.service.common.exception.OrderStateNotAllowedException;
 import net.hwyz.iov.cloud.otd.vso.service.common.exception.PaymentChannelNotAvailableException;
 import net.hwyz.iov.cloud.otd.vso.service.common.exception.SaleModelNotExistException;
@@ -37,6 +41,10 @@ import net.hwyz.iov.cloud.otd.vso.service.domain.service.SalesPolicyService;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.Order;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.OrderAmount;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.OrderState;
+import net.hwyz.iov.cloud.otd.vso.service.domain.model.Payment;
+import net.hwyz.iov.cloud.otd.vso.service.domain.model.OrderAgreementConfirmation;
+import net.hwyz.iov.cloud.otd.vso.service.domain.model.OrderTimelineEventType;
+import net.hwyz.iov.cloud.otd.vso.service.domain.service.OrderStateMachine;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.VehicleAssignment;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.Wishlist;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.shared.CustomerInfo;
@@ -44,9 +52,12 @@ import net.hwyz.iov.cloud.otd.vso.service.domain.model.shared.Money;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.shared.OrganizationInfo;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.shared.VehicleInfo;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.OrderPartyRepository;
+import net.hwyz.iov.cloud.otd.vso.service.domain.model.DeliveryAppointment;
+import net.hwyz.iov.cloud.otd.vso.service.domain.repository.DeliveryRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.OrderAssignmentRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.OrderAmountRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.OrderRepository;
+import net.hwyz.iov.cloud.otd.vso.service.domain.repository.OrderTimelineRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.PaymentRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.SaleModelRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.SaleModelModelPolicyRepository;
@@ -105,9 +116,11 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -142,6 +155,7 @@ public class OrderAppService {
     private final SaleModelAppService saleModelAppService;
     private final DictionaryService dictionaryService;
     private final OrgDealershipService orgDealershipService;
+    private final OrgDealershipStaffService orgDealershipStaffService;
     private final AuditRepository auditRepository;
     private final OrderVehicleSnapshotRepository orderVehicleSnapshotRepository;
     private final SupplementaryPaymentRepository supplementaryPaymentRepository;
@@ -157,6 +171,14 @@ public class OrderAppService {
     private final SaleModelModelPolicyRepository saleModelModelPolicyRepository;
     private final SaleModelOptionPolicyRepository optionPolicyRepository;
     private final SaleModelOptionFamilyPolicyRepository optionFamilyPolicyRepository;
+    private final PaymentAppService paymentAppService;
+    private final RefundAppService refundAppService;
+    private final DeliveryAppService deliveryAppService;
+    private final DeliveryRepository deliveryRepository;
+    private final OrderTimelineRepository orderTimelineRepository;
+    private final PurchaseAgreementAppService purchaseAgreementAppService;
+    private final OrderTimelineAppService orderTimelineAppService;
+    private final VehicleAssignmentAppService vehicleAssignmentAppService;
 
     private final Map<String, String> cityNameCache = new ConcurrentHashMap<>();
     private volatile long cityNameCacheLastRefresh = 0;
@@ -416,7 +438,8 @@ public class OrderAppService {
         List<OrderState> orderStateList = query.getOrderStateRange() != null
                 ? query.getOrderStateRange().stream().map(OrderState::fromValue).collect(Collectors.toList())
                 : null;
-        List<Order> orderList = orderRepository.search(
+        List<Order> orderList = orderRepository.searchByAccount(
+                query.getAccountId(),
                 query.getOrderNo(),
                 query.getOrderState() != null ? OrderState.fromValue(query.getOrderState()) : null,
                 orderStateList,
@@ -480,6 +503,48 @@ public class OrderAppService {
             }
         }
 
+        // 3.4 批量获取订单金额、成功支付单与时间线最新事件时间（各一次查询，避免 N+1）
+        Map<String, net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.OrderAmountPo> amountMap = new HashMap<>();
+        Map<String, Date> earnestMoneyTimeMap = new HashMap<>();
+        Map<String, Date> orderStateTimeMap = new HashMap<>();
+        try {
+            List<String> enrichedOrderIds = results.stream()
+                    .map(OrderListResult::getOrderId)
+                    .filter(StrUtil::isNotBlank)
+                    .distinct()
+                    .collect(Collectors.toList());
+            amountMap.putAll(orderAmountRepository.findPoByOrderIds(enrichedOrderIds));
+            paymentRepository.findSuccessfulByOrderIds(enrichedOrderIds)
+                    .stream()
+                    .filter(payment -> payment.getPaymentStage() != null
+                            && payment.getPaymentStage().startsWith("EARNEST"))
+                    .forEach(payment -> {
+                        Date payTime = toDate(payment.getPayTime());
+                        if (payTime != null) {
+                            earnestMoneyTimeMap.merge(payment.getOrderId(), payTime,
+                                    (existing, candidate) -> existing.before(candidate) ? existing : candidate);
+                        }
+                    });
+            orderTimelineRepository.findLatestEventTimeByOrderIds(enrichedOrderIds)
+                    .forEach((orderId, eventTime) -> orderStateTimeMap.put(orderId, toDate(eventTime)));
+        } catch (Exception e) {
+            log.warn("批量获取订单运营字段失败", e);
+        }
+
+        // 3.5 批量获取当前有效交付预约（一次查询，避免 N+1）
+        Map<String, DeliveryAppointment> appointmentMap = new HashMap<>();
+        try {
+            List<String> orderIds = results.stream()
+                    .map(OrderListResult::getOrderId)
+                    .filter(StrUtil::isNotBlank)
+                    .distinct()
+                    .collect(Collectors.toList());
+            deliveryRepository.findBookedByOrderIds(orderIds)
+                    .forEach(appointment -> appointmentMap.putIfAbsent(appointment.getOrderId(), appointment));
+        } catch (Exception e) {
+            log.warn("批量获取交付预约失败", e);
+        }
+
         // 4. 组装展示信息
         for (OrderListResult result : results) {
             // 基本信息
@@ -487,6 +552,24 @@ public class OrderAppService {
             result.setOrderSourceName(getOrderSourceName(result.getOrderSource()));
             result.setBrandName(result.getBrandCode());
             result.setOwnerRegionName(getRegionName(result.getOwnerRegionCode()));
+
+            // 金额快照与派生时间（运营核对）
+            var amountPo = amountMap.get(result.getOrderId());
+            if (amountPo != null) {
+                result.setEarnestMoneyAmount(amountPo.getDepositAmount());
+                result.setDownPaymentAmount(amountPo.getDownPaymentAmount());
+            }
+            result.setEarnestMoneyTime(earnestMoneyTimeMap.get(result.getOrderId()));
+            result.setOrderStateTime(orderStateTimeMap.get(result.getOrderId()));
+
+            // 当前有效交付预约（运营交付人员分配页核对）
+            DeliveryAppointment appointment = appointmentMap.get(result.getOrderId());
+            if (appointment != null) {
+                result.setAppointmentNo(appointment.getAppointmentNo());
+                result.setAppointmentTime(appointment.getAppointmentTime());
+                result.setAppointmentStatus(appointment.getAppointmentStatus() == null
+                        ? null : appointment.getAppointmentStatus().getValue());
+            }
 
             // 销售车型名称
             try {
@@ -615,6 +698,61 @@ public class OrderAppService {
         }
     }
 
+    /**
+     * 运营详情字段补齐（金额已在 getById 加载，这里补名称、状态时间、意向金支付时间与交付预约）
+     */
+    private void enrichOrderDetail(OrderDetailResult result, String orderId) {
+        if (result == null || StrUtil.isBlank(orderId)) {
+            return;
+        }
+        result.setOrderTypeName(getOrderTypeName(result.getOrderType()));
+        result.setOrderSourceName(getOrderSourceName(result.getOrderSource()));
+        if (StrUtil.isNotBlank(result.getBrandCode())) {
+            result.setBrandName(result.getBrandCode());
+        }
+        if (StrUtil.isNotBlank(result.getSaleModel())) {
+            try {
+                saleModelRepository.findBySaleModelCode(result.getSaleModel())
+                        .ifPresent(po -> result.setSaleModelName(po.getModelName()));
+            } catch (Exception e) {
+                log.warn("获取销售车型名称失败: saleModelCode={}", result.getSaleModel(), e);
+            }
+        }
+        if (result.getOrderAmount() != null) {
+            if (result.getOrderAmount().getDepositAmount() != null) {
+                result.setEarnestMoneyAmount(result.getOrderAmount().getDepositAmount().getAmount());
+            }
+            if (result.getOrderAmount().getDownPaymentAmount() != null) {
+                result.setDownPaymentAmount(result.getOrderAmount().getDownPaymentAmount().getAmount());
+            }
+        }
+        try {
+            List<String> orderIds = List.of(orderId);
+            result.setOrderStateTime(toDate(orderTimelineRepository
+                    .findLatestEventTimeByOrderIds(orderIds).get(orderId)));
+            paymentRepository.findSuccessfulByOrderIds(orderIds).stream()
+                    .filter(payment -> payment.getPaymentStage() != null
+                            && payment.getPaymentStage().startsWith("EARNEST"))
+                    .map(payment -> toDate(payment.getPayTime()))
+                    .filter(Objects::nonNull)
+                    .findFirst()
+                    .ifPresent(result::setEarnestMoneyTime);
+            deliveryRepository.findLatestByOrderId(orderId).ifPresent(appointment -> {
+                result.setAppointmentNo(appointment.getAppointmentNo());
+                result.setAppointmentTime(appointment.getAppointmentTime());
+                result.setAppointmentStatus(appointment.getAppointmentStatus() == null
+                        ? null : appointment.getAppointmentStatus().getValue());
+            });
+        } catch (Exception e) {
+            log.warn("补齐订单运营字段失败: orderId={}", orderId, e);
+        }
+    }
+
+    private Date toDate(java.time.LocalDateTime localDateTime) {
+        return localDateTime == null ? null
+                : Date.from(localDateTime.atZone(java.time.ZoneId.systemDefault()).toInstant());
+    }
+
     private String getRegionName(String regionCode) {
         if (StrUtil.isBlank(regionCode)) {
             return "";
@@ -638,9 +776,30 @@ public class OrderAppService {
 
     /**
      * 按 ID 获取详情
+     * <p>
+     * MPT 与内部服务共用：加载金额快照并补齐运营字段（类型/来源名称、金额、状态时间、
+     * 意向金支付时间、交付预约）。订单不存在统一抛 ORDER_NOT_EXIST，不得冒泡 IllegalArgumentException。
      */
     public OrderDetailResult getById(String orderId) {
         Order order = orderDomainService.loadOrder(orderId);
+        try {
+            loadOrderAmount(order);
+        } catch (Exception e) {
+            // 只读详情不得因历史金额快照缺失而失败；缺失时金额字段留空并记录待修复
+            log.warn("订单[{}]金额快照缺失或读取失败，详情金额字段留空：{}", orderId, e.getMessage());
+        }
+        OrderDetailResult result = OrderDtoAssembler.INSTANCE.toOrderDetailResult(order);
+        enrichOrderDetail(result, order.getId());
+        return result;
+    }
+
+    /**
+     * C 端按订单业务 ID 查询详情（用户隔离，非本人统一 ORDER_NOT_EXIST）
+     */
+    public OrderDetailResult getUserOrderById(String accountId, String orderId) {
+        Order order = orderRepository.findByOrderIdAndAccountId(orderId, accountId)
+                .orElseThrow(() -> new OrderNotExistException(orderId));
+        loadOrderAmount(order);
         return OrderDtoAssembler.INSTANCE.toOrderDetailResult(order);
     }
 
@@ -668,15 +827,12 @@ public class OrderAppService {
     /**
      * 分派车辆
      */
+    /**
+     * 分配车辆（统一委托配车应用服务：VIN 占用、配车记录、状态机与时间线）
+     */
     @Transactional(rollbackFor = Exception.class)
     public void assignVehicle(AssignVehicleCmd cmd) {
-        log.info("分派车辆：orderId={}, vin={}", cmd.getOrderNo(), cmd.getVin());
-        orderLockService.executeWithLock(cmd.getOrderNo(), cmd.getVin(), "bindVehicle", () -> {
-            orderValidationService.validateVinAvailable(cmd.getVin(), cmd.getOrderNo());
-            Order order = orderDomainService.loadOrder(cmd.getOrderNo());
-            order.saveDeliveryVehicle(cmd.getVin());
-            orderRepository.save(order);
-        });
+        vehicleAssignmentAppService.assignVehicle(cmd);
     }
 
     /**
@@ -685,29 +841,54 @@ public class OrderAppService {
     @Transactional(rollbackFor = Exception.class)
     public void applyTransport(ApplyTransportCmd cmd) {
         log.info("申请运输：orderId={}", cmd.getOrderNo());
-        Order order = orderDomainService.loadOrder(cmd.getOrderNo());
-//        order.applyTransportVehicle(cmd.getOperatorId(), cmd.getOperatorName());
+        Order order = orderDomainService.loadOrderByOrderNo(cmd.getOrderNo());
+        if (order.getOrderState() != OrderState.ALLOCATION_VEHICLE) {
+            throw new OrderStateNotAllowedException("车辆销售订单[" + cmd.getOrderNo() + "]当前状态["
+                    + order.getOrderState() + "]不允许申请发运");
+        }
+        String before = String.valueOf(order.getOrderState().getValue());
+        order.applyTransportVehicle(cmd.getOperatorId(), cmd.getOperatorName());
         orderRepository.save(order);
+        orderTimelineAppService.record(order.getId(), OrderTimelineEventType.TRANSPORT_APPLIED,
+                before, String.valueOf(order.getOrderState().getValue()),
+                cmd.getOperatorId(), "mpt", "mpt", null, null,
+                "发运申请人：" + cmd.getOperatorName());
     }
 
     /**
      * 搜索交付中心人员
      */
-    public List<DeliveryStaffResult> searchDeliveryStaff(String dealershipCode) {
-//        var page = exDealershipStaffService.search(dealershipCode);
-//        return PageUtil.convert(page, staff -> DeliveryStaffResult.builder()
-//                .dealershipCode(staff.getDealershipCode())
-//                .dealershipName(staff.getDealershipName())
-//                .userId(staff.getUserId())
-//                .userName(staff.getUserName())
-//                .nickName(staff.getNickName())
-//                .phonenumber(staff.getPhonenumber())
-//                .notDeliveryOrderCount(count(CountQuery.builder()
-//                        .deliveryPersonId(staff.getUserId().toString())
-//                        .delivered(false)
-//                        .build()))
-//                .build());
-        return new ArrayList<>();
+    public PageResult<DeliveryStaffResult> searchDeliveryStaff(String dealershipCode, Integer pageNum, Integer pageSize) {
+        int page = pageNum == null || pageNum < 1 ? 1 : pageNum;
+        int size = pageSize == null || pageSize < 1 ? 20 : pageSize;
+        PageResult<DealershipStaffExService> staffPage = orgDealershipStaffService.searchPage(dealershipCode, page, size);
+        if (staffPage == null) {
+            return PageResult.empty(page, size);
+        }
+        List<DealershipStaffExService> staffList = staffPage.getItems() == null
+                ? new ArrayList<>() : staffPage.getItems();
+        // 未交付订单数一次批量统计，避免逐个交付人员 count 查询
+        List<String> deliveryPersonIds = staffList.stream()
+                .map(DealershipStaffExService::getUserId)
+                .filter(Objects::nonNull)
+                .map(String::valueOf)
+                .distinct()
+                .collect(Collectors.toList());
+        Map<String, Integer> undeliveredCountMap = orderRepository
+                .countUndeliveredByDeliveryPersonIds(deliveryPersonIds);
+        List<DeliveryStaffResult> items = staffList.stream()
+                .map(staff -> DeliveryStaffResult.builder()
+                        .dealershipCode(staff.getDealershipCode())
+                        .dealershipName(staff.getDealershipName())
+                        .userId(staff.getUserId())
+                        .userName(staff.getUserName())
+                        .nickName(staff.getNickName())
+                        .phonenumber(staff.getPhonenumber())
+                        .notDeliveryOrderCount(staff.getUserId() == null ? 0
+                                : undeliveredCountMap.getOrDefault(String.valueOf(staff.getUserId()), 0))
+                        .build())
+                .collect(Collectors.toList());
+        return new PageResult<>(items, staffPage.getTotal(), staffPage.getPage(), staffPage.getSize());
     }
 
     /**
@@ -824,10 +1005,25 @@ public class OrderAppService {
         
         order.earnestMoneyOrder();
         order.saveLicenseCity(cmd.getLicenseCityCode());
+
+        // 金额快照：只能取选中 Variant / Option 的价格，禁止使用车型最低价
+        OrderAmount orderAmount = buildOrderAmountSnapshot(order, variantPrice, optionTotalPrice,
+                earnestMoneyAmount, variantPolicy, true);
+        order.setOrderAmount(orderAmount);
+
+        // 购车协议确认快照（缺失必确认协议时整单回滚）
+        List<OrderAgreementConfirmation> confirmations = purchaseAgreementAppService.buildConfirmations(
+                order.getId(), saleModel, cmd.getAgreementConfirmations());
+
         orderRepository.save(order);
-        
+
         saveOrderParty(order.getId(), cmd.getAccountId(), "order_user");
-        
+        purchaseAgreementAppService.saveConfirmations(confirmations);
+        orderTimelineAppService.record(order.getId(), OrderTimelineEventType.ORDER_CREATED,
+                null, String.valueOf(order.getOrderState().getValue()),
+                cmd.getAccountId(), "order_user", "capp", order.getOrderNo(), null,
+                "意向金下单，应付意向金：" + earnestMoneyAmount);
+
         wishlistRepository.deleteByUserId(cmd.getAccountId());
         log.info("意向金下单成功后删除心愿单：accountId={}, orderNo={}", cmd.getAccountId(), order.getOrderNo());
         
@@ -851,39 +1047,20 @@ public class OrderAppService {
     public DownPaymentOrderResult downPaymentOrder(DownPaymentCmd cmd) {
         log.info("定金下单：accountId={}, orderNo={}, saleModel={}", 
                 cmd.getAccountId(), cmd.getOrderNo(), cmd.getSaleModel());
-        
+
+        // 旧客户端从意向金订单进入：复用 US-005 转定金用例
+        if (StrUtil.isNotBlank(cmd.getOrderNo())) {
+            return convertExistingOrderToDownPayment(cmd);
+        }
+
         duplicateOrderSpecification.check(cmd.getAccountId(), null);
-        
+
         String configurationCode;
         String saleModel;
-        Order order;
-        
-        if (StrUtil.isNotBlank(cmd.getOrderNo())) {
-            Optional<Order> orderOpt = orderRepository.findByOrderNoAndAccountId(cmd.getOrderNo(), cmd.getAccountId());
-            if (orderOpt.isPresent()) {
-                order = orderOpt.get();
-                if (order.getOrderState() == OrderState.EARNEST_MONEY_PAID) {
-                    log.info("意向金转定金：orderNo={}, saleModel={}, configurationCode={}", 
-                            order.getOrderNo(), order.getSaleModel(), order.getConfigurationCode());
-                    saleModel = order.getSaleModel();
-                    configurationCode = order.getConfigurationCode();
-                } else {
-                    log.warn("订单状态不允许定金下单：orderNo={}, orderState={}", 
-                            order.getOrderNo(), order.getOrderState());
-                    throw new OrderStateNotAllowedException("车辆销售订单[" + order.getOrderNo() + "]当前状态[" + order.getOrderState() + "]不允许定金下单");
-                }
-            } else {
-                order = Order.fromWishlist(cmd.getAccountId(), null);
-                saleModel = cmd.getSaleModel();
-                configurationCode = cmd.getConfigurationCode();
-                order.saveSaleModel(saleModel);
-            }
-        } else {
-            order = Order.fromWishlist(cmd.getAccountId(), null);
-            saleModel = cmd.getSaleModel();
-            configurationCode = cmd.getConfigurationCode();
-            order.saveSaleModel(saleModel);
-        }
+        Order order = Order.fromWishlist(cmd.getAccountId(), null);
+        saleModel = cmd.getSaleModel();
+        configurationCode = cmd.getConfigurationCode();
+        order.saveSaleModel(saleModel);
         
         if (configurationCode == null || configurationCode.isEmpty()) {
             if (cmd.getOptionCodes() != null && !cmd.getOptionCodes().isEmpty()) {
@@ -896,10 +1073,39 @@ public class OrderAppService {
             throw new BuildConfigNotMatchedException(saleModel);
         }
         
-        order.saveBrandCode(cmd.getCarlineCode());
-        
+        String carlineCode = cmd.getCarlineCode();
+        if (StrUtil.isBlank(carlineCode)) {
+            carlineCode = saleModelRepository.findBySaleModelCode(saleModel)
+                    .map(SaleModelPo::getCarlineCode)
+                    .orElse("OPENIOV");
+        }
+        order.saveBrandCode(carlineCode);
+
         order.downPaymentOrder();
         order.saveConfiguration(configurationCode, cmd.getModelConfigMap());
+
+        // 选中 Variant 价格 / Option 总价 / 定金金额快照（禁止取车型最低价）
+        SaleModelVariantPolicyPo directVariantPolicy = saleModelVariantPolicyRepository
+                .findBySaleModelCodeAndVariantCode(saleModel, cmd.getVariantCode())
+                .orElse(null);
+        if (directVariantPolicy == null || directVariantPolicy.getDownPaymentPrice() == null) {
+            throw new OrderAmountSnapshotMissingException(
+                    "选中 Variant[" + cmd.getVariantCode() + "]定金价格缺失，无法下单");
+        }
+        BigDecimal directVariantPrice = directVariantPolicy.getVariantPrice() == null
+                ? BigDecimal.ZERO : directVariantPolicy.getVariantPrice();
+        List<String> directOptionCodes = cmd.getOptionCodes() == null ? new ArrayList<>() : cmd.getOptionCodes();
+        BigDecimal directOptionTotal = BigDecimal.ZERO;
+        for (String optionCode : directOptionCodes) {
+            BigDecimal optionPrice = salesPolicyService.getOptionPrice(saleModel, optionCode);
+            directOptionTotal = directOptionTotal.add(optionPrice == null ? BigDecimal.ZERO : optionPrice);
+        }
+        order.setOrderAmount(buildOrderAmountSnapshot(order, directVariantPrice, directOptionTotal,
+                directVariantPolicy.getDownPaymentPrice(), directVariantPolicy, false));
+        saveOrderVehicleSnapshot(order, saleModel, cmd.getCarlineCode(), cmd.getModelCode(), cmd.getVariantCode(),
+                configurationCode, directOptionCodes, directVariantPolicy);
+        List<OrderAgreementConfirmation> directConfirmations = purchaseAgreementAppService.buildConfirmations(
+                order.getId(), saleModel, cmd.getAgreementConfirmations());
         
         if (StrUtil.isNotBlank(cmd.getCustomerType())) {
             order.saveCustomerType(cmd.getCustomerType());
@@ -938,10 +1144,16 @@ public class OrderAppService {
             saveOrderAssignment(order.getId(), cmd.getOrderStoreCode(), cmd.getDeliveryStoreCode());
         }
         
+        purchaseAgreementAppService.saveConfirmations(directConfirmations);
+        orderTimelineAppService.record(order.getId(), OrderTimelineEventType.ORDER_CREATED,
+                null, String.valueOf(order.getOrderState().getValue()),
+                cmd.getAccountId(), "order_user", "capp", order.getOrderNo(), null,
+                "直接定金下单，应付定金：" + directVariantPolicy.getDownPaymentPrice());
+
         wishlistRepository.deleteByUserId(cmd.getAccountId());
         log.info("定金下单成功后删除心愿单：accountId={}, orderNo={}", cmd.getAccountId(), order.getOrderNo());
-        
-        BigDecimal downPaymentAmount = getDownPaymentAmount(saleModel);
+
+        BigDecimal downPaymentAmount = directVariantPolicy.getDownPaymentPrice();
         Instant expireTime = Instant.now().plusSeconds(paymentChannelConfig.getDownPaymentTimeoutMinutes() * 60);
         List<DownPaymentOrderResult.PaymentChannelInfo> paymentChannels = buildDownPaymentChannelInfoList();
 
@@ -954,6 +1166,69 @@ public class OrderAppService {
                 .paymentChannels(paymentChannels)
                 .expireTime(expireTime)
                 .build();
+    }
+
+    /**
+     * 旧客户端兼容：已有意向金订单转定金
+     */
+    private DownPaymentOrderResult convertExistingOrderToDownPayment(DownPaymentCmd cmd) {
+        Order existing = orderRepository.findByOrderNoAndAccountId(cmd.getOrderNo(), cmd.getAccountId())
+                .orElseThrow(() -> new OrderNotExistException(cmd.getOrderNo()));
+        if (existing.getOrderState() != OrderState.EARNEST_MONEY_PAID) {
+            throw new OrderStateNotAllowedException("车辆销售订单[" + cmd.getOrderNo() + "]当前状态["
+                    + existing.getOrderState() + "]不允许定金下单");
+        }
+        EarnestToDownResult convertResult = earnestMoneyToDownPayment(EarnestToDownCmd.builder()
+                .accountId(cmd.getAccountId())
+                .orderNo(cmd.getOrderNo())
+                .customerType(cmd.getCustomerType())
+                .paymentMethod(cmd.getPaymentMethod())
+                .orderPersonType(cmd.getOrderPersonType())
+                .orderPersonName(cmd.getOrderPersonName())
+                .orderPersonIdType(cmd.getOrderPersonIdType())
+                .orderPersonIdNum(cmd.getOrderPersonIdNum())
+                .purchasePlan(cmd.getPurchasePlan())
+                .licenseCityCode(cmd.getLicenseCityCode())
+                .orderStoreCode(cmd.getOrderStoreCode())
+                .deliveryStoreCode(cmd.getDeliveryStoreCode())
+                .build());
+        BigDecimal amount = existing.getOrderAmount() == null ? BigDecimal.ZERO
+                : existing.getOrderAmount().getDownPaymentAmount().getAmount();
+        return DownPaymentOrderResult.builder()
+                .orderNo(convertResult.getOrderNo())
+                .downPaymentAmount(amount)
+                .paymentChannels(buildDownPaymentChannelInfoList())
+                .expireTime(Instant.now().plusSeconds(paymentChannelConfig.getDownPaymentTimeoutMinutes() * 60L))
+                .build();
+    }
+
+    /**
+     * 构建订单金额快照
+     */
+    private OrderAmount buildOrderAmountSnapshot(Order order, BigDecimal variantPrice, BigDecimal optionTotalPrice,
+                                                 BigDecimal payableAmount, SaleModelVariantPolicyPo variantPolicy,
+                                                 boolean earnestOrder) {
+        OrderAmount amount = order.getOrderAmount() != null ? order.getOrderAmount()
+                : new OrderAmount("AMT" + IdUtil.nanoId(15));
+        BigDecimal vehiclePrice = variantPrice == null ? BigDecimal.ZERO : variantPrice;
+        BigDecimal optionPrice = optionTotalPrice == null ? BigDecimal.ZERO : optionTotalPrice;
+        amount.setGuidePrice(new Money(vehiclePrice));
+        amount.setVehiclePrice(new Money(vehiclePrice));
+        amount.setOptionPrice(new Money(optionPrice));
+        amount.setDealPriceTotal(new Money(vehiclePrice.add(optionPrice)));
+        if (earnestOrder) {
+            amount.setDepositAmount(new Money(payableAmount == null ? BigDecimal.ZERO : payableAmount));
+            BigDecimal downPayment = variantPolicy == null ? null : variantPolicy.getDownPaymentPrice();
+            amount.setDownPaymentAmount(new Money(downPayment == null ? BigDecimal.ZERO : downPayment));
+        } else {
+            amount.setDepositAmount(new Money(BigDecimal.ZERO));
+            amount.setDownPaymentAmount(new Money(payableAmount == null ? BigDecimal.ZERO : payableAmount));
+        }
+        amount.setPaidTotal(new Money(BigDecimal.ZERO));
+        amount.setRefundTotal(new Money(BigDecimal.ZERO));
+        amount.setUpgradedFromSmall(false);
+        amount.recalculate();
+        return amount;
     }
 
     public OrderDetailResult getUserOrder(String accountId, String orderNo) {
@@ -1168,75 +1443,11 @@ public class OrderAppService {
         });
     }
 
-    public PayResult pay(PayCmd cmd) {
-        Order order = findOrderById(cmd.getAccountId(), cmd.getOrderNo());
-        OrderState previousState = order.getOrderState();
-        
-        order.pay(cmd.getPaymentAmount());
-        orderRepository.save(order);
-        
-        if (previousState == OrderState.DOWN_PAYMENT_UNPAID && order.getOrderState() == OrderState.DOWN_PAYMENT_PAID) {
-            wishlistRepository.deleteByUserId(cmd.getAccountId());
-            log.info("支付定金成功后删除心愿单：accountId={}, orderNo={}", cmd.getAccountId(), cmd.getOrderNo());
-        }
-        
-        return PayResult.builder()
-                .orderNo(order.getOrderNo())
-//                .paymentMerchant(cmd.getPaymentMerchant())
-//                .paymentReference(cmd.getPaymentReference())
-                .paymentAmount(cmd.getPaymentAmount())
-                .build();
-    }
-
-    public void requestRefund(RequestRefundCmd cmd) {
-        orderLockService.executeWithLock(cmd.getOrderNo(), cmd.getAccountId(), "refund", () -> {
-            Order order = findOrderById(cmd.getAccountId(), cmd.getOrderNo());
-            
-            // 检查是否可以退款
-            if (!order.canRefund()) {
-                log.warn("订单状态不允许退款：orderNo={}, orderState={}", 
-                        order.getOrderNo(), order.getOrderState());
-                throw new OrderStateNotAllowedException("车辆销售订单[" + order.getOrderNo() + "]当前状态[" + order.getOrderState() + "]不允许退款");
-            }
-            
-            // 计算退款金额
-            Money refundAmount = order.getRefundAmount();
-            Money refundFee = order.getRefundFee();
-            String refundScene = order.getRefundScene();
-            
-            // 更新订单状态
-            order.requestRefund();
-            orderRepository.save(order);
-            
-            // 创建退款记录
-            RefundPo refundPo = new RefundPo();
-            refundPo.setRefundId(IdUtil.fastSimpleUUID());
-            refundPo.setRefundNo(generateRefundNo());
-            refundPo.setOrderId(order.getId());
-            refundPo.setRefundScene(refundScene);
-            refundPo.setRefundAmount(refundAmount.getAmount());
-            refundPo.setRefundFee(refundFee.getAmount());
-            refundPo.setRefundStatus("pending");
-            refundPo.setApplyTime(LocalDateTime.now());
-            refundRepository.save(refundPo);
-            
-            // 记录时间线
-            saveOrderTimeline(order.getId(), "REFUND_APPLY", "申请退款", 
-                    order.getOrderState().name(), "REFUND_APPLY",
-                    cmd.getAccountId(), "user", "mobile", 
-                    refundPo.getRefundNo(), "success", null, 
-                    "退款申请成功，退款金额：" + refundAmount + "，手续费：" + refundFee);
-            
-            log.info("创建退款任务：orderId={}, refundNo={}, refundAmount={}, refundFee={}", 
-                    order.getId(), refundPo.getRefundNo(), refundAmount, refundFee);
-        });
-    }
-
     /**
-     * 生成退款单号
+     * 申请退款（委托退款应用服务；多支付分摊、失败重试与回调闭环）
      */
-    private String generateRefundNo() {
-        return "REF" + System.currentTimeMillis() + String.format("%04d", new java.util.Random().nextInt(10000));
+    public RefundResult requestRefund(RequestRefundCmd cmd) {
+        return refundAppService.apply(cmd.getAccountId(), cmd.getOrderNo());
     }
 
     /**
@@ -1292,9 +1503,22 @@ public class OrderAppService {
             log.info("意向金转定金差额计算：orderNo={}, difference={}", cmd.getOrderNo(), difference);
 
             if (difference.isPositive()) {
-                // 差额 > 0：创建差额支付任务
-                SupplementaryPaymentPo supplementaryPayment = createEarnestToDownSupplementaryPayment(
-                    order.getId(), difference);
+                // 差额 > 0：存在未完成补款任务时返回已有任务（幂等）
+                SupplementaryPaymentPo supplementaryPayment = supplementaryPaymentRepository
+                    .findPendingByOrderIdAndScene(order.getId(),
+                            SupplementaryPaymentScene.EARNEST_TO_DOWN.getValue())
+                    .orElseGet(() -> createEarnestToDownSupplementaryPayment(order.getId(), difference));
+
+                if (order.getOrderAmount() != null && order.getOrderAmount().getPaidTotal()
+                        .isGreaterThan(order.getOrderAmount().getDownPaymentAmount())) {
+                    order.getOrderAmount().setUpgradedFromSmall(true);
+                    orderRepository.save(order);
+                }
+                orderTimelineAppService.record(order.getId(), OrderTimelineEventType.EARNEST_TO_DOWN_REQUESTED,
+                        String.valueOf(order.getOrderState().getValue()),
+                        String.valueOf(order.getOrderState().getValue()),
+                        cmd.getAccountId(), "order_user", "capp", supplementaryPayment.getSupplementaryNo(), null,
+                        "差额补款：" + difference.getAmount());
 
                 log.info("意向金转定金差额支付任务已创建：orderNo={}, difference={}, supplementaryNo={}",
                     cmd.getOrderNo(), difference, supplementaryPayment.getSupplementaryNo());
@@ -1317,6 +1541,11 @@ public class OrderAppService {
 
                 // 保存买家信息和订单分配
                 saveRelatedInfo(order, cmd);
+
+                orderTimelineAppService.record(order.getId(), OrderTimelineEventType.EARNEST_TO_DOWN_COMPLETED,
+                    String.valueOf(beforeState.getValue()), String.valueOf(order.getOrderState().getValue()),
+                    cmd.getAccountId(), "order_user", "capp", null, null,
+                    "意向金订单转定金订单（差额<=0，直接转换）");
 
                 // 记录时间线
                 saveOrderTimeline(order.getId(), "EARNEST_TO_DOWN_PAYMENT", "意向金转定金",
@@ -1396,6 +1625,7 @@ public class OrderAppService {
             .currency(amount.getCurrency())
             .supplementaryStatus(SupplementaryPaymentStatus.PENDING.getValue())
             .supplementaryScene(SupplementaryPaymentScene.EARNEST_TO_DOWN.getValue())
+            .configVersionNo(0)
             .expireTime(expireTime)
             .build();
 
@@ -1405,8 +1635,18 @@ public class OrderAppService {
 
     public void lock(LockCmd cmd) {
         Order order = findOrderById(cmd.getAccountId(), cmd.getOrderNo());
-        order.lock();
-        orderRepository.save(order);
+        orderLockService.executeWithLock(order.getId(), cmd.getAccountId(), "lock", () -> {
+            Order current = findOrderById(cmd.getAccountId(), cmd.getOrderNo());
+            if (current.getOrderState() == OrderState.ARRANGE_PRODUCTION) {
+                return;
+            }
+            String before = String.valueOf(current.getOrderState().getValue());
+            current.lock();
+            orderRepository.save(current);
+            orderTimelineAppService.record(current.getId(), OrderTimelineEventType.ORDER_LOCKED,
+                    before, String.valueOf(current.getOrderState().getValue()),
+                    cmd.getAccountId(), "order_user", "capp", null, null, "用户主动锁单");
+        });
     }
 
     /**
@@ -1415,18 +1655,55 @@ public class OrderAppService {
      */
     @Transactional(rollbackFor = Exception.class)
     public void modifyConfig(ModifyOrderConfigCmd cmd) {
-        log.info("修改订单配置：accountId={}, orderNo={}, optionCodes={}", 
+        log.info("修改订单配置：accountId={}, orderNo={}, optionCodes={}",
                 cmd.getAccountId(), cmd.getOrderNo(), cmd.getOptionCodes());
-        
+
         orderLockService.executeWithLock(cmd.getOrderNo(), cmd.getAccountId(), "modifyConfig", () -> {
-            // 1. 查找订单
+            // 1. 查找订单（本人订单，非本人统一 ORDER_NOT_EXIST）
             Order order = findOrderById(cmd.getAccountId(), cmd.getOrderNo());
+            doModifyConfig(order, cmd.getVariantCode(), cmd.getOptionCodes(),
+                    cmd.getAccountId(), "order_user", "capp", null);
+        });
+    }
+
+    /**
+     * MPT 运营改配提交（US-008 补充）
+     * <p>
+     * 与 C 端改配复用同一套配置解析、价格差额补/退与快照逻辑；
+     * 差异仅为：不做 C 端账号归属校验、操作人取安全上下文、时间线记录 operateSource=mpt。
+     *
+     * @param cmd 运营改配命令
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void modifyConfigByOperator(ModifyOrderConfigByOperatorCmd cmd) {
+        log.info("MPT 修改订单配置：operatorId={}, orderId={}, optionCodes={}",
+                cmd.getOperatorId(), cmd.getOrderId(), cmd.getOptionCodes());
+        Order order = orderRepository.findByOrderId(cmd.getOrderId())
+                .orElseThrow(() -> new OrderNotExistException(cmd.getOrderId()));
+        orderLockService.executeWithLock(order.getOrderNo(), cmd.getOperatorId(), "modifyConfig", () -> {
+            // 锁内重新加载，与 C 端改配保持一致
+            Order current = orderRepository.findByOrderId(cmd.getOrderId())
+                    .orElseThrow(() -> new OrderNotExistException(cmd.getOrderId()));
+            doModifyConfig(current, cmd.getVariantCode(), cmd.getOptionCodes(),
+                    cmd.getOperatorId(), "mpt_operator", "mpt", cmd.getReason());
+        });
+    }
+
+    /**
+     * 改配共用实现（C 端与 MPT 复用，禁止在 Controller 各自拼装）
+     */
+    private void doModifyConfig(Order order, String variantCode, List<String> optionCodes,
+                                String operatorId, String operatorRole, String operateSource, String reason) {
+            // 1. 金额快照（C 端入口已加载，MPT 入口在此补齐，缺失时明确报错）
+            if (order.getOrderAmount() == null) {
+                loadOrderAmount(order);
+            }
 
             // 2. 校验订单状态
             validateOrderStateForModifyConfig(order);
 
             // 3. 获取新的 buildConfigCode（通过 variantCode + optionCodes）
-            String newBuildConfigCode = resolveConfiguration(cmd.getVariantCode(), cmd.getOptionCodes());
+            String newBuildConfigCode = resolveConfiguration(variantCode, optionCodes);
             if (newBuildConfigCode == null || newBuildConfigCode.isEmpty()) {
                 throw new BuildConfigNotMatchedException(order.getSaleModel());
             }
@@ -1445,17 +1722,17 @@ public class OrderAppService {
 
             // 6. 获取新配置的价格（通过销售策略表）
             BigDecimal variantPrice = BigDecimal.ZERO;
-            if (StrUtil.isNotBlank(cmd.getVariantCode())) {
+            if (StrUtil.isNotBlank(variantCode)) {
                 variantPrice = saleModelVariantPolicyRepository
-                    .findBySaleModelCodeAndVariantCode(order.getSaleModel(), cmd.getVariantCode())
+                    .findBySaleModelCodeAndVariantCode(order.getSaleModel(), variantCode)
                     .map(policy -> policy.getVariantPrice() != null ? policy.getVariantPrice() : BigDecimal.ZERO)
                     .orElse(BigDecimal.ZERO);
             }
 
             BigDecimal optionTotalPrice = BigDecimal.ZERO;
-            if (cmd.getOptionCodes() != null && !cmd.getOptionCodes().isEmpty()) {
+            if (optionCodes != null && !optionCodes.isEmpty()) {
                 List<SaleModelOptionPolicyPo> optionPolicies = optionPolicyRepository
-                    .findBySaleModelCodeAndOptionCodes(order.getSaleModel(), cmd.getOptionCodes());
+                    .findBySaleModelCodeAndOptionCodes(order.getSaleModel(), optionCodes);
                 optionTotalPrice = optionPolicies.stream()
                     .map(p -> p.getOptionPrice() != null ? p.getOptionPrice() : BigDecimal.ZERO)
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
@@ -1475,7 +1752,7 @@ public class OrderAppService {
             String saleModelName = saleModelRepository.findBySaleModelCode(order.getSaleModel())
                     .map(SaleModelPo::getModelName)
                     .orElse("");
-            saveOrderVehicleSnapshotWithVersionIncrement(order, order.getSaleModel(), saleModelName, cmd.getVariantCode(), buildConfig);
+            saveOrderVehicleSnapshotWithVersionIncrement(order, order.getSaleModel(), saleModelName, variantCode, buildConfig);
 
             // 10. 更新订单金额（将新总价分配到车辆价格，选装价格设为0）
             order.updateAmountForConfigChange(newTotalPrice, Money.ZERO_CNY);
@@ -1503,27 +1780,35 @@ public class OrderAppService {
             eventPublisher.publishEvent(ConfigChangePriceDiffEvent.builder()
                     .orderId(order.getId())
                     .orderNo(order.getOrderNo())
-                    .accountId(cmd.getAccountId())
+                    .accountId(resolveOrderOwnerAccountId(order, operatorId))
                     .priceDifference(priceDifference.getAmount())
                     .newConfigVersionNo(order.getCurrentVersionNo())
                     .supplementaryNo(supplementaryNo)
                     .refundTaskNo(refundTaskNo)
                     .build());
 
-            // 14. 记录操作时间线
+            // 14. 记录操作时间线（操作人/来源按调用方语义记录，MPT 不得写死 capp）
             saveOrderTimeline(order.getId(), "MODIFY_CONFIG", "修改订单配置",
                     oldConfigurationCode, newBuildConfigCode,
-                    cmd.getAccountId(), "order_user", "capp",
+                    operatorId, operatorRole, operateSource,
                     null, "success", null,
-                    String.format("旧配置: %s, 新配置: %s, 价格差额: %s", oldConfigurationCode, newBuildConfigCode, priceDifference));
-        });
+                    String.format("旧配置: %s, 新配置: %s, 价格差额: %s%s",
+                            oldConfigurationCode, newBuildConfigCode, priceDifference,
+                            StrUtil.isBlank(reason) ? "" : "，原因: " + reason));
+    }
+
+    /**
+     * 改配领域事件使用的下单账号：优先取订单 order_user，取不到时回退操作人
+     */
+    private String resolveOrderOwnerAccountId(Order order, String operatorId) {
+        return orderPartyRepository.findByOrderIdAndRole(order.getId(), "order_user")
+                .map(net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.OrderPartyPo::getUserId)
+                .orElse(operatorId);
     }
 
     private void validateOrderStateForModifyConfig(Order order) {
         OrderState state = order.getOrderState();
-        if (state != OrderState.EARNEST_MONEY_PAID 
-                && state != OrderState.DOWN_PAYMENT_UNPAID 
-                && state != OrderState.DOWN_PAYMENT_PAID) {
+        if (state == null || !state.isConfigModifiable()) {
             throw new OrderStateNotAllowedException("车辆销售订单[" + order.getOrderNo() + "]当前状态[" + state + "]不允许修改配置");
         }
     }
@@ -1606,47 +1891,107 @@ public class OrderAppService {
 
     public void prepareTransport(PrepareTransportCmd cmd) {
         Order order = findOrderByOrderNo(cmd.getOrderNo());
+        if (order.getOrderState() != OrderState.APPLY_TRANSPORT) {
+            throw new OrderStateNotAllowedException("车辆销售订单[" + cmd.getOrderNo() + "]当前状态["
+                    + order.getOrderState() + "]不允许流转为待运输");
+        }
+        String before = String.valueOf(order.getOrderState().getValue());
         order.prepareTransport();
         orderRepository.save(order);
+        orderTimelineAppService.record(order.getId(), OrderTimelineEventType.PREPARE_TRANSPORT,
+                before, String.valueOf(order.getOrderState().getValue()),
+                "system", "service", "logistics_service", null, null, "物流服务通知待运输");
         timeoutNotifyService.createTimeoutTask(order.getId(), "PREPARE_TRANSPORT_TIMEOUT", "remind", 1440);
     }
 
     public void transporting(TransportingCmd cmd) {
         Order order = findOrderByOrderNo(cmd.getOrderNo());
+        if (order.getOrderState() != OrderState.PREPARE_TRANSPORT) {
+            throw new OrderStateNotAllowedException("车辆销售订单[" + cmd.getOrderNo() + "]当前状态["
+                    + order.getOrderState() + "]不允许流转为运输中");
+        }
+        String before = String.valueOf(order.getOrderState().getValue());
         timeoutNotifyService.cancelByOrderIdAndType(order.getId(), "PREPARE_TRANSPORT_TIMEOUT");
         order.transporting();
         orderRepository.save(order);
+        orderTimelineAppService.record(order.getId(), OrderTimelineEventType.TRANSPORTING,
+                before, String.valueOf(order.getOrderState().getValue()),
+                "system", "service", "logistics_service", null, null, "物流服务通知已发车");
         timeoutNotifyService.createTimeoutTask(order.getId(), "TRANSPORTING_TIMEOUT", "remind", 2880);
     }
 
     public void prepareDelivery(PrepareDeliveryCmd cmd) {
         Order order = findOrderByOrderNo(cmd.getOrderNo());
+        if (order.getOrderState() != OrderState.TRANSPORTING) {
+            throw new OrderStateNotAllowedException("车辆销售订单[" + cmd.getOrderNo() + "]当前状态["
+                    + order.getOrderState() + "]不允许流转为待交付");
+        }
+        String before = String.valueOf(order.getOrderState().getValue());
         timeoutNotifyService.cancelByOrderIdAndType(order.getId(), "TRANSPORTING_TIMEOUT");
         order.prepareDelivery();
         orderRepository.save(order);
+        orderTimelineAppService.record(order.getId(), OrderTimelineEventType.PREPARE_DELIVERY,
+                before, String.valueOf(order.getOrderState().getValue()),
+                "system", "service", "logistics_service", null, null, "车辆到达交付中心");
         timeoutNotifyService.createTimeoutTask(order.getId(), "PREPARE_DELIVER_TIMEOUT", "remind", 1440);
     }
 
+    @Transactional(rollbackFor = Exception.class)
     public void delivered(DeliveredCmd cmd) {
         Order order = findOrderByOrderNo(cmd.getOrderNo());
+        if (order.getOrderState() != OrderState.PREPARE_DELIVER) {
+            if (order.getOrderState() == OrderState.DELIVERED) {
+                log.info("订单已交付，交付回调幂等：orderNo={}", cmd.getOrderNo());
+                return;
+            }
+            throw new OrderStateNotAllowedException("车辆销售订单[" + cmd.getOrderNo() + "]当前状态["
+                    + order.getOrderState() + "]不允许交付");
+        }
+        String before = String.valueOf(order.getOrderState().getValue());
         timeoutNotifyService.cancelByOrderIdAndType(order.getId(), "PREPARE_DELIVER_TIMEOUT");
         order.delivered();
         orderRepository.save(order);
+        deliveryAppService.completeDelivery(order, "delivery_service");
+        orderTimelineAppService.record(order.getId(), OrderTimelineEventType.ORDER_DELIVERED,
+                before, String.valueOf(order.getOrderState().getValue()),
+                "system", "service", "delivery_service", null, null, "外部交付服务确认已交付");
         timeoutNotifyService.createTimeoutTask(order.getId(), "DELIVERED_TIMEOUT", "remind", 4320);
     }
 
     public void activate(ActivateCmd cmd) {
         Order order = findOrderByOrderNo(cmd.getOrderNo());
+        if (order.getOrderState() != OrderState.DELIVERED && order.getOrderState() != OrderState.ACTIVATED) {
+            throw new OrderStateNotAllowedException("车辆销售订单[" + cmd.getOrderNo() + "]当前状态["
+                    + order.getOrderState() + "]不允许激活，仅 DELIVERED 可激活");
+        }
+        if (order.getOrderState() == OrderState.ACTIVATED) {
+            log.info("订单已激活，激活回调幂等：orderNo={}", cmd.getOrderNo());
+            return;
+        }
+        String before = String.valueOf(order.getOrderState().getValue());
         timeoutNotifyService.cancelByOrderIdAndType(order.getId(), "DELIVERED_TIMEOUT");
         order.activate();
         orderRepository.save(order);
+        orderTimelineAppService.record(order.getId(), OrderTimelineEventType.ORDER_ACTIVATED,
+                before, String.valueOf(order.getOrderState().getValue()),
+                "system", "service", "vehicle_service", null, null, "外部车辆服务确认已激活");
     }
 
-    public boolean remove(String orderNo) {
-        Order order = findOrderByOrderNo(orderNo);
-        order.manageDelete();
-        orderRepository.save(order);
-        return true;
+    /**
+     * 查询本人订单时间线
+     */
+    public List<OrderTimelineResult> getOrderTimeline(String accountId, String orderNo) {
+        Order order = findOrderById(accountId, orderNo);
+        return orderTimelineAppService.timelineOf(order.getId());
+    }
+
+    /**
+     * 运营（MPT）按业务订单 ID 查询订单时间线（只读，不做账号隔离）
+     */
+    public List<OrderTimelineResult> getTimelineByOrderId(String orderId) {
+        Order order = orderRepository.findByOrderId(orderId)
+                .orElseThrow(() -> new OrderNotExistException(orderId));
+        return orderTimelineAppService.timelineOf(order.getId());
     }
 
     private Order findOrderById(String accountId, String orderNo) {
@@ -1674,37 +2019,11 @@ public class OrderAppService {
             log.warn("订单ID为空，无法加载金额信息：orderNo={}", order.getOrderNo());
             return;
         }
-        orderAmountRepository.findByOrderId(order.getId())
+        orderAmountRepository.findDomainByOrderId(order.getId())
                 .ifPresentOrElse(
-                    amountPo -> order.setOrderAmount(convertAmountToDomain(amountPo)),
-                    () -> log.warn("订单金额记录不存在：orderId={}, orderNo={}", order.getId(), order.getOrderNo())
+                        order::setOrderAmount,
+                        () -> log.warn("订单金额记录不存在：orderId={}, orderNo={}", order.getId(), order.getOrderNo())
                 );
-    }
-
-    private OrderAmount convertAmountToDomain(OrderAmountPo po) {
-        OrderAmount amount = new OrderAmount(po.getAmountId());
-        amount.setGuidePrice(new Money(po.getGuidePrice()));
-        amount.setVehiclePrice(new Money(po.getVehiclePrice()));
-        amount.setOptionPrice(new Money(po.getOptionPrice()));
-        amount.setColorMarkup(new Money(po.getColorMarkup()));
-        amount.setServiceFee(new Money(po.getServiceFee()));
-        amount.setPlateServiceFee(new Money(po.getPlateServiceFee()));
-        amount.setInsuranceFee(new Money(po.getInsuranceFee()));
-        amount.setDiscountTotal(new Money(po.getDiscountTotal()));
-        amount.setSubsidyTotal(new Money(po.getSubsidyTotal()));
-        amount.setFinanceDiscountTotal(new Money(po.getFinanceDiscountTotal()));
-        amount.setDealPriceTotal(new Money(po.getDealPriceTotal()));
-        amount.setDepositAmount(new Money(po.getDepositAmount()));
-        amount.setDownPaymentAmount(new Money(po.getDownPaymentAmount()));
-        amount.setTailPaymentAmount(new Money(po.getTailPaymentAmount()));
-        amount.setPaidTotal(new Money(po.getPaidTotal()));
-        amount.setRefundTotal(new Money(po.getRefundTotal()));
-        amount.setReceivableTotal(new Money(po.getReceivableTotal()));
-        amount.setNetReceivableTotal(new Money(po.getNetReceivableTotal()));
-        amount.setUnpaidTotal(new Money(po.getUnpaidTotal()));
-        amount.setInvoiceAmount(new Money(po.getInvoiceAmount()));
-        amount.setCalculationVersion(po.getCalculationVersion());
-        return amount;
     }
 
     private Order createOrFindOrder(String accountId, String orderNo) {
@@ -1881,85 +2200,11 @@ public class OrderAppService {
                 order.getId(), saleModelCode, modelCode, variantCode, configurationCode, variantPrice);
     }
 
+    /**
+     * 发起支付（委托支付应用服务：金额取订单快照、活动支付单幂等、Mock 网关隔离）
+     */
     public InitiatePaymentResult initiatePayment(InitiatePaymentCmd cmd) {
-        log.info("发起支付：accountId={}, orderNo={}, paymentChannel={}", 
-                cmd.getAccountId(), cmd.getOrderNo(), cmd.getPaymentChannel());
-        
-        return orderLockService.executeWithLock(cmd.getOrderNo(), cmd.getAccountId(), "payment", () -> {
-            Optional<Order> orderOpt = orderRepository.findByOrderNo(cmd.getOrderNo());
-            if (orderOpt.isEmpty()) {
-                throw new OrderNotExistException(cmd.getOrderNo());
-            }
-            Order order = orderOpt.get();
-            
-            if (order.getOrderState() != OrderState.EARNEST_MONEY_UNPAID 
-                    && order.getOrderState() != OrderState.DOWN_PAYMENT_UNPAID) {
-                throw new OrderNotExistException("订单状态不允许支付");
-            }
-            
-            if (!paymentChannelConfig.isChannelEnabled(cmd.getPaymentChannel())) {
-                throw new PaymentChannelNotAvailableException(cmd.getPaymentChannel().name());
-            }
-            
-            PaymentStage paymentStage;
-            BigDecimal paymentAmount;
-            if (order.getOrderState() == OrderState.EARNEST_MONEY_UNPAID) {
-                paymentStage = PaymentStage.EARNEST_MONEY;
-                paymentAmount = getEarnestMoneyAmount(order.getSaleModel());
-            } else {
-                paymentStage = PaymentStage.DOWN_PAYMENT;
-                paymentAmount = getDownPaymentAmount(order.getSaleModel());
-            }
-            
-            PaymentPo paymentPo = new PaymentPo();
-            paymentPo.setPaymentId(IdUtil.nanoId(15));
-            paymentPo.setPaymentNo("P" + IdUtil.nanoId(12));
-            paymentPo.setOrderId(order.getId());
-            paymentPo.setPaymentStage(paymentStage.name());
-            paymentPo.setPaymentChannel(cmd.getPaymentChannel().name());
-            paymentPo.setPaymentAmount(paymentAmount);
-            paymentPo.setPaymentStatus(PaymentStatus.PENDING_PAYMENT.name());
-            paymentPo.setInitiatorRole("capp_user");
-            paymentPo.setInitiatorId(cmd.getAccountId());
-            paymentPo.setAuthorizedFlag(0);
-            
-            paymentRepository.save(paymentPo);
-            
-            log.info("支付记录创建成功：paymentNo={}, orderId={}, paymentStage={}, paymentAmount={}", 
-                    paymentPo.getPaymentNo(), order.getId(), paymentStage, paymentAmount);
-            
-            return InitiatePaymentResult.builder()
-                    .paymentNo(paymentPo.getPaymentNo())
-                    .paymentChannel(cmd.getPaymentChannel())
-                    .paymentAmount(paymentAmount)
-                    .paymentMerchant(null)
-                    .paymentReference(null)
-                    .build();
-        });
-    }
-
-    private BigDecimal getEarnestMoneyAmount(String saleModelCode) {
-        // 根据 CR-011 要求，意向金价格从命中的 Variant 销售策略行获取
-        // 取该 SaleModel 下当前可售 Variant 销售策略行 earnestMoneyPrice 的最低值
-        List<SaleModelVariantPolicyPo> variantPolicies = saleModelVariantPolicyRepository.findBySaleModelCode(saleModelCode);
-        return variantPolicies.stream()
-            .filter(p -> "active".equals(p.getSaleStatus()))
-            .filter(p -> p.getEarnestMoneyPrice() != null)
-            .map(SaleModelVariantPolicyPo::getEarnestMoneyPrice)
-            .min(BigDecimal::compareTo)
-            .orElse(BigDecimal.ZERO);
-    }
-
-    private BigDecimal getDownPaymentAmount(String saleModelCode) {
-        // 根据 CR-011 要求，定金价格从命中的 Variant 销售策略行获取
-        // 取该 SaleModel 下当前可售 Variant 销售策略行 downPaymentPrice 的最低值
-        List<SaleModelVariantPolicyPo> variantPolicies = saleModelVariantPolicyRepository.findBySaleModelCode(saleModelCode);
-        return variantPolicies.stream()
-            .filter(p -> "active".equals(p.getSaleStatus()))
-            .filter(p -> p.getDownPaymentPrice() != null)
-            .map(SaleModelVariantPolicyPo::getDownPaymentPrice)
-            .min(BigDecimal::compareTo)
-            .orElse(BigDecimal.ZERO);
+        return paymentAppService.initiatePayment(cmd);
     }
 
     private List<EarnestMoneyOrderResult.PaymentChannelInfo> buildPaymentChannelInfoList() {
@@ -2075,6 +2320,17 @@ public class OrderAppService {
     }
 
     /**
+     * 运营（MPT）按业务订单 ID 查询补款任务（只读，不做账号隔离）
+     */
+    public List<SupplementaryPaymentVo> getSupplementaryPaymentsByOrderId(String orderId) {
+        Order order = orderRepository.findByOrderId(orderId)
+                .orElseThrow(() -> new OrderNotExistException(orderId));
+        return supplementaryPaymentRepository.findByOrderId(order.getId()).stream()
+                .map(this::toSupplementaryPaymentVo)
+                .collect(Collectors.toList());
+    }
+
+    /**
      * 发起补款支付
      */
     @Transactional(rollbackFor = Exception.class)
@@ -2094,26 +2350,27 @@ public class OrderAppService {
         Order order = orderRepository.findByOrderId(supplementPo.getOrderId())
                 .orElseThrow(() -> new OrderNotExistException(supplementPo.getOrderId()));
 
-        PaymentPo paymentPo = new PaymentPo();
-        paymentPo.setPaymentId(IdUtil.nanoId(15));
-        paymentPo.setPaymentNo("P" + IdUtil.nanoId(12));
-        paymentPo.setOrderId(order.getId());
-        paymentPo.setPaymentStage(PaymentStage.DOWN_PAYMENT.name());
-        paymentPo.setPaymentChannel(paymentChannel);
-        paymentPo.setPaymentAmount(supplementPo.getSupplementaryAmount());
-        paymentPo.setPaymentStatus(PaymentStatus.PENDING_PAYMENT.name());
-        paymentPo.setInitiatorRole("capp_user");
-        paymentPo.setInitiatorId(accountId);
-        paymentPo.setAuthorizedFlag(0);
+        Payment payment = Payment.builder()
+                .paymentId(IdUtil.nanoId(15))
+                .paymentNo("P" + IdUtil.nanoId(12))
+                .orderId(order.getId())
+                .paymentStage(PaymentStage.DOWN_PAYMENT.name())
+                .paymentChannel(paymentChannel)
+                .paymentAmount(supplementPo.getSupplementaryAmount())
+                .paymentStatus(PaymentStatus.PENDING_PAYMENT)
+                .initiatorRole("capp_user")
+                .initiatorId(accountId)
+                .expireTime(supplementPo.getExpireTime())
+                .build();
 
-        paymentRepository.save(paymentPo);
+        paymentRepository.save(payment);
 
-        supplementPo.setPaymentId(paymentPo.getPaymentNo());
+        supplementPo.setPaymentId(payment.getPaymentNo());
         supplementaryPaymentRepository.save(supplementPo);
 
-        paymentAdapter.createPayment(order.getId(), supplementPo.getSupplementaryAmount(), paymentChannel);
+        paymentAdapter.createPayment(payment.getPaymentNo(), supplementPo.getSupplementaryAmount(), paymentChannel);
 
-        log.info("发起补款支付: supplementaryNo={}, paymentNo={}", supplementaryNo, paymentPo.getPaymentNo());
+        log.info("发起补款支付: supplementaryNo={}, paymentNo={}", supplementaryNo, payment.getPaymentNo());
     }
 
     /**

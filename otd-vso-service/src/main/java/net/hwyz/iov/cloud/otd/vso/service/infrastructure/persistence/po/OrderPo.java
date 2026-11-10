@@ -42,6 +42,9 @@ public class OrderPo extends BasePo {
     @TableField("payment_method")
     private String paymentMethod;
 
+    @TableField("purchase_plan")
+    private Integer purchasePlan;
+
     @TableField("license_city")
     private String licenseCity;
 
@@ -81,6 +84,12 @@ public class OrderPo extends BasePo {
     @TableField("vehicle_vin")
     private String vehicleVin;
 
+    @TableField("delivery_person_id")
+    private String deliveryPersonId;
+
+    @TableField("delivery_person_name")
+    private String deliveryPersonName;
+
     @TableField("configuration_code")
     private String configurationCode;
 
@@ -117,8 +126,20 @@ public class OrderPo extends BasePo {
     @TableField("lock_time")
     private LocalDateTime lockTime;
 
+    @TableField("down_payment_time")
+    private LocalDateTime downPaymentTime;
+
     @TableField("delivery_finish_time")
     private LocalDateTime deliveryFinishTime;
+
+    @TableField("transport_apply_person_id")
+    private String transportApplyPersonId;
+
+    @TableField("transport_apply_person_name")
+    private String transportApplyPersonName;
+
+    @TableField("transport_apply_time")
+    private LocalDateTime transportApplyTime;
 
     @TableField("finish_time")
     private LocalDateTime finishTime;

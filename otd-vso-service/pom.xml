@@ -102,6 +102,10 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
                     <skip>false</skip>
+                    <!-- FW-MYSQL/FW-WEB 时间治理启动探针要求 JVM 时区 UTC（仅测试环境） -->
+                    <systemPropertyVariables>
+                        <user.timezone>UTC</user.timezone>
+                    </systemPropertyVariables>
                 </configuration>
             </plugin>
         </plugins>

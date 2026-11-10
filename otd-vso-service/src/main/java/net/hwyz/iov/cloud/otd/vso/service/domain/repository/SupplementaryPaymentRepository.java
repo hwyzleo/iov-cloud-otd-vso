@@ -54,4 +54,9 @@ public interface SupplementaryPaymentRepository {
      * @return 待支付的补款任务（可能为空）
      */
     Optional<SupplementaryPaymentPo> findPendingByOrderId(String orderId);
+
+    /**
+     * 按订单与场景查询待支付补款任务（具名 SQL）
+     */
+    Optional<SupplementaryPaymentPo> findPendingByOrderIdAndScene(String orderId, String scene);
 }

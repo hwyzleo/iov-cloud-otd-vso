@@ -12,7 +12,11 @@ import java.util.Map;
 
 @Rollback
 @ActiveProfiles("dev")
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
+        properties = {
+                "spring.main.allow-bean-definition-overriding=true",
+                "iov.kafka.topic-provisioning.enabled=false"
+        })
 public class BaseTest {
 
     protected String vin = "HWYZTEST000000001";

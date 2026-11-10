@@ -6,6 +6,9 @@ import net.hwyz.iov.cloud.otd.vso.service.application.dto.query.OrderQuery;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.OrderListResult;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.Order;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.OrderState;
+import net.hwyz.iov.cloud.otd.vso.service.domain.model.DeliveryAppointment;
+import net.hwyz.iov.cloud.otd.vso.service.domain.model.DeliveryAppointmentStatus;
+import net.hwyz.iov.cloud.otd.vso.service.domain.repository.DeliveryRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.OrderRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.OrderVehicleSnapshotRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.SaleModelOptionPolicyRepository;
@@ -46,6 +49,8 @@ class OrderAppServiceSearchTest {
     private SaleModelOptionPolicyRepository saleModelOptionPolicyRepository;
     @Mock
     private SaleModelRepository saleModelRepository;
+    @Mock
+    private DeliveryRepository deliveryRepository;
 
     @InjectMocks
     private OrderAppService orderAppService;
@@ -83,7 +88,7 @@ class OrderAppServiceSearchTest {
 
         Order order = buildOrder(orderId, orderNo, OrderType.SMALL, "capp", OrderState.EARNEST_MONEY_UNPAID);
 
-        when(orderRepository.search(any(), any(), any(), any(), any(), any()))
+        when(orderRepository.searchByAccount(any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(Collections.singletonList(order));
 
         OrderQuery query = OrderQuery.builder()
@@ -115,7 +120,7 @@ class OrderAppServiceSearchTest {
 
         Order order = buildOrder(orderId, orderNo, OrderType.FORMAL, "sales", OrderState.DOWN_PAYMENT_UNPAID);
 
-        when(orderRepository.search(any(), any(), any(), any(), any(), any()))
+        when(orderRepository.searchByAccount(any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(Collections.singletonList(order));
 
         OrderQuery query = OrderQuery.builder()
@@ -146,7 +151,7 @@ class OrderAppServiceSearchTest {
         Order orderImport = buildOrder("test_import_" + timestamp, "ORDER_IMPORT_" + timestamp,
                 OrderType.SMALL, "import", OrderState.EARNEST_MONEY_UNPAID);
 
-        when(orderRepository.search(any(), any(), any(), any(), any(), any()))
+        when(orderRepository.searchByAccount(any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(Arrays.asList(orderCapp, orderStore, orderImport));
 
         List<OrderListResult> results = orderAppService.search(OrderQuery.builder().build());
@@ -183,7 +188,7 @@ class OrderAppServiceSearchTest {
 
         Order order = buildOrder(orderId, orderNo, OrderType.SMALL, "capp", OrderState.EARNEST_MONEY_UNPAID);
 
-        when(orderRepository.search(any(), any(), any(), any(), any(), any()))
+        when(orderRepository.searchByAccount(any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(Collections.singletonList(order));
 
         OrderQuery query = OrderQuery.builder()
@@ -267,7 +272,7 @@ class OrderAppServiceSearchTest {
                 .modelName("测试车型_" + timestamp)
                 .build();
 
-        when(orderRepository.search(any(), any(), any(), any(), any(), any()))
+        when(orderRepository.searchByAccount(any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(Collections.singletonList(order));
         when(orderVehicleSnapshotRepository.findByOrderId(orderId))
                 .thenReturn(Optional.of(snapshot));
@@ -319,7 +324,7 @@ class OrderAppServiceSearchTest {
                 .orderState(OrderState.EARNEST_MONEY_UNPAID)
                 .build();
 
-        when(orderRepository.search(any(), any(), any(), any(), any(), any()))
+        when(orderRepository.searchByAccount(any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(Collections.singletonList(order));
         when(orderVehicleSnapshotRepository.findByOrderId(orderId))
                 .thenReturn(Optional.empty());
@@ -337,5 +342,32 @@ class OrderAppServiceSearchTest {
         assertEquals("", result.getSaleModelDesc(), "没有快照时 saleModelDesc 应为空字符串");
         assertEquals(0, BigDecimal.ZERO.compareTo(result.getTotalPrice()),
                 "没有快照时 totalPrice 应为0");
+    }
+
+    @Test
+    @DisplayName("列表批量带出当前有效交付预约（一次查询，无 N+1）")
+    void 列表批量带出交付预约() {
+        String orderId = "test_order_appointment_" + System.currentTimeMillis();
+        Order order = buildOrder(orderId, "ORDER_APT_" + System.currentTimeMillis(),
+                OrderType.FORMAL, "capp", OrderState.PREPARE_DELIVER);
+        when(orderRepository.searchByAccount(any(), any(), any(), any(), any(), any(), any()))
+                .thenReturn(Collections.singletonList(order));
+        when(deliveryRepository.findBookedByOrderIds(Collections.singletonList(orderId)))
+                .thenReturn(Collections.singletonList(DeliveryAppointment.builder()
+                        .appointmentId("AID1")
+                        .appointmentNo("DA001")
+                        .orderId(orderId)
+                        .appointmentStatus(DeliveryAppointmentStatus.BOOKED)
+                        .appointmentTime(java.time.LocalDateTime.of(2026, 11, 12, 10, 0))
+                        .build()));
+
+        List<OrderListResult> results = orderAppService.search(OrderQuery.builder().build());
+
+        assertEquals(1, results.size());
+        assertEquals("DA001", results.get(0).getAppointmentNo(), "列表应带出有效预约单号");
+        assertEquals("booked", results.get(0).getAppointmentStatus(), "列表应带出预约状态");
+        assertNotNull(results.get(0).getAppointmentTime(), "列表应带出预约时间");
+        verify(deliveryRepository, times(1)).findBookedByOrderIds(anyList());
+        verify(deliveryRepository, never()).findBookedByOrderId(anyString());
     }
 }

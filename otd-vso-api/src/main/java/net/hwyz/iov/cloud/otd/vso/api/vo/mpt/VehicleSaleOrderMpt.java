@@ -1,13 +1,16 @@
 package net.hwyz.iov.cloud.otd.vso.api.vo.mpt;
 
 import lombok.*;
+import net.hwyz.iov.cloud.framework.common.bean.BaseRequest;
 
-import java.io.Serializable;
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.Date;
 
 /**
  * 管理后台车辆销售订单
+ * <p>
+ * 继承 BaseRequest 以复用框架 `params[beginTime]` / `params[endTime]` 查询参数契约。
  *
  * @author hwyz_leo
  */
@@ -15,12 +18,7 @@ import java.util.Date;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class VehicleSaleOrderMpt implements Serializable {
-
-    /**
-     * 主键
-     */
-    private Long id;
+public class VehicleSaleOrderMpt extends BaseRequest {
 
     /**
      * 订单业务ID（用于物理删除等操作）
@@ -149,11 +147,16 @@ public class VehicleSaleOrderMpt implements Serializable {
 
     /**
      * 下单人电话
+     * <p>
+     * 数据源为 {@code vso_order_party.mobile_encrypted}（加密字段），本期不采集、不输出明文；
+     * 展示需要先确定解密服务与权限，属 O-009 另行设计范围，保持 null。
      */
     private String orderPersonPhone;
 
     /**
      * 下单人员ID
+     * <p>
+     * 数据源为 {@code vso_order_party.id_no_encrypted}（加密字段），本期不输出明文，保持 null。
      */
     private String orderPersonId;
 
@@ -206,5 +209,20 @@ public class VehicleSaleOrderMpt implements Serializable {
      * 创建时间
      */
     private Date createTime;
+
+    /**
+     * 当前有效交付预约单号（未预约为空）
+     */
+    private String appointmentNo;
+
+    /**
+     * 交付预约时间（未预约为空）
+     */
+    private LocalDateTime appointmentTime;
+
+    /**
+     * 交付预约状态（未预约为空）
+     */
+    private String appointmentStatus;
 
 }

@@ -15,4 +15,7 @@ public class AssignVehicleCmd {
     private String orderNo;
     private String vin;
 
+    /** 操作人 */
+    private String operatorId;
+
 }

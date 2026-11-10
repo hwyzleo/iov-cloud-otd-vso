@@ -9,6 +9,7 @@
         <result column="supplementary_amount" property="supplementaryAmount" />
         <result column="currency" property="currency" />
         <result column="supplementary_status" property="supplementaryStatus" />
+        <result column="supplementary_scene" property="supplementaryScene" />
         <result column="config_version_no" property="configVersionNo" />
         <result column="payment_id" property="paymentId" />
         <result column="expire_time" property="expireTime" />
@@ -20,7 +21,7 @@
 
     <sql id="baseColumnList">
         t.id, t.supplementary_no, t.order_id, t.supplementary_amount, t.currency,
-        t.supplementary_status, t.config_version_no, t.payment_id, t.expire_time,
+        t.supplementary_status, t.supplementary_scene, t.config_version_no, t.payment_id, t.expire_time,
         t.create_time, t.create_by, t.update_time, t.update_by
     </sql>
 
@@ -89,12 +90,12 @@
     <insert id="insertPo" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO vso_supplementary_payment (
             supplementary_no, order_id, supplementary_amount, currency,
-            supplementary_status, config_version_no, payment_id, expire_time,
+            supplementary_status, supplementary_scene, config_version_no, payment_id, expire_time,
             create_time, create_by, update_time, update_by
         )
         VALUES (
             #{supplementaryNo}, #{orderId}, #{supplementaryAmount}, #{currency},
-            #{supplementaryStatus}, #{configVersionNo}, #{paymentId}, #{expireTime},
+            #{supplementaryStatus}, #{supplementaryScene}, #{configVersionNo}, #{paymentId}, #{expireTime},
             now(), #{createBy}, now(), #{updateBy}
         )
     </insert>
@@ -102,14 +103,14 @@
     <insert id="batchInsertPo">
         INSERT INTO vso_supplementary_payment (
             supplementary_no, order_id, supplementary_amount, currency,
-            supplementary_status, config_version_no, payment_id, expire_time,
+            supplementary_status, supplementary_scene, config_version_no, payment_id, expire_time,
             create_time, create_by, update_time, update_by
         )
         VALUES
         <foreach collection="list" item="item" separator=",">
             (
                 #{item.supplementaryNo}, #{item.orderId}, #{item.supplementaryAmount}, #{item.currency},
-                #{item.supplementaryStatus}, #{item.configVersionNo}, #{item.paymentId}, #{item.expireTime},
+                #{item.supplementaryStatus}, #{item.supplementaryScene}, #{item.configVersionNo}, #{item.paymentId}, #{item.expireTime},
                 now(), #{item.createBy}, now(), #{item.updateBy}
             )
         </foreach>
@@ -148,5 +149,16 @@
             #{id}
         </foreach>
     </delete>
+
+    <!-- 按订单与场景查询待支付补款任务（转定金幂等查询，禁止复用仅按 orderId 的旧查询） -->
+    <select id="selectPendingByOrderIdAndScene" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_supplementary_payment t
+        WHERE t.order_id = #{orderId}
+        AND t.supplementary_scene = #{scene}
+        AND t.supplementary_status = 'PENDING'
+        ORDER BY t.id DESC
+        LIMIT 1
+    </select>
 
 </mapper>

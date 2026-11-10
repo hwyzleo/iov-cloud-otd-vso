@@ -16,11 +16,6 @@ import java.io.Serializable;
 public class DeliveryCenterStaffMpt implements Serializable {
 
     /**
-     * 主键
-     */
-    private Long id;
-
-    /**
      * 门店代码
      */
     private String dealershipCode;

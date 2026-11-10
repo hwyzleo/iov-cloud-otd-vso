@@ -302,7 +302,8 @@ class JacksonTimeContractTest {
                 .run(context -> {
                     ObjectMapper mapper = context.getBean(ObjectMapper.class);
                     PaymentCallbackRequest request = new PaymentCallbackRequest("PAY-001", null, "SMALL",
-                            new java.math.BigDecimal("1000.00"), "SUCCESS", null, "idem-1", "sig", 1769554000L, "nonce-1");
+                            new java.math.BigDecimal("1000.00"), "SUCCESS", null, "idem-1", "sig",
+                            null, 1769554000L, "nonce-1");
                     JsonNode node = mapper.valueToTree(request);
                     assertEquals(1769554000L, node.get("timestamp").longValue());
                     assertEquals("sig", node.get("signature").asText());

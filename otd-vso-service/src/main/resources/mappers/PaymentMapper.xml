@@ -18,6 +18,7 @@
         <result column="authorized_proof_type" property="authorizedProofType" />
         <result column="external_trade_no" property="externalTradeNo" />
         <result column="pay_time" property="payTime" />
+        <result column="expire_time" property="expireTime" />
         <result column="fail_reason" property="failReason" />
         <result column="create_time" property="createTime" />
         <result column="create_by" property="createBy" />
@@ -31,7 +32,7 @@
     <sql id="baseColumnList">
         t.id, t.payment_id, t.payment_no, t.order_id, t.payment_stage, t.payment_channel,
         t.payment_amount, t.payment_status, t.initiator_role, t.initiator_id, t.authorized_flag,
-        t.authorized_proof_type, t.external_trade_no, t.pay_time, t.fail_reason,
+        t.authorized_proof_type, t.external_trade_no, t.pay_time, t.expire_time, t.fail_reason,
         t.create_time, t.create_by, t.modify_time, t.modify_by, t.row_version, t.row_valid
     </sql>
 
@@ -98,13 +99,13 @@
         INSERT INTO vso_payment (
             payment_id, payment_no, order_id, payment_stage, payment_channel,
             payment_amount, payment_status, initiator_role, initiator_id, authorized_flag,
-            authorized_proof_type, external_trade_no, pay_time, fail_reason,
+            authorized_proof_type, external_trade_no, pay_time, expire_time, fail_reason,
             create_time, create_by, modify_time, modify_by, row_version, row_valid
         )
         VALUES (
             #{paymentId}, #{paymentNo}, #{orderId}, #{paymentStage}, #{paymentChannel},
             #{paymentAmount}, #{paymentStatus}, #{initiatorRole}, #{initiatorId}, #{authorizedFlag},
-            #{authorizedProofType}, #{externalTradeNo}, #{payTime}, #{failReason},
+            #{authorizedProofType}, #{externalTradeNo}, #{payTime}, #{expireTime}, #{failReason},
             now(), #{createBy}, now(), #{modifyBy}, 1, 1
         )
     </insert>
@@ -113,7 +114,7 @@
         INSERT INTO vso_payment (
             payment_id, payment_no, order_id, payment_stage, payment_channel,
             payment_amount, payment_status, initiator_role, initiator_id, authorized_flag,
-            authorized_proof_type, external_trade_no, pay_time, fail_reason,
+            authorized_proof_type, external_trade_no, pay_time, expire_time, fail_reason,
             create_time, create_by, modify_time, modify_by, row_version, row_valid
         )
         VALUES
@@ -121,7 +122,7 @@
             (
                 #{item.paymentId}, #{item.paymentNo}, #{item.orderId}, #{item.paymentStage}, #{item.paymentChannel},
                 #{item.paymentAmount}, #{item.paymentStatus}, #{item.initiatorRole}, #{item.initiatorId}, #{item.authorizedFlag},
-                #{item.authorizedProofType}, #{item.externalTradeNo}, #{item.payTime}, #{item.failReason},
+                #{item.authorizedProofType}, #{item.externalTradeNo}, #{item.payTime}, #{item.expireTime}, #{item.failReason},
                 now(), #{item.createBy}, now(), #{item.modifyBy}, 1, 1
             )
         </foreach>
@@ -137,6 +138,9 @@
         </if>
         <if test="payTime != null">
             t.pay_time = #{payTime},
+        </if>
+        <if test="expireTime != null">
+            t.expire_time = #{expireTime},
         </if>
         <if test="failReason != null and failReason != ''">
             t.fail_reason = #{failReason},
@@ -169,5 +173,65 @@
             #{id}
         </foreach>
     </delete>
+
+    <!-- 根据支付单号查询（具名 SQL，禁止 Map 条件依赖） -->
+    <select id="selectByPaymentNo" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_payment t
+        WHERE t.payment_no = #{paymentNo}
+        AND t.row_valid = 1
+    </select>
+
+    <!-- 同一订单同一阶段的活动支付单（PENDING_PAYMENT / PROCESSING） -->
+    <select id="selectActiveByOrderIdAndStage" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_payment t
+        WHERE t.order_id = #{orderId}
+        AND t.payment_stage = #{paymentStage}
+        AND t.payment_status IN ('PENDING_PAYMENT', 'PROCESSING')
+        AND t.row_valid = 1
+        ORDER BY t.id DESC
+        LIMIT 1
+    </select>
+
+    <!-- 订单下全部成功支付单（退款分摊按支付成功时间正序） -->
+    <select id="selectSuccessfulByOrderId" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_payment t
+        WHERE t.order_id = #{orderId}
+        AND t.payment_status = 'PAID'
+        AND t.row_valid = 1
+        ORDER BY t.pay_time ASC, t.id ASC
+    </select>
+
+    <!-- 批量查询多个订单成功支付单（避免 N+1） -->
+    <select id="selectSuccessfulByOrderIds" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_payment t
+        WHERE t.order_id IN
+        <foreach collection="orderIds" item="orderId" open="(" separator="," close=")">
+            #{orderId}
+        </foreach>
+        AND t.payment_status = 'PAID'
+        AND t.row_valid = 1
+        ORDER BY t.pay_time ASC, t.id ASC
+    </select>
+
+    <!-- 条件更新支付状态（防止覆盖冲突终态） -->
+    <update id="updateStatusConditional">
+        UPDATE vso_payment t SET
+            t.payment_status = #{targetStatus},
+            t.external_trade_no = COALESCE(#{externalTradeNo}, t.external_trade_no),
+            t.pay_time = COALESCE(#{payTime}, t.pay_time),
+            t.fail_reason = #{failReason},
+            t.modify_time = now(),
+            t.row_version = t.row_version + 1
+        WHERE t.payment_no = #{paymentNo}
+        AND t.payment_status IN
+        <foreach collection="expectedStatuses" item="status" open="(" separator="," close=")">
+            #{status}
+        </foreach>
+        AND t.row_valid = 1
+    </update>
 
 </mapper>

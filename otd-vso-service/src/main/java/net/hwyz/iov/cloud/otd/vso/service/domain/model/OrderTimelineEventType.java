@@ -1,0 +1,42 @@
+package net.hwyz.iov.cloud.otd.vso.service.domain.model;
+
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+
+/**
+ * 订单时间线事件类型目录（设计 §13.2）
+ *
+ * @author VSO Team
+ */
+@Getter
+@AllArgsConstructor
+public enum OrderTimelineEventType {
+
+    ORDER_CREATED("ORDER_CREATED", "创建订单"),
+    PAYMENT_PROCESSING("PAYMENT_PROCESSING", "支付处理中"),
+    PAYMENT_SUCCESS("PAYMENT_SUCCESS", "支付成功"),
+    PAYMENT_FAILED("PAYMENT_FAILED", "支付失败"),
+    PAYMENT_CANCELLED("PAYMENT_CANCELLED", "支付取消"),
+    EARNEST_TO_DOWN_REQUESTED("EARNEST_TO_DOWN_REQUESTED", "申请转定金"),
+    EARNEST_TO_DOWN_COMPLETED("EARNEST_TO_DOWN_COMPLETED", "转定金完成"),
+    REFUND_APPLIED("REFUND_APPLIED", "申请退款"),
+    REFUND_PROCESSING("REFUND_PROCESSING", "退款处理中"),
+    REFUND_COMPLETED("REFUND_COMPLETED", "退款完成"),
+    REFUND_FAILED("REFUND_FAILED", "退款失败"),
+    ORDER_LOCKED("ORDER_LOCKED", "锁单"),
+    VEHICLE_ASSIGNED("VEHICLE_ASSIGNED", "配车"),
+    VEHICLE_UNBOUND("VEHICLE_UNBOUND", "解绑车辆"),
+    VEHICLE_REASSIGNED("VEHICLE_REASSIGNED", "换绑车辆"),
+    TRANSPORT_APPLIED("TRANSPORT_APPLIED", "申请发运"),
+    PREPARE_TRANSPORT("PREPARE_TRANSPORT", "待运输"),
+    TRANSPORTING("TRANSPORTING", "运输中"),
+    PREPARE_DELIVERY("PREPARE_DELIVERY", "待交付"),
+    DELIVERY_APPOINTMENT_CREATED("DELIVERY_APPOINTMENT_CREATED", "创建交付预约"),
+    DELIVERY_APPOINTMENT_RESCHEDULED("DELIVERY_APPOINTMENT_RESCHEDULED", "修改交付预约"),
+    DELIVERY_APPOINTMENT_CANCELLED("DELIVERY_APPOINTMENT_CANCELLED", "取消交付预约"),
+    ORDER_DELIVERED("ORDER_DELIVERED", "已交付"),
+    ORDER_ACTIVATED("ORDER_ACTIVATED", "已激活");
+
+    private final String code;
+    private final String name;
+}

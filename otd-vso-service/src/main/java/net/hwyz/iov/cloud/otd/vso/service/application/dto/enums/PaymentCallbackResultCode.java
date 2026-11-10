@@ -12,6 +12,7 @@ public enum PaymentCallbackResultCode {
 
     SUCCESS("回调处理成功"),
     DUPLICATE("该回调已处理"),
+    CONFLICT("回调与既有事实冲突"),
     FAIL("回调处理失败");
 
     private final String description;

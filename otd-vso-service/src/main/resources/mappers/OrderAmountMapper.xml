@@ -27,6 +27,7 @@
         <result column="unpaid_total" property="unpaidTotal" />
         <result column="invoice_amount" property="invoiceAmount" />
         <result column="calculation_version" property="calculationVersion" />
+        <result column="upgraded_from_small" property="upgradedFromSmall" />
         <result column="create_time" property="createTime" />
         <result column="create_by" property="createBy" />
         <result column="modify_time" property="modifyTime" />
@@ -41,7 +42,7 @@
         t.subsidy_total, t.finance_discount_total, t.deal_price_total, t.deposit_amount,
         t.down_payment_amount, t.tail_payment_amount, t.paid_total, t.refund_total,
         t.receivable_total, t.net_receivable_total, t.unpaid_total, t.invoice_amount,
-        t.calculation_version, t.create_time, t.create_by, t.modify_time, t.modify_by,
+        t.calculation_version, t.upgraded_from_small, t.create_time, t.create_by, t.modify_time, t.modify_by,
         t.row_version, t.row_valid
     </sql>
 
@@ -97,7 +98,7 @@
             service_fee, plate_service_fee, insurance_fee, discount_total, subsidy_total,
             finance_discount_total, deal_price_total, deposit_amount, down_payment_amount,
             tail_payment_amount, paid_total, refund_total, receivable_total, net_receivable_total,
-            unpaid_total, invoice_amount, calculation_version, create_time, create_by,
+            unpaid_total, invoice_amount, calculation_version, upgraded_from_small, create_time, create_by,
             modify_time, modify_by, row_version, row_valid
         )
         VALUES (
@@ -105,7 +106,7 @@
             #{serviceFee}, #{plateServiceFee}, #{insuranceFee}, #{discountTotal}, #{subsidyTotal},
             #{financeDiscountTotal}, #{dealPriceTotal}, #{depositAmount}, #{downPaymentAmount},
             #{tailPaymentAmount}, #{paidTotal}, #{refundTotal}, #{receivableTotal}, #{netReceivableTotal},
-            #{unpaidTotal}, #{invoiceAmount}, #{calculationVersion}, now(), #{createBy},
+            #{unpaidTotal}, #{invoiceAmount}, #{calculationVersion}, #{upgradedFromSmall}, now(), #{createBy},
             now(), #{modifyBy}, 1, 1
         )
     </insert>
@@ -116,7 +117,7 @@
             service_fee, plate_service_fee, insurance_fee, discount_total, subsidy_total,
             finance_discount_total, deal_price_total, deposit_amount, down_payment_amount,
             tail_payment_amount, paid_total, refund_total, receivable_total, net_receivable_total,
-            unpaid_total, invoice_amount, calculation_version, create_time, create_by,
+            unpaid_total, invoice_amount, calculation_version, upgraded_from_small, create_time, create_by,
             modify_time, modify_by, row_version, row_valid
         )
         VALUES
@@ -126,7 +127,7 @@
                 #{item.serviceFee}, #{item.plateServiceFee}, #{item.insuranceFee}, #{item.discountTotal}, #{item.subsidyTotal},
                 #{item.financeDiscountTotal}, #{item.dealPriceTotal}, #{item.depositAmount}, #{item.downPaymentAmount},
                 #{item.tailPaymentAmount}, #{item.paidTotal}, #{item.refundTotal}, #{item.receivableTotal}, #{item.netReceivableTotal},
-                #{item.unpaidTotal}, #{item.invoiceAmount}, #{item.calculationVersion}, now(), #{item.createBy},
+                #{item.unpaidTotal}, #{item.invoiceAmount}, #{item.calculationVersion}, #{item.upgradedFromSmall}, now(), #{item.createBy},
                 now(), #{item.modifyBy}, 1, 1
             )
         </foreach>
@@ -139,6 +140,21 @@
         </if>
         <if test="vehiclePrice != null">
             t.vehicle_price = #{vehiclePrice},
+        </if>
+        <if test="optionPrice != null">
+            t.option_price = #{optionPrice},
+        </if>
+        <if test="dealPriceTotal != null">
+            t.deal_price_total = #{dealPriceTotal},
+        </if>
+        <if test="depositAmount != null">
+            t.deposit_amount = #{depositAmount},
+        </if>
+        <if test="downPaymentAmount != null">
+            t.down_payment_amount = #{downPaymentAmount},
+        </if>
+        <if test="tailPaymentAmount != null">
+            t.tail_payment_amount = #{tailPaymentAmount},
         </if>
         <if test="paidTotal != null">
             t.paid_total = #{paidTotal},
@@ -154,6 +170,9 @@
         </if>
         <if test="calculationVersion != null">
             t.calculation_version = #{calculationVersion},
+        </if>
+        <if test="upgradedFromSmall != null">
+            t.upgraded_from_small = #{upgradedFromSmall},
         </if>
         <if test="modifyBy != null">
             t.modify_by = #{modifyBy},
@@ -183,5 +202,16 @@
             #{id}
         </foreach>
     </delete>
+
+    <!-- 批量查询多个订单金额（避免 N+1） -->
+    <select id="selectByOrderIds" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_order_amount t
+        WHERE t.order_id IN
+        <foreach collection="orderIds" item="orderId" open="(" separator="," close=")">
+            #{orderId}
+        </foreach>
+        AND t.row_valid = 1
+    </select>
 
 </mapper>

@@ -34,7 +34,10 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-@SpringBootTest
+@SpringBootTest(properties = {
+        "spring.main.allow-bean-definition-overriding=true",
+        "iov.kafka.topic-provisioning.enabled=false"
+})
 @Transactional
 @DisplayName("意向金转定金 - 集成测试")
 class OrderAppServiceEarnestToDownIntegrationTest {
@@ -130,17 +133,21 @@ class OrderAppServiceEarnestToDownIntegrationTest {
         OrderAmountPo amount = amountOpt.get();
         assertEquals(order.getId(), amount.getOrderId(), "orderId 应匹配");
         assertNotNull(amount.getAmountId(), "amountId 不应为空");
-        assertEquals(0, BigDecimal.ZERO.compareTo(amount.getDepositAmount()), "初始定金应为 0");
-        assertEquals(0, BigDecimal.ZERO.compareTo(amount.getDownPaymentAmount()), "初始首付应为 0");
+        // OTD-VSO-REQ-CR-002 §8.1/§8.2 固定金额样例：意向金 5000、定金 20000、已支付 0
+        assertEquals(0, new BigDecimal("5000.00").compareTo(amount.getDepositAmount()), "意向金快照应为 5000");
+        assertEquals(0, new BigDecimal("20000.00").compareTo(amount.getDownPaymentAmount()), "定金快照应为 20000");
+        assertEquals(0, new BigDecimal("200000.00").compareTo(amount.getVehiclePrice()), "车辆价格快照应取选中 Variant");
+        assertEquals(0, BigDecimal.ZERO.compareTo(amount.getPaidTotal()), "初始已支付应为 0");
+        assertEquals(0, amount.getUpgradedFromSmall(), "升级标记初始应为 0");
     }
 
     @Test
-    @DisplayName("意向金转定金应成功执行（差额<=0 直接转换）")
-    void earnestMoneyToDownPayment_shouldSucceed() {
+    @DisplayName("意向金转定金：差额 15000 只创建一个补款任务，重复请求返回同一补款单")
+    void earnestMoneyToDownPayment_shouldCreateSingleSupplement() {
         String accountId = "intg_e2d_convert_" + System.currentTimeMillis();
         EarnestMoneyOrderResult orderResult = createAndPayEarnestMoneyOrder(accountId);
 
-        // 模拟支付成功：手动将订单状态改为 EARNEST_MONEY_PAID
+        // 模拟意向金支付成功
         orderRepository.findByOrderNo(orderResult.getOrderNo()).ifPresent(order -> {
             order.pay(orderResult.getEarnestMoneyAmount());
             orderRepository.save(order);
@@ -154,15 +161,57 @@ class OrderAppServiceEarnestToDownIntegrationTest {
                 .build();
 
         EarnestToDownResult result = orderAppService.earnestMoneyToDownPayment(cmd);
-
         assertNotNull(result, "转定金结果不应为空");
+        assertNotNull(result.getSupplementaryPayment(), "差额>0 应创建补款任务");
+        assertEquals(0, new BigDecimal("15000.00")
+                .compareTo(result.getSupplementaryPayment().getAmount().getAmount()), "差额应为 15000");
+        String supplementaryNo = result.getSupplementaryPayment().getSupplementaryNo();
+
+        Order afterFirst = orderRepository.findByOrderNo(orderResult.getOrderNo()).orElseThrow();
+        assertEquals(OrderState.EARNEST_MONEY_PAID, afterFirst.getOrderState(), "补款未完成前保持意向金已支付");
+
+        // 重复请求：返回同一补款单，不重复创建
+        EarnestToDownResult duplicate = orderAppService.earnestMoneyToDownPayment(cmd);
+        assertNotNull(duplicate.getSupplementaryPayment());
+        assertEquals(supplementaryNo, duplicate.getSupplementaryPayment().getSupplementaryNo(),
+                "重复转定金应返回同一补款单");
+    }
+
+    @Test
+    @DisplayName("意向金不低于定金：直接转定金并标记 upgradedFromSmall")
+    void earnestMoneyToDownPayment_shouldDirectConvertWhenDepositNotLess() {
+        String accountId = "intg_e2d_direct_" + System.currentTimeMillis();
+        EarnestMoneyOrderResult orderResult = createAndPayEarnestMoneyOrder(accountId);
+
+        Order order = orderRepository.findByOrderNo(orderResult.getOrderNo()).orElseThrow();
+        order.pay(orderResult.getEarnestMoneyAmount());
+        orderRepository.save(order);
+
+        // §8.4 意向金高于定金样例：意向金 20000、定金 10000、已支付 20000
+        OrderAmountPo amountPo = orderAmountRepository.findByOrderId(order.getId()).orElseThrow();
+        amountPo.setDepositAmount(new BigDecimal("20000.00"));
+        amountPo.setDownPaymentAmount(new BigDecimal("10000.00"));
+        amountPo.setPaidTotal(new BigDecimal("20000.00"));
+        orderAmountRepository.save(amountPo);
+
+        EarnestToDownCmd cmd = EarnestToDownCmd.builder()
+                .accountId(accountId)
+                .orderNo(orderResult.getOrderNo())
+                .customerType("personal")
+                .paymentMethod("full_payment")
+                .build();
+
+        EarnestToDownResult result = orderAppService.earnestMoneyToDownPayment(cmd);
         assertEquals(OrderType.FORMAL, result.getOrderType(), "订单类型应变为 FORMAL");
         assertEquals(OrderState.DOWN_PAYMENT_PAID, result.getOrderState(), "订单状态应变为 DOWN_PAYMENT_PAID");
 
-        // 验证数据库中订单状态已更新
-        orderRepository.findByOrderNo(orderResult.getOrderNo()).ifPresent(order -> {
-            assertEquals(OrderType.FORMAL, order.getOrderType(), "数据库中订单类型应为 FORMAL");
-            assertEquals(OrderState.DOWN_PAYMENT_PAID, order.getOrderState(), "数据库中订单状态应为 DOWN_PAYMENT_PAID");
-        });
+        Order converted = orderRepository.findByOrderNo(orderResult.getOrderNo()).orElseThrow();
+        assertEquals(OrderType.FORMAL, converted.getOrderType());
+        assertEquals(OrderState.DOWN_PAYMENT_PAID, converted.getOrderState());
+        assertNotNull(converted.getDownPaymentTime(), "转定金成功应写入 downPaymentTime");
+
+        OrderAmountPo convertedAmount = orderAmountRepository.findByOrderId(converted.getId()).orElseThrow();
+        assertEquals(1, convertedAmount.getUpgradedFromSmall(), "意向金高于定金时 upgradedFromSmall 应为 1");
+        assertEquals(0, new BigDecimal("20000.00").compareTo(convertedAmount.getPaidTotal()));
     }
 }

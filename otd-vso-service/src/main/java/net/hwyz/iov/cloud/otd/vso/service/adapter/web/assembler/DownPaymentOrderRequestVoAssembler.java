@@ -18,7 +18,26 @@ public interface DownPaymentOrderRequestVoAssembler {
 
     @Mapping(target = "accountId", source = "accountId")
     @Mapping(target = "saleModel", source = "vo.saleModelCode")
-    @Mapping(target = "optionCodes", ignore = true)
+    @Mapping(target = "modelCode", source = "vo.modelCode")
+    @Mapping(target = "variantCode", source = "vo.variantCode")
+    @Mapping(target = "optionCodes", source = "vo.optionCodes")
+    @Mapping(target = "agreementConfirmations", defaultExpression = "java(toAgreementCmds(vo))")
     DownPaymentCmd toCmd(String accountId, DownPaymentOrderRequestVo vo);
+
+    /**
+     * 协议确认 VO → Cmd（显式映射，禁止忽略）
+     */
+    default java.util.List<net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.AgreementConfirmationCmd> toAgreementCmds(
+            DownPaymentOrderRequestVo vo) {
+        if (vo == null || vo.getAgreementConfirmations() == null) {
+            return null;
+        }
+        return vo.getAgreementConfirmations().stream()
+                .map(item -> net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.AgreementConfirmationCmd.builder()
+                        .agreementCode(item.getAgreementCode())
+                        .versionNo(item.getVersionNo())
+                        .build())
+                .collect(java.util.stream.Collectors.toList());
+    }
 
 }

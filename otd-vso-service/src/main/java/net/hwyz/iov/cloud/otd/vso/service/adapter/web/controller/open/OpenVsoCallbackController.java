@@ -9,8 +9,10 @@ import net.hwyz.iov.cloud.otd.vso.service.adapter.web.vo.request.PaymentCallback
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.PaymentCallbackCmd;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.enums.PaymentCallbackResultCode;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.PaymentCallbackResult;
-import net.hwyz.iov.cloud.otd.vso.service.application.service.CallbackSignatureService;
+import net.hwyz.iov.cloud.otd.vso.service.adapter.web.vo.request.RefundCallbackRequest;
+import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.RefundCallbackCmd;
 import net.hwyz.iov.cloud.otd.vso.service.application.service.PaymentCallbackService;
+import net.hwyz.iov.cloud.otd.vso.service.application.service.RefundCallbackService;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -28,7 +30,7 @@ import java.util.Map;
 public class OpenVsoCallbackController extends BaseController {
 
     private final PaymentCallbackService paymentCallbackService;
-    private final CallbackSignatureService callbackSignatureService;
+    private final RefundCallbackService refundCallbackService;
 
     /**
      * 支付回调
@@ -38,11 +40,6 @@ public class OpenVsoCallbackController extends BaseController {
                                              @RequestHeader(value = "X-Signature", required = false) String signature) {
         log.info("支付回调：paymentNo={}, externalTradeNo={}, paymentStage={}",
                 request.getPaymentNo(), request.getExternalTradeNo(), request.getPaymentStage());
-// 手机端自行模拟，先不验证
-//        if (!verifySignature(signature, request)) {
-//            log.warn("支付回调签名验证失败：paymentNo={}", request.getPaymentNo());
-//            return ApiResponse.fail("签名验证失败");
-//        }
 
         try {
             PaymentCallbackCmd cmd = PaymentCallbackCmd.builder()
@@ -53,9 +50,11 @@ public class OpenVsoCallbackController extends BaseController {
                     .paymentStatus(request.getPaymentStatus())
                     .payTime(request.getPayTime())
                     .idempotentKey(request.getIdempotentKey())
+                    .failReason(request.getFailReason())
                     .build();
 
-            PaymentCallbackResult result = paymentCallbackService.handleCallback(cmd);
+            PaymentCallbackResult result = paymentCallbackService.handleCallback(cmd, signature,
+                    request.getTimestamp(), request.getNonce());
 
             if (result.getCode() == PaymentCallbackResultCode.SUCCESS) {
                 return ApiResponse.ok();
@@ -70,13 +69,36 @@ public class OpenVsoCallbackController extends BaseController {
         }
     }
 
-    private boolean verifySignature(String signature, PaymentCallbackRequest request) {
-        Map<String, String> signData = new HashMap<>();
-        signData.put("amount", request.getPaymentAmount() != null ? request.getPaymentAmount().toPlainString() : "");
-        signData.put("orderId", request.getPaymentNo());
-        signData.put("paySeq", request.getExternalTradeNo());
-        signData.put("status", request.getPaymentStatus());
-        return callbackSignatureService.verifySignature(signature, request.getTimestamp(), request.getNonce(), signData);
+    /**
+     * 退款回调（Mock 退款网关）
+     */
+    @PostMapping("/refund")
+    public ApiResponse<Void> refundCallback(@Valid @RequestBody RefundCallbackRequest request,
+                                            @RequestHeader(value = "X-Signature", required = false) String signature) {
+        log.info("退款回调：refundNo={}, refundItemId={}, status={}",
+                request.getRefundNo(), request.getRefundItemId(), request.getRefundStatus());
+        try {
+            RefundCallbackCmd cmd = RefundCallbackCmd.builder()
+                    .refundNo(request.getRefundNo())
+                    .refundItemId(request.getRefundItemId())
+                    .externalRefundNo(request.getExternalRefundNo())
+                    .refundAmount(request.getRefundAmount())
+                    .refundStatus(request.getRefundStatus())
+                    .refundTime(request.getRefundTime())
+                    .idempotentKey(request.getIdempotentKey())
+                    .failReason(request.getFailReason())
+                    .build();
+            PaymentCallbackResult result = refundCallbackService.handleCallback(cmd, signature,
+                    request.getTimestamp(), request.getNonce());
+            if (result.getCode() == PaymentCallbackResultCode.SUCCESS
+                    || result.getCode() == PaymentCallbackResultCode.DUPLICATE) {
+                return ApiResponse.ok();
+            }
+            return ApiResponse.fail(result.getMessage());
+        } catch (Exception e) {
+            log.error("退款回调异常", e);
+            return ApiResponse.fail("回调处理失败");
+        }
     }
 
     /**

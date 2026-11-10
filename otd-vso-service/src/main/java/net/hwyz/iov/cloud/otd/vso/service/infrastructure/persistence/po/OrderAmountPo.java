@@ -161,6 +161,9 @@ public class OrderAmountPo implements Serializable {
     @TableField("calculation_version")
     private Integer calculationVersion;
 
+    @TableField("upgraded_from_small")
+    private Integer upgradedFromSmall;
+
     /**
      * 创建时间
      */

@@ -41,6 +41,6 @@ class VsoErrorCodeTest {
 
     @Test
     void should_have_correct_error_code_count() {
-        assertEquals(37, VsoErrorCode.values().length, "错误码数量应为37个");
+        assertEquals(53, VsoErrorCode.values().length, "错误码数量应为53个");
     }
 }

@@ -65,6 +65,11 @@ class OrderAppServiceEarnestMoneySnapshotTest {
     @Mock
     private MdmProjectionService mdmProjectionService;
 
+    @Mock
+    private PurchaseAgreementAppService purchaseAgreementAppService;
+    @Mock
+    private OrderTimelineAppService orderTimelineAppService;
+
     @InjectMocks
     private OrderAppService orderAppService;
 
@@ -105,6 +110,14 @@ class OrderAppServiceEarnestMoneySnapshotTest {
                 .optionCodes(optionCodes)
                 .licenseCityCode("CITY_001")
                 .build();
+    }
+
+    @org.junit.jupiter.api.BeforeEach
+    void stubAgreementConfirmations() {
+        org.mockito.Mockito.lenient().when(purchaseAgreementAppService.buildConfirmations(
+                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any()))
+                .thenReturn(java.util.List.of());
     }
 
     @Test

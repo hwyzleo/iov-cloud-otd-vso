@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.mapper.PurchaseAgreementMapper">
+
+    <resultMap id="baseResultMap" type="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.PurchaseAgreementPo">
+        <id column="id" property="id" />
+        <result column="agreement_id" property="agreementId" />
+        <result column="agreement_code" property="agreementCode" />
+        <result column="sale_model_code" property="saleModelCode" />
+        <result column="version_no" property="versionNo" />
+        <result column="title" property="title" />
+        <result column="intro" property="intro" />
+        <result column="detail" property="detail" />
+        <result column="agreement_status" property="agreementStatus" />
+        <result column="effective_from" property="effectiveFrom" />
+        <result column="effective_to" property="effectiveTo" />
+        <result column="create_time" property="createTime" />
+        <result column="create_by" property="createBy" />
+        <result column="modify_time" property="modifyTime" />
+        <result column="modify_by" property="modifyBy" />
+        <result column="row_version" property="rowVersion" />
+        <result column="row_valid" property="rowValid" />
+    </resultMap>
+
+    <sql id="baseColumnList">
+        t.id, t.agreement_id, t.agreement_code, t.sale_model_code, t.version_no, t.title, t.intro, t.detail,
+        t.agreement_status, t.effective_from, t.effective_to, t.create_time, t.create_by, t.modify_time,
+        t.modify_by, t.row_version, t.row_valid
+    </sql>
+
+    <insert id="insertPo" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO vso_purchase_agreement (
+            agreement_id, agreement_code, sale_model_code, version_no, title, intro, detail,
+            agreement_status, effective_from, effective_to, create_time, create_by,
+            modify_time, modify_by, row_version, row_valid
+        )
+        VALUES (
+            #{agreementId}, #{agreementCode}, #{saleModelCode}, #{versionNo}, #{title}, #{intro}, #{detail},
+            #{agreementStatus}, #{effectiveFrom}, #{effectiveTo}, now(), #{createBy},
+            now(), #{modifyBy}, 1, 1
+        )
+    </insert>
+
+    <update id="updatePo" parameterType="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.PurchaseAgreementPo">
+        UPDATE vso_purchase_agreement t SET
+        <if test="agreementCode != null and agreementCode != ''">
+            t.agreement_code = #{agreementCode},
+        </if>
+        <if test="saleModelCode != null and saleModelCode != ''">
+            t.sale_model_code = #{saleModelCode},
+        </if>
+        <if test="versionNo != null">
+            t.version_no = #{versionNo},
+        </if>
+        <if test="title != null and title != ''">
+            t.title = #{title},
+        </if>
+        <if test="intro != null">
+            t.intro = #{intro},
+        </if>
+        <if test="detail != null">
+            t.detail = #{detail},
+        </if>
+        <if test="agreementStatus != null and agreementStatus != ''">
+            t.agreement_status = #{agreementStatus},
+        </if>
+        <if test="effectiveFrom != null">
+            t.effective_from = #{effectiveFrom},
+        </if>
+        <if test="effectiveTo != null">
+            t.effective_to = #{effectiveTo},
+        </if>
+        <if test="modifyBy != null">
+            t.modify_by = #{modifyBy},
+        </if>
+        t.row_version = t.row_version + 1,
+        t.modify_time = now()
+        WHERE t.id = #{id}
+    </update>
+
+    <update id="logicalDeletePo">
+        UPDATE vso_purchase_agreement t SET
+        t.row_version = t.row_version + 1,
+        t.modify_time = now(),
+        t.row_valid = 0
+        WHERE t.id = #{id}
+    </update>
+
+    <select id="selectPoById" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_purchase_agreement t
+        WHERE t.id = #{id}
+        AND t.row_valid = 1
+    </select>
+
+    <select id="selectByAgreementId" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_purchase_agreement t
+        WHERE t.agreement_id = #{agreementId}
+        AND t.row_valid = 1
+    </select>
+
+    <select id="selectPoByMap" parameterType="java.util.Map" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_purchase_agreement t
+        WHERE t.row_valid = 1
+        <if test="params.saleModelCode != null and params.saleModelCode != ''">
+            AND t.sale_model_code = #{params.saleModelCode}
+        </if>
+        <if test="params.agreementCode != null and params.agreementCode != ''">
+            AND t.agreement_code = #{params.agreementCode}
+        </if>
+        <if test="params.agreementStatus != null and params.agreementStatus != ''">
+            AND t.agreement_status = #{params.agreementStatus}
+        </if>
+        ORDER BY t.sale_model_code ASC, t.agreement_code ASC, t.version_no DESC
+    </select>
+
+    <select id="selectActiveBySaleModel" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_purchase_agreement t
+        WHERE t.row_valid = 1
+        AND t.agreement_status = 'active'
+        AND (t.sale_model_code = #{saleModelCode} OR t.sale_model_code = 'GLOBAL')
+        AND (t.effective_from IS NULL OR t.effective_from &lt;= #{now})
+        AND (t.effective_to IS NULL OR t.effective_to &gt; #{now})
+        ORDER BY t.agreement_code ASC, t.version_no DESC,
+                 CASE WHEN t.sale_model_code = #{saleModelCode} THEN 0 ELSE 1 END ASC
+    </select>
+
+    <select id="selectActiveByCode" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_purchase_agreement t
+        WHERE t.row_valid = 1
+        AND t.agreement_status = 'active'
+        AND t.agreement_code = #{agreementCode}
+        AND (t.sale_model_code = #{saleModelCode} OR t.sale_model_code = 'GLOBAL')
+        <if test="versionNo != null">
+            AND t.version_no = #{versionNo}
+        </if>
+        AND (t.effective_from IS NULL OR t.effective_from &lt;= #{now})
+        AND (t.effective_to IS NULL OR t.effective_to &gt; #{now})
+        ORDER BY CASE WHEN t.sale_model_code = #{saleModelCode} THEN 0 ELSE 1 END ASC, t.version_no DESC
+    </select>
+
+</mapper>

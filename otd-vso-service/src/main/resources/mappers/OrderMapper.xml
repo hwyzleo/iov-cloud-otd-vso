@@ -12,6 +12,7 @@
         <result column="source_remark" property="sourceRemark" />
         <result column="customer_type" property="customerType" />
         <result column="payment_method" property="paymentMethod" />
+        <result column="purchase_plan" property="purchasePlan" />
         <result column="license_city" property="licenseCity" />
         <result column="order_state" property="orderState" />
         <result column="end_type" property="endType" />
@@ -26,6 +27,8 @@
         <result column="delivery_region_code" property="deliveryRegionCode" />
         <result column="sales_code" property="salesCode" />
         <result column="vehicle_vin" property="vehicleVin" />
+        <result column="delivery_person_id" property="deliveryPersonId" />
+        <result column="delivery_person_name" property="deliveryPersonName" />
         <result column="has_exception" property="hasException" />
         <result column="current_version_no" property="currentVersionNo" />
         <result column="locked_flag" property="lockedFlag" />
@@ -37,7 +40,11 @@
         <result column="audit_submit_time" property="auditSubmitTime" />
         <result column="audit_pass_time" property="auditPassTime" />
         <result column="lock_time" property="lockTime" />
+        <result column="down_payment_time" property="downPaymentTime" />
         <result column="delivery_finish_time" property="deliveryFinishTime" />
+        <result column="transport_apply_person_id" property="transportApplyPersonId" />
+        <result column="transport_apply_person_name" property="transportApplyPersonName" />
+        <result column="transport_apply_time" property="transportApplyTime" />
         <result column="finish_time" property="finishTime" />
         <result column="cancel_time" property="cancelTime" />
         <result column="close_time" property="closeTime" />
@@ -52,10 +59,12 @@
     <!-- 通用查询结果列 -->
     <sql id="baseColumnList">
         t.id, t.order_id, t.order_no, t.order_type, t.order_source, t.source_remark,
-        t.customer_type, t.payment_method, t.license_city, t.order_state, t.end_type, t.previous_order_state, t.brand_code, t.sale_model,
-        t.configuration_code, t.order_store_code, t.owner_store_code, t.owner_region_code, t.delivery_store_code, t.delivery_region_code, t.sales_code, t.vehicle_vin, t.has_exception,
+        t.customer_type, t.payment_method, t.purchase_plan, t.license_city, t.order_state, t.end_type, t.previous_order_state, t.brand_code, t.sale_model,
+        t.configuration_code, t.order_store_code, t.owner_store_code, t.owner_region_code, t.delivery_store_code, t.delivery_region_code, t.sales_code, t.vehicle_vin,
+        t.delivery_person_id, t.delivery_person_name, t.has_exception,
         t.current_version_no, t.locked_flag, t.reopen_flag, t.cancel_reason, t.close_reason, t.void_reason,
-        t.created_at_business, t.audit_submit_time, t.audit_pass_time, t.lock_time, t.delivery_finish_time,
+        t.created_at_business, t.audit_submit_time, t.audit_pass_time, t.lock_time, t.down_payment_time, t.delivery_finish_time,
+        t.transport_apply_person_id, t.transport_apply_person_name, t.transport_apply_time,
         t.finish_time, t.cancel_time, t.close_time, t.create_time, t.create_by, t.modify_time, t.modify_by,
         t.row_version, t.row_valid
     </sql>
@@ -64,19 +73,23 @@
     <insert id="insertPo" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO vso_order (
             id, order_id, order_no, order_type, order_source, source_remark,
-            customer_type, payment_method, license_city, order_state, end_type, previous_order_state, brand_code, sale_model,
-            configuration_code, order_store_code, owner_store_code, owner_region_code, delivery_store_code, delivery_region_code, sales_code, vehicle_vin, has_exception,
+            customer_type, payment_method, purchase_plan, license_city, order_state, end_type, previous_order_state, brand_code, sale_model,
+            configuration_code, order_store_code, owner_store_code, owner_region_code, delivery_store_code, delivery_region_code, sales_code, vehicle_vin,
+            delivery_person_id, delivery_person_name, has_exception,
             current_version_no, locked_flag, reopen_flag, cancel_reason, close_reason, void_reason,
-            created_at_business, audit_submit_time, audit_pass_time, lock_time, delivery_finish_time,
+            created_at_business, audit_submit_time, audit_pass_time, lock_time, down_payment_time, delivery_finish_time,
+            transport_apply_person_id, transport_apply_person_name, transport_apply_time,
             finish_time, cancel_time, close_time, create_time, create_by, modify_time, modify_by,
             row_version, row_valid
         )
         VALUES (
             #{id}, #{orderId}, #{orderNo}, #{orderType}, #{orderSource}, #{sourceRemark},
-            #{customerType}, #{paymentMethod}, #{licenseCity}, #{orderState}, #{endType}, #{previousOrderState}, #{brandCode}, #{saleModel},
-            #{configurationCode}, #{orderStoreCode}, #{ownerStoreCode}, #{ownerRegionCode}, #{deliveryStoreCode}, #{deliveryRegionCode}, #{salesCode}, #{vehicleVin}, #{hasException},
+            #{customerType}, #{paymentMethod}, #{purchasePlan}, #{licenseCity}, #{orderState}, #{endType}, #{previousOrderState}, #{brandCode}, #{saleModel},
+            #{configurationCode}, #{orderStoreCode}, #{ownerStoreCode}, #{ownerRegionCode}, #{deliveryStoreCode}, #{deliveryRegionCode}, #{salesCode}, #{vehicleVin},
+            #{deliveryPersonId}, #{deliveryPersonName}, #{hasException},
             #{currentVersionNo}, #{lockedFlag}, #{reopenFlag}, #{cancelReason}, #{closeReason}, #{voidReason},
-            #{createdAtBusiness}, #{auditSubmitTime}, #{auditPassTime}, #{lockTime}, #{deliveryFinishTime},
+            #{createdAtBusiness}, #{auditSubmitTime}, #{auditPassTime}, #{lockTime}, #{downPaymentTime}, #{deliveryFinishTime},
+            #{transportApplyPersonId}, #{transportApplyPersonName}, #{transportApplyTime},
             #{finishTime}, #{cancelTime}, #{closeTime}, now(), #{createBy}, now(), #{modifyBy}, 1, 1
         )
     </insert>
@@ -101,6 +114,9 @@
         </if>
         <if test="paymentMethod != null and paymentMethod != ''">
             t.payment_method = #{paymentMethod},
+        </if>
+        <if test="purchasePlan != null">
+            t.purchase_plan = #{purchasePlan},
         </if>
         <if test="licenseCity != null and licenseCity != ''">
             t.license_city = #{licenseCity},
@@ -144,6 +160,12 @@
         <if test="vehicleVin != null and vehicleVin != ''">
             t.vehicle_vin = #{vehicleVin},
         </if>
+        <if test="deliveryPersonId != null and deliveryPersonId != ''">
+            t.delivery_person_id = #{deliveryPersonId},
+        </if>
+        <if test="deliveryPersonName != null and deliveryPersonName != ''">
+            t.delivery_person_name = #{deliveryPersonName},
+        </if>
         <if test="hasException != null">
             t.has_exception = #{hasException},
         </if>
@@ -176,6 +198,18 @@
         </if>
         <if test="lockTime != null">
             t.lock_time = #{lockTime},
+        </if>
+        <if test="downPaymentTime != null">
+            t.down_payment_time = #{downPaymentTime},
+        </if>
+        <if test="transportApplyPersonId != null and transportApplyPersonId != ''">
+            t.transport_apply_person_id = #{transportApplyPersonId},
+        </if>
+        <if test="transportApplyPersonName != null and transportApplyPersonName != ''">
+            t.transport_apply_person_name = #{transportApplyPersonName},
+        </if>
+        <if test="transportApplyTime != null">
+            t.transport_apply_time = #{transportApplyTime},
         </if>
         <if test="deliveryFinishTime != null">
             t.delivery_finish_time = #{deliveryFinishTime},
@@ -308,6 +342,19 @@
         SELECT <include refid="baseColumnList"/>
         FROM vso_order t
         WHERE t.row_valid = 1
+        <if test="accountId != null and accountId != ''">
+            AND EXISTS (
+                SELECT 1 FROM vso_order_party p
+                WHERE p.order_id = t.order_id AND p.user_id = #{accountId}
+                AND p.party_role = 'order_user' AND p.row_valid = 1
+            )
+        </if>
+        <if test="hasDeliveryPerson != null and hasDeliveryPerson == true">
+            AND t.delivery_person_id IS NOT NULL AND t.delivery_person_id != ''
+        </if>
+        <if test="hasDeliveryPerson != null and hasDeliveryPerson == false">
+            AND (t.delivery_person_id IS NULL OR t.delivery_person_id = '')
+        </if>
         <if test="orderState != null">
             AND t.order_state = #{orderState}
         </if>
@@ -358,15 +405,112 @@
         <if test="deliveryPersonId != null and deliveryPersonId != ''">
             AND t.delivery_person_id = #{deliveryPersonId}
         </if>
+        <if test="delivered != null">
+            <choose>
+                <when test="delivered">
+                    AND t.delivery_finish_time IS NOT NULL
+                </when>
+                <otherwise>
+                    AND t.delivery_finish_time IS NULL
+                </otherwise>
+            </choose>
+        </if>
     </select>
 
-    <!-- 根据订单号和账户ID获取订单 -->
+    <!-- 批量统计多个交付人员的未交付订单数（交付人员分配列表，避免逐个 count） -->
+    <select id="selectUndeliveredCountByDeliveryPersonIds"
+            resultType="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.DeliveryPersonCountPo">
+        SELECT t.delivery_person_id AS deliveryPersonId, COUNT(*) AS orderCount
+        FROM vso_order t
+        WHERE t.row_valid = 1
+        AND t.delivery_person_id IN
+        <foreach collection="deliveryPersonIds" item="deliveryPersonId" open="(" separator="," close=")">
+            #{deliveryPersonId}
+        </foreach>
+        AND t.delivery_finish_time IS NULL
+        GROUP BY t.delivery_person_id
+    </select>
+
+    <!-- 根据订单号和账户ID获取订单（EXISTS 用户隔离） -->
     <select id="selectByOrderNoAndAccountId" resultMap="baseResultMap">
         SELECT <include refid="baseColumnList"/>
         FROM vso_order t
         WHERE t.order_no = #{orderNo}
         AND t.row_valid = 1
+        AND EXISTS (
+            SELECT 1 FROM vso_order_party p
+            WHERE p.order_id = t.order_id AND p.user_id = #{accountId}
+            AND p.party_role = 'order_user' AND p.row_valid = 1
+        )
     </select>
+
+    <!-- 根据订单业务 ID 和账户ID获取订单（EXISTS 用户隔离） -->
+    <select id="selectByOrderIdAndAccountId" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_order t
+        WHERE t.order_id = #{orderId}
+        AND t.row_valid = 1
+        AND EXISTS (
+            SELECT 1 FROM vso_order_party p
+            WHERE p.order_id = t.order_id AND p.user_id = #{accountId}
+            AND p.party_role = 'order_user' AND p.row_valid = 1
+        )
+    </select>
+
+    <!-- C 端按账号查询订单列表（EXISTS 用户隔离，禁止内存过滤） -->
+    <select id="selectByAccountId" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_order t
+        WHERE t.row_valid = 1
+        AND EXISTS (
+            SELECT 1 FROM vso_order_party p
+            WHERE p.order_id = t.order_id AND p.user_id = #{accountId}
+            AND p.party_role = 'order_user' AND p.row_valid = 1
+        )
+        <if test="orderStateRange != null and orderStateRange.size() > 0">
+            AND t.order_state IN
+            <foreach collection="orderStateRange" item="status" open="(" separator="," close=")">
+                #{status}
+            </foreach>
+        </if>
+        ORDER BY t.id DESC
+    </select>
+
+    <!-- 自动锁单到期订单查询：仅 DOWN_PAYMENT_PAID 且 __time 已超过阈值 -->
+    <select id="selectAutoLockCandidates" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_order t
+        WHERE t.row_valid = 1
+        AND t.order_state = #{orderState}
+        AND t.down_payment_time IS NOT NULL
+        AND t.down_payment_time &lt;= #{deadline}
+        ORDER BY t.down_payment_time ASC
+        LIMIT #{limit}
+    </select>
+
+    <!-- 更新定金支付完成时间 -->
+    <update id="updateDownPaymentTime">
+        UPDATE vso_order t SET
+            t.down_payment_time = #{downPaymentTime},
+            t.modify_time = now(),
+            t.row_version = t.row_version + 1
+        WHERE t.order_no = #{orderNo}
+        AND t.row_valid = 1
+    </update>
+
+    <!-- 条件状态更新：仅当当前状态在允许集合内才更新，返回影响行数 -->
+    <update id="updateOrderStateConditional">
+        UPDATE vso_order t SET
+            t.order_state = #{targetState},
+            t.modify_time = now(),
+            t.row_version = t.row_version + 1
+        WHERE t.order_no = #{orderNo}
+        AND t.current_order_state IN
+        <foreach collection="expectedStates" item="state" open="(" separator="," close=")">
+            #{state}
+        </foreach>
+        AND t.row_valid = 1
+    </update>
 
     <!-- 根据订单号获取订单 -->
     <select id="selectByOrderNo" resultMap="baseResultMap">

@@ -5,6 +5,7 @@ import lombok.Data;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.shared.VehicleInfo;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -182,6 +183,86 @@ public class OrderListResult {
      * 修改时间
      */
     private Date modifyTime;
+
+    /**
+     * 销售代码
+     */
+    private String saleCode;
+
+    /**
+     * 车型配置代码
+     */
+    private String modelConfigCode;
+
+    /**
+     * 生产配置编码
+     */
+    private String buildConfigCode;
+
+    /**
+     * 订单状态时间（由时间线最新事件时间派生）
+     */
+    private Date orderStateTime;
+
+    /**
+     * 下单时间
+     */
+    private Date orderTime;
+
+    /**
+     * 意向金支付时间（由意向金成功支付单派生）
+     */
+    private Date earnestMoneyTime;
+
+    /**
+     * 意向金金额（订单金额快照 depositAmount）
+     */
+    private BigDecimal earnestMoneyAmount;
+
+    /**
+     * 定金支付时间
+     */
+    private Date downPaymentTime;
+
+    /**
+     * 定金金额（订单金额快照 downPaymentAmount）
+     */
+    private BigDecimal downPaymentAmount;
+
+    /**
+     * 锁单时间
+     */
+    private Date lockTime;
+
+    /**
+     * 交付车辆 VIN
+     */
+    private String deliveryVin;
+
+    /**
+     * 交付人员 ID
+     */
+    private String deliveryPersonId;
+
+    /**
+     * 交付人员姓名
+     */
+    private String deliveryPersonName;
+
+    /**
+     * 当前有效交付预约单号（未预约为空）
+     */
+    private String appointmentNo;
+
+    /**
+     * 交付预约时间（未预约为空）
+     */
+    private LocalDateTime appointmentTime;
+
+    /**
+     * 交付预约状态（未预约为空）
+     */
+    private String appointmentStatus;
 
     /**
      * 上牌城市

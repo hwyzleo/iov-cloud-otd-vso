@@ -23,4 +23,7 @@ public class PaymentCallbackCmd {
     private LocalDateTime payTime;
     private String idempotentKey;
 
+    /** 失败/取消原因（可选） */
+    private String failReason;
+
 }

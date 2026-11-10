@@ -60,6 +60,35 @@ public interface OrderRepository {
                         Boolean hasDeliveryPerson, Date beginTime, Date endTime);
 
     /**
+     * 带账号隔离的订单查询（accountId 为 null 时等价于 MPT 查询）
+     */
+    List<Order> searchByAccount(String accountId, String orderNo, OrderState orderState,
+                                List<OrderState> orderStateRange, Boolean hasDeliveryPerson,
+                                Date beginTime, Date endTime);
+
+    /**
+     * 查询账号下的订单列表（数据库层 EXISTS 隔离）
+     */
+    List<Order> findByAccountId(String accountId, List<OrderState> orderStateRange);
+
+    /**
+     * 查询定金支付时间早于或等于截止时间的定金已支付订单（自动锁单补偿扫描）
+     */
+    List<Order> findDownPaymentPaidBefore(Date deadline, int limit);
+
+    /**
+     * 条件状态更新：仅当当前状态在允许集合内才更新
+     *
+     * @return 影响行数，0 表示状态已变化
+     */
+    int updateStateConditional(String orderNo, OrderState targetState, List<OrderState> expectedStates);
+
+    /**
+     * 更新定金支付完成时间（自动锁单基准；用于补偿与数据修复）
+     */
+    int updateDownPaymentTime(String orderNo, Date downPaymentTime);
+
+    /**
      * 统计订单数量
      *
      * @param deliveryPersonId 交付人员ID
@@ -67,6 +96,13 @@ public interface OrderRepository {
      * @return 统计数量
      */
     Integer count(String deliveryPersonId, Boolean delivered);
+
+    /**
+     * 批量统计多个交付人员的未交付订单数（避免逐个 count）
+     *
+     * @return 交付人员 ID -> 未交付订单数
+     */
+    java.util.Map<String, Integer> countUndeliveredByDeliveryPersonIds(java.util.List<String> deliveryPersonIds);
 
     /**
      * 根据订单号和账号ID查询订单
@@ -77,7 +113,10 @@ public interface OrderRepository {
      */
     Optional<Order> findByOrderNoAndAccountId(String orderNo, String accountId);
 
-    List<Order> findByAccountId(String accountId, String type);
+    /**
+     * 根据订单业务 ID 和账号查询订单（用户隔离）
+     */
+    Optional<Order> findByOrderIdAndAccountId(String orderId, String accountId);
 
     boolean existsUnpaidOrderByUserId(String userId);
 

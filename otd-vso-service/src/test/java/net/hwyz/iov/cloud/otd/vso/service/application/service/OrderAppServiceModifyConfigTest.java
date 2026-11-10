@@ -4,13 +4,16 @@ import net.hwyz.iov.cloud.edd.mdm.api.service.ConfigurationService;
 import net.hwyz.iov.cloud.edd.vmd.api.service.VmdVehicleModelConfigService;
 import net.hwyz.iov.cloud.edd.vmd.api.vo.response.VmdBuildConfigResponse;
 import net.hwyz.iov.cloud.otd.vso.api.enums.OrderType;
+import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.ModifyOrderConfigByOperatorCmd;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.ModifyOrderConfigCmd;
+import net.hwyz.iov.cloud.otd.vso.service.common.exception.OrderNotExistException;
 import net.hwyz.iov.cloud.otd.vso.service.common.exception.OrderStateNotAllowedException;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.Order;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.OrderState;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.AuditRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.ConfigChangeRefundRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.OrderAmountRepository;
+import net.hwyz.iov.cloud.otd.vso.service.domain.repository.OrderPartyRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.OrderRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.OrderVehicleSnapshotRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.SaleModelModelPolicyRepository;
@@ -48,6 +51,8 @@ class OrderAppServiceModifyConfigTest {
 
     @Mock
     private OrderRepository orderRepository;
+    @Mock
+    private OrderPartyRepository orderPartyRepository;
     @Mock
     private OrderAmountRepository orderAmountRepository;
     @Mock
@@ -152,8 +157,10 @@ class OrderAppServiceModifyConfigTest {
             action.run();
             return null;
         }).when(orderLockService).executeWithLock(anyString(), anyString(), anyString(), any(Runnable.class));
-        lenient().when(orderAmountRepository.findByOrderId(anyString()))
-                .thenAnswer(invocation -> Optional.of(buildOrderAmountPo(invocation.getArgument(0))));
+        lenient().when(orderAmountRepository.findDomainByOrderId(anyString()))
+                .thenAnswer(invocation -> Optional.of(toDomain(buildOrderAmountPo(invocation.getArgument(0)))));
+        lenient().when(orderPartyRepository.findByOrderIdAndRole(anyString(), anyString()))
+                .thenReturn(Optional.empty());
     }
 
     @Test
@@ -194,6 +201,52 @@ class OrderAppServiceModifyConfigTest {
         orderAppService.modifyConfig(cmd);
 
         verify(orderRepository, times(1)).save(any(Order.class));
+    }
+
+    @Test
+    @DisplayName("MPT 改配提交成功：复用同一套改配逻辑并跳过 C 端账号归属校验")
+    void testModifyConfigByOperatorSuccess() {
+        String orderNo = "MPT_ORDER_" + System.currentTimeMillis();
+        Order order = buildOrder(orderNo, OrderState.DOWN_PAYMENT_PAID);
+
+        mockOrderLockService();
+        when(orderRepository.findByOrderId(order.getId())).thenReturn(Optional.of(order));
+        when(configurationService.resolveConfiguration(any())).thenReturn("NEW_CONFIG");
+        when(vmdVehicleModelConfigService.getBuildConfigByCode("NEW_CONFIG"))
+                .thenReturn(VmdBuildConfigResponse.builder().code("NEW_CONFIG").brandCode("BRAND001").build());
+        when(saleModelVariantPolicyRepository.findBySaleModelCodeAndVariantCode(eq(SALE_MODEL_CODE), eq("VARIANT_MODIFY_001")))
+                .thenReturn(Optional.of(buildVariantPolicy()));
+        when(saleModelOptionPolicyRepository.findBySaleModelCodeAndOptionCodes(eq(SALE_MODEL_CODE), anyList()))
+                .thenReturn(Collections.singletonList(
+                        buildOptionPolicy("OPT_COLOR_RED", "COLOR", new BigDecimal("3000"))));
+        when(saleModelRepository.findBySaleModelCode(SALE_MODEL_CODE))
+                .thenReturn(Optional.of(net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.SaleModelPo.builder()
+                        .id(1L).saleModelCode(SALE_MODEL_CODE).modelName("测试车型").build()));
+        when(orderVehicleSnapshotRepository.findMaxVersionByOrderId(anyString())).thenReturn(1);
+
+        orderAppService.modifyConfigByOperator(ModifyOrderConfigByOperatorCmd.builder()
+                .orderId(order.getId())
+                .operatorId("mpt_user_001")
+                .variantCode("VARIANT_MODIFY_001")
+                .optionCodes(Collections.singletonList("OPT_COLOR_RED"))
+                .reason("客户要求改色")
+                .build());
+
+        verify(orderRepository, times(1)).save(any(Order.class));
+        verify(orderRepository, never()).findByOrderNoAndAccountId(anyString(), anyString());
+    }
+
+    @Test
+    @DisplayName("MPT 改配：订单不存在返回 ORDER_NOT_EXIST")
+    void testModifyConfigByOperatorOrderNotExist() {
+        when(orderRepository.findByOrderId("MISSING")).thenReturn(Optional.empty());
+
+        assertThrows(OrderNotExistException.class, () -> orderAppService.modifyConfigByOperator(
+                ModifyOrderConfigByOperatorCmd.builder()
+                        .orderId("MISSING")
+                        .operatorId("mpt_user_001")
+                        .optionCodes(Collections.singletonList("OPT_COLOR_RED"))
+                        .build()));
     }
 
     @Test
@@ -330,5 +383,10 @@ class OrderAppServiceModifyConfigTest {
         orderAppService.modifyConfig(cmd);
 
         verify(orderRepository, times(1)).save(any(Order.class));
+    }
+
+    private net.hwyz.iov.cloud.otd.vso.service.domain.model.OrderAmount toDomain(
+            net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.OrderAmountPo po) {
+        return net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.converter.OrderAmountPoConverter.toDomain(po);
     }
 }

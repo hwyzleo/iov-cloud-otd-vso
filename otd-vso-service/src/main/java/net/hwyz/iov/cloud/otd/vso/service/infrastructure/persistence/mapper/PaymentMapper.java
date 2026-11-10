@@ -26,6 +26,32 @@ public interface PaymentMapper extends BaseDao<PaymentPo, Long> {
 
     PaymentPo selectPoById(Long id);
 
+    /**
+     * 同一订单同一阶段的活动支付单
+     */
+    PaymentPo selectActiveByOrderIdAndStage(@Param("orderId") String orderId,
+                                            @Param("paymentStage") String paymentStage);
+
+    /**
+     * 订单下全部成功支付单
+     */
+    List<PaymentPo> selectSuccessfulByOrderId(@Param("orderId") String orderId);
+
+    /**
+     * 批量查询多个订单的成功支付单（按支付时间正序）
+     */
+    List<PaymentPo> selectSuccessfulByOrderIds(@Param("orderIds") List<String> orderIds);
+
+    /**
+     * 条件更新支付状态
+     */
+    int updateStatusConditional(@Param("paymentNo") String paymentNo,
+                                @Param("targetStatus") String targetStatus,
+                                @Param("expectedStatuses") List<String> expectedStatuses,
+                                @Param("externalTradeNo") String externalTradeNo,
+                                @Param("payTime") java.time.LocalDateTime payTime,
+                                @Param("failReason") String failReason);
+
     List<PaymentPo> selectPoByMap(@Param("params") Map<String, Object> params);
 
     int countPoByMap(@Param("params") Map<String, Object> params);

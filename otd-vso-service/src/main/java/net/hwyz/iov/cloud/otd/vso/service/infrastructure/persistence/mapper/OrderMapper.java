@@ -1,6 +1,7 @@
 package net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.mapper;
 
 import net.hwyz.iov.cloud.framework.mysql.dao.BaseDao;
+import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.DeliveryPersonCountPo;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.OrderPo;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -62,6 +63,15 @@ public interface OrderMapper extends BaseDao<OrderPo, Long> {
     int countPoByMap(java.util.Map<String, Object> params);
 
     /**
+     * 批量统计多个交付人员的未交付订单数（交付人员分配列表用，避免逐个 count）
+     *
+     * @param deliveryPersonIds 交付人员 ID 集合
+     * @return 交付人员 ID -> 未交付订单数
+     */
+    java.util.List<DeliveryPersonCountPo> selectUndeliveredCountByDeliveryPersonIds(
+            @Param("deliveryPersonIds") java.util.List<String> deliveryPersonIds);
+
+    /**
      * 插入订单
      *
      * @param orderPo 订单 PO
@@ -85,6 +95,34 @@ public interface OrderMapper extends BaseDao<OrderPo, Long> {
      * @return 订单 PO
      */
     OrderPo selectByOrderNoAndAccountId(@Param("orderNo") String orderNo, @Param("accountId") String accountId);
+
+    /**
+     * 根据订单业务 ID 和账号查询订单（用户隔离）
+     */
+    OrderPo selectByOrderIdAndAccountId(@Param("orderId") String orderId, @Param("accountId") String accountId);
+
+    /**
+     * C 端按账号查询订单列表
+     */
+    java.util.List<OrderPo> selectByAccountId(@Param("accountId") String accountId,
+                                              @Param("orderStateRange") java.util.List<Integer> orderStateRange);
+
+    /**
+     * 自动锁单到期订单查询
+     */
+    java.util.List<OrderPo> selectAutoLockCandidates(@Param("orderState") Integer orderState,
+                                                     @Param("deadline") java.time.LocalDateTime deadline,
+                                                     @Param("limit") int limit);
+
+    /**
+     * 条件状态更新（防止覆盖冲突终态）
+     */
+    int updateDownPaymentTime(@Param("orderNo") String orderNo,
+                              @Param("downPaymentTime") java.time.LocalDateTime downPaymentTime);
+
+    int updateOrderStateConditional(@Param("orderNo") String orderNo,
+                                    @Param("targetState") Integer targetState,
+                                    @Param("expectedStates") java.util.List<Integer> expectedStates);
 
     int existsUnpaidOrderByUserId(@Param("userId") String userId);
 

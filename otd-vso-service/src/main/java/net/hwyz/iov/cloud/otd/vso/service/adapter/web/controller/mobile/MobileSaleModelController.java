@@ -16,6 +16,8 @@ import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.QuoteResult;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.SaleModelConfigResult;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.SaleModelPriceResult;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.SaleModelResult;
+import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.PurchaseAgreementResult;
+import net.hwyz.iov.cloud.otd.vso.service.application.service.PurchaseAgreementAppService;
 import net.hwyz.iov.cloud.otd.vso.service.application.service.SaleModelAppService;
 import org.springframework.web.bind.annotation.*;
 
@@ -33,6 +35,20 @@ import java.util.List;
 public class MobileSaleModelController extends BaseController {
 
     private final SaleModelAppService saleModelAppService;
+    private final PurchaseAgreementAppService purchaseAgreementAppService;
+
+    /**
+     * 查询车型当前生效购车协议（US-001）
+     *
+     * @param saleModelCode 销售车型代码
+     * @return 当前生效协议列表
+     */
+    @GetMapping("/purchaseAgreements/{saleModelCode}")
+    public ApiResponse<List<PurchaseAgreementResult>> getPurchaseAgreements(
+            @PathVariable("saleModelCode") String saleModelCode) {
+        log.info("手机客户端[{}]获取销售车型[{}]购车协议", ParamHelper.getClientAccountInfo(), saleModelCode);
+        return ApiResponse.ok(purchaseAgreementAppService.listActiveAgreements(saleModelCode));
+    }
 
     /**
      * 获取销售车型列表

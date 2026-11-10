@@ -229,8 +229,9 @@ public class OrderAmount {
         switch (orderState) {
             case EARNEST_MONEY_PAID:
             case DOWN_PAYMENT_PAID:
-                if (this.upgradedFromSmall && this.paidTotal.isGreaterThan(this.depositAmount)) {
-                    return this.paidTotal.subtract(this.depositAmount);
+                // §8.4：意向金高于定金时，超额定金部分可退（refund = paidTotal - downPaymentAmount）
+                if (this.upgradedFromSmall && this.paidTotal.isGreaterThan(this.downPaymentAmount)) {
+                    return this.paidTotal.subtract(this.downPaymentAmount);
                 }
                 return this.paidTotal;
 
@@ -279,7 +280,7 @@ public class OrderAmount {
         switch (orderState) {
             case EARNEST_MONEY_PAID:
             case DOWN_PAYMENT_PAID:
-                if (this.upgradedFromSmall && this.paidTotal.isGreaterThan(this.depositAmount)) {
+                if (this.upgradedFromSmall && this.paidTotal.isGreaterThan(this.downPaymentAmount)) {
                     return "excess_refund";
                 }
                 return "full_refund";

@@ -45,6 +45,9 @@ public class PaymentCallbackRequest {
 
     private String signature;
 
+    /** 失败/取消原因（可选） */
+    private String failReason;
+
     private Long timestamp;
 
     private String nonce;

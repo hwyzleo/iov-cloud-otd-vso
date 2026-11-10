@@ -18,6 +18,11 @@ public interface OrderTimelineMapper extends BaseDao<OrderTimelinePo, Long> {
 
     OrderTimelinePo selectPoById(Long id);
 
+    /**
+     * 批量查询多个订单的最新事件时间（订单状态时间派生用）
+     */
+    List<OrderTimelinePo> selectLatestEventTimeByOrderIds(@Param("orderIds") List<String> orderIds);
+
     List<OrderTimelinePo> selectPoByMap(@Param("params") Map<String, Object> params);
 
     int countPoByMap(@Param("params") Map<String, Object> params);

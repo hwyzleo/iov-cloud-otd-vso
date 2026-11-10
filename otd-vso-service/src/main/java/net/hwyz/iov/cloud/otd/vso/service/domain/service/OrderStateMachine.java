@@ -115,6 +115,10 @@ public class OrderStateMachine {
         Set<OrderState> deliveredTransitions = EnumSet.of(OrderState.ACTIVATED, OrderState.CANCEL);
         STATE_TRANSITIONS.put(650, deliveredTransitions);
         
+        // REFUND_APPLY(920) -> REFUND_COMPLETE(925)
+        Set<OrderState> refundApplyTransitions = EnumSet.of(OrderState.REFUND_COMPLETE);
+        STATE_TRANSITIONS.put(920, refundApplyTransitions);
+
         // ACTIVATED(700) -> 终态，无转移
         Set<OrderState> activatedTransitions = EnumSet.noneOf(OrderState.class);
         STATE_TRANSITIONS.put(700, activatedTransitions);
