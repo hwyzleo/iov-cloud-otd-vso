@@ -15,6 +15,12 @@
 - 参考 Notion Page ID: 4080ec7a4b92805a890bdb4127d8efd6
 - 变更记录 Notion Page ID: 07bcafe2b9934d24a41e9e642ffc7cec
 
+# 当前项目系统架构文档
+- 参考 Notion Page ID: 4120ec7a4b9280ba9be6c92751838458
+
+# 当前项目功能架构文档
+- 参考 Notion Page ID: 4140ec7a4b928005be50ca211ac29f01
+
 # 当前项目数据库文档
 - 参考 Notion Page ID: 4140ec7a4b9280c896beca6b19d86fd3
 
