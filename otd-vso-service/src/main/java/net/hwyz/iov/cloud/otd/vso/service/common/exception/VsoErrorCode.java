@@ -96,7 +96,11 @@ public enum VsoErrorCode implements ErrorCode {
     EXTERNAL_GATEWAY_FAILED("201053", "外部支付或退款网关调用失败"),
 
     // 后台协议管理
-    AGREEMENT_VERSION_CONFLICT("201054", "该车型下协议版本已存在");
+    AGREEMENT_VERSION_CONFLICT("201054", "该车型下协议版本已存在"),
+
+    // OTD-VSO-DSN-CR-003 销售车型图片上传薄封装
+    IMAGE_UPLOAD_TICKET_INVALID("201055", "上传凭证无效、已过期或操作人不一致"),
+    IMAGE_UPLOAD_FAILED("201056", "图片上传申请或完成确认失败");
 
     private final String code;
     private final String message;

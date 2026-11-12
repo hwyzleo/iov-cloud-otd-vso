@@ -21,6 +21,8 @@
         <org.version>0.0.1-SNAPSHOT</org.version>
         <dictionary.version>0.0.1-SNAPSHOT</dictionary.version>
         <mdm.version>0.0.1-SNAPSHOT</mdm.version>
+        <!-- OTD-VSO-DSN-CR-003：EDD-OSS 图片上传薄封装 -->
+        <oss.version>0.0.1-SNAPSHOT</oss.version>
     </properties>
 
     <dependencies>
@@ -58,6 +60,13 @@
             <groupId>net.hwyz.iov.cloud.edd</groupId>
             <artifactId>edd-mdm-api</artifactId>
             <version>${mdm.version}</version>
+        </dependency>
+
+        <!-- OTD-VSO-DSN-CR-003：EDD-OSS 图片上传（Feign ImageService） -->
+        <dependency>
+            <groupId>net.hwyz.iov.cloud.edd</groupId>
+            <artifactId>edd-oss-api</artifactId>
+            <version>${oss.version}</version>
         </dependency>
 
         <!-- 框架: MySQL -->
