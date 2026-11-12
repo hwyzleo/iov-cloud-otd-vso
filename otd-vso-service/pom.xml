@@ -46,7 +46,7 @@
 
         <dependency>
             <groupId>net.hwyz.iov.cloud.edd</groupId>
-            <artifactId>edd-dictionary-api</artifactId>
+            <artifactId>edd-dict-api</artifactId>
             <version>${dictionary.version}</version>
         </dependency>
 

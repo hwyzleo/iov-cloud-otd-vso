@@ -2,8 +2,8 @@ package net.hwyz.iov.cloud.otd.vso.service.application.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import net.hwyz.iov.cloud.edd.dictionary.api.service.DictionaryService;
-import net.hwyz.iov.cloud.edd.dictionary.api.vo.response.DictionaryResponse;
+import net.hwyz.iov.cloud.edd.dict.api.service.DictionaryService;
+import net.hwyz.iov.cloud.edd.dict.api.vo.response.DictionaryResponse;
 import net.hwyz.iov.cloud.edd.org.api.service.OrgDealershipService;
 import net.hwyz.iov.cloud.edd.org.api.service.OrgDealershipStaffService;
 import net.hwyz.iov.cloud.edd.org.api.vo.DealershipStaffExService;
