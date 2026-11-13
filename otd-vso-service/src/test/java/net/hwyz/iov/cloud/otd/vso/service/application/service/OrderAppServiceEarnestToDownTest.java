@@ -91,6 +91,10 @@ class OrderAppServiceEarnestToDownTest {
         assertEquals(OrderState.DOWN_PAYMENT_PAID, result.getOrderState());
         assertNull(result.getSupplementaryPayment());
         verify(orderRepository, atLeastOnce()).save(order);
+        verify(orderTimelineAppService, times(1)).record(eq("ORDER-001"),
+                eq(net.hwyz.iov.cloud.otd.vso.service.domain.model.OrderTimelineEventType.EARNEST_TO_DOWN_COMPLETED),
+                any(), any(), any(), any(), any(), any(), any(), any());
+        verify(auditRepository, never()).saveTimeline(any());
     }
 
     @Test

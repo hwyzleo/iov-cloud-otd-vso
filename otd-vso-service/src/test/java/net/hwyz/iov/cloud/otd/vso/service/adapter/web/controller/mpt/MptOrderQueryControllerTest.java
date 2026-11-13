@@ -20,6 +20,9 @@ import net.hwyz.iov.cloud.otd.vso.service.application.service.PaymentAppService;
 import net.hwyz.iov.cloud.otd.vso.service.application.service.PurchaseAgreementAppService;
 import net.hwyz.iov.cloud.otd.vso.service.application.service.RefundAppService;
 import net.hwyz.iov.cloud.otd.vso.service.application.service.VehicleAssignmentAppService;
+import net.hwyz.iov.cloud.otd.vso.service.domain.model.OrderAmount;
+import net.hwyz.iov.cloud.otd.vso.service.domain.model.shared.Money;
+import net.hwyz.iov.cloud.otd.vso.service.domain.model.shared.VehicleInfo;
 import net.hwyz.iov.cloud.edd.org.api.service.OrgDealershipService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -112,6 +115,62 @@ class MptOrderQueryControllerTest {
                 .andExpect(jsonPath("$.data.orderNo").value("SO001"));
 
         verify(orderAppService).getById("ORD1");
+    }
+
+    @Test
+    @DisplayName("订单详情输出车型快照、客户支付信息与完整金额快照")
+    void 订单详情完整字段契约() throws Exception {
+        OrderAmount amount = new OrderAmount("AMT1");
+        amount.setVehiclePrice(new Money(new BigDecimal("200000.00")));
+        amount.setOptionPrice(new Money(new BigDecimal("10000.00")));
+        amount.setDealPriceTotal(new Money(new BigDecimal("210000.00")));
+        amount.setDepositAmount(new Money(new BigDecimal("5000.00")));
+        amount.setDownPaymentAmount(new Money(new BigDecimal("5000.00")));
+        amount.setPaidTotal(new Money(new BigDecimal("5000.00")));
+        when(orderAppService.getById("ORD1")).thenReturn(OrderDetailResult.builder()
+                .orderId("ORD1")
+                .orderNo("SO001")
+                .brandCode("BRAND_HC")
+                .brandName("测试品牌")
+                .saleModel("HC")
+                .saleModelName("寒川")
+                .modelCode("HC-M1")
+                .modelName("寒川车型")
+                .variantCode("HC-V1")
+                .variantName("寒川版")
+                .configurationCode("CFG-HC-001")
+                .optionCodes(Collections.singletonList("OPT1"))
+                .optionBreakdown(Collections.singletonList(new VehicleInfo.OptionBreakdownItem(
+                        "OPT1", "COLOR", "颜色", "珍珠白", new BigDecimal("10000.00"))))
+                .customerType("personal")
+                .paymentMethod("full_payment")
+                .purchasePlan(1)
+                .orderPersonType(1)
+                .orderPersonName("张三")
+                .orderPersonIdType(1)
+                .orderPersonIdNum("ID-NUM-1")
+                .payState(20)
+                .orderAmount(amount)
+                .build());
+
+        mockMvc.perform(get(BASE + "/ORD1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.brandName").value("测试品牌"))
+                .andExpect(jsonPath("$.data.saleModelName").value("寒川"))
+                .andExpect(jsonPath("$.data.modelName").value("寒川车型"))
+                .andExpect(jsonPath("$.data.variantName").value("寒川版"))
+                .andExpect(jsonPath("$.data.configurationCode").value("CFG-HC-001"))
+                .andExpect(jsonPath("$.data.optionBreakdown[0].optionName").value("珍珠白"))
+                .andExpect(jsonPath("$.data.customerType").value("personal"))
+                .andExpect(jsonPath("$.data.paymentMethod").value("full_payment"))
+                .andExpect(jsonPath("$.data.purchasePlan").value(1))
+                .andExpect(jsonPath("$.data.orderPersonName").value("张三"))
+                .andExpect(jsonPath("$.data.orderPersonIdNum").value("ID-NUM-1"))
+                .andExpect(jsonPath("$.data.payState").value(20))
+                .andExpect(jsonPath("$.data.orderAmount.vehiclePrice.amount").value(200000.00))
+                .andExpect(jsonPath("$.data.orderAmount.optionPrice.amount").value(10000.00))
+                .andExpect(jsonPath("$.data.orderAmount.dealPriceTotal.amount").value(210000.00))
+                .andExpect(jsonPath("$.data.orderAmount.paidTotal.amount").value(5000.00));
     }
 
     @Test

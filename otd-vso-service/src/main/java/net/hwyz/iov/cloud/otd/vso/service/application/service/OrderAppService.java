@@ -10,8 +10,12 @@ import net.hwyz.iov.cloud.edd.org.api.vo.DealershipStaffExService;
 import net.hwyz.iov.cloud.edd.org.api.vo.DealershipExService;
 import net.hwyz.iov.cloud.edd.vmd.api.service.VmdVehicleModelConfigService;
 import net.hwyz.iov.cloud.edd.vmd.api.vo.response.VmdBuildConfigResponse;
+import net.hwyz.iov.cloud.edd.mdm.api.service.BrandService;
+import net.hwyz.iov.cloud.edd.mdm.api.service.CarLineService;
 import net.hwyz.iov.cloud.edd.mdm.api.service.ConfigurationService;
 import net.hwyz.iov.cloud.edd.mdm.api.vo.request.ConfigurationByVariantAndOptionCodesRequest;
+import net.hwyz.iov.cloud.edd.mdm.api.vo.response.BrandResponse;
+import net.hwyz.iov.cloud.edd.mdm.api.vo.response.CarLineResponse;
 import net.hwyz.iov.cloud.edd.mdm.api.vo.response.ConfigurationResponse;
 import net.hwyz.iov.cloud.framework.common.bean.PageResult;
 import net.hwyz.iov.cloud.framework.web.util.PageUtil;
@@ -46,6 +50,7 @@ import net.hwyz.iov.cloud.otd.vso.service.domain.model.OrderState;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.Payment;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.OrderAgreementConfirmation;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.OrderTimelineEventType;
+import net.hwyz.iov.cloud.otd.vso.service.domain.model.PayState;
 import net.hwyz.iov.cloud.otd.vso.service.domain.service.OrderStateMachine;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.VehicleAssignment;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.Wishlist;
@@ -155,6 +160,8 @@ public class OrderAppService {
     private final WishlistRepository wishlistRepository;
     private final VmdVehicleModelConfigService vmdVehicleModelConfigService;
     private final ConfigurationService configurationService;
+    private final CarLineService carLineService;
+    private final BrandService brandService;
     private final OrderPhysicalDeleteService orderPhysicalDeleteService;
     private final PaymentChannelConfig paymentChannelConfig;
     private final SaleModelRepository saleModelRepository;
@@ -717,15 +724,22 @@ public class OrderAppService {
     /**
      * 运营详情字段补齐（金额已在 getById 加载，这里补名称、状态时间、意向金支付时间与交付预约）
      */
-    private void enrichOrderDetail(OrderDetailResult result, String orderId) {
-        if (result == null || StrUtil.isBlank(orderId)) {
+    private void enrichOrderDetail(Order order, OrderDetailResult result) {
+        if (order == null || result == null || StrUtil.isBlank(order.getId())) {
             return;
         }
+        String orderId = order.getId();
         result.setOrderTypeName(getOrderTypeName(result.getOrderType()));
         result.setOrderSourceName(getOrderSourceName(result.getOrderSource()));
-        if (StrUtil.isNotBlank(result.getBrandCode())) {
-            result.setBrandName(result.getBrandCode());
+
+        // 车型、版本、配置与选装均取下单快照，不按当前销售策略重建历史订单。
+        try {
+            populateVehicleSnapshot(order, result);
+        } catch (Exception e) {
+            log.warn("读取订单车型快照失败: orderId={}", orderId, e);
         }
+        enrichBrand(result);
+
         if (StrUtil.isNotBlank(result.getSaleModel())) {
             try {
                 saleModelRepository.findBySaleModelCode(result.getSaleModel())
@@ -733,6 +747,11 @@ public class OrderAppService {
             } catch (Exception e) {
                 log.warn("获取销售车型名称失败: saleModelCode={}", result.getSaleModel(), e);
             }
+        }
+        try {
+            populateBuyerInfo(orderId, result);
+        } catch (Exception e) {
+            log.warn("读取订单购车人信息失败: orderId={}", orderId, e);
         }
         if (result.getOrderAmount() != null) {
             if (result.getOrderAmount().getDepositAmount() != null) {
@@ -742,11 +761,14 @@ public class OrderAppService {
                 result.setDownPaymentAmount(result.getOrderAmount().getDownPaymentAmount().getAmount());
             }
         }
+
+        List<Payment> successfulPayments = Collections.emptyList();
         try {
             List<String> orderIds = List.of(orderId);
             result.setOrderStateTime(toDate(orderTimelineRepository
                     .findLatestEventTimeByOrderIds(orderIds).get(orderId)));
-            paymentRepository.findSuccessfulByOrderIds(orderIds).stream()
+            successfulPayments = paymentRepository.findSuccessfulByOrderIds(orderIds);
+            successfulPayments.stream()
                     .filter(payment -> payment.getPaymentStage() != null
                             && payment.getPaymentStage().startsWith("EARNEST"))
                     .map(payment -> toDate(payment.getPayTime()))
@@ -762,6 +784,66 @@ public class OrderAppService {
         } catch (Exception e) {
             log.warn("补齐订单运营字段失败: orderId={}", orderId, e);
         }
+        // payState 未落库，不能从 OrderPo 读取；按订单事实与成功支付单反推展示状态。
+        result.setPayState(derivePayState(order, successfulPayments));
+    }
+
+    /**
+     * 历史订单 brand_code 曾写入 Carline 编码。详情展示时沿 Carline 找到真正的品牌，
+     * 不再把车系代码直接当成品牌名称。
+     */
+    private void enrichBrand(OrderDetailResult result) {
+        String sourceCode = result.getBrandCode();
+        if (StrUtil.isBlank(sourceCode)) {
+            return;
+        }
+        String brandCode = sourceCode;
+        try {
+            CarLineResponse carLine = carLineService.getByCode(sourceCode);
+            if (carLine != null && StrUtil.isNotBlank(carLine.getBrandCode())) {
+                brandCode = carLine.getBrandCode();
+                result.setBrandCode(brandCode);
+            }
+        } catch (Exception e) {
+            log.warn("根据车系获取品牌编码失败: carlineCode={}", sourceCode, e);
+        }
+        try {
+            BrandResponse brand = brandService.getByCode(brandCode);
+            if (brand != null) {
+                if (StrUtil.isNotBlank(brand.getCode())) {
+                    result.setBrandCode(brand.getCode());
+                }
+                result.setBrandName(brand.getName());
+            }
+        } catch (Exception e) {
+            log.warn("获取品牌名称失败: brandCode={}", brandCode, e);
+        }
+    }
+
+    private Integer derivePayState(Order order, List<Payment> successfulPayments) {
+        OrderState state = order.getOrderState();
+        boolean tailPaid = successfulPayments.stream()
+                .anyMatch(payment -> PaymentStage.TAIL_PAYMENT.name().equals(payment.getPaymentStage()));
+        if (tailPaid || state == OrderState.FINAL_PAYMENT_PAID || state == OrderState.INVOICED
+                || state == OrderState.DELIVERED || state == OrderState.ACTIVATED) {
+            return PayState.FINAL_PAYMENT_PAID.value;
+        }
+        if (state == OrderState.REFUND_COMPLETE) {
+            return order.getOrderType() == OrderType.FORMAL
+                    ? PayState.DOWN_PAYMENT_REFUNDED.value : PayState.EARNEST_MONEY_REFUNDED.value;
+        }
+        boolean downPaid = successfulPayments.stream()
+                .anyMatch(payment -> PaymentStage.DOWN_PAYMENT.name().equals(payment.getPaymentStage()));
+        if (downPaid || (order.getOrderType() == OrderType.FORMAL && state != null
+                && state.getValue() >= OrderState.DOWN_PAYMENT_PAID.getValue())) {
+            return PayState.DOWN_PAYMENT_PAID.value;
+        }
+        boolean earnestPaid = successfulPayments.stream()
+                .anyMatch(payment -> PaymentStage.EARNEST_MONEY.name().equals(payment.getPaymentStage()));
+        if (earnestPaid || state == OrderState.EARNEST_MONEY_PAID) {
+            return PayState.EARNEST_MONEY_PAID.value;
+        }
+        return null;
     }
 
     private Date toDate(java.time.LocalDateTime localDateTime) {
@@ -804,7 +886,7 @@ public class OrderAppService {
             log.warn("订单[{}]金额快照缺失或读取失败，详情金额字段留空：{}", orderId, e.getMessage());
         }
         OrderDetailResult result = OrderDtoAssembler.INSTANCE.toOrderDetailResult(order);
-        enrichOrderDetail(result, order.getId());
+        enrichOrderDetail(order, result);
         return result;
     }
 
@@ -1265,66 +1347,67 @@ public class OrderAppService {
             result.setDeliveryStoreName(getDealershipName(order.getDeliveryStoreCode()));
         }
         
-        Optional<OrderPartyPo> buyerOpt = orderPartyRepository.findByOrderIdAndRole(order.getId(), "buyer");
-        if (buyerOpt.isPresent()) {
-            OrderPartyPo buyer = buyerOpt.get();
+        populateBuyerInfo(order.getId(), result);
+
+        return result;
+    }
+
+    private void populateBuyerInfo(String orderId, OrderDetailResult result) {
+        orderPartyRepository.findByOrderIdAndRole(orderId, "buyer").ifPresent(buyer -> {
             result.setOrderPersonType(buyer.getPersonType());
             result.setOrderPersonName(buyer.getName());
             result.setOrderPersonIdType(buyer.getIdType());
             result.setOrderPersonIdNum(buyer.getIdNoEncrypted());
+        });
+    }
+
+    /**
+     * 从订单快照读取车型、版本、配置与选装，不访问当前销售策略。
+     */
+    private OrderVehicleSnapshotPo populateVehicleSnapshot(Order order, OrderDetailResult result) {
+        if (StrUtil.isBlank(order.getSaleModel())) {
+            log.warn("populateVehicleSnapshot: saleModel is blank, orderId={}", order.getId());
+            return null;
         }
-        
-        return result;
+        Optional<OrderVehicleSnapshotPo> snapshotOpt = orderVehicleSnapshotRepository.findByOrderId(order.getId());
+        if (snapshotOpt.isEmpty()) {
+            log.warn("populateVehicleSnapshot: snapshot not found, orderId={}", order.getId());
+            return null;
+        }
+
+        OrderVehicleSnapshotPo snapshot = snapshotOpt.get();
+        result.setModelCode(snapshot.getModelCode());
+        result.setModelName(snapshot.getModelName());
+        result.setVariantCode(snapshot.getVariantCode());
+        result.setVariantName(snapshot.getVariantName());
+        result.setConfigurationCode(snapshot.getConfigurationCode());
+        if (StrUtil.isNotBlank(snapshot.getOptionCodes())) {
+            try {
+                result.setOptionCodes(JSONUtil.toList(snapshot.getOptionCodes(), String.class));
+            } catch (Exception e) {
+                log.warn("解析 optionCodes 失败: orderId={}, optionCodes={}",
+                        order.getId(), snapshot.getOptionCodes(), e);
+            }
+        }
+        if (StrUtil.isNotBlank(snapshot.getOptionBreakdown())) {
+            try {
+                result.setOptionBreakdown(JSONUtil.toList(
+                        snapshot.getOptionBreakdown(), VehicleInfo.OptionBreakdownItem.class));
+            } catch (Exception e) {
+                log.warn("解析 optionBreakdown 失败: orderId={}, optionBreakdown={}",
+                        order.getId(), snapshot.getOptionBreakdown(), e);
+            }
+        }
+        return snapshot;
     }
 
     /**
      * 从订单快照和销售策略获取订单详情的展示信息
      */
     private void enrichOrderDetailResult(Order order, OrderDetailResult result) {
-        if (StrUtil.isBlank(order.getSaleModel())) {
-            log.warn("enrichOrderDetailResult: saleModel is blank, orderId={}", order.getId());
+        OrderVehicleSnapshotPo snapshot = populateVehicleSnapshot(order, result);
+        if (snapshot == null) {
             return;
-        }
-
-        // 获取订单快照
-        Optional<OrderVehicleSnapshotPo> snapshotOpt = orderVehicleSnapshotRepository.findByOrderId(order.getId());
-        if (snapshotOpt.isEmpty()) {
-            log.warn("enrichOrderDetailResult: snapshot not found, orderId={}", order.getId());
-            return;
-        }
-
-        OrderVehicleSnapshotPo snapshot = snapshotOpt.get();
-        log.info("enrichOrderDetailResult: snapshot found, orderId={}, modelCode={}, modelName={}, variantCode={}, variantName={}, configurationCode={}, optionCodes={}, optionBreakdown={}",
-            order.getId(), snapshot.getModelCode(), snapshot.getModelName(), snapshot.getVariantCode(), snapshot.getVariantName(), snapshot.getConfigurationCode(), snapshot.getOptionCodes(), snapshot.getOptionBreakdown());
-
-        // 设置车型、版本、配置信息
-        result.setModelCode(snapshot.getModelCode());
-        result.setModelName(snapshot.getModelName());
-        result.setVariantCode(snapshot.getVariantCode());
-        result.setVariantName(snapshot.getVariantName());
-        result.setConfigurationCode(snapshot.getConfigurationCode());
-
-        // 解析 optionCodes
-        if (StrUtil.isNotBlank(snapshot.getOptionCodes())) {
-            try {
-                List<String> optionCodes = JSONUtil.toList(snapshot.getOptionCodes(), String.class);
-                result.setOptionCodes(optionCodes);
-            } catch (Exception e) {
-                log.warn("解析 optionCodes 失败: orderId={}, optionCodes={}",
-                    order.getId(), snapshot.getOptionCodes(), e);
-            }
-        }
-
-        // 解析 optionBreakdown
-        if (StrUtil.isNotBlank(snapshot.getOptionBreakdown())) {
-            try {
-                List<VehicleInfo.OptionBreakdownItem> optionBreakdown = JSONUtil.toList(
-                    snapshot.getOptionBreakdown(), VehicleInfo.OptionBreakdownItem.class);
-                result.setOptionBreakdown(optionBreakdown);
-            } catch (Exception e) {
-                log.warn("解析 optionBreakdown 失败: orderId={}, optionBreakdown={}",
-                    order.getId(), snapshot.getOptionBreakdown(), e);
-            }
         }
 
         // 获取 Variant 销售策略
@@ -1671,13 +1754,6 @@ public class OrderAppService {
                 orderTimelineAppService.record(order.getId(), OrderTimelineEventType.EARNEST_TO_DOWN_COMPLETED,
                     String.valueOf(beforeState.getValue()), String.valueOf(order.getOrderState().getValue()),
                     cmd.getAccountId(), "order_user", "capp", null, null,
-                    "意向金订单转定金订单（差额<=0，直接转换）");
-
-                // 记录时间线
-                saveOrderTimeline(order.getId(), "EARNEST_TO_DOWN_PAYMENT", "意向金转定金",
-                    beforeState.getValue().toString(), order.getOrderState().getValue().toString(),
-                    cmd.getAccountId(), "order_user", "capp",
-                    null, "success", null,
                     "意向金订单转定金订单（差额<=0，直接转换）");
 
                 log.info("意向金转定金完成（直接转换）：orderId={}, orderNo={}, orderType={}",

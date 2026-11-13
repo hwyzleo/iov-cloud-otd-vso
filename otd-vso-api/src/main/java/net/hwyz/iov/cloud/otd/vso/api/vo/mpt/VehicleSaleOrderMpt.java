@@ -6,6 +6,7 @@ import net.hwyz.iov.cloud.framework.common.bean.BaseRequest;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Date;
+import java.util.List;
 
 /**
  * 管理后台车辆销售订单
@@ -81,9 +82,94 @@ public class VehicleSaleOrderMpt extends BaseRequest {
     private String saleModelName;
 
     /**
+     * 车型编码（下单时车型快照）
+     */
+    private String modelCode;
+
+    /**
+     * 车型名称（下单时销售策略营销名称快照）
+     */
+    private String modelName;
+
+    /**
+     * 配置版本编码（下单时 Variant 快照）
+     */
+    private String variantCode;
+
+    /**
+     * 配置版本名称（下单时 Variant 销售策略营销名称快照）
+     */
+    private String variantName;
+
+    /**
+     * MDM 生产配置代码
+     */
+    private String configurationCode;
+
+    /**
+     * 选装代码列表
+     */
+    private List<String> optionCodes;
+
+    /**
+     * 选装明细快照
+     */
+    private List<OptionBreakdownMpt> optionBreakdown;
+
+    /**
+     * 客户类型
+     */
+    private String customerType;
+
+    /**
+     * 支付方式
+     */
+    private String paymentMethod;
+
+    /**
+     * 购车计划
+     */
+    private Integer purchasePlan;
+
+    /**
+     * 购车人类型
+     */
+    private Integer orderPersonType;
+
+    /**
+     * 购车人姓名
+     */
+    private String orderPersonName;
+
+    /**
+     * 购车人证件类型
+     */
+    private Integer orderPersonIdType;
+
+    /**
+     * 购车人证件号码
+     */
+    private String orderPersonIdNum;
+
+    /**
+     * 支付状态
+     */
+    private Integer payState;
+
+    /**
+     * 订单金额快照
+     */
+    private OrderAmountMpt orderAmount;
+
+    /**
      * 下单门店编码
      */
     private String orderStoreCode;
+
+    /**
+     * 下单门店名称
+     */
+    private String orderStoreName;
 
     /**
      * 归属门店编码

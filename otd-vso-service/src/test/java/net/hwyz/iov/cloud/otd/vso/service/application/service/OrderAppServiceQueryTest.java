@@ -1,20 +1,30 @@
 package net.hwyz.iov.cloud.otd.vso.service.application.service;
 
 import cn.hutool.json.JSONUtil;
+import net.hwyz.iov.cloud.edd.mdm.api.service.BrandService;
+import net.hwyz.iov.cloud.edd.mdm.api.service.CarLineService;
+import net.hwyz.iov.cloud.edd.mdm.api.vo.response.BrandResponse;
+import net.hwyz.iov.cloud.edd.mdm.api.vo.response.CarLineResponse;
 import net.hwyz.iov.cloud.otd.vso.api.enums.OrderType;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.OrderDetailResult;
 import net.hwyz.iov.cloud.otd.vso.service.common.exception.OrderNotExistException;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.Order;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.OrderState;
+import net.hwyz.iov.cloud.otd.vso.service.domain.repository.DeliveryRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.OrderRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.OrderAmountRepository;
+import net.hwyz.iov.cloud.otd.vso.service.domain.repository.OrderTimelineRepository;
+import net.hwyz.iov.cloud.otd.vso.service.domain.repository.PaymentRepository;
+import net.hwyz.iov.cloud.otd.vso.service.domain.repository.SaleModelRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.OrderPartyRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.OrderVehicleSnapshotRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.SaleModelOptionPolicyRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.SaleModelVariantPolicyRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.service.OrderDomainService;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.OrderAmountPo;
+import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.OrderPartyPo;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.OrderVehicleSnapshotPo;
+import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.SaleModelPo;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.SaleModelOptionPolicyPo;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.SaleModelVariantPolicyPo;
 import org.junit.jupiter.api.DisplayName;
@@ -52,6 +62,18 @@ class OrderAppServiceQueryTest {
     private SaleModelVariantPolicyRepository saleModelVariantPolicyRepository;
     @Mock
     private SaleModelOptionPolicyRepository saleModelOptionPolicyRepository;
+    @Mock
+    private SaleModelRepository saleModelRepository;
+    @Mock
+    private OrderTimelineRepository orderTimelineRepository;
+    @Mock
+    private PaymentRepository paymentRepository;
+    @Mock
+    private DeliveryRepository deliveryRepository;
+    @Mock
+    private CarLineService carLineService;
+    @Mock
+    private BrandService brandService;
 
     @InjectMocks
     private OrderAppService orderAppService;
@@ -158,6 +180,79 @@ class OrderAppServiceQueryTest {
         assertEquals(0, new BigDecimal("20000.00").compareTo(result.getDownPaymentAmount()));
         assertEquals("正式订单", result.getOrderTypeName(), "订单类型名称应补齐");
         assertNotNull(result.getOrderSourceName(), "订单来源名称应补齐");
+    }
+
+    @Test
+    @DisplayName("MPT详情从快照和关联表补齐车型、品牌、购车人、支付状态与金额")
+    void testGetByIdShouldEnrichCompleteDetail() {
+        String orderId = "ORDER_COMPLETE_DETAIL";
+        Order order = Order.builder()
+                .id(orderId)
+                .orderNo("SO_COMPLETE_DETAIL")
+                .orderType(OrderType.FORMAL)
+                .orderSource("capp")
+                .customerType("personal")
+                .paymentMethod("full_payment")
+                .purchasePlan(1)
+                .brandCode("HC")
+                .saleModel("HC")
+                .configurationCode("CFG-HC-001")
+                .orderState(OrderState.DOWN_PAYMENT_PAID)
+                .build();
+        when(orderDomainService.loadOrder(orderId)).thenReturn(order);
+        OrderAmountPo amountPo = buildOrderAmountPo(orderId);
+        amountPo.setVehiclePrice(new BigDecimal("200000.00"));
+        amountPo.setOptionPrice(new BigDecimal("10000.00"));
+        amountPo.setDealPriceTotal(new BigDecimal("210000.00"));
+        amountPo.setPaidTotal(new BigDecimal("5000.00"));
+        when(orderAmountRepository.findDomainByOrderId(orderId)).thenReturn(Optional.of(toDomain(amountPo)));
+
+        OrderVehicleSnapshotPo snapshot = new OrderVehicleSnapshotPo();
+        snapshot.setOrderId(orderId);
+        snapshot.setSaleModelCode("HC");
+        snapshot.setModelCode("HC-M1");
+        snapshot.setModelName("寒川车型");
+        snapshot.setVariantCode("HC-V1");
+        snapshot.setVariantName("寒川版");
+        snapshot.setConfigurationCode("CFG-HC-001");
+        snapshot.setOptionCodes("[]");
+        when(orderVehicleSnapshotRepository.findByOrderId(orderId)).thenReturn(Optional.of(snapshot));
+        when(saleModelRepository.findBySaleModelCode("HC"))
+                .thenReturn(Optional.of(SaleModelPo.builder().saleModelCode("HC").modelName("寒川").build()));
+        when(carLineService.getByCode("HC"))
+                .thenReturn(CarLineResponse.builder().code("HC").brandCode("BRAND_HC").build());
+        when(brandService.getByCode("BRAND_HC"))
+                .thenReturn(BrandResponse.builder().code("BRAND_HC").name("测试品牌").build());
+
+        OrderPartyPo buyer = new OrderPartyPo();
+        buyer.setPersonType(1);
+        buyer.setName("张三");
+        buyer.setIdType(1);
+        buyer.setIdNoEncrypted("ID-NUM-1");
+        when(orderPartyRepository.findByOrderIdAndRole(orderId, "buyer")).thenReturn(Optional.of(buyer));
+        when(orderTimelineRepository.findLatestEventTimeByOrderIds(Collections.singletonList(orderId)))
+                .thenReturn(Collections.emptyMap());
+        when(paymentRepository.findSuccessfulByOrderIds(Collections.singletonList(orderId)))
+                .thenReturn(Collections.emptyList());
+        when(deliveryRepository.findLatestByOrderId(orderId)).thenReturn(Optional.empty());
+
+        OrderDetailResult result = orderAppService.getById(orderId);
+
+        assertEquals("BRAND_HC", result.getBrandCode());
+        assertEquals("测试品牌", result.getBrandName());
+        assertEquals("寒川", result.getSaleModelName());
+        assertEquals("寒川车型", result.getModelName());
+        assertEquals("寒川版", result.getVariantName());
+        assertEquals("CFG-HC-001", result.getConfigurationCode());
+        assertEquals("personal", result.getCustomerType());
+        assertEquals("full_payment", result.getPaymentMethod());
+        assertEquals(1, result.getPurchasePlan());
+        assertEquals("张三", result.getOrderPersonName());
+        assertEquals("ID-NUM-1", result.getOrderPersonIdNum());
+        assertEquals(20, result.getPayState(), "直接转定金没有独立定金支付单时也应显示定金已支付");
+        assertNotNull(result.getOrderAmount());
+        assertEquals(0, new BigDecimal("210000.00").compareTo(
+                result.getOrderAmount().getDealPriceTotal().getAmount()));
     }
 
     @Test
