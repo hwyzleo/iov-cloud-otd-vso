@@ -53,7 +53,8 @@ public class TimeoutNotifyService {
      */
     public String createTimeoutTask(String orderId, String taskType, 
                                    String triggerStrategy, Integer thresholdMinutes) {
-        String taskId = "TK" + System.currentTimeMillis();
+        // 同毫秒批量创建会覆盖本地缓存与 Redis 键，改用随机业务 ID
+        String taskId = "TK" + cn.hutool.core.util.IdUtil.fastSimpleUUID();
         TimeoutTask task = new TimeoutTask(taskId, orderId, taskType, triggerStrategy, thresholdMinutes);
         
         // 保存到本地缓存
@@ -96,16 +97,36 @@ public class TimeoutNotifyService {
     }
 
     /**
-     * 完成超时任务
+     * 完成超时任务（一次性消费，OTD-VSO-DSN-CR-005 修复：
+     * 原实现只在调度器内 task.complete()，未从本地/Redis 移除，
+     * 导致 isExpired() 恒为 true、任务每分钟被反复执行）
      *
      * @param taskId 任务 ID
      */
     public void completeTimeoutTask(String taskId) {
-        TimeoutTask task = pendingTasks.get(taskId);
-        if (task != null) {
+        TimeoutTask task = pendingTasks.remove(taskId);
+        // 已是终止态（FAILED/CANCELLED）时保留原状态，便于排查，不覆盖为 DONE
+        if (task != null && !"FAILED".equals(task.getTaskStatus()) && !"CANCELLED".equals(task.getTaskStatus())) {
             task.complete();
-            pendingTasks.remove(taskId);
-            deleteFromRedis(taskId);
+        }
+        // 即使本地不存在（服务重启后从 Redis 加载失败等）也要清理 Redis，保证幂等
+        deleteFromRedis(taskId);
+    }
+
+    /**
+     * 任务执行失败：未达重试上限则重排（1 分钟后重试），达到则终止并移除
+     *
+     * @param task 超时任务
+     */
+    public void failTimeoutTask(TimeoutTask task) {
+        if (task == null) {
+            return;
+        }
+        task.fail();
+        if ("PENDING".equals(task.getTaskStatus())) {
+            saveToRedis(task, Math.max(task.getThresholdMinutes() == null ? 0 : task.getThresholdMinutes(), 0) + 5);
+        } else {
+            completeTimeoutTask(task.getTaskId());
         }
     }
 
@@ -117,9 +138,9 @@ public class TimeoutNotifyService {
     public List<TimeoutTask> getExpiredTasks() {
         List<TimeoutTask> expired = new ArrayList<>();
         
-        // 先从本地缓存获取
+        // 先从本地缓存获取：只取待触发（PENDING）任务
         for (TimeoutTask task : pendingTasks.values()) {
-            if (task.isExpired()) {
+            if (isTriggerable(task)) {
                 expired.add(task);
             }
         }
@@ -135,7 +156,7 @@ public class TimeoutNotifyService {
                         continue;
                     }
                     TimeoutTask task = loadFromRedis(taskId);
-                    if (task != null && task.isExpired()) {
+                    if (isTriggerable(task)) {
                         expired.add(task);
                         // 加入本地缓存
                         pendingTasks.put(taskId, task);
@@ -147,6 +168,15 @@ public class TimeoutNotifyService {
         }
         
         return expired;
+    }
+
+    /**
+     * 是否可触发：仅待触发（PENDING）且已到期
+     */
+    private boolean isTriggerable(TimeoutTask task) {
+        return task != null
+                && "PENDING".equals(task.getTaskStatus())
+                && task.isExpired();
     }
 
     /**

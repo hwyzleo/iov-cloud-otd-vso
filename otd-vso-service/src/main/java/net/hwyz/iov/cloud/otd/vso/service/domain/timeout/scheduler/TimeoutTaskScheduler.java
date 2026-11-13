@@ -62,58 +62,73 @@ public class TimeoutTaskScheduler {
         
         task.trigger();
         
+        // OTD-VSO-DSN-CR-005：任务必须一次性消费（完成后从本地缓存与 Redis 移除），
+        // 原实现只调用 task.complete()，任务仍留在待触发集合中，导致每分钟重复执行。
         switch (task.getTriggerStrategy()) {
             case "remind":
                 // 仅提醒
-                timeoutNotifyService.sendTimeoutReminder(task.getOrderId(), 
-                                                        task.getTaskType(), 
-                                                        "SYSTEM");
-                task.complete();
+                try {
+                    timeoutNotifyService.sendTimeoutReminder(task.getOrderId(),
+                                                            task.getTaskType(),
+                                                            "SYSTEM");
+                    timeoutNotifyService.completeTimeoutTask(task.getTaskId());
+                } catch (Exception e) {
+                    log.error("发送超时提醒失败：orderId={}", task.getOrderId(), e);
+                    timeoutNotifyService.failTimeoutTask(task);
+                }
                 break;
-                
+
             case "close":
                 log.info("自动关闭订单：orderId={}", task.getOrderId());
                 try {
                     orderDomainService.closeOrder(task.getOrderId(), "超时自动关闭");
-                    task.complete();
+                    timeoutNotifyService.completeTimeoutTask(task.getTaskId());
                 } catch (Exception e) {
                     log.error("自动关闭订单失败：orderId={}", task.getOrderId(), e);
-                    task.fail();
+                    timeoutNotifyService.failTimeoutTask(task);
                 }
                 break;
-                
+
             case "auto_close":
                 log.info("审核驳回超时自动关闭订单：orderId={}", task.getOrderId());
                 try {
                     orderDomainService.rejectTimeoutClose(task.getOrderId());
-                    task.complete();
+                    timeoutNotifyService.completeTimeoutTask(task.getTaskId());
                 } catch (Exception e) {
                     log.error("审核驳回超时关闭订单失败：orderId={}", task.getOrderId(), e);
-                    task.fail();
+                    timeoutNotifyService.failTimeoutTask(task);
                 }
                 break;
-                
+
             case "invalid":
-                // 自动失效订单（小订单）
+                // 自动失效订单（小订单）；OTD-VSO-DSN-CR-005：非待支付订单跳过
                 log.info("自动失效小订单：orderId={}", task.getOrderId());
-                orderDomainService.invalidateSmallOrder(task.getOrderId());
-                task.complete();
+                try {
+                    boolean invalidated = orderDomainService.invalidateSmallOrder(task.getOrderId());
+                    if (!invalidated) {
+                        log.info("小订单非待支付状态，跳过失效：orderId={}", task.getOrderId());
+                    }
+                    timeoutNotifyService.completeTimeoutTask(task.getTaskId());
+                } catch (Exception e) {
+                    log.error("自动失效小订单失败：orderId={}", task.getOrderId(), e);
+                    timeoutNotifyService.failTimeoutTask(task);
+                }
                 break;
-                
+
             case "retry_and_alert":
                 if (task.canRetry()) {
                     log.warn("任务重试：taskId={}, retryCount={}", task.getTaskId(), task.getRetryCount());
-                    task.fail();
+                    timeoutNotifyService.failTimeoutTask(task);
                 } else {
                     log.error("任务重试超过限制，发送告警：taskId={}", task.getTaskId());
                     timeoutNotifyService.sendTimeoutAlert(task.getOrderId(), task.getTaskType(), task.getTaskId());
-                    task.complete();
+                    timeoutNotifyService.completeTimeoutTask(task.getTaskId());
                 }
                 break;
-                
+
             default:
                 log.warn("未知的触发策略：strategy={}", task.getTriggerStrategy());
-                task.complete();
+                timeoutNotifyService.completeTimeoutTask(task.getTaskId());
         }
     }
 
