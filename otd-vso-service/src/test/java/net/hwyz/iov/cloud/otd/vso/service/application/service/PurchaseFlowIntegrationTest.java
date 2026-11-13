@@ -111,6 +111,8 @@ class PurchaseFlowIntegrationTest {
     @Autowired
     private SupplementaryPaymentRepository supplementaryPaymentRepository;
     @Autowired
+    private MockPaymentAutoCallbackService mockPaymentAutoCallbackService;
+    @Autowired
     private SaleModelMapper saleModelMapper;
     @Autowired
     private SaleModelVariantPolicyMapper saleModelVariantPolicyMapper;
@@ -406,6 +408,33 @@ class PurchaseFlowIntegrationTest {
                 () -> deliveryAppService.getByOrderNo(other, orderResult.getOrderNo()));
 
         assertNotNull(orderAppService.getUserOrder(owner, orderResult.getOrderNo()));
+    }
+
+    @Test
+    @DisplayName("Mock 自回调：服务端扮演支付渠道，签名回调后支付单 PAID、订单进入已支付（OTD-VSO-DSN-CR-007）")
+    void mock自回调驱动支付终态() {
+        String account = "mock_cb_user_" + System.nanoTime();
+        EarnestMoneyOrderResult orderResult = earnestOrder(account);
+
+        // 打开 mock 自回调开关（模拟 vso.payment.mock.auto-callback=true）
+        org.springframework.test.util.ReflectionTestUtils.setField(
+                mockPaymentAutoCallbackService, "autoCallbackEnabled", true);
+        try {
+            // 客户端只发起支付，不再自己伪造回调
+            InitiatePaymentResult payment = paymentAppService.initiatePayment(InitiatePaymentCmd.builder()
+                    .accountId(account).orderNo(orderResult.getOrderNo())
+                    .paymentChannel(PaymentChannel.WECHAT).build());
+
+            // 服务端自回调应已把支付单推进到 PAID、订单推进到“意向金已支付”
+            assertEquals(OrderState.EARNEST_MONEY_PAID, stateOf(orderResult.getOrderNo()),
+                    "mock 自回调应驱动订单进入已支付");
+            PaymentResult paid = paymentAppService.getPayment(account, orderResult.getOrderNo(),
+                    payment.getPaymentNo());
+            assertEquals(PaymentStatus.PAID.name(), paid.getPaymentStatus(), "支付单应为 PAID");
+        } finally {
+            org.springframework.test.util.ReflectionTestUtils.setField(
+                    mockPaymentAutoCallbackService, "autoCallbackEnabled", false);
+        }
     }
 
     // ==================== helpers ====================

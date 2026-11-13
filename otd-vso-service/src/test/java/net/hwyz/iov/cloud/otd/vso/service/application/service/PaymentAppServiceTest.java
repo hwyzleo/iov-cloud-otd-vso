@@ -71,6 +71,8 @@ class PaymentAppServiceTest {
     private PaymentChannelConfig paymentChannelConfig;
     @Mock
     private PlatformTransactionManager transactionManager;
+    @Mock
+    private MockPaymentAutoCallbackService mockPaymentAutoCallbackService;
 
     @InjectMocks
     private PaymentAppService paymentAppService;

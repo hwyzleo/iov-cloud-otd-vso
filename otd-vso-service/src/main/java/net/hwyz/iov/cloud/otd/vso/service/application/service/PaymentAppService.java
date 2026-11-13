@@ -58,6 +58,7 @@ public class PaymentAppService {
     private final PaymentAdapter paymentAdapter;
     private final PaymentChannelConfig paymentChannelConfig;
     private final PlatformTransactionManager transactionManager;
+    private final MockPaymentAutoCallbackService mockPaymentAutoCallbackService;
 
     /**
      * 发起支付
@@ -99,6 +100,14 @@ public class PaymentAppService {
             paymentRepository.save(current);
             return current;
         });
+
+        // mock 模式：由服务端扮演支付渠道触发签名回调（OTD-VSO-DSN-CR-007），
+        // 客户端只轮询、不持密钥；失败不影响本次发起支付结果。
+        try {
+            mockPaymentAutoCallbackService.triggerIfEnabled(updated.getPaymentNo());
+        } catch (Exception e) {
+            log.warn("Mock 自动回调失败（不影响发起支付）: paymentNo={}", updated.getPaymentNo(), e);
+        }
 
         return toInitiateResult(updated, cmd.getPaymentChannel(),
                 gatewayResult.getPaymentMerchant(), gatewayResult.getPaymentReference());

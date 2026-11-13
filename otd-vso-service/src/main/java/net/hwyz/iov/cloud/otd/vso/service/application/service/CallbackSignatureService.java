@@ -72,6 +72,22 @@ public class CallbackSignatureService {
         return true;
     }
 
+    /**
+     * 生成回调签名（OTD-VSO-DSN-CR-007 服务端 mock 自回调）。
+     * <p>
+     * 与 {@link #verifySignature} 使用同一份拼接规则与同一个 secret，
+     * 保证 mock 回调走的是与真实支付网关完全一致的验签路径。
+     *
+     * @param signData  签名数据（amount, orderId, paySeq, status）
+     * @param nonce     随机串
+     * @param timestamp Unix 秒
+     * @return HMAC-SHA256 小写十六进制签名
+     */
+    public String sign(Map<String, String> signData, String nonce, long timestamp) {
+        String content = buildSignatureContent(signData, nonce, timestamp);
+        return calculateHmacSha256(content, signatureSecret);
+    }
+
     private boolean verifyTimestamp(Long timestamp) {
         long now = Instant.now().getEpochSecond();
         long diff = Math.abs(now - timestamp);
