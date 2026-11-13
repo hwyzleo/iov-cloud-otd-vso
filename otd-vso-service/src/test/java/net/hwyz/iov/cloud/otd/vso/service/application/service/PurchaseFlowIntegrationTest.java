@@ -105,6 +105,8 @@ class PurchaseFlowIntegrationTest {
     @Autowired
     private OrderRepository orderRepository;
     @Autowired
+    private net.hwyz.iov.cloud.otd.vso.service.common.time.BusinessTimeZone businessTimeZone;
+    @Autowired
     private OrderAmountRepository orderAmountRepository;
     @Autowired
     private SupplementaryPaymentRepository supplementaryPaymentRepository;
@@ -491,8 +493,8 @@ class PurchaseFlowIntegrationTest {
     }
 
     private void setDownPaymentTime(Order order, LocalDateTime time) {
-        orderRepository.updateDownPaymentTime(order.getOrderNo(),
-                Date.from(time.atZone(ZoneId.systemDefault()).toInstant()));
+        // 与生产一致：用显式业务时区换算，不再依赖 JVM 默认时区（否则 Nacos 里 zone-id 与实际部署不一致时会误判）
+        orderRepository.updateDownPaymentTime(order.getOrderNo(), businessTimeZone.toDate(time));
     }
 
     private void insertSaleModel() {

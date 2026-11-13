@@ -104,10 +104,12 @@ import net.hwyz.iov.cloud.otd.vso.api.vo.SupplementaryPaymentVo;
 import net.hwyz.iov.cloud.otd.vso.service.common.exception.SupplementPaymentNotExistException;
 import net.hwyz.iov.cloud.otd.vso.service.common.exception.SupplementPaymentStatusException;
 import net.hwyz.iov.cloud.otd.vso.service.common.exception.SupplementPaymentExpiredException;
+import net.hwyz.iov.cloud.otd.vso.service.common.time.BusinessTimeZone;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.scheduling.annotation.Async;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import cn.hutool.core.util.IdUtil;
 import cn.hutool.core.util.StrUtil;
@@ -115,7 +117,6 @@ import cn.hutool.json.JSONUtil;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -173,6 +174,14 @@ public class OrderAppService {
     private final VehicleAssignmentRepository vehicleAssignmentRepository;
     private final VehicleInventoryGateway vehicleInventoryGateway;
     private final SalesPolicyService salesPolicyService;
+
+    /** 业务时区：显式来源 {@code iov.web.jackson.zone-id}（禁止 systemDefault） */
+    private BusinessTimeZone businessTimeZone = BusinessTimeZone.utc();
+
+    @Autowired
+    void setBusinessTimeZone(BusinessTimeZone businessTimeZone) {
+        this.businessTimeZone = businessTimeZone;
+    }
     private final MdmProjectionService mdmProjectionService;
     private final SaleModelVariantPolicyRepository saleModelVariantPolicyRepository;
     private final SaleModelModelPolicyRepository saleModelModelPolicyRepository;
@@ -756,8 +765,7 @@ public class OrderAppService {
     }
 
     private Date toDate(java.time.LocalDateTime localDateTime) {
-        return localDateTime == null ? null
-                : Date.from(localDateTime.atZone(java.time.ZoneId.systemDefault()).toInstant());
+        return businessTimeZone.toDate(localDateTime);
     }
 
     private String getRegionName(String regionCode) {
@@ -1543,7 +1551,7 @@ public class OrderAppService {
     private Instant resolveWindowEnd(Order order, int windowMinutes) {
         return paymentRepository.findActiveByOrderIdAndStage(order.getId(), PaymentStage.EARNEST_MONEY.name())
                 .filter(payment -> payment.getExpireTime() != null)
-                .map(payment -> payment.getExpireTime().atZone(ZoneId.systemDefault()).toInstant())
+                .map(payment -> businessTimeZone.toInstant(payment.getExpireTime()))
                 .orElseGet(() -> {
                     if (order.getOrderStateTime() != null) {
                         return order.getOrderStateTime().toInstant().plusSeconds(windowMinutes * 60L);

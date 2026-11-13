@@ -10,8 +10,8 @@ import net.hwyz.iov.cloud.otd.vso.service.domain.repository.OrderRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.service.OrderLockService;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
-import java.time.ZoneId;
+import java.time.Duration;
+import java.time.Instant;
 
 /**
  * 自动锁单执行器
@@ -74,7 +74,9 @@ public class AutoLockExecutor {
         if (order.getDownPaymentTime() == null) {
             return false;
         }
-        LocalDateTime paidAt = LocalDateTime.ofInstant(order.getDownPaymentTime().toInstant(), ZoneId.systemDefault());
-        return !paidAt.plusHours(AUTO_LOCK_HOURS).isAfter(LocalDateTime.now());
+        // 一律用瞬时比较：不应把业务时区的墙上时间与 JVM 墙上时间（LocalDateTime.now()）混用，
+        // 否则容器 TZ 与 iov.web.jackson.zone-id 不一致时判定会整体偏移。
+        Instant paidAt = order.getDownPaymentTime().toInstant();
+        return !paidAt.plus(Duration.ofHours(AUTO_LOCK_HOURS)).isAfter(Instant.now());
     }
 }

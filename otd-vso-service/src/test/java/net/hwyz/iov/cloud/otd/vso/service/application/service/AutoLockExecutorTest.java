@@ -128,7 +128,7 @@ class AutoLockExecutorTest {
 
     private Order downPaymentPaidOrder(int hoursAgo, int minutesAgo) {
         Date paidAt = Date.from(LocalDateTime.now().minusHours(hoursAgo).minusMinutes(minutesAgo)
-                .atZone(ZoneId.systemDefault()).toInstant());
+                .atZone(java.time.ZoneOffset.UTC).toInstant());
         return Order.builder()
                 .id("OID1")
                 .orderNo("SO001")

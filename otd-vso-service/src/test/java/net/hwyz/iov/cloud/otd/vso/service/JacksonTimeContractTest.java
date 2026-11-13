@@ -6,6 +6,7 @@ import net.hwyz.iov.cloud.framework.web.autoconfigure.IovJacksonAutoConfiguratio
 import net.hwyz.iov.cloud.otd.vso.api.vo.SupplementaryPaymentVo;
 import net.hwyz.iov.cloud.otd.vso.api.vo.mpt.VehicleAssignmentVo;
 import net.hwyz.iov.cloud.otd.vso.api.vo.response.OrderDetailResponse;
+import net.hwyz.iov.cloud.otd.vso.service.adapter.web.vo.WishlistDetailVo;
 import net.hwyz.iov.cloud.otd.vso.service.adapter.web.vo.request.PaymentCallbackRequest;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.EarnestMoneyOrderResult;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.SaleModelResult;
@@ -310,7 +311,105 @@ class JacksonTimeContractTest {
                 });
     }
 
+    // ---------- FW-WEB-DSN-CR-003：默认 ISO（UTC/Z + 固定毫秒） ----------
+
+    @Test
+    @DisplayName("默认模式即 iso：四类型统一输出 3 位毫秒 + Z")
+    void 默认iso模式_四类型输出毫秒Z() {
+        runner()
+                .withPropertyValues("iov.web.jackson.zone-id=UTC")
+                .run(context -> {
+                    ObjectMapper mapper = context.getBean(ObjectMapper.class);
+                    JsonNode node = mapper.valueToTree(new IsoSample());
+                    assertEquals("2026-10-28T12:43:32.000Z", node.get("instant").asText());
+                    // OffsetDateTime 归一为瞬时，统一 Z
+                    assertEquals("2026-10-28T12:43:32.000Z", node.get("offset").asText());
+                    // LocalDateTime 语义 = UTC 墙上时间（全 UTC 栈）
+                    assertEquals("2026-10-14T14:26:13.000Z", node.get("local").asText());
+                    // java.util.Date 由框架拥有
+                    assertEquals("2026-10-28T12:43:32.000Z", node.get("date").asText());
+                });
+    }
+
+    @Test
+    @DisplayName("默认 iso：VSO 业务对象 wire 输出（Instant / LocalDateTime / java.util.Date）")
+    void 默认iso模式_VSO业务对象输出毫秒Z() {
+        runner()
+                .withPropertyValues("iov.web.jackson.zone-id=UTC")
+                .run(context -> {
+                    ObjectMapper mapper = context.getBean(ObjectMapper.class);
+
+                    SaleModelResult saleModel = SaleModelResult.builder()
+                            .saleModelCode("SMC001")
+                            .effectiveFrom(SAMPLE_INSTANT)
+                            .createTime(SAMPLE_INSTANT)
+                            .build();
+                    JsonNode saleModelNode = mapper.valueToTree(saleModel);
+                    assertEquals("2026-10-28T12:43:32.000Z", saleModelNode.get("effectiveFrom").asText());
+                    assertEquals("2026-10-28T12:43:32.000Z", saleModelNode.get("createTime").asText());
+
+                    EarnestMoneyOrderResult earnest = EarnestMoneyOrderResult.builder()
+                            .orderNo("ORDER-001")
+                            .expireTime(SAMPLE_INSTANT)
+                            .build();
+                    assertEquals("2026-10-28T12:43:32.000Z",
+                            mapper.valueToTree(earnest).get("expireTime").asText());
+
+                    OrderDetailResponse orderDetail = new OrderDetailResponse();
+                    orderDetail.setOrderId("ORDER-001");
+                    orderDetail.setCreatedAtBusiness(SAMPLE_LOCAL);
+                    assertEquals("2026-10-14T14:26:13.000Z",
+                            mapper.valueToTree(orderDetail).get("createdAtBusiness").asText());
+
+                    SupplementaryPaymentVo supplementary = SupplementaryPaymentVo.builder()
+                            .supplementaryNo("SP-001")
+                            .expireTime(SAMPLE_LOCAL)
+                            .build();
+                    assertEquals("2026-10-14T14:26:13.000Z",
+                            mapper.valueToTree(supplementary).get("expireTime").asText());
+
+                    // java.util.Date（此前走 Boot StdDateFormat，形态不可控）
+                    WishlistDetailVo wishlist = new WishlistDetailVo();
+                    wishlist.setWishlistId("W1");
+                    wishlist.setCreateTime(new java.util.Date(SAMPLE_INSTANT.toEpochMilli()));
+                    assertEquals("2026-10-28T12:43:32.000Z",
+                            mapper.valueToTree(wishlist).get("createTime").asText());
+                });
+    }
+
+    @Test
+    @DisplayName("默认 iso：入站 LocalDateTime 带 offset 按 zone-id 归一（出站/入站对称）")
+    void 默认iso模式_入站带offset归一() {
+        runner()
+                .withPropertyValues("iov.web.jackson.zone-id=UTC")
+                .run(context -> {
+                    ObjectMapper mapper = context.getBean(ObjectMapper.class);
+                    assertEquals(SAMPLE_LOCAL,
+                            mapper.readValue("\"2026-10-14T14:26:13Z\"", LocalDateTime.class));
+                    assertEquals(SAMPLE_LOCAL,
+                            mapper.readValue("\"2026-10-14T22:26:13+08:00\"", LocalDateTime.class));
+                    assertEquals(SAMPLE_LOCAL,
+                            mapper.readValue("\"2026-10-14T14:26:13\"", LocalDateTime.class));
+                });
+    }
+
+    @Test
+    @DisplayName("默认 iso 未配置 zone-id 时启动探针阻断（禁止 JVM 默认时区猜测）")
+    void 默认iso模式_缺zoneId_探针阻断() {
+        runner().run(context -> {
+            assertNotNull(context.getStartupFailure());
+            assertTrue(context.getStartupFailure().getMessage().contains("zone-id"));
+        });
+    }
+
     // ---------- 辅助 ----------
+
+    static class IsoSample {
+        public Instant instant = SAMPLE_INSTANT;
+        public OffsetDateTime offset = SAMPLE_OFFSET;
+        public LocalDateTime local = SAMPLE_LOCAL;
+        public java.util.Date date = new java.util.Date(SAMPLE_INSTANT.toEpochMilli());
+    }
 
     static class TimeSample {
         public Instant instant;

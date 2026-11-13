@@ -3,6 +3,7 @@ package net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.repository
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.github.pagehelper.Page;
 import lombok.RequiredArgsConstructor;
+import net.hwyz.iov.cloud.otd.vso.service.common.time.BusinessTimeZone;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.Order;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.OrderAmount;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.OrderState;
@@ -12,6 +13,7 @@ import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.converter.O
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.mapper.OrderMapper;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.OrderAmountPo;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.OrderPo;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,6 +33,14 @@ public class OrderRepositoryImpl implements OrderRepository {
 
     private final OrderMapper orderMapper;
     private final OrderAmountRepository orderAmountRepository;
+
+    /** 业务时区：显式来源 {@code iov.web.jackson.zone-id}（禁止 systemDefault） */
+    private BusinessTimeZone businessTimeZone = BusinessTimeZone.utc();
+
+    @Autowired
+    void setBusinessTimeZone(BusinessTimeZone businessTimeZone) {
+        this.businessTimeZone = businessTimeZone;
+    }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -202,7 +212,7 @@ public class OrderRepositoryImpl implements OrderRepository {
     @Override
     public List<Order> findDownPaymentPaidBefore(Date deadline, int limit) {
         return orderMapper.selectAutoLockCandidates(OrderState.DOWN_PAYMENT_PAID.getValue(),
-                        deadline.toInstant().atZone(java.time.ZoneId.systemDefault()).toLocalDateTime(), limit)
+                        businessTimeZone.fromDate(deadline), limit)
                 .stream()
                 .map(OrderPoConverter.INSTANCE::toDomain)
                 .collect(Collectors.toList());
@@ -216,8 +226,7 @@ public class OrderRepositoryImpl implements OrderRepository {
 
     @Override
     public int updateDownPaymentTime(String orderNo, Date downPaymentTime) {
-        return orderMapper.updateDownPaymentTime(orderNo,
-                downPaymentTime.toInstant().atZone(java.time.ZoneId.systemDefault()).toLocalDateTime());
+        return orderMapper.updateDownPaymentTime(orderNo, businessTimeZone.fromDate(downPaymentTime));
     }
 
     @Override

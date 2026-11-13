@@ -8,8 +8,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-import java.time.LocalDateTime;
-import java.time.ZoneId;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Date;
 import java.util.List;
 
@@ -42,8 +42,8 @@ public class AutoLockScheduler {
      */
     @Scheduled(fixedDelayString = "${vso.order.auto-lock-interval-ms:60000}", initialDelayString = "${vso.order.auto-lock-initial-delay-ms:60000}")
     public void scan() {
-        LocalDateTime deadline = LocalDateTime.now().minusHours(autoLockHours);
-        Date deadlineDate = Date.from(deadline.atZone(ZoneId.systemDefault()).toInstant());
+        // 截止时间用瞬时表达：与容器 TZ、业务时区均无关（仓储层按业务时区落库）
+        Date deadlineDate = Date.from(Instant.now().minus(Duration.ofHours(autoLockHours)));
         List<Order> candidates = orderRepository.findDownPaymentPaidBefore(deadlineDate, batchSize);
         if (candidates.isEmpty()) {
             return;
