@@ -41,6 +41,6 @@ class VsoErrorCodeTest {
 
     @Test
     void should_have_correct_error_code_count() {
-        assertEquals(58, VsoErrorCode.values().length, "错误码数量应为58个（CR-005 新增 201057~201059）");
+        assertEquals(59, VsoErrorCode.values().length, "错误码数量应为59个（CR-005 新增 201057~201059，CR-008 新增 201060）");
     }
 }

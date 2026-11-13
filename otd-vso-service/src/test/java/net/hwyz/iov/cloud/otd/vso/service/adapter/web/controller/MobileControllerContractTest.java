@@ -1,5 +1,6 @@
 package net.hwyz.iov.cloud.otd.vso.service.adapter.web.controller;
 
+import net.hwyz.iov.cloud.otd.vso.service.adapter.web.controller.mobile.MobileOrderDealershipController;
 import net.hwyz.iov.cloud.otd.vso.service.adapter.web.controller.mobile.MobileSaleModelController;
 import net.hwyz.iov.cloud.otd.vso.service.adapter.web.controller.mobile.MobileVsoController;
 import net.hwyz.iov.cloud.otd.vso.service.adapter.web.controller.mpt.MptPurchaseAgreementController;
@@ -40,7 +41,7 @@ class MobileControllerContractTest {
     }
 
     @Test
-    @DisplayName("退款、时间线与协议查询接口存在")
+    @DisplayName("退款、时间线、协议查询与门店选项接口存在")
     void 必要路由存在() {
         List<String> mobilePost = collectMappings(MobileVsoController.class, PostMapping.class);
         List<String> mobileGet = collectMappings(MobileVsoController.class, GetMapping.class);
@@ -57,6 +58,9 @@ class MobileControllerContractTest {
         assertTrue(mptPost.contains("/action/save"), "后台保存协议路由应存在");
         assertTrue(mptPost.contains("/action/offShelf"), "后台下架协议路由应存在");
         assertTrue(mptGet.contains("/list"), "后台协议列表路由应存在");
+
+        List<String> dealershipGet = collectMappings(MobileOrderDealershipController.class, GetMapping.class);
+        assertTrue(dealershipGet.contains("/dealership/list"), "订单详情门店选项查询路由应存在（CR-008）");
     }
 
     @Test

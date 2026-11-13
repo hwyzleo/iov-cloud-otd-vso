@@ -105,7 +105,10 @@ public enum VsoErrorCode implements ErrorCode {
     // OTD-VSO-DSN-CR-005 小订单支付超时恢复与支付状态守卫
     ORDER_EXPIRED("201057", "订单已失效，请重新发起支付"),
     ORDER_REOPEN_NOT_ALLOWED("201058", "订单当前状态不允许重新支付"),
-    ORDER_REOPEN_LIMIT_EXCEEDED("201059", "重新支付次数已用尽，请重新下单");
+    ORDER_REOPEN_LIMIT_EXCEEDED("201059", "重新支付次数已用尽，请重新下单"),
+
+    // OTD-VSO-DSN-CR-008 订单详情销售/交付门店查询薄封装
+    DEALERSHIP_QUERY_FAILED("201060", "门店查询失败，请稍后重试");
 
     private final String code;
     private final String message;
