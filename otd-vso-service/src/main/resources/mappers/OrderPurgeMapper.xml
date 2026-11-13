@@ -1,0 +1,177 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.mapper.OrderPurgeMapper">
+
+    <!--
+      OTD-VSO-DSN-CR-005：订单全量物理清理。
+      说明：
+      1. 直接按业务键硬删除，不过滤 row_valid，历史逻辑删除行一并清理；
+      2. 子表先于父表删除（版本差异/资料版本/审批记录/退款明细）；
+      3. 订单主表最后删除。
+    -->
+
+    <!-- ==================== 子表 ==================== -->
+
+    <delete id="deleteOrderVersionDiffByOrderId">
+        DELETE FROM vso_order_version_diff
+        WHERE order_version_id IN (
+            SELECT order_version_id FROM (
+                SELECT order_version_id FROM vso_order_version WHERE order_id = #{orderId}
+            ) v
+        )
+    </delete>
+
+    <delete id="deleteOrderMaterialVersionByOrderId">
+        DELETE FROM vso_order_material_version
+        WHERE material_id IN (
+            SELECT material_id FROM (
+                SELECT material_id FROM vso_order_material WHERE order_id = #{orderId}
+            ) m
+        )
+    </delete>
+
+    <delete id="deleteApprovalRecordByOrderId">
+        DELETE FROM vso_approval_record
+        WHERE approval_id IN (
+            SELECT approval_id FROM (
+                SELECT approval_id FROM vso_approval WHERE order_id = #{orderId}
+            ) a
+        )
+    </delete>
+
+    <delete id="deleteRefundItemByOrderId">
+        DELETE FROM vso_refund_item
+        WHERE refund_id IN (
+            SELECT refund_id FROM (
+                SELECT refund_id FROM vso_refund WHERE order_id = #{orderId}
+            ) r
+        )
+    </delete>
+
+    <!-- ==================== 按 order_id 的订单数据 ==================== -->
+
+    <delete id="deleteOrderTimelineByOrderId">
+        DELETE FROM vso_order_timeline WHERE order_id = #{orderId}
+    </delete>
+
+    <delete id="deleteOrderVersionByOrderId">
+        DELETE FROM vso_order_version WHERE order_id = #{orderId}
+    </delete>
+
+    <delete id="deleteOrderAmountByOrderId">
+        DELETE FROM vso_order_amount WHERE order_id = #{orderId}
+    </delete>
+
+    <delete id="deleteOrderPartyByOrderId">
+        DELETE FROM vso_order_party WHERE order_id = #{orderId}
+    </delete>
+
+    <delete id="deleteOrderVehicleSnapshotByOrderId">
+        DELETE FROM vso_order_vehicle_snapshot WHERE order_id = #{orderId}
+    </delete>
+
+    <delete id="deleteOrderAssignmentByOrderId">
+        DELETE FROM vso_order_assignment WHERE order_id = #{orderId}
+    </delete>
+
+    <delete id="deleteOrderMaterialByOrderId">
+        DELETE FROM vso_order_material WHERE order_id = #{orderId}
+    </delete>
+
+    <delete id="deleteOrderStatusDimensionByOrderId">
+        DELETE FROM vso_order_status_dimension WHERE order_id = #{orderId}
+    </delete>
+
+    <delete id="deleteOrderLockByOrderId">
+        DELETE FROM vso_order_lock WHERE order_id = #{orderId}
+    </delete>
+
+    <delete id="deleteOrderAgreementConfirmationByOrderId">
+        DELETE FROM vso_order_agreement_confirmation WHERE order_id = #{orderId}
+    </delete>
+
+    <delete id="deleteSupplementaryPaymentByOrderId">
+        DELETE FROM vso_supplementary_payment WHERE order_id = #{orderId}
+    </delete>
+
+    <delete id="deleteConfigChangeRefundByOrderId">
+        DELETE FROM vso_config_change_refund WHERE order_id = #{orderId}
+    </delete>
+
+    <delete id="deleteVehicleAssignmentByOrderId">
+        DELETE FROM vso_vehicle_assignment WHERE order_id = #{orderId}
+    </delete>
+
+    <delete id="deleteApprovalByOrderId">
+        DELETE FROM vso_approval WHERE order_id = #{orderId}
+    </delete>
+
+    <delete id="deleteExceptionOrderByOrderId">
+        DELETE FROM vso_exception_order WHERE order_id = #{orderId}
+    </delete>
+
+    <delete id="deleteContractByOrderId">
+        DELETE FROM vso_contract WHERE order_id = #{orderId}
+    </delete>
+
+    <delete id="deletePaymentByOrderId">
+        DELETE FROM vso_payment WHERE order_id = #{orderId}
+    </delete>
+
+    <delete id="deleteRefundByOrderId">
+        DELETE FROM vso_refund WHERE order_id = #{orderId}
+    </delete>
+
+    <delete id="deleteFinanceApplicationByOrderId">
+        DELETE FROM vso_finance_application WHERE order_id = #{orderId}
+    </delete>
+
+    <delete id="deleteSubsidyApplicationByOrderId">
+        DELETE FROM vso_subsidy_application WHERE order_id = #{orderId}
+    </delete>
+
+    <delete id="deleteDeliveryAppointmentByOrderId">
+        DELETE FROM vso_delivery_appointment WHERE order_id = #{orderId}
+    </delete>
+
+    <delete id="deleteDeliveryRecordByOrderId">
+        DELETE FROM vso_delivery_record WHERE order_id = #{orderId}
+    </delete>
+
+    <delete id="deleteRegistrationByOrderId">
+        DELETE FROM vso_registration WHERE order_id = #{orderId}
+    </delete>
+
+    <delete id="deleteInvoiceByOrderId">
+        DELETE FROM vso_invoice WHERE order_id = #{orderId}
+    </delete>
+
+    <!-- ==================== 通知、日志与审计 ==================== -->
+
+    <delete id="deleteNotifyTaskByOrderId">
+        DELETE FROM vso_notify_task WHERE order_id = #{orderId}
+    </delete>
+
+    <delete id="deleteCallbackLogByOrderId">
+        DELETE FROM vso_callback_log WHERE order_id = #{orderId}
+    </delete>
+
+    <delete id="deleteAuditLogByOrderId">
+        DELETE FROM vso_audit_log WHERE order_id = #{orderId}
+    </delete>
+
+    <delete id="deleteOrderLogByOrderNo">
+        DELETE FROM vso_order_log WHERE order_no = #{orderNo}
+    </delete>
+
+    <delete id="deleteShadowDeleteByOrderNo">
+        DELETE FROM vso_order_shadow_delete WHERE origin_order_no = #{orderNo}
+    </delete>
+
+    <!-- ==================== 订单主表 ==================== -->
+
+    <delete id="deleteOrderByOrderId">
+        DELETE FROM vso_order WHERE order_id = #{orderId}
+    </delete>
+
+</mapper>

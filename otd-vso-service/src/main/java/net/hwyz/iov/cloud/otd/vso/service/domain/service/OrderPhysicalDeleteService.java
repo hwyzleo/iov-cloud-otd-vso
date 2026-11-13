@@ -6,18 +6,26 @@ import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.PhysicalDeleteR
 import net.hwyz.iov.cloud.otd.vso.service.common.exception.OrderNotExistException;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.Order;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.OrderRepository;
-import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.mapper.*;
-import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.*;
+import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.mapper.OrderPurgeMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.List;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
  * 订单物理删除服务
+ * <p>
+ * OTD-VSO-DSN-CR-005：物理删除语义修正为「订单相关数据全部物理清除」。
+ * <ul>
+ *     <li>不再使用 selectPoByMap + batchPhysicalDeletePo（其 SQL 带 row_valid = 1，
+ *     会残留历史逻辑删除行），改为按业务键直接 DELETE；</li>
+ *     <li>补齐 vso_refund_item、vso_supplementary_payment、vso_order_agreement_confirmation、
+ *     vso_config_change_refund、vso_order_log、vso_order_shadow_delete；</li>
+ *     <li>删除前取消该订单的超时任务，避免调度器对已删除订单反复重试；</li>
+ *     <li>不再写删除影子审计记录（审计与日志一并清除）。</li>
+ * </ul>
  *
  * @author VSO Team
  */
@@ -26,52 +34,14 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class OrderPhysicalDeleteService {
 
+    private static final String SMALL_ORDER_PAY_TIMEOUT_TASK = "SMALL_ORDER_PAY_TIMEOUT";
+
     private final OrderRepository orderRepository;
-
-    // 第一层：通知、任务、日志、版本相关 Mapper
-    private final NotifyTaskMapper notifyTaskMapper;
-    private final CallbackLogMapper callbackLogMapper;
-    private final AuditLogMapper auditLogMapper;
-    private final OrderTimelineMapper orderTimelineMapper;
-    private final OrderVersionMapper orderVersionMapper;
-    private final OrderVersionDiffMapper orderVersionDiffMapper;
-
-    // 第二层：审批、异常、流程单据 Mapper
-    private final ApprovalMapper approvalMapper;
-    private final ApprovalRecordMapper approvalRecordMapper;
-    private final ExceptionOrderMapper exceptionOrderMapper;
-    private final OrderLockMapper orderLockMapper;
-    private final VehicleAssignmentMapper vehicleAssignmentMapper;
-    private final ContractMapper contractMapper;
-    private final PaymentMapper paymentMapper;
-    private final RefundMapper refundMapper;
-    private final FinanceApplicationMapper financeApplicationMapper;
-    private final SubsidyApplicationMapper subsidyApplicationMapper;
-    private final DeliveryAppointmentMapper deliveryAppointmentMapper;
-    private final DeliveryRecordMapper deliveryRecordMapper;
-    private final RegistrationMapper registrationMapper;
-    private final InvoiceMapper invoiceMapper;
-
-    // 第三层：资料 Mapper
-    private final OrderMaterialMapper orderMaterialMapper;
-    private final OrderMaterialVersionMapper orderMaterialVersionMapper;
-
-    // 第四层：核心业务 Mapper
-    private final OrderAmountMapper orderAmountMapper;
-    private final OrderStatusDimensionMapper orderStatusDimensionMapper;
-    private final OrderAssignmentMapper orderAssignmentMapper;
-    private final OrderVehicleSnapshotMapper orderVehicleSnapshotMapper;
-    private final OrderPartyMapper orderPartyMapper;
-    private final OrderTransformMapper orderTransformMapper;
-
-    // 第五层：订单主表 Mapper
-    private final OrderMapper orderMapper;
-
-    // 审计影子 Mapper
-    private final OrderShadowDeleteMapper orderShadowDeleteMapper;
+    private final OrderPurgeMapper orderPurgeMapper;
+    private final TimeoutNotifyService timeoutNotifyService;
 
     /**
-     * 物理删除订单及其所有关联数据
+     * 物理删除订单及其全部关联数据（含历史逻辑删除行、审计与日志）
      */
     @Transactional(rollbackFor = Exception.class)
     public PhysicalDeleteResult physicalDeleteOrder(
@@ -80,501 +50,107 @@ public class OrderPhysicalDeleteService {
             String operatorId,
             Boolean complianceFlag) {
 
-        log.info("开始物理删除订单：orderId={}, operatorId={}, reason={}", orderId, operatorId, deleteReason);
+        log.info("开始物理删除订单：orderId={}, operatorId={}, reason={}, complianceFlag={}",
+                orderId, operatorId, deleteReason, complianceFlag);
 
-        // 加载订单信息
         Order order = orderRepository.findByOrderId(orderId)
                 .orElseThrow(() -> new OrderNotExistException(orderId));
-
         String orderNo = order.getOrderNo();
-        Integer beforeOrderState = order.getOrderState() != null ? order.getOrderState().getValue() : null;
 
         LocalDateTime deleteTime = LocalDateTime.now();
-        Map<String, Integer> tableDeleteCount = new HashMap<>();
-        int totalDeleted = 0;
+        Map<String, Integer> counts = new LinkedHashMap<>();
 
-        // 第一层：删除通知、任务、日志、版本相关表
-        totalDeleted += deleteNotifyTasks(orderId, tableDeleteCount);
-        totalDeleted += deleteCallbackLogs(orderId, tableDeleteCount);
-        totalDeleted += deleteAuditLogs(orderId, tableDeleteCount);
-        totalDeleted += deleteOrderTimelines(orderId, tableDeleteCount);
-        totalDeleted += deleteOrderVersions(orderId, tableDeleteCount);
-        totalDeleted += deleteOrderVersionDiffs(orderId, tableDeleteCount);
+        // 0. 取消超时任务（Redis 不参与数据库事务，删除失败时任务仍在，由状态守卫兜底）
+        try {
+            timeoutNotifyService.cancelByOrderIdAndType(orderId, SMALL_ORDER_PAY_TIMEOUT_TASK);
+        } catch (Exception e) {
+            log.warn("物理删除前取消超时任务失败：orderId={}, reason={}", orderId, e.getMessage());
+        }
 
-        // 第二层：删除审批、异常、流程单据表
-        totalDeleted += deleteApprovals(orderId, tableDeleteCount);
-        totalDeleted += deleteExceptionOrders(orderId, tableDeleteCount);
-        totalDeleted += deleteOrderLocks(orderId, tableDeleteCount);
-        totalDeleted += deleteVehicleAssignments(orderId, tableDeleteCount);
-        totalDeleted += deleteContracts(orderId, tableDeleteCount);
-        totalDeleted += deletePayments(orderId, tableDeleteCount);
-        totalDeleted += deleteRefunds(orderId, tableDeleteCount);
-        totalDeleted += deleteFinanceApplications(orderId, tableDeleteCount);
-        totalDeleted += deleteSubsidyApplications(orderId, tableDeleteCount);
-        totalDeleted += deleteDeliveryAppointments(orderId, tableDeleteCount);
-        totalDeleted += deleteDeliveryRecords(orderId, tableDeleteCount);
-        totalDeleted += deleteRegistrations(orderId, tableDeleteCount);
-        totalDeleted += deleteInvoices(orderId, tableDeleteCount);
+        // 1. 子表（依赖父表，先删）
+        counts.put("vso_order_version_diff", purge("vso_order_version_diff", () -> orderPurgeMapper.deleteOrderVersionDiffByOrderId(orderId)));
+        counts.put("vso_order_material_version", purge("vso_order_material_version", () -> orderPurgeMapper.deleteOrderMaterialVersionByOrderId(orderId)));
+        counts.put("vso_approval_record", purge("vso_approval_record", () -> orderPurgeMapper.deleteApprovalRecordByOrderId(orderId)));
+        counts.put("vso_refund_item", purge("vso_refund_item", () -> orderPurgeMapper.deleteRefundItemByOrderId(orderId)));
 
-        // 第三层：删除资料表
-        totalDeleted += deleteOrderMaterials(orderId, tableDeleteCount);
+        // 2. 按 order_id 的订单数据
+        counts.put("vso_order_timeline", purge("vso_order_timeline", () -> orderPurgeMapper.deleteOrderTimelineByOrderId(orderId)));
+        counts.put("vso_order_version", purge("vso_order_version", () -> orderPurgeMapper.deleteOrderVersionByOrderId(orderId)));
+        counts.put("vso_order_amount", purge("vso_order_amount", () -> orderPurgeMapper.deleteOrderAmountByOrderId(orderId)));
+        counts.put("vso_order_party", purge("vso_order_party", () -> orderPurgeMapper.deleteOrderPartyByOrderId(orderId)));
+        counts.put("vso_order_vehicle_snapshot", purge("vso_order_vehicle_snapshot", () -> orderPurgeMapper.deleteOrderVehicleSnapshotByOrderId(orderId)));
+        counts.put("vso_order_assignment", purge("vso_order_assignment", () -> orderPurgeMapper.deleteOrderAssignmentByOrderId(orderId)));
+        counts.put("vso_order_material", purge("vso_order_material", () -> orderPurgeMapper.deleteOrderMaterialByOrderId(orderId)));
+        counts.put("vso_order_status_dimension", purge("vso_order_status_dimension", () -> orderPurgeMapper.deleteOrderStatusDimensionByOrderId(orderId)));
+        counts.put("vso_order_lock", purge("vso_order_lock", () -> orderPurgeMapper.deleteOrderLockByOrderId(orderId)));
+        counts.put("vso_order_agreement_confirmation", purge("vso_order_agreement_confirmation", () -> orderPurgeMapper.deleteOrderAgreementConfirmationByOrderId(orderId)));
+        counts.put("vso_supplementary_payment", purge("vso_supplementary_payment", () -> orderPurgeMapper.deleteSupplementaryPaymentByOrderId(orderId)));
+        counts.put("vso_config_change_refund", purge("vso_config_change_refund", () -> orderPurgeMapper.deleteConfigChangeRefundByOrderId(orderId)));
+        counts.put("vso_vehicle_assignment", purge("vso_vehicle_assignment", () -> orderPurgeMapper.deleteVehicleAssignmentByOrderId(orderId)));
+        counts.put("vso_approval", purge("vso_approval", () -> orderPurgeMapper.deleteApprovalByOrderId(orderId)));
+        counts.put("vso_exception_order", purge("vso_exception_order", () -> orderPurgeMapper.deleteExceptionOrderByOrderId(orderId)));
+        counts.put("vso_contract", purge("vso_contract", () -> orderPurgeMapper.deleteContractByOrderId(orderId)));
+        counts.put("vso_payment", purge("vso_payment", () -> orderPurgeMapper.deletePaymentByOrderId(orderId)));
+        counts.put("vso_refund", purge("vso_refund", () -> orderPurgeMapper.deleteRefundByOrderId(orderId)));
+        counts.put("vso_finance_application", purge("vso_finance_application", () -> orderPurgeMapper.deleteFinanceApplicationByOrderId(orderId)));
+        counts.put("vso_subsidy_application", purge("vso_subsidy_application", () -> orderPurgeMapper.deleteSubsidyApplicationByOrderId(orderId)));
+        counts.put("vso_delivery_appointment", purge("vso_delivery_appointment", () -> orderPurgeMapper.deleteDeliveryAppointmentByOrderId(orderId)));
+        counts.put("vso_delivery_record", purge("vso_delivery_record", () -> orderPurgeMapper.deleteDeliveryRecordByOrderId(orderId)));
+        counts.put("vso_registration", purge("vso_registration", () -> orderPurgeMapper.deleteRegistrationByOrderId(orderId)));
+        counts.put("vso_invoice", purge("vso_invoice", () -> orderPurgeMapper.deleteInvoiceByOrderId(orderId)));
 
-        // 第四层：删除核心业务表
-        totalDeleted += deleteOrderAmounts(orderId, tableDeleteCount);
-        totalDeleted += deleteOrderStatusDimensions(orderId, tableDeleteCount);
-        totalDeleted += deleteOrderAssignments(orderId, tableDeleteCount);
-        totalDeleted += deleteOrderVehicleSnapshots(orderId, tableDeleteCount);
-        totalDeleted += deleteOrderParties(orderId, tableDeleteCount);
-        totalDeleted += deleteOrderTransforms(orderId, tableDeleteCount);
+        // 3. 通知、回调、审计与操作日志
+        counts.put("vso_notify_task", purge("vso_notify_task", () -> orderPurgeMapper.deleteNotifyTaskByOrderId(orderId)));
+        counts.put("vso_callback_log", purge("vso_callback_log", () -> orderPurgeMapper.deleteCallbackLogByOrderId(orderId)));
+        counts.put("vso_audit_log", purge("vso_audit_log", () -> orderPurgeMapper.deleteAuditLogByOrderId(orderId)));
+        counts.put("vso_order_log", orderNo == null ? 0 : orderPurgeMapper.deleteOrderLogByOrderNo(orderNo));
+        counts.put("vso_order_shadow_delete",
+                orderNo == null ? 0 : orderPurgeMapper.deleteShadowDeleteByOrderNo(orderNo));
 
-        // 第五层：删除订单主表
-        totalDeleted += deleteOrder(orderId, tableDeleteCount);
+        // 4. 订单主表（最后）
+        counts.put("vso_order", purge("vso_order", () -> orderPurgeMapper.deleteOrderByOrderId(orderId)));
 
-        // 最后：保存审计影子记录
-        saveShadowDeleteRecord(orderId, orderNo, beforeOrderState,
-                deleteReason, operatorId, complianceFlag, deleteTime);
-
-        log.info("订单物理删除完成：orderId={}, totalDeleted={}", orderId, totalDeleted);
+        int totalDeleted = counts.values().stream().mapToInt(Integer::intValue).sum();
+        log.info("订单物理删除完成：orderId={}, orderNo={}, totalDeleted={}, detail={}",
+                orderId, orderNo, totalDeleted, counts);
 
         return PhysicalDeleteResult.builder()
                 .orderId(orderId)
                 .orderNo(orderNo)
                 .totalDeletedRecords(totalDeleted)
                 .deleteTime(deleteTime)
-                .tableDeleteCount(tableDeleteCount)
+                .tableDeleteCount(counts)
                 .build();
     }
 
-    private int deleteNotifyTasks(String orderId, Map<String, Integer> tableDeleteCount) {
-        Map<String, Object> params = new HashMap<>();
-        params.put("orderId", orderId);
-        List<NotifyTaskPo> list = notifyTaskMapper.selectPoByMap(params);
-        if (list == null || list.isEmpty()) {
-            tableDeleteCount.put("vso_notify_task", 0);
-            return 0;
-        }
-        Long[] ids = list.stream().map(NotifyTaskPo::getId).toArray(Long[]::new);
-        int count = notifyTaskMapper.batchPhysicalDeletePo(ids);
-        tableDeleteCount.put("vso_notify_task", count);
-        return count;
-    }
-
-    private int deleteCallbackLogs(String orderId, Map<String, Integer> tableDeleteCount) {
-        Map<String, Object> params = new HashMap<>();
-        params.put("orderId", orderId);
-        List<CallbackLogPo> list = callbackLogMapper.selectPoByMap(params);
-        if (list == null || list.isEmpty()) {
-            tableDeleteCount.put("vso_callback_log", 0);
-            return 0;
-        }
-        Long[] ids = list.stream().map(CallbackLogPo::getId).toArray(Long[]::new);
-        int count = callbackLogMapper.batchPhysicalDeletePo(ids);
-        tableDeleteCount.put("vso_callback_log", count);
-        return count;
-    }
-
-    private int deleteAuditLogs(String orderId, Map<String, Integer> tableDeleteCount) {
-        Map<String, Object> params = new HashMap<>();
-        params.put("orderId", orderId);
-        List<AuditLogPo> list = auditLogMapper.selectPoByMap(params);
-        if (list == null || list.isEmpty()) {
-            tableDeleteCount.put("vso_audit_log", 0);
-            return 0;
-        }
-        Long[] ids = list.stream().map(AuditLogPo::getId).toArray(Long[]::new);
-        int count = auditLogMapper.batchPhysicalDeletePo(ids);
-        tableDeleteCount.put("vso_audit_log", count);
-        return count;
-    }
-
-    private int deleteOrderTimelines(String orderId, Map<String, Integer> tableDeleteCount) {
-        Map<String, Object> params = new HashMap<>();
-        params.put("orderId", orderId);
-        List<OrderTimelinePo> list = orderTimelineMapper.selectPoByMap(params);
-        if (list == null || list.isEmpty()) {
-            tableDeleteCount.put("vso_order_timeline", 0);
-            return 0;
-        }
-        Long[] ids = list.stream().map(OrderTimelinePo::getId).toArray(Long[]::new);
-        int count = orderTimelineMapper.batchPhysicalDeletePo(ids);
-        tableDeleteCount.put("vso_order_timeline", count);
-        return count;
-    }
-
-    private int deleteOrderVersions(String orderId, Map<String, Integer> tableDeleteCount) {
-        Map<String, Object> params = new HashMap<>();
-        params.put("orderId", orderId);
-        List<OrderVersionPo> list = orderVersionMapper.selectPoByMap(params);
-        if (list == null || list.isEmpty()) {
-            tableDeleteCount.put("vso_order_version", 0);
-            return 0;
-        }
-        Long[] ids = list.stream().map(OrderVersionPo::getId).toArray(Long[]::new);
-        int count = orderVersionMapper.batchPhysicalDeletePo(ids);
-        tableDeleteCount.put("vso_order_version", count);
-        return count;
-    }
-
-    private int deleteOrderVersionDiffs(String orderId, Map<String, Integer> tableDeleteCount) {
-        // 先查询订单关联的版本
-        Map<String, Object> versionParams = new HashMap<>();
-        versionParams.put("orderId", orderId);
-        List<OrderVersionPo> versions = orderVersionMapper.selectPoByMap(versionParams);
-        if (versions == null || versions.isEmpty()) {
-            tableDeleteCount.put("vso_order_version_diff", 0);
-            return 0;
-        }
-        int count = 0;
-        for (OrderVersionPo version : versions) {
-            Map<String, Object> params = new HashMap<>();
-            params.put("versionId", version.getOrderVersionId());
-            List<OrderVersionDiffPo> list = orderVersionDiffMapper.selectPoByMap(params);
-            if (list != null && !list.isEmpty()) {
-                Long[] ids = list.stream().map(OrderVersionDiffPo::getId).toArray(Long[]::new);
-                count += orderVersionDiffMapper.batchPhysicalDeletePo(ids);
-            }
-        }
-        tableDeleteCount.put("vso_order_version_diff", count);
-        return count;
-    }
-
-    private int deleteApprovals(String orderId, Map<String, Integer> tableDeleteCount) {
-        Map<String, Object> params = new HashMap<>();
-        params.put("orderId", orderId);
-        List<ApprovalPo> list = approvalMapper.selectPoByMap(params);
-        if (list == null || list.isEmpty()) {
-            tableDeleteCount.put("vso_approval", 0);
-            tableDeleteCount.put("vso_approval_record", 0);
-            return 0;
-        }
-        // 先删除审批流转记录
-        int recordCount = 0;
-        for (ApprovalPo approval : list) {
-            List<ApprovalRecordPo> records = approvalRecordMapper.selectByApprovalId(approval.getApprovalId());
-            if (records != null && !records.isEmpty()) {
-                Long[] recordIds = records.stream().map(ApprovalRecordPo::getId).toArray(Long[]::new);
-                recordCount += approvalRecordMapper.batchPhysicalDeletePo(recordIds);
-            }
-        }
-        tableDeleteCount.put("vso_approval_record", recordCount);
-        // 再删除审批单
-        Long[] ids = list.stream().map(ApprovalPo::getId).toArray(Long[]::new);
-        int count = approvalMapper.batchPhysicalDeletePo(ids);
-        tableDeleteCount.put("vso_approval", count);
-        return count + recordCount;
-    }
-
-    private int deleteExceptionOrders(String orderId, Map<String, Integer> tableDeleteCount) {
-        Map<String, Object> params = new HashMap<>();
-        params.put("orderId", orderId);
-        List<ExceptionOrderPo> list = exceptionOrderMapper.selectPoByMap(params);
-        if (list == null || list.isEmpty()) {
-            tableDeleteCount.put("vso_exception_order", 0);
-            return 0;
-        }
-        Long[] ids = list.stream().map(ExceptionOrderPo::getId).toArray(Long[]::new);
-        int count = exceptionOrderMapper.batchPhysicalDeletePo(ids);
-        tableDeleteCount.put("vso_exception_order", count);
-        return count;
-    }
-
-    private int deleteOrderLocks(String orderId, Map<String, Integer> tableDeleteCount) {
-        Map<String, Object> params = new HashMap<>();
-        params.put("orderId", orderId);
-        List<OrderLockPo> list = orderLockMapper.selectPoByMap(params);
-        if (list == null || list.isEmpty()) {
-            tableDeleteCount.put("vso_order_lock", 0);
-            return 0;
-        }
-        Long[] ids = list.stream().map(OrderLockPo::getId).toArray(Long[]::new);
-        int count = orderLockMapper.batchPhysicalDeletePo(ids);
-        tableDeleteCount.put("vso_order_lock", count);
-        return count;
-    }
-
-    private int deleteVehicleAssignments(String orderId, Map<String, Integer> tableDeleteCount) {
-        Map<String, Object> params = new HashMap<>();
-        params.put("orderId", orderId);
-        List<VehicleAssignmentPo> list = vehicleAssignmentMapper.selectPoByMap(params);
-        if (list == null || list.isEmpty()) {
-            tableDeleteCount.put("vso_vehicle_assignment", 0);
-            return 0;
-        }
-        Long[] ids = list.stream().map(VehicleAssignmentPo::getId).toArray(Long[]::new);
-        int count = vehicleAssignmentMapper.batchPhysicalDeletePo(ids);
-        tableDeleteCount.put("vso_vehicle_assignment", count);
-        return count;
-    }
-
-    private int deleteContracts(String orderId, Map<String, Integer> tableDeleteCount) {
-        Map<String, Object> params = new HashMap<>();
-        params.put("orderId", orderId);
-        List<ContractPo> list = contractMapper.selectPoByMap(params);
-        if (list == null || list.isEmpty()) {
-            tableDeleteCount.put("vso_contract", 0);
-            return 0;
-        }
-        Long[] ids = list.stream().map(ContractPo::getId).toArray(Long[]::new);
-        int count = contractMapper.batchPhysicalDeletePo(ids);
-        tableDeleteCount.put("vso_contract", count);
-        return count;
-    }
-
-    private int deletePayments(String orderId, Map<String, Integer> tableDeleteCount) {
-        Map<String, Object> params = new HashMap<>();
-        params.put("orderId", orderId);
-        List<PaymentPo> list = paymentMapper.selectPoByMap(params);
-        if (list == null || list.isEmpty()) {
-            tableDeleteCount.put("vso_payment", 0);
-            return 0;
-        }
-        Long[] ids = list.stream().map(PaymentPo::getId).toArray(Long[]::new);
-        int count = paymentMapper.batchPhysicalDeletePo(ids);
-        tableDeleteCount.put("vso_payment", count);
-        return count;
-    }
-
-    private int deleteRefunds(String orderId, Map<String, Integer> tableDeleteCount) {
-        Map<String, Object> params = new HashMap<>();
-        params.put("orderId", orderId);
-        List<RefundPo> list = refundMapper.selectPoByMap(params);
-        if (list == null || list.isEmpty()) {
-            tableDeleteCount.put("vso_refund", 0);
-            return 0;
-        }
-        Long[] ids = list.stream().map(RefundPo::getId).toArray(Long[]::new);
-        int count = refundMapper.batchPhysicalDeletePo(ids);
-        tableDeleteCount.put("vso_refund", count);
-        return count;
-    }
-
-    private int deleteFinanceApplications(String orderId, Map<String, Integer> tableDeleteCount) {
-        Map<String, Object> params = new HashMap<>();
-        params.put("orderId", orderId);
-        List<FinanceApplicationPo> list = financeApplicationMapper.selectPoByMap(params);
-        if (list == null || list.isEmpty()) {
-            tableDeleteCount.put("vso_finance_application", 0);
-            return 0;
-        }
-        Long[] ids = list.stream().map(FinanceApplicationPo::getId).toArray(Long[]::new);
-        int count = financeApplicationMapper.batchPhysicalDeletePo(ids);
-        tableDeleteCount.put("vso_finance_application", count);
-        return count;
-    }
-
-    private int deleteSubsidyApplications(String orderId, Map<String, Integer> tableDeleteCount) {
-        Map<String, Object> params = new HashMap<>();
-        params.put("orderId", orderId);
-        List<SubsidyApplicationPo> list = subsidyApplicationMapper.selectPoByMap(params);
-        if (list == null || list.isEmpty()) {
-            tableDeleteCount.put("vso_subsidy_application", 0);
-            return 0;
-        }
-        Long[] ids = list.stream().map(SubsidyApplicationPo::getId).toArray(Long[]::new);
-        int count = subsidyApplicationMapper.batchPhysicalDeletePo(ids);
-        tableDeleteCount.put("vso_subsidy_application", count);
-        return count;
-    }
-
-    private int deleteDeliveryAppointments(String orderId, Map<String, Integer> tableDeleteCount) {
-        Map<String, Object> params = new HashMap<>();
-        params.put("orderId", orderId);
-        List<DeliveryAppointmentPo> list = deliveryAppointmentMapper.selectPoByMap(params);
-        if (list == null || list.isEmpty()) {
-            tableDeleteCount.put("vso_delivery_appointment", 0);
-            return 0;
-        }
-        Long[] ids = list.stream().map(DeliveryAppointmentPo::getId).toArray(Long[]::new);
-        int count = deliveryAppointmentMapper.batchPhysicalDeletePo(ids);
-        tableDeleteCount.put("vso_delivery_appointment", count);
-        return count;
-    }
-
-    private int deleteDeliveryRecords(String orderId, Map<String, Integer> tableDeleteCount) {
-        Map<String, Object> params = new HashMap<>();
-        params.put("orderId", orderId);
-        List<DeliveryRecordPo> list = deliveryRecordMapper.selectPoByMap(params);
-        if (list == null || list.isEmpty()) {
-            tableDeleteCount.put("vso_delivery_record", 0);
-            return 0;
-        }
-        Long[] ids = list.stream().map(DeliveryRecordPo::getId).toArray(Long[]::new);
-        int count = deliveryRecordMapper.batchPhysicalDeletePo(ids);
-        tableDeleteCount.put("vso_delivery_record", count);
-        return count;
-    }
-
-    private int deleteRegistrations(String orderId, Map<String, Integer> tableDeleteCount) {
-        Map<String, Object> params = new HashMap<>();
-        params.put("orderId", orderId);
-        List<RegistrationPo> list = registrationMapper.selectPoByMap(params);
-        if (list == null || list.isEmpty()) {
-            tableDeleteCount.put("vso_registration", 0);
-            return 0;
-        }
-        Long[] ids = list.stream().map(RegistrationPo::getId).toArray(Long[]::new);
-        int count = registrationMapper.batchPhysicalDeletePo(ids);
-        tableDeleteCount.put("vso_registration", count);
-        return count;
-    }
-
-    private int deleteInvoices(String orderId, Map<String, Integer> tableDeleteCount) {
-        Map<String, Object> params = new HashMap<>();
-        params.put("orderId", orderId);
-        List<InvoicePo> list = invoiceMapper.selectPoByMap(params);
-        if (list == null || list.isEmpty()) {
-            tableDeleteCount.put("vso_invoice", 0);
-            return 0;
-        }
-        Long[] ids = list.stream().map(InvoicePo::getId).toArray(Long[]::new);
-        int count = invoiceMapper.batchPhysicalDeletePo(ids);
-        tableDeleteCount.put("vso_invoice", count);
-        return count;
-    }
-
-    private int deleteOrderMaterials(String orderId, Map<String, Integer> tableDeleteCount) {
-        Map<String, Object> params = new HashMap<>();
-        params.put("orderId", orderId);
-        List<OrderMaterialPo> list = orderMaterialMapper.selectPoByMap(params);
-        if (list == null || list.isEmpty()) {
-            tableDeleteCount.put("vso_order_material", 0);
-            tableDeleteCount.put("vso_order_material_version", 0);
-            return 0;
-        }
-        // 先删除资料版本
-        int versionCount = 0;
-        for (OrderMaterialPo material : list) {
-            Map<String, Object> versionParams = new HashMap<>();
-            versionParams.put("materialId", material.getMaterialId());
-            List<OrderMaterialVersionPo> versions = orderMaterialVersionMapper.selectPoByMap(versionParams);
-            if (versions != null && !versions.isEmpty()) {
-                Long[] versionIds = versions.stream().map(OrderMaterialVersionPo::getId).toArray(Long[]::new);
-                versionCount += orderMaterialVersionMapper.batchPhysicalDeletePo(versionIds);
-            }
-        }
-        tableDeleteCount.put("vso_order_material_version", versionCount);
-        // 再删除资料
-        Long[] ids = list.stream().map(OrderMaterialPo::getId).toArray(Long[]::new);
-        int count = orderMaterialMapper.batchPhysicalDeletePo(ids);
-        tableDeleteCount.put("vso_order_material", count);
-        return count + versionCount;
-    }
-
-    private int deleteOrderAmounts(String orderId, Map<String, Integer> tableDeleteCount) {
-        Map<String, Object> params = new HashMap<>();
-        params.put("orderId", orderId);
-        List<OrderAmountPo> list = orderAmountMapper.selectPoByMap(params);
-        if (list == null || list.isEmpty()) {
-            tableDeleteCount.put("vso_order_amount", 0);
-            return 0;
-        }
-        Long[] ids = list.stream().map(OrderAmountPo::getId).toArray(Long[]::new);
-        int count = orderAmountMapper.batchPhysicalDeletePo(ids);
-        tableDeleteCount.put("vso_order_amount", count);
-        return count;
-    }
-
-    private int deleteOrderStatusDimensions(String orderId, Map<String, Integer> tableDeleteCount) {
-        Map<String, Object> params = new HashMap<>();
-        params.put("orderId", orderId);
-        List<OrderStatusDimensionPo> list = orderStatusDimensionMapper.selectPoByMap(params);
-        if (list == null || list.isEmpty()) {
-            tableDeleteCount.put("vso_order_status_dimension", 0);
-            return 0;
-        }
-        Long[] ids = list.stream().map(OrderStatusDimensionPo::getId).toArray(Long[]::new);
-        int count = orderStatusDimensionMapper.batchPhysicalDeletePo(ids);
-        tableDeleteCount.put("vso_order_status_dimension", count);
-        return count;
-    }
-
-    private int deleteOrderAssignments(String orderId, Map<String, Integer> tableDeleteCount) {
-        Map<String, Object> params = new HashMap<>();
-        params.put("orderId", orderId);
-        List<OrderAssignmentPo> list = orderAssignmentMapper.selectPoByMap(params);
-        if (list == null || list.isEmpty()) {
-            tableDeleteCount.put("vso_order_assignment", 0);
-            return 0;
-        }
-        Long[] ids = list.stream().map(OrderAssignmentPo::getId).toArray(Long[]::new);
-        int count = orderAssignmentMapper.batchPhysicalDeletePo(ids);
-        tableDeleteCount.put("vso_order_assignment", count);
-        return count;
-    }
-
-    private int deleteOrderVehicleSnapshots(String orderId, Map<String, Integer> tableDeleteCount) {
-        Map<String, Object> params = new HashMap<>();
-        params.put("orderId", orderId);
-        List<OrderVehicleSnapshotPo> list = orderVehicleSnapshotMapper.selectPoByMap(params);
-        if (list == null || list.isEmpty()) {
-            tableDeleteCount.put("vso_order_vehicle_snapshot", 0);
-            return 0;
-        }
-        Long[] ids = list.stream().map(OrderVehicleSnapshotPo::getId).toArray(Long[]::new);
-        int count = orderVehicleSnapshotMapper.batchPhysicalDeletePo(ids);
-        tableDeleteCount.put("vso_order_vehicle_snapshot", count);
-        return count;
-    }
-
-    private int deleteOrderParties(String orderId, Map<String, Integer> tableDeleteCount) {
-        Map<String, Object> params = new HashMap<>();
-        params.put("orderId", orderId);
-        List<OrderPartyPo> list = orderPartyMapper.selectPoByMap(params);
-        if (list == null || list.isEmpty()) {
-            tableDeleteCount.put("vso_order_party", 0);
-            return 0;
-        }
-        Long[] ids = list.stream().map(OrderPartyPo::getId).toArray(Long[]::new);
-        int count = orderPartyMapper.batchPhysicalDeletePo(ids);
-        tableDeleteCount.put("vso_order_party", count);
-        return count;
-    }
-
-    private int deleteOrderTransforms(String orderId, Map<String, Integer> tableDeleteCount) {
-        // vso_order_transform 表已在 V1.16.0 迁移中删除，直接返回 0
-        tableDeleteCount.put("vso_order_transform", 0);
-        return 0;
-    }
-
-    private int deleteOrder(String orderId, Map<String, Integer> tableDeleteCount) {
-        Map<String, Object> params = new HashMap<>();
-        params.put("orderId", orderId);
-        List<OrderPo> list = orderMapper.selectPoByMap(params);
-        if (list == null || list.isEmpty()) {
-            tableDeleteCount.put("vso_order", 0);
-            return 0;
-        }
-        Long[] ids = list.stream().map(OrderPo::getId).toArray(Long[]::new);
-        int count = orderMapper.batchPhysicalDeletePo(ids);
-        tableDeleteCount.put("vso_order", count);
-        return count;
-    }
-
     /**
-     * 保存审计影子记录
+     * 执行单表清理；表在当前环境不存在（历史淘汰表）时跳过并告警，不阻断整单删除
      */
-    private void saveShadowDeleteRecord(
-            String orderId,
-            String orderNo,
-            Integer beforeOrderState,
-            String deleteReason,
-            String operatorId,
-            Boolean complianceFlag,
-            LocalDateTime deleteTime) {
+    private int purge(String table, java.util.function.Supplier<Integer> action) {
+        try {
+            return action.get();
+        } catch (org.springframework.dao.DataAccessException e) {
+            if (isMissingTable(e)) {
+                log.warn("物理删除跳过不存在的表：table={}", table);
+                return 0;
+            }
+            throw e;
+        }
+    }
 
-        OrderShadowDeletePo shadowPo = new OrderShadowDeletePo();
-        shadowPo.setShadowDeleteId("SD" + System.currentTimeMillis());
-        shadowPo.setOriginOrderNo(orderNo);
-        shadowPo.setDeleteApprovalId(null);
-        shadowPo.setDeleteReason(deleteReason);
-        shadowPo.setBeforeOrderState(beforeOrderState);
-        shadowPo.setComplianceDeleteFlag(complianceFlag != null && complianceFlag ? 1 : 0);
-        shadowPo.setDeleteUserId(operatorId);
-        shadowPo.setDeleteTime(deleteTime);
-        shadowPo.setRowValid(1);
-
-        orderShadowDeleteMapper.insertPo(shadowPo);
-
-        log.info("保存审计影子记录：orderId={}, shadowId={}", orderId, shadowPo.getShadowDeleteId());
+    private boolean isMissingTable(Throwable e) {
+        Throwable current = e;
+        while (current != null) {
+            String message = current.getMessage();
+            if (message != null) {
+                String lower = message.toLowerCase();
+                if (lower.contains("doesn't exist") || lower.contains("unknown table")
+                        || lower.contains("table") && lower.contains("not found")) {
+                    return true;
+                }
+            }
+            current = current.getCause();
+        }
+        return false;
     }
 }
