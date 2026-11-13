@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.hwyz.iov.cloud.otd.vso.api.enums.PaymentStatus;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.PaymentCallbackCmd;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.PaymentCallbackResult;
+import net.hwyz.iov.cloud.otd.vso.service.domain.gateway.PaymentAdapter;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.Payment;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.PaymentRepository;
 import org.springframework.beans.factory.annotation.Value;
@@ -49,22 +50,30 @@ public class MockPaymentAutoCallbackService {
     private final PaymentRepository paymentRepository;
     private final CallbackSignatureService callbackSignatureService;
     private final PaymentCallbackService paymentCallbackService;
+    private final PaymentAdapter paymentAdapter;
 
     /**
-     * 开关：mock 模式下支付单创建后是否由服务端自动模拟渠道回调。
+     * 显式开关：留空（默认）表示「跟随渠道」——mock 渠道开启、真实渠道关闭；
+     * 显式 true/false 可强制覆盖。避免因外部配置未生效导致 mock 支付永远停在 PROCESSING。
      */
-    @Value("${vso.payment.mock.auto-callback:false}")
-    private boolean autoCallbackEnabled;
+    @Value("${vso.payment.mock.auto-callback:}")
+    private String autoCallbackSetting;
 
+    /**
+     * 是否参与自动回调：显式配置优先，否则跟随当前装配的支付渠道是否为 mock。
+     */
     public boolean isEnabled() {
-        return autoCallbackEnabled;
+        if (autoCallbackSetting != null && !autoCallbackSetting.isBlank()) {
+            return Boolean.parseBoolean(autoCallbackSetting.trim());
+        }
+        return paymentAdapter.isMock();
     }
 
     /**
      * 若开启则模拟一次支付成功回调；返回 null 表示未触发（关闭 / 非 PROCESSING / 支付单不存在）。
      */
     public PaymentCallbackResult triggerIfEnabled(String paymentNo) {
-        if (!autoCallbackEnabled) {
+        if (!isEnabled()) {
             return null;
         }
         Payment payment = paymentRepository.findByPaymentNo(paymentNo).orElse(null);

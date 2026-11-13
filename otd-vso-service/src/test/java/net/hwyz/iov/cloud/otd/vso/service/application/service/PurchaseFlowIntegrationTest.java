@@ -127,6 +127,9 @@ class PurchaseFlowIntegrationTest {
 
     @BeforeEach
     void setUp() {
+        // 默认关闭服务端自回调，由用例显式选择「手动回调」或「自回调」两种场景
+        org.springframework.test.util.ReflectionTestUtils.setField(
+                mockPaymentAutoCallbackService, "autoCallbackSetting", "false");
         String suffix = String.valueOf(System.nanoTime());
         saleModelCode = "SM_" + suffix;
         insertSaleModel();
@@ -418,7 +421,7 @@ class PurchaseFlowIntegrationTest {
 
         // 打开 mock 自回调开关（模拟 vso.payment.mock.auto-callback=true）
         org.springframework.test.util.ReflectionTestUtils.setField(
-                mockPaymentAutoCallbackService, "autoCallbackEnabled", true);
+                mockPaymentAutoCallbackService, "autoCallbackSetting", "true");
         try {
             // 客户端只发起支付，不再自己伪造回调
             InitiatePaymentResult payment = paymentAppService.initiatePayment(InitiatePaymentCmd.builder()
@@ -433,7 +436,7 @@ class PurchaseFlowIntegrationTest {
             assertEquals(PaymentStatus.PAID.name(), paid.getPaymentStatus(), "支付单应为 PAID");
         } finally {
             org.springframework.test.util.ReflectionTestUtils.setField(
-                    mockPaymentAutoCallbackService, "autoCallbackEnabled", false);
+                    mockPaymentAutoCallbackService, "autoCallbackSetting", "false");
         }
     }
 

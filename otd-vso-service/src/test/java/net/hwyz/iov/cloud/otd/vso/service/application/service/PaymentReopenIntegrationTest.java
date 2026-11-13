@@ -105,6 +105,8 @@ class PaymentReopenIntegrationTest {
     @Autowired
     private OrderTimelineRepository orderTimelineRepository;
     @Autowired
+    private MockPaymentAutoCallbackService mockPaymentAutoCallbackService;
+    @Autowired
     private SaleModelMapper saleModelMapper;
     @Autowired
     private SaleModelVariantPolicyMapper saleModelVariantPolicyMapper;
@@ -122,6 +124,9 @@ class PaymentReopenIntegrationTest {
 
     @BeforeEach
     void setUp() {
+        // 本用例断言「Mock 不得固定返回已支付」，需关闭服务端自回调（OTD-VSO-DSN-CR-007）
+        org.springframework.test.util.ReflectionTestUtils.setField(
+                mockPaymentAutoCallbackService, "autoCallbackSetting", "false");
         String suffix = String.valueOf(System.nanoTime());
         saleModelCode = "SM_CR005_" + suffix;
         insertSaleModel();

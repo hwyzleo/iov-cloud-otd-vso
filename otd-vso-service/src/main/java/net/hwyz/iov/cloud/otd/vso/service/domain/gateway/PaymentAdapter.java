@@ -12,6 +12,16 @@ import java.math.BigDecimal;
 public interface PaymentAdapter {
 
     /**
+     * 是否为 mock（模拟）支付渠道。
+     * <p>
+     * 用于「mock 环境由服务端扮演渠道自回调」的默认判定（OTD-VSO-DSN-CR-007）：
+     * 装配的是 mock 渠道即默认开启自回调，真实渠道装配后自动关闭，不依赖外部配置是否生效。
+     */
+    default boolean isMock() {
+        return false;
+    }
+
+    /**
      * 发起支付
      *
      * @param paymentNo 支付单号（本地已生成，作为网关幂等键）

@@ -4,6 +4,7 @@ import net.hwyz.iov.cloud.otd.vso.api.enums.PaymentStatus;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.PaymentCallbackCmd;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.enums.PaymentCallbackResultCode;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.PaymentCallbackResult;
+import net.hwyz.iov.cloud.otd.vso.service.domain.gateway.PaymentAdapter;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.Payment;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.PaymentRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -56,6 +57,7 @@ class MockPaymentAutoCallbackServiceTest {
 
     private PaymentRepository paymentRepository;
     private PaymentCallbackService paymentCallbackService;
+    private PaymentAdapter paymentAdapter;
     private CallbackSignatureService callbackSignatureService;
     private MockPaymentAutoCallbackService service;
 
@@ -64,6 +66,7 @@ class MockPaymentAutoCallbackServiceTest {
     void setUp() {
         paymentRepository = mock(PaymentRepository.class);
         paymentCallbackService = mock(PaymentCallbackService.class);
+        paymentAdapter = mock(PaymentAdapter.class);
 
         StringRedisTemplate redisTemplate = mock(StringRedisTemplate.class);
         ValueOperations<String, String> valueOperations = mock(ValueOperations.class);
@@ -73,8 +76,8 @@ class MockPaymentAutoCallbackServiceTest {
         ReflectionTestUtils.setField(callbackSignatureService, "signatureSecret", SECRET);
 
         service = new MockPaymentAutoCallbackService(paymentRepository, callbackSignatureService,
-                paymentCallbackService);
-        ReflectionTestUtils.setField(service, "autoCallbackEnabled", true);
+                paymentCallbackService, paymentAdapter);
+        ReflectionTestUtils.setField(service, "autoCallbackSetting", "");
     }
 
     private Payment payment(PaymentStatus status) {
@@ -92,9 +95,9 @@ class MockPaymentAutoCallbackServiceTest {
     }
 
     @Test
-    @DisplayName("开关关闭：不触发任何回调")
-    void 开关关闭_不触发() {
-        ReflectionTestUtils.setField(service, "autoCallbackEnabled", false);
+    @DisplayName("真实渠道（非 mock）：默认不触发任何回调")
+    void 非mock渠道_默认不触发() {
+        when(paymentAdapter.isMock()).thenReturn(false);
         when(paymentRepository.findByPaymentNo(PAYMENT_NO)).thenReturn(Optional.of(payment(PaymentStatus.PROCESSING)));
 
         assertNull(service.triggerIfEnabled(PAYMENT_NO));
@@ -102,8 +105,9 @@ class MockPaymentAutoCallbackServiceTest {
     }
 
     @Test
-    @DisplayName("PROCESSING 支付单：生成合法签名的 PAID 回调并复用生产验签路径")
+    @DisplayName("mock 渠道默认开启：PROCESSING 支付单生成合法签名的 PAID 回调并复用生产验签路径")
     void PROCESSING_生成合法签名回调() {
+        when(paymentAdapter.isMock()).thenReturn(true);
         when(paymentRepository.findByPaymentNo(PAYMENT_NO)).thenReturn(Optional.of(payment(PaymentStatus.PROCESSING)));
         when(paymentCallbackService.handleCallback(any(), anyString(), anyLong(), anyString()))
                 .thenReturn(okResult());
@@ -140,8 +144,20 @@ class MockPaymentAutoCallbackServiceTest {
     }
 
     @Test
+    @DisplayName("显式关闭时 mock 渠道也不触发")
+    void 显式关闭_mock也不触发() {
+        when(paymentAdapter.isMock()).thenReturn(true);
+        ReflectionTestUtils.setField(service, "autoCallbackSetting", "false");
+        when(paymentRepository.findByPaymentNo(PAYMENT_NO)).thenReturn(Optional.of(payment(PaymentStatus.PROCESSING)));
+
+        assertNull(service.triggerIfEnabled(PAYMENT_NO));
+        verify(paymentCallbackService, never()).handleCallback(any(), any(), anyLong(), anyString());
+    }
+
+    @Test
     @DisplayName("已终态支付单：跳过，不重复回调")
     void 终态_跳过() {
+        when(paymentAdapter.isMock()).thenReturn(true);
         when(paymentRepository.findByPaymentNo(PAYMENT_NO)).thenReturn(Optional.of(payment(PaymentStatus.PAID)));
 
         assertNull(service.triggerIfEnabled(PAYMENT_NO));
@@ -151,6 +167,7 @@ class MockPaymentAutoCallbackServiceTest {
     @Test
     @DisplayName("支付单不存在：跳过并告警，不抛异常")
     void 支付单不存在_跳过() {
+        when(paymentAdapter.isMock()).thenReturn(true);
         when(paymentRepository.findByPaymentNo(PAYMENT_NO)).thenReturn(Optional.empty());
         assertNull(service.triggerIfEnabled(PAYMENT_NO));
         verify(paymentCallbackService, never()).handleCallback(any(), any(), anyLong(), anyString());
@@ -159,6 +176,7 @@ class MockPaymentAutoCallbackServiceTest {
     @Test
     @DisplayName("每次触发的 nonce 与幂等键唯一")
     void nonce与幂等键唯一() {
+        when(paymentAdapter.isMock()).thenReturn(true);
         when(paymentRepository.findByPaymentNo(PAYMENT_NO)).thenReturn(Optional.of(payment(PaymentStatus.PROCESSING)));
         when(paymentCallbackService.handleCallback(any(), anyString(), anyLong(), anyString()))
                 .thenReturn(okResult());

@@ -25,6 +25,11 @@ import java.math.BigDecimal;
 public class MockPaymentAdapter implements PaymentAdapter {
 
     @Override
+    public boolean isMock() {
+        return true;
+    }
+
+    @Override
     public PaymentGatewayResult createPayment(String paymentNo, BigDecimal amount, String channel) {
         log.info("[MOCK] 发起支付: paymentNo={}, amount={}, channel={}", paymentNo, amount, channel);
         return PaymentGatewayResult.builder()
