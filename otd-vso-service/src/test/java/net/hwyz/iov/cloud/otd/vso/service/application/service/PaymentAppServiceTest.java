@@ -265,6 +265,8 @@ class PaymentAppServiceTest {
         assertEquals("P-PROC", result.getPaymentNo());
         assertEquals(PaymentStatus.PROCESSING, processing.getPaymentStatus());
         verify(paymentAdapter, never()).createPayment(anyString(), any(), anyString());
+        // 复用活动支付单时仍要尝试 mock 自回调，否则「上次自回调未生效」留下的 PROCESSING 永远等不到终态
+        verify(mockPaymentAutoCallbackService).triggerIfEnabled("P-PROC");
     }
 
     @Test

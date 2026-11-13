@@ -78,7 +78,10 @@ public class PaymentAppService {
                 () -> obtainActiveOrNewPayment(order, stage, amount, cmd.getAccountId(), cmd.getPaymentChannel()));
 
         if (payment.getExternalTradeNo() != null) {
-            // 复用已有活动支付单，不重复调用网关
+            // 复用已有活动支付单，不重复调用网关。
+            // 注意：仍然要尝试 mock 自回调——否则「上一次发起支付时自回调未生效」留下的
+            // PROCESSING 支付单会被一直复用，客户端永远等不到终态（真实缺陷，2026-11-13）。
+            maybeAutoCallback(payment.getPaymentNo());
             return toInitiateResult(payment, cmd.getPaymentChannel(), null, null);
         }
 
@@ -101,16 +104,22 @@ public class PaymentAppService {
             return current;
         });
 
-        // mock 模式：由服务端扮演支付渠道触发签名回调（OTD-VSO-DSN-CR-007），
-        // 客户端只轮询、不持密钥；失败不影响本次发起支付结果。
-        try {
-            mockPaymentAutoCallbackService.triggerIfEnabled(updated.getPaymentNo());
-        } catch (Exception e) {
-            log.warn("Mock 自动回调失败（不影响发起支付）: paymentNo={}", updated.getPaymentNo(), e);
-        }
+        maybeAutoCallback(updated.getPaymentNo());
 
         return toInitiateResult(updated, cmd.getPaymentChannel(),
                 gatewayResult.getPaymentMerchant(), gatewayResult.getPaymentReference());
+    }
+
+    /**
+     * mock 模式下由服务端扮演支付渠道触发签名回调（OTD-VSO-DSN-CR-007）：
+     * 客户端只轮询、不持密钥；失败仅告警，不影响发起支付结果。
+     */
+    private void maybeAutoCallback(String paymentNo) {
+        try {
+            mockPaymentAutoCallbackService.triggerIfEnabled(paymentNo);
+        } catch (Exception e) {
+            log.warn("Mock 自动回调失败（不影响发起支付）: paymentNo={}", paymentNo, e);
+        }
     }
 
     /**
