@@ -27,6 +27,11 @@ public interface OrderTimelineRepository {
     boolean existsByOrderIdAndEventType(String orderId, String eventType);
 
     /**
+     * 统计指定订单指定事件类型的次数（OTD-VSO-DSN-CR-005：恢复次数以时间线计数）
+     */
+    int countByOrderIdAndEventType(String orderId, String eventType);
+
+    /**
      * 批量查询多个订单的最新事件时间（订单状态时间派生用，避免 N+1）
      *
      * @return 订单业务 ID -> 最新事件时间

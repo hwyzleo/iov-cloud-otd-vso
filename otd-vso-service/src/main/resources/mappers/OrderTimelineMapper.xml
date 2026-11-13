@@ -42,6 +42,15 @@
         ORDER BY t.event_time ASC, t.id ASC
     </select>
 
+    <!-- 统计指定订单指定事件类型次数（OTD-VSO-DSN-CR-005 恢复次数计数） -->
+    <select id="countByOrderIdAndEventType" resultType="int">
+        SELECT COUNT(1)
+        FROM vso_order_timeline t
+        WHERE t.order_id = #{orderId}
+        AND t.event_type = #{eventType}
+        AND t.row_valid = 1
+    </select>
+
     <!-- 批量查询多个订单的最新事件时间（避免 N+1） -->
     <select id="selectLatestEventTimeByOrderIds" resultMap="baseResultMap">
         SELECT t.order_id, MAX(t.event_time) AS event_time

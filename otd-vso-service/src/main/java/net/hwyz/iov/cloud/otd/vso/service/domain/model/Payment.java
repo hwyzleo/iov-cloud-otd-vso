@@ -74,6 +74,57 @@ public class Payment {
     }
 
     /**
+     * PROCESSING 是否已失联（OTD-VSO-DSN-CR-005）
+     * <p>
+     * 外部网关长时间不回调时，PROCESSING 会永久占用活动支付单；超过
+     * expire_time + staleMinutes 视为失联，允许关闭并重建支付单。
+     *
+     * @param now 当前时间
+     * @param staleMinutes 失联宽限分钟数（<=0 按 0 处理）
+     * @return 是否失联
+     */
+    public boolean isStaleProcessing(LocalDateTime now, int staleMinutes) {
+        if (paymentStatus != PaymentStatus.PROCESSING || expireTime == null) {
+            return false;
+        }
+        int grace = Math.max(staleMinutes, 0);
+        return now.isAfter(expireTime.plusMinutes(grace));
+    }
+
+    /**
+     * 关闭支付单（非终态强制关闭，OTD-VSO-DSN-CR-005 重新发起支付时使用）
+     *
+     * @param reason 关闭原因
+     * @return 是否实际关闭
+     */
+    public boolean forceClose(String reason) {
+        if (isTerminal()) {
+            return false;
+        }
+        paymentStatus = PaymentStatus.CLOSED;
+        failReason = reason;
+        return true;
+    }
+
+    /**
+     * 关闭失联的处理中支付单（OTD-VSO-DSN-CR-005）
+     * <p>
+     * 仅关闭 PROCESSING；PAID 永不关闭；PENDING_PAYMENT 仍由 closeExpired() 处理。
+     *
+     * @param now 当前时间
+     * @param staleMinutes 失联宽限分钟数
+     * @return 是否实际关闭
+     */
+    public boolean closeIfStale(LocalDateTime now, int staleMinutes) {
+        if (!isStaleProcessing(now, staleMinutes)) {
+            return false;
+        }
+        paymentStatus = PaymentStatus.CLOSED;
+        failReason = "支付处理中超时失联";
+        return true;
+    }
+
+    /**
      * 是否已过期
      */
     public boolean isExpired(LocalDateTime now) {

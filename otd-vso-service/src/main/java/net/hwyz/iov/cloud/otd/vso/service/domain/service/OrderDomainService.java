@@ -247,18 +247,28 @@ public class OrderDomainService {
 
     /**
      * 失效小订单（超时）
+     * <p>
+     * OTD-VSO-DSN-CR-005 INV-008：失效只作用于 EARNEST_MONEY_UNPAID(200)，
+     * 其他状态（已支付/已取消/已关闭等）跳过且不写状态变更时间线。
+     *
+     * @return 是否实际置为失效
      */
     @Transactional(rollbackFor = Exception.class)
-    public void invalidateSmallOrder(String orderId) {
+    public boolean invalidateSmallOrder(String orderId) {
         Order order = loadOrder(orderId);
-        Integer beforeStatus = order.getOrderState() != null ? order.getOrderState().getValue() : null;
+        if (order.getOrderState() != OrderState.EARNEST_MONEY_UNPAID) {
+            log.info("跳过小订单失效：orderId={}, currentState={}", orderId, order.getOrderState());
+            return false;
+        }
+        Integer beforeStatus = order.getOrderState().getValue();
         order.invalidate();
         saveOrder(order);
-        
+
         saveTimeline(orderId, "ORDER_INVALIDATE", "小订单失效",
                 String.valueOf(beforeStatus),
                 order.getOrderState() != null ? String.valueOf(order.getOrderState().getValue()) : null,
                 "system", "system", "system", null, "success", null, "小订单超时失效");
+        return true;
     }
 
     /**

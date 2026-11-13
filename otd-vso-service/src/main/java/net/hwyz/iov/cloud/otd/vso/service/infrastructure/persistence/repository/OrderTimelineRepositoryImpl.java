@@ -49,7 +49,11 @@ public class OrderTimelineRepositoryImpl implements OrderTimelineRepository {
 
     @Override
     public boolean existsByOrderIdAndEventType(String orderId, String eventType) {
-        List<OrderTimelinePo> list = orderTimelineMapper.selectByOrderId(orderId);
-        return list.stream().anyMatch(po -> eventType.equals(po.getEventType()));
+        return countByOrderIdAndEventType(orderId, eventType) > 0;
+    }
+
+    @Override
+    public int countByOrderIdAndEventType(String orderId, String eventType) {
+        return orderTimelineMapper.countByOrderIdAndEventType(orderId, eventType);
     }
 }

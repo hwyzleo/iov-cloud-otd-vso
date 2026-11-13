@@ -20,6 +20,7 @@ import net.hwyz.iov.cloud.otd.vso.service.domain.model.OrderAmount;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.OrderState;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.OrderTimelineEventType;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.Payment;
+import net.hwyz.iov.cloud.otd.vso.service.domain.model.event.PaymentSuccessDomainEvent;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.shared.Money;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.CallbackLogRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.OrderAmountRepository;
@@ -30,6 +31,7 @@ import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.Callback
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.SupplementaryPaymentPo;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.context.ApplicationEventPublisher;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -57,6 +59,7 @@ public class PaymentCallbackService {
     private final OrderTimelineAppService orderTimelineAppService;
     private final CallbackSignatureService callbackSignatureService;
     private final ObjectMapper objectMapper;
+    private final ApplicationEventPublisher eventPublisher;
 
     /**
      * 处理支付回调
@@ -204,6 +207,7 @@ public class PaymentCallbackService {
             orderTimelineAppService.record(payment.getOrderId(), OrderTimelineEventType.PAYMENT_SUCCESS,
                     null, null, "system", "system", "payment_system", payment.getPaymentNo(), null,
                     "补款支付成功，金额：" + payment.getPaymentAmount());
+            publishPaymentSuccessEvent(payment, stage, cmd);
             return;
         }
 
@@ -224,6 +228,25 @@ public class PaymentCallbackService {
                 beforeState, String.valueOf(order.getOrderState().getValue()),
                 "system", "system", "payment_system", payment.getPaymentNo(), null,
                 "支付成功，阶段：" + stage + "，金额：" + payment.getPaymentAmount());
+
+        publishPaymentSuccessEvent(payment, stage, cmd);
+    }
+
+    /**
+     * 发布支付成功领域事件（OTD-VSO-DSN-CR-005）
+     * <p>
+     * 由 PaymentSuccessEventListener 在事务提交后取消小订单支付超时任务，
+     * 避免已支付订单被超时任务误置为失效。
+     */
+    private void publishPaymentSuccessEvent(Payment payment, PaymentStage stage, PaymentCallbackCmd cmd) {
+        eventPublisher.publishEvent(PaymentSuccessDomainEvent.builder()
+                .orderId(payment.getOrderId())
+                .paymentId(payment.getPaymentNo())
+                .paymentStage(stage)
+                .paymentAmount(payment.getPaymentAmount())
+                .payTime(cmd.getPayTime() != null ? cmd.getPayTime() : LocalDateTime.now())
+                .occurTime(LocalDateTime.now())
+                .build());
     }
 
     private void handleProcessing(Payment payment, PaymentCallbackCmd cmd) {

@@ -32,6 +32,8 @@ import net.hwyz.iov.cloud.otd.vso.service.common.exception.BuildConfigNotMatched
 import net.hwyz.iov.cloud.otd.vso.service.common.exception.ConfigurationNotMatchedException;
 import net.hwyz.iov.cloud.otd.vso.service.common.exception.OrderNotExistException;
 import net.hwyz.iov.cloud.otd.vso.service.common.exception.OrderAmountSnapshotMissingException;
+import net.hwyz.iov.cloud.otd.vso.service.common.exception.OrderReopenLimitExceededException;
+import net.hwyz.iov.cloud.otd.vso.service.common.exception.OrderReopenNotAllowedException;
 import net.hwyz.iov.cloud.otd.vso.service.common.exception.OrderStateNotAllowedException;
 import net.hwyz.iov.cloud.otd.vso.service.common.exception.PaymentChannelNotAvailableException;
 import net.hwyz.iov.cloud.otd.vso.service.common.exception.SaleModelNotExistException;
@@ -135,6 +137,11 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class OrderAppService {
+
+    /**
+     * 小订单允许的最大重新支付次数（OTD-VSO-DSN-CR-005 INV-013，连同首次下单共 3 次支付机会）
+     */
+    public static final int MAX_REOPEN_COUNT = 2;
 
     private final OrderDomainService orderDomainService;
     private final OrderValidationService orderValidationService;
@@ -1441,6 +1448,117 @@ public class OrderAppService {
             order.cancel();
             orderRepository.save(order);
         });
+    }
+
+    /**
+     * 重新发起支付（OTD-VSO-DSN-CR-005）
+     * <p>
+     * 小订单支付超时（EXPIRED 960）后，按账号归属与订单锁内将订单恢复为
+     * EARNEST_MONEY_UNPAID(200)，重建支付窗口与超时任务，并记 ORDER_REOPEN 时间线。
+     * 恢复次数以时间线 ORDER_REOPEN 事件计数，最多 {@link #MAX_REOPEN_COUNT} 次。
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public ReopenPaymentResult reopenForPayment(ReopenPaymentCmd cmd) {
+        log.info("重新发起支付：accountId={}, orderNo={}", cmd.getAccountId(), cmd.getOrderNo());
+        ReopenPaymentResult result = orderLockService.executeWithLock(cmd.getOrderNo(), cmd.getAccountId(),
+                "reopen", () -> doReopenForPayment(cmd));
+        log.info("重新发起支付成功：orderNo={}, reopenCount={}", result.getOrderNo(), result.getReopenCount());
+        return result;
+    }
+
+    private ReopenPaymentResult doReopenForPayment(ReopenPaymentCmd cmd) {
+        Order order = findOrderById(cmd.getAccountId(), cmd.getOrderNo());
+        if (order.getOrderType() != OrderType.SMALL) {
+            throw new OrderReopenNotAllowedException(
+                    "订单[" + order.getOrderNo() + "]不是小订单，不允许重新发起支付");
+        }
+
+        int windowMinutes = paymentChannelConfig.getSmallOrderTimeoutMinutes();
+        int usedCount = orderTimelineRepository.countByOrderIdAndEventType(order.getId(),
+                OrderTimelineEventType.ORDER_REOPEN.getCode());
+
+        // 幂等：已在待支付状态，不重复推进状态、不追加时间线、不增加已用次数
+        if (order.getOrderState() == OrderState.EARNEST_MONEY_UNPAID) {
+            return buildReopenResult(order, usedCount, resolveWindowEnd(order, windowMinutes));
+        }
+        if (order.getOrderState() != OrderState.EXPIRED) {
+            throw new OrderReopenNotAllowedException(
+                    "订单[" + order.getOrderNo() + "]当前状态[" + order.getOrderState() + "]不允许重新支付");
+        }
+
+        // 已有成功支付单时拒绝恢复（防重复支付，转人工核查）
+        boolean hasPaid = paymentRepository.findSuccessfulByOrderId(order.getId()).stream()
+                .anyMatch(payment -> PaymentStage.EARNEST_MONEY.name().equals(payment.getPaymentStage()));
+        if (hasPaid) {
+            log.warn("订单已存在成功支付单，拒绝重新支付并转人工核查：orderNo={}", order.getOrderNo());
+            throw new OrderReopenNotAllowedException(
+                    "订单[" + order.getOrderNo() + "]已存在成功支付单，不允许重新发起支付");
+        }
+
+        if (usedCount >= MAX_REOPEN_COUNT) {
+            throw new OrderReopenLimitExceededException(
+                    "订单[" + order.getOrderNo() + "]重新支付次数已用尽，请重新下单");
+        }
+
+        // 强制关闭该阶段非终态支付单，避免复用死单
+        closeNonTerminalPayments(order.getId(), PaymentStage.EARNEST_MONEY);
+
+        order.reopenForPayment();
+        orderRepository.save(order);
+
+        // 重建支付窗口与超时任务（同订单同类型仅保留一个待触发任务）
+        timeoutNotifyService.cancelByOrderIdAndType(order.getId(), "SMALL_ORDER_PAY_TIMEOUT");
+        timeoutNotifyService.createTimeoutTask(order.getId(), "SMALL_ORDER_PAY_TIMEOUT", "invalid", windowMinutes);
+
+        int reopenCount = usedCount + 1;
+        Instant expireTime = Instant.now().plusSeconds(windowMinutes * 60L);
+        orderTimelineAppService.record(order.getId(), OrderTimelineEventType.ORDER_REOPEN,
+                String.valueOf(OrderState.EXPIRED.getValue()),
+                String.valueOf(OrderState.EARNEST_MONEY_UNPAID.getValue()),
+                cmd.getAccountId(), "order_user", "capp", order.getOrderNo(), null,
+                "第 " + reopenCount + " 次重新发起支付，窗口截止：" + expireTime);
+
+        return buildReopenResult(order, reopenCount, expireTime);
+    }
+
+    /**
+     * 关闭指定订单指定支付阶段的非终态支付单
+     */
+    private void closeNonTerminalPayments(String orderId, PaymentStage stage) {
+        for (Payment payment : paymentRepository.findByOrderId(orderId)) {
+            if (!stage.name().equals(payment.getPaymentStage())) {
+                continue;
+            }
+            if (payment.forceClose("订单重新发起支付，关闭原支付单")) {
+                paymentRepository.save(payment);
+                log.info("重新发起支付关闭非终态支付单：paymentNo={}, status={}",
+                        payment.getPaymentNo(), payment.getPaymentStatus());
+            }
+        }
+    }
+
+    /**
+     * 幂等分支的窗口截止时间：优先取现有活动支付单的截止时间
+     */
+    private Instant resolveWindowEnd(Order order, int windowMinutes) {
+        return paymentRepository.findActiveByOrderIdAndStage(order.getId(), PaymentStage.EARNEST_MONEY.name())
+                .filter(payment -> payment.getExpireTime() != null)
+                .map(payment -> payment.getExpireTime().atZone(ZoneId.systemDefault()).toInstant())
+                .orElseGet(() -> {
+                    if (order.getOrderStateTime() != null) {
+                        return order.getOrderStateTime().toInstant().plusSeconds(windowMinutes * 60L);
+                    }
+                    return Instant.now().plusSeconds(windowMinutes * 60L);
+                });
+    }
+
+    private ReopenPaymentResult buildReopenResult(Order order, int reopenCount, Instant expireTime) {
+        return ReopenPaymentResult.builder()
+                .orderNo(order.getOrderNo())
+                .orderState(order.getOrderState().getValue())
+                .reopenCount(reopenCount)
+                .expireTime(expireTime)
+                .build();
     }
 
     /**

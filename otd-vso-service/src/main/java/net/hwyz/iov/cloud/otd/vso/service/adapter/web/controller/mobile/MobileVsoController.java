@@ -141,6 +141,22 @@ public class MobileVsoController extends BaseController {
     }
 
     /**
+     * 重新发起支付（OTD-VSO-DSN-CR-005）
+     * <p>
+     * 小订单支付超时（EXPIRED 960）后恢复为待支付（EARNEST_MONEY_UNPAID 200）并开启新窗口；
+     * 同一订单重复调用幂等，恢复次数最多 2 次。
+     */
+    @PostMapping("/order/action/reopenForPayment")
+    public ApiResponse<ReopenPaymentResult> reopenForPayment(@RequestBody @Valid ReopenPaymentRequestVo request) {
+        log.info("手机客户端[{}]重新发起支付：orderNo={}", ParamHelper.getClientAccountInfo(), request.getOrderNo());
+        ReopenPaymentCmd cmd = ReopenPaymentCmd.builder()
+                .accountId(SecurityContextHolder.getUserId())
+                .orderNo(request.getOrderNo())
+                .build();
+        return ApiResponse.ok(vehicleSaleOrderAppService.reopenForPayment(cmd));
+    }
+
+    /**
      * 定金下订单
      * <p>
      * 请求参数说明：

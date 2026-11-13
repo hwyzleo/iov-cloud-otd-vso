@@ -797,11 +797,29 @@ public class Order {
 
     /**
      * 作废订单
-     * 将订单状态置为已作废，通常用于超时未支付等场景
+     * 仅允许 EARNEST_MONEY_UNPAID(200) -> EXPIRED(960)（OTD-VSO-DSN-CR-005 INV-008）
+     *
+     * @throws IllegalStateException 当前状态不允许失效
      */
     public void invalidate() {
+        OrderStateMachine.validateTransition(this.orderState.getValue(), OrderState.EXPIRED.getValue(), this.orderType);
         this.orderState = OrderState.EXPIRED;
         this.orderStateTime = new Date();
+    }
+
+    /**
+     * 重新发起支付（OTD-VSO-DSN-CR-005）
+     * 仅允许小订单 EXPIRED(960) -> EARNEST_MONEY_UNPAID(200)，不改变订单号、金额快照、
+     * 配置快照与协议确认快照。
+     *
+     * @throws IllegalStateException 当前状态或订单类型不允许恢复
+     */
+    public void reopenForPayment() {
+        OrderStateMachine.validateReopen(this.orderState.getValue(), OrderState.EARNEST_MONEY_UNPAID.getValue(),
+                this.orderType);
+        this.orderState = OrderState.EARNEST_MONEY_UNPAID;
+        this.orderStateTime = new Date();
+        this.reopenFlag = true;
     }
 
     /**

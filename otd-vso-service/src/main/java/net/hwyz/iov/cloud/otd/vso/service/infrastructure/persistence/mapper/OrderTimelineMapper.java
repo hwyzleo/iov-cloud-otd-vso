@@ -16,6 +16,11 @@ public interface OrderTimelineMapper extends BaseDao<OrderTimelinePo, Long> {
 
     List<OrderTimelinePo> selectByOrderId(@Param("orderId") String orderId);
 
+    /**
+     * 统计指定订单指定事件类型的记录数（OTD-VSO-DSN-CR-005）
+     */
+    int countByOrderIdAndEventType(@Param("orderId") String orderId, @Param("eventType") String eventType);
+
     OrderTimelinePo selectPoById(Long id);
 
     /**

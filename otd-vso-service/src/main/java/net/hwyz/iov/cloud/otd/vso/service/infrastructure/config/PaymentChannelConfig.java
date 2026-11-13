@@ -23,6 +23,20 @@ public class PaymentChannelConfig {
     private Integer smallOrderTimeoutMinutes = 30;
     private Integer downPaymentTimeoutMinutes = 60;
 
+    /**
+     * 处理中支付单失联宽限分钟数（OTD-VSO-DSN-CR-005）
+     * <p>
+     * PROCESSING 支付单超过 expireTime + 该值视为失联，允许关闭并重建。
+     */
+    private Integer processingStaleMinutes = 30;
+
+    /**
+     * 处理中支付单失联宽限分钟数（缺失或 <=0 按 30 处理）
+     */
+    public int processingStaleMinutesOrDefault() {
+        return processingStaleMinutes == null || processingStaleMinutes <= 0 ? 30 : processingStaleMinutes;
+    }
+
     @Data
     public static class ChannelInfo {
         private PaymentChannel code;

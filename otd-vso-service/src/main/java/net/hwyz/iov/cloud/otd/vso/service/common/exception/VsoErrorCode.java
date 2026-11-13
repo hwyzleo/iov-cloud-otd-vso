@@ -100,7 +100,12 @@ public enum VsoErrorCode implements ErrorCode {
 
     // OTD-VSO-DSN-CR-003 销售车型图片上传薄封装
     IMAGE_UPLOAD_TICKET_INVALID("201055", "上传凭证无效、已过期或操作人不一致"),
-    IMAGE_UPLOAD_FAILED("201056", "图片上传申请或完成确认失败");
+    IMAGE_UPLOAD_FAILED("201056", "图片上传申请或完成确认失败"),
+
+    // OTD-VSO-DSN-CR-005 小订单支付超时恢复与支付状态守卫
+    ORDER_EXPIRED("201057", "订单已失效，请重新发起支付"),
+    ORDER_REOPEN_NOT_ALLOWED("201058", "订单当前状态不允许重新支付"),
+    ORDER_REOPEN_LIMIT_EXCEEDED("201059", "重新支付次数已用尽，请重新下单");
 
     private final String code;
     private final String message;

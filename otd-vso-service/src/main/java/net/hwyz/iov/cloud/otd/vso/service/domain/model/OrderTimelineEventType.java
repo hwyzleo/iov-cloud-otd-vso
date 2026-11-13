@@ -35,7 +35,8 @@ public enum OrderTimelineEventType {
     DELIVERY_APPOINTMENT_RESCHEDULED("DELIVERY_APPOINTMENT_RESCHEDULED", "修改交付预约"),
     DELIVERY_APPOINTMENT_CANCELLED("DELIVERY_APPOINTMENT_CANCELLED", "取消交付预约"),
     ORDER_DELIVERED("ORDER_DELIVERED", "已交付"),
-    ORDER_ACTIVATED("ORDER_ACTIVATED", "已激活");
+    ORDER_ACTIVATED("ORDER_ACTIVATED", "已激活"),
+    ORDER_REOPEN("ORDER_REOPEN", "订单重新发起支付");
 
     private final String code;
     private final String name;

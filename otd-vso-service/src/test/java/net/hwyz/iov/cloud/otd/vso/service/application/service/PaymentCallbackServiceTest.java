@@ -64,6 +64,8 @@ class PaymentCallbackServiceTest {
     private OrderTimelineAppService orderTimelineAppService;
     @Mock
     private CallbackSignatureService callbackSignatureService;
+    @Mock
+    private org.springframework.context.ApplicationEventPublisher eventPublisher;
 
     @Spy
     private ObjectMapper objectMapper = new ObjectMapper();

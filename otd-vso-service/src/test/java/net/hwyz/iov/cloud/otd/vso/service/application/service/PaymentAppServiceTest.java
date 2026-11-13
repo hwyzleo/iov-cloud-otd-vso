@@ -7,6 +7,7 @@ import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.InitiatePaymentCmd
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.InitiatePaymentResult;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.PaymentResult;
 import net.hwyz.iov.cloud.otd.vso.service.common.exception.OrderAmountSnapshotMissingException;
+import net.hwyz.iov.cloud.otd.vso.service.common.exception.OrderExpiredException;
 import net.hwyz.iov.cloud.otd.vso.service.common.exception.OrderNotExistException;
 import net.hwyz.iov.cloud.otd.vso.service.common.exception.OrderStateNotAllowedException;
 import net.hwyz.iov.cloud.otd.vso.service.common.exception.PaymentConflictException;
@@ -93,6 +94,7 @@ class PaymentAppServiceTest {
         lenient().when(orderAmountRepository.findDomainByOrderId("OID1")).thenReturn(Optional.of(orderAmount));
         lenient().when(paymentChannelConfig.isChannelEnabled(PaymentChannel.WECHAT)).thenReturn(true);
         lenient().when(paymentChannelConfig.getDownPaymentTimeoutMinutes()).thenReturn(60);
+        lenient().when(paymentChannelConfig.processingStaleMinutesOrDefault()).thenReturn(30);
         lenient().when(paymentChannelConfig.getSmallOrderTimeoutMinutes()).thenReturn(30);
         lenient().when(orderLockService.executeWithLock(anyString(), anyString(), anyString(), any(Supplier.class)))
                 .thenAnswer(invocation -> ((Supplier<?>) invocation.getArgument(3)).get());
@@ -194,6 +196,73 @@ class PaymentAppServiceTest {
         assertThrows(OrderStateNotAllowedException.class, () ->
                 paymentAppService.initiatePayment(InitiatePaymentCmd.builder()
                         .accountId("ACC1").orderNo("SO001").paymentChannel(PaymentChannel.WECHAT).build()));
+    }
+
+    @Test
+    @DisplayName("订单已失效（EXPIRED 960）：返回 ORDER_EXPIRED 供客户端引导重新支付")
+    void 失效订单发起支付返回ORDER_EXPIRED() {
+        Order expired = Order.builder().id("OID1").orderNo("SO001")
+                .orderState(OrderState.EXPIRED).build();
+        when(orderRepository.findByOrderNoAndAccountId("SO001", "ACC1")).thenReturn(Optional.of(expired));
+
+        assertThrows(OrderExpiredException.class, () ->
+                paymentAppService.initiatePayment(InitiatePaymentCmd.builder()
+                        .accountId("ACC1").orderNo("SO001").paymentChannel(PaymentChannel.WECHAT).build()));
+    }
+
+    @Test
+    @DisplayName("处理中支付单失联（超 expire+宽限）：关闭并新建支付单")
+    void 失联处理中支付单关闭并新建() {
+        Payment stale = Payment.builder()
+                .paymentNo("P-STALE")
+                .orderId("OID1")
+                .paymentStage(PaymentStage.DOWN_PAYMENT.name())
+                .paymentAmount(new BigDecimal("20000.00"))
+                .paymentStatus(PaymentStatus.PROCESSING)
+                .externalTradeNo("MOCK-P-STALE")
+                .expireTime(LocalDateTime.now().minusMinutes(31))
+                .build();
+        when(paymentRepository.findActiveByOrderIdAndStage("OID1", PaymentStage.DOWN_PAYMENT.name()))
+                .thenReturn(Optional.of(stale));
+        when(paymentAdapter.createPayment(anyString(), any(), anyString()))
+                .thenReturn(PaymentGatewayResult.builder().externalTradeNo("MOCK-NEW").gatewayStatus("PROCESSING").build());
+        when(paymentRepository.findByPaymentNo(anyString())).thenAnswer(invocation -> Optional.of(Payment.builder()
+                .paymentNo(invocation.getArgument(0))
+                .orderId("OID1")
+                .paymentStage(PaymentStage.DOWN_PAYMENT.name())
+                .paymentAmount(new BigDecimal("20000.00"))
+                .paymentStatus(PaymentStatus.PENDING_PAYMENT)
+                .build()));
+
+        InitiatePaymentResult result = paymentAppService.initiatePayment(InitiatePaymentCmd.builder()
+                .accountId("ACC1").orderNo("SO001").paymentChannel(PaymentChannel.WECHAT).build());
+
+        assertEquals(PaymentStatus.CLOSED, stale.getPaymentStatus(), "失联支付单应关闭");
+        assertNotNull(result.getPaymentNo());
+        assertTrue(!"P-STALE".equals(result.getPaymentNo()), "失联后应创建新支付单");
+    }
+
+    @Test
+    @DisplayName("处理中支付单在宽限期内：返回原单，不关闭不新建")
+    void 宽限期内处理中支付单返回原单() {
+        Payment processing = Payment.builder()
+                .paymentNo("P-PROC")
+                .orderId("OID1")
+                .paymentStage(PaymentStage.DOWN_PAYMENT.name())
+                .paymentAmount(new BigDecimal("20000.00"))
+                .paymentStatus(PaymentStatus.PROCESSING)
+                .externalTradeNo("MOCK-P-PROC")
+                .expireTime(LocalDateTime.now().minusMinutes(5))
+                .build();
+        when(paymentRepository.findActiveByOrderIdAndStage("OID1", PaymentStage.DOWN_PAYMENT.name()))
+                .thenReturn(Optional.of(processing));
+
+        InitiatePaymentResult result = paymentAppService.initiatePayment(InitiatePaymentCmd.builder()
+                .accountId("ACC1").orderNo("SO001").paymentChannel(PaymentChannel.WECHAT).build());
+
+        assertEquals("P-PROC", result.getPaymentNo());
+        assertEquals(PaymentStatus.PROCESSING, processing.getPaymentStatus());
+        verify(paymentAdapter, never()).createPayment(anyString(), any(), anyString());
     }
 
     @Test

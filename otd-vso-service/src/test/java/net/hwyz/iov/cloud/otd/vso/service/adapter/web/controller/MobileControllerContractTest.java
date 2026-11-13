@@ -45,6 +45,8 @@ class MobileControllerContractTest {
         List<String> mobilePost = collectMappings(MobileVsoController.class, PostMapping.class);
         List<String> mobileGet = collectMappings(MobileVsoController.class, GetMapping.class);
         assertTrue(mobilePost.contains("/order/action/requestRefund"), "退款申请路由应存在");
+        assertTrue(mobilePost.contains("/order/action/reopenForPayment"),
+                "支付超时恢复路由应存在（CR-005）");
         assertTrue(mobileGet.contains("/order/{orderNo}/timeline"), "订单时间线路由应存在");
 
         List<String> saleModelGet = collectMappings(MobileSaleModelController.class, GetMapping.class);

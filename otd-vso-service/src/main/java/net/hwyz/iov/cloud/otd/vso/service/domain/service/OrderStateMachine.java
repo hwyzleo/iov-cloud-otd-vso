@@ -166,6 +166,41 @@ public class OrderStateMachine {
     }
 
     /**
+     * 检查是否为可重新支付的状态转移（OTD-VSO-DSN-CR-005）
+     * <p>
+     * 仅允许小订单 EXPIRED(960) -> EARNEST_MONEY_UNPAID(200) 的受控恢复；
+     * 该边不入通用转移表，避免其他路径（支付/锁单等）把已失效订单重新推进。
+     *
+     * @param fromStateValue 当前状态值
+     * @param toStateValue 目标状态值
+     * @param orderType 订单类型
+     * @return 是否允许重新支付
+     */
+    public static boolean canReopen(Integer fromStateValue, Integer toStateValue, OrderType orderType) {
+        if (orderType != OrderType.SMALL) {
+            return false;
+        }
+        return Integer.valueOf(OrderState.EXPIRED.getValue()).equals(fromStateValue)
+                && Integer.valueOf(OrderState.EARNEST_MONEY_UNPAID.getValue()).equals(toStateValue);
+    }
+
+    /**
+     * 验证重新支付的状态转移
+     *
+     * @param fromStateValue 当前状态值
+     * @param toStateValue 目标状态值
+     * @param orderType 订单类型
+     * @throws IllegalStateException 如果转移不合法
+     */
+    public static void validateReopen(Integer fromStateValue, Integer toStateValue, OrderType orderType) {
+        if (!canReopen(fromStateValue, toStateValue, orderType)) {
+            throw new IllegalStateException(
+                String.format("订单重新支付状态转移不合法：从 [%d] 无法转移到 [%d]", fromStateValue, toStateValue)
+            );
+        }
+    }
+
+    /**
      * 验证状态转移
      *
      * @param fromStateValue 当前状态值

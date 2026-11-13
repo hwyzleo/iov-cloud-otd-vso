@@ -10,6 +10,7 @@ import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.InitiatePaymentCmd
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.InitiatePaymentResult;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.PaymentResult;
 import net.hwyz.iov.cloud.otd.vso.service.common.exception.OrderAmountSnapshotMissingException;
+import net.hwyz.iov.cloud.otd.vso.service.common.exception.OrderExpiredException;
 import net.hwyz.iov.cloud.otd.vso.service.common.exception.OrderNotExistException;
 import net.hwyz.iov.cloud.otd.vso.service.common.exception.OrderStateNotAllowedException;
 import net.hwyz.iov.cloud.otd.vso.service.common.exception.PaymentChannelNotAvailableException;
@@ -175,6 +176,11 @@ public class PaymentAppService {
         if (state == OrderState.DOWN_PAYMENT_UNPAID) {
             return PaymentStage.DOWN_PAYMENT;
         }
+        // OTD-VSO-DSN-CR-005：已失效订单返回可识别错误码，供客户端引导重新支付
+        if (state == OrderState.EXPIRED) {
+            throw new OrderExpiredException(
+                    "车辆销售订单[" + order.getOrderNo() + "]已失效，请重新发起支付");
+        }
         throw new OrderStateNotAllowedException(
                 "车辆销售订单[" + order.getOrderNo() + "]当前状态[" + state + "]不允许发起支付");
     }
@@ -198,8 +204,16 @@ public class PaymentAppService {
                                              String accountId, PaymentChannel channel) {
         Optional<Payment> active = paymentRepository.findActiveByOrderIdAndStage(order.getId(), stage.name());
         LocalDateTime now = LocalDateTime.now();
+        int staleMinutes = paymentChannelConfig.processingStaleMinutesOrDefault();
         if (active.isPresent()) {
             Payment current = active.get();
+            // OTD-VSO-DSN-CR-005：PROCESSING 超过 expire_time + 宽限期视为失联，关闭后允许新建
+            if (current.closeIfStale(now, staleMinutes)) {
+                paymentRepository.save(current);
+                log.info("处理中支付单失联关闭：paymentNo={}, expireTime={}",
+                        current.getPaymentNo(), current.getExpireTime());
+                return createPendingPayment(order, stage, amount, accountId, channel);
+            }
             if (current.isActive(now)) {
                 return current;
             }
