@@ -1,6 +1,10 @@
 package net.hwyz.iov.cloud.otd.vso.service.application.service;
 
 import cn.hutool.json.JSONUtil;
+import net.hwyz.iov.cloud.edd.mdm.api.service.BrandService;
+import net.hwyz.iov.cloud.edd.mdm.api.service.CarLineService;
+import net.hwyz.iov.cloud.edd.mdm.api.vo.response.BrandResponse;
+import net.hwyz.iov.cloud.edd.mdm.api.vo.response.CarLineResponse;
 import net.hwyz.iov.cloud.otd.vso.api.enums.OrderType;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.query.OrderQuery;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.OrderListResult;
@@ -51,6 +55,10 @@ class OrderAppServiceSearchTest {
     private SaleModelRepository saleModelRepository;
     @Mock
     private DeliveryRepository deliveryRepository;
+    @Mock
+    private CarLineService carLineService;
+    @Mock
+    private BrandService brandService;
 
     @InjectMocks
     private OrderAppService orderAppService;
@@ -178,6 +186,31 @@ class OrderAppServiceSearchTest {
                 .orElse(null);
         assertNotNull(importResult, "应该找到import来源的订单");
         assertEquals("外部导入", importResult.getOrderSourceName());
+    }
+
+    @Test
+    @DisplayName("列表品牌按车系解析为真实品牌且同车系只查询一次")
+    void testSearchBrandNameUsesCarlineBrand() {
+        Order first = Order.builder().id("ORDER_HC_1").orderNo("SO_HC_1")
+                .orderType(OrderType.FORMAL).orderSource("capp").brandCode("HC").saleModel("HC")
+                .orderState(OrderState.DOWN_PAYMENT_PAID).build();
+        Order second = Order.builder().id("ORDER_HC_2").orderNo("SO_HC_2")
+                .orderType(OrderType.FORMAL).orderSource("capp").brandCode("HC").saleModel("HC")
+                .orderState(OrderState.DOWN_PAYMENT_PAID).build();
+        when(orderRepository.searchByAccount(any(), any(), any(), any(), any(), any(), any()))
+                .thenReturn(Arrays.asList(first, second));
+        when(carLineService.getByCode("HC"))
+                .thenReturn(CarLineResponse.builder().code("HC").brandCode("HWYZ").build());
+        when(brandService.getByCode("HWYZ"))
+                .thenReturn(BrandResponse.builder().code("HWYZ").name("HWYZ").build());
+
+        List<OrderListResult> results = orderAppService.search(OrderQuery.builder().build());
+
+        assertEquals(2, results.size());
+        assertTrue(results.stream().allMatch(result -> "HWYZ".equals(result.getBrandCode())));
+        assertTrue(results.stream().allMatch(result -> "HWYZ".equals(result.getBrandName())));
+        verify(carLineService, times(1)).getByCode("HC");
+        verify(brandService, times(1)).getByCode("HWYZ");
     }
 
     @Test

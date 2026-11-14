@@ -20,7 +20,10 @@ import net.hwyz.iov.cloud.otd.vso.service.domain.repository.OrderPartyRepository
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.OrderVehicleSnapshotRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.SaleModelOptionPolicyRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.SaleModelVariantPolicyRepository;
+import net.hwyz.iov.cloud.otd.vso.service.domain.service.MdmProjectionService;
 import net.hwyz.iov.cloud.otd.vso.service.domain.service.OrderDomainService;
+import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.MdmProjectionModelPo;
+import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.MdmProjectionVariantPo;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.OrderAmountPo;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.OrderPartyPo;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.OrderVehicleSnapshotPo;
@@ -74,6 +77,8 @@ class OrderAppServiceQueryTest {
     private CarLineService carLineService;
     @Mock
     private BrandService brandService;
+    @Mock
+    private MdmProjectionService mdmProjectionService;
 
     @InjectMocks
     private OrderAppService orderAppService;
@@ -211,9 +216,9 @@ class OrderAppServiceQueryTest {
         snapshot.setOrderId(orderId);
         snapshot.setSaleModelCode("HC");
         snapshot.setModelCode("HC-M1");
-        snapshot.setModelName("寒川车型");
+        snapshot.setModelName("");
         snapshot.setVariantCode("HC-V1");
-        snapshot.setVariantName("寒川版");
+        snapshot.setVariantName("");
         snapshot.setConfigurationCode("CFG-HC-001");
         snapshot.setOptionCodes("[]");
         when(orderVehicleSnapshotRepository.findByOrderId(orderId)).thenReturn(Optional.of(snapshot));
@@ -223,6 +228,10 @@ class OrderAppServiceQueryTest {
                 .thenReturn(CarLineResponse.builder().code("HC").brandCode("BRAND_HC").build());
         when(brandService.getByCode("BRAND_HC"))
                 .thenReturn(BrandResponse.builder().code("BRAND_HC").name("测试品牌").build());
+        when(mdmProjectionService.getModelOptional("HC-M1"))
+                .thenReturn(Optional.of(MdmProjectionModelPo.builder().modelCode("HC-M1").modelName("MDM车型").build()));
+        when(mdmProjectionService.getVariantOptional("HC-V1"))
+                .thenReturn(Optional.of(MdmProjectionVariantPo.builder().variantCode("HC-V1").variantName("MDM版本").build()));
 
         OrderPartyPo buyer = new OrderPartyPo();
         buyer.setPersonType(1);
@@ -241,8 +250,8 @@ class OrderAppServiceQueryTest {
         assertEquals("BRAND_HC", result.getBrandCode());
         assertEquals("测试品牌", result.getBrandName());
         assertEquals("寒川", result.getSaleModelName());
-        assertEquals("寒川车型", result.getModelName());
-        assertEquals("寒川版", result.getVariantName());
+        assertEquals("MDM车型", result.getModelName(), "快照营销名为空时应回退到 MDM 车型名称");
+        assertEquals("MDM版本", result.getVariantName(), "快照营销名为空时应回退到 MDM 版本名称");
         assertEquals("CFG-HC-001", result.getConfigurationCode());
         assertEquals("personal", result.getCustomerType());
         assertEquals("full_payment", result.getPaymentMethod());

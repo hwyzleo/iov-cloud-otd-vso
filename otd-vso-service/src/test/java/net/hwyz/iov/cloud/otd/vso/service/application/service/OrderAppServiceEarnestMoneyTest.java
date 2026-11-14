@@ -127,6 +127,12 @@ class OrderAppServiceEarnestMoneyTest {
         when(paymentChannelConfig.getSmallOrderTimeoutMinutes()).thenReturn(30);
         when(salesPolicyService.getOptionPrice(eq(saleModel), anyString()))
                 .thenReturn(BigDecimal.valueOf(1000));
+        when(mdmProjectionService.getModelOptional(modelCode))
+                .thenReturn(Optional.of(net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.MdmProjectionModelPo
+                        .builder().modelCode(modelCode).modelName("MDM车型名称").build()));
+        when(mdmProjectionService.getVariantOptional(variantCode))
+                .thenReturn(Optional.of(net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.MdmProjectionVariantPo
+                        .builder().variantCode(variantCode).variantName("MDM版本名称").build()));
 
         EarnestMoneyCmd cmd = EarnestMoneyCmd.builder()
             .accountId(userId)
@@ -141,6 +147,14 @@ class OrderAppServiceEarnestMoneyTest {
         
         assertNotNull(result, "返回结果应该不为空");
         assertNotNull(result.getOrderNo(), "订单号应该不为空");
+        org.mockito.ArgumentCaptor<net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.OrderVehicleSnapshotPo>
+                snapshotCaptor = org.mockito.ArgumentCaptor.forClass(
+                        net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.OrderVehicleSnapshotPo.class);
+        verify(orderVehicleSnapshotRepository).save(snapshotCaptor.capture());
+        assertEquals("MDM车型名称", snapshotCaptor.getValue().getModelName(),
+                "车型营销名为空时，新订单快照应写入 MDM 名称");
+        assertEquals("MDM版本名称", snapshotCaptor.getValue().getVariantName(),
+                "版本营销名为空时，新订单快照应写入 MDM 名称");
     }
 
     @Test

@@ -568,12 +568,29 @@ public class OrderAppService {
             log.warn("批量获取交付预约失败", e);
         }
 
+        // 3.6 每个不同车系只解析一次品牌，避免列表逐行调用 MDM
+        Map<String, BrandDisplay> brandMap = new HashMap<>();
+        results.stream()
+                .map(OrderListResult::getBrandCode)
+                .filter(StrUtil::isNotBlank)
+                .distinct()
+                .forEach(sourceCode -> {
+                    BrandDisplay brand = resolveBrand(sourceCode);
+                    if (brand != null) {
+                        brandMap.put(sourceCode, brand);
+                    }
+                });
+
         // 4. 组装展示信息
         for (OrderListResult result : results) {
             // 基本信息
             result.setOrderTypeName(getOrderTypeName(result.getOrderType()));
             result.setOrderSourceName(getOrderSourceName(result.getOrderSource()));
-            result.setBrandName(result.getBrandCode());
+            BrandDisplay brand = brandMap.get(result.getBrandCode());
+            if (brand != null) {
+                result.setBrandCode(brand.code());
+                result.setBrandName(brand.name());
+            }
             result.setOwnerRegionName(getRegionName(result.getOwnerRegionCode()));
 
             // 金额快照与派生时间（运营核对）
@@ -613,9 +630,9 @@ public class OrderAppService {
 
             // 设置车型、版本、配置信息
             result.setModelCode(snapshot.getModelCode());
-            result.setModelName(snapshot.getModelName());
+            result.setModelName(resolveModelName(snapshot.getModelName(), snapshot.getModelCode()));
             result.setVariantCode(snapshot.getVariantCode());
-            result.setVariantName(snapshot.getVariantName());
+            result.setVariantName(resolveVariantName(snapshot.getVariantName(), snapshot.getVariantCode()));
             result.setConfigurationCode(snapshot.getConfigurationCode());
 
             // 解析 optionCodes
@@ -793,16 +810,22 @@ public class OrderAppService {
      * 不再把车系代码直接当成品牌名称。
      */
     private void enrichBrand(OrderDetailResult result) {
-        String sourceCode = result.getBrandCode();
+        BrandDisplay brand = resolveBrand(result.getBrandCode());
+        if (brand != null) {
+            result.setBrandCode(brand.code());
+            result.setBrandName(brand.name());
+        }
+    }
+
+    private BrandDisplay resolveBrand(String sourceCode) {
         if (StrUtil.isBlank(sourceCode)) {
-            return;
+            return null;
         }
         String brandCode = sourceCode;
         try {
             CarLineResponse carLine = carLineService.getByCode(sourceCode);
             if (carLine != null && StrUtil.isNotBlank(carLine.getBrandCode())) {
                 brandCode = carLine.getBrandCode();
-                result.setBrandCode(brandCode);
             }
         } catch (Exception e) {
             log.warn("根据车系获取品牌编码失败: carlineCode={}", sourceCode, e);
@@ -810,14 +833,16 @@ public class OrderAppService {
         try {
             BrandResponse brand = brandService.getByCode(brandCode);
             if (brand != null) {
-                if (StrUtil.isNotBlank(brand.getCode())) {
-                    result.setBrandCode(brand.getCode());
-                }
-                result.setBrandName(brand.getName());
+                return new BrandDisplay(StrUtil.isNotBlank(brand.getCode()) ? brand.getCode() : brandCode,
+                        brand.getName());
             }
         } catch (Exception e) {
             log.warn("获取品牌名称失败: brandCode={}", brandCode, e);
         }
+        return null;
+    }
+
+    private record BrandDisplay(String code, String name) {
     }
 
     private Integer derivePayState(Order order, List<Payment> successfulPayments) {
@@ -1377,9 +1402,9 @@ public class OrderAppService {
 
         OrderVehicleSnapshotPo snapshot = snapshotOpt.get();
         result.setModelCode(snapshot.getModelCode());
-        result.setModelName(snapshot.getModelName());
+        result.setModelName(resolveModelName(snapshot.getModelName(), snapshot.getModelCode()));
         result.setVariantCode(snapshot.getVariantCode());
-        result.setVariantName(snapshot.getVariantName());
+        result.setVariantName(resolveVariantName(snapshot.getVariantName(), snapshot.getVariantCode()));
         result.setConfigurationCode(snapshot.getConfigurationCode());
         if (StrUtil.isNotBlank(snapshot.getOptionCodes())) {
             try {
@@ -1399,6 +1424,36 @@ public class OrderAppService {
             }
         }
         return snapshot;
+    }
+
+    /** 营销名称为空时回退到 MDM Model 名称。 */
+    private String resolveModelName(String marketingName, String modelCode) {
+        if (StrUtil.isNotBlank(marketingName)) {
+            return marketingName;
+        }
+        try {
+            return mdmProjectionService.getModelOptional(modelCode)
+                    .map(po -> StrUtil.isNotBlank(po.getModelName()) ? po.getModelName() : "")
+                    .orElse("");
+        } catch (Exception e) {
+            log.warn("获取 MDM 车型名称失败: modelCode={}", modelCode, e);
+            return "";
+        }
+    }
+
+    /** 营销名称为空时回退到 MDM Variant 名称。 */
+    private String resolveVariantName(String marketingName, String variantCode) {
+        if (StrUtil.isNotBlank(marketingName)) {
+            return marketingName;
+        }
+        try {
+            return mdmProjectionService.getVariantOptional(variantCode)
+                    .map(po -> StrUtil.isNotBlank(po.getVariantName()) ? po.getVariantName() : "")
+                    .orElse("");
+        } catch (Exception e) {
+            log.warn("获取 MDM 配置版本名称失败: variantCode={}", variantCode, e);
+            return "";
+        }
     }
 
     /**
@@ -2319,6 +2374,8 @@ public class OrderAppService {
             variantMarketingName = variantPolicy.getMarketingName() != null ? variantPolicy.getMarketingName() : "";
             variantPrice = variantPolicy.getVariantPrice() != null ? variantPolicy.getVariantPrice() : BigDecimal.ZERO;
         }
+        modelName = resolveModelName(modelName, modelCode);
+        variantMarketingName = resolveVariantName(variantMarketingName, variantCode);
         
         // 获取配置名称从ConfigurationService
         String configurationName = "";
