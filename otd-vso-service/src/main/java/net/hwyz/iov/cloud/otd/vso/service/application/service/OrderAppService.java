@@ -940,8 +940,8 @@ public class OrderAppService {
      */
     @Transactional(rollbackFor = Exception.class)
     public void assignDeliveryPerson(AssignDeliveryPersonCmd cmd) {
-        log.info("分派交付人员：orderId={}, deliveryPersonId={}", cmd.getOrderNo(), cmd.getDeliveryPersonId());
-        Order order = orderDomainService.loadOrder(cmd.getOrderNo());
+        log.info("分派交付人员：orderNo={}, deliveryPersonId={}", cmd.getOrderNo(), cmd.getDeliveryPersonId());
+        Order order = orderDomainService.loadOrderByOrderNo(cmd.getOrderNo());
         order.saveDeliveryPerson(cmd.getDeliveryPersonId(), cmd.getDeliveryPersonName());
         orderRepository.save(order);
     }
