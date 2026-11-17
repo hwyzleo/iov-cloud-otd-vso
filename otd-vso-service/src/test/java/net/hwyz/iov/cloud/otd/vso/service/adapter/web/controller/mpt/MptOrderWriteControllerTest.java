@@ -3,6 +3,7 @@ package net.hwyz.iov.cloud.otd.vso.service.adapter.web.controller.mpt;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import net.hwyz.iov.cloud.edd.org.api.service.OrgDealershipService;
 import net.hwyz.iov.cloud.framework.common.bean.BaseRequest;
+import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.AssignDeliveryPersonCmd;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.AssignVehicleCmd;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.CancelOrderCmd;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.LockOrderCmd;
@@ -287,6 +288,34 @@ class MptOrderWriteControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"variantCode\":\"V002\",\"optionCodes\":[]}"))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("分配交付人员委托应用服务，操作人取安全上下文而非 MptAccount 请求头")
+    void 分配交付人员委托() throws Exception {
+        mockMvc.perform(post(BASE + "/action/assignDeliveryPerson")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"orderNo\":\"SO001\",\"deliveryPersonId\":\"1001\",\"deliveryPersonName\":\"张三\"}"))
+                .andExpect(status().isOk());
+
+        ArgumentCaptor<AssignDeliveryPersonCmd> captor =
+                ArgumentCaptor.forClass(AssignDeliveryPersonCmd.class);
+        verify(orderAppService).assignDeliveryPerson(captor.capture());
+        assertEquals("SO001", captor.getValue().getOrderNo());
+        assertEquals("1001", captor.getValue().getDeliveryPersonId());
+        assertEquals("张三", captor.getValue().getDeliveryPersonName());
+
+        Method method = Arrays.stream(MptVsoController.class.getDeclaredMethods())
+                .filter(m -> m.getName().equals("assignDeliveryPerson"))
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("缺少 assignDeliveryPerson 端点"));
+        for (java.lang.reflect.Parameter parameter : method.getParameters()) {
+            assertEquals(net.hwyz.iov.cloud.otd.vso.api.vo.mpt.request.AssignDeliveryPersonRequest.class,
+                    parameter.getType(), "分配交付人员只接收请求体，不得依赖 MptAccount 请求头（CR-010）");
+        }
+        assertNotNull(method.getAnnotation(
+                        net.hwyz.iov.cloud.framework.security.annotation.RequiresPermissions.class),
+                "分配交付人员必须声明权限点");
     }
 
     private static List<String> collectPostMappings(Class<?> controller) {

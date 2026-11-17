@@ -936,14 +936,62 @@ public class OrderAppService {
     }
 
     /**
-     * 分派交付人员
+     * 分派交付人员（含时间线留痕，OTD-VSO-DSN-CR-010）
+     * <p>
+     * 只在人员实际变化时追加事件：首次分配与改派各记一条；同一 {@code deliveryPersonId} 重复提交
+     * 不追加事件（姓名变化仅纠正订单展示，不产生留痕）。事件与订单同一事务提交。
      */
     @Transactional(rollbackFor = Exception.class)
     public void assignDeliveryPerson(AssignDeliveryPersonCmd cmd) {
-        log.info("分派交付人员：orderNo={}, deliveryPersonId={}", cmd.getOrderNo(), cmd.getDeliveryPersonId());
+        log.info("分派交付人员：orderNo={}, deliveryPersonId={}, operatorId={}",
+                cmd.getOrderNo(), cmd.getDeliveryPersonId(), cmd.getOperatorId());
         Order order = orderDomainService.loadOrderByOrderNo(cmd.getOrderNo());
+        String originalPersonId = order.getDeliveryPersonId();
+        String originalPersonName = order.getDeliveryPersonName();
+        boolean samePerson = Objects.equals(originalPersonId, cmd.getDeliveryPersonId());
+        if (samePerson && Objects.equals(originalPersonName, cmd.getDeliveryPersonName())) {
+            log.info("交付人员未变化，幂等跳过：orderNo={}, deliveryPersonId={}",
+                    cmd.getOrderNo(), cmd.getDeliveryPersonId());
+            return;
+        }
         order.saveDeliveryPerson(cmd.getDeliveryPersonId(), cmd.getDeliveryPersonName());
         orderRepository.save(order);
+        if (samePerson) {
+            // 同一交付人员仅姓名变更（如工号改名）：纠正展示，不产生多余留痕
+            log.info("交付人员姓名变更，更新展示但不写时间线：orderNo={}, deliveryPersonId={}",
+                    cmd.getOrderNo(), cmd.getDeliveryPersonId());
+            return;
+        }
+        String currentStatus = order.getOrderState() == null ? null
+                : String.valueOf(order.getOrderState().getValue());
+        orderTimelineAppService.record(order.getId(), OrderTimelineEventType.DELIVERY_PERSON_ASSIGNED,
+                currentStatus, currentStatus, cmd.getOperatorId(), "mpt_operator", "mpt", null, null,
+                buildDeliveryPersonRemark(originalPersonId, originalPersonName,
+                        cmd.getDeliveryPersonId(), cmd.getDeliveryPersonName()));
+    }
+
+    /**
+     * 交付人员分配备注：首次记录新人员，改派同时保留原人员
+     */
+    private String buildDeliveryPersonRemark(String originalPersonId, String originalPersonName,
+                                             String newPersonId, String newPersonName) {
+        String newPerson = formatDeliveryPerson(newPersonName, newPersonId);
+        if (originalPersonId == null || originalPersonId.isEmpty()) {
+            return "分配交付人员：" + newPerson;
+        }
+        return "改派交付人员：" + newPerson + "，原交付人员："
+                + formatDeliveryPerson(originalPersonName, originalPersonId);
+    }
+
+    private String formatDeliveryPerson(String name, String id) {
+        String showName = name == null || name.isEmpty() ? id : name;
+        if (showName == null) {
+            showName = "";
+        }
+        if (id == null || id.isEmpty()) {
+            return showName;
+        }
+        return showName + "(" + id + ")";
     }
 
     /**
@@ -2239,7 +2287,7 @@ public class OrderAppService {
      */
     public List<OrderTimelineResult> getOrderTimeline(String accountId, String orderNo) {
         Order order = findOrderById(accountId, orderNo);
-        return orderTimelineAppService.timelineOf(order.getId());
+        return orderTimelineAppService.customerTimelineOf(order.getId());
     }
 
     /**

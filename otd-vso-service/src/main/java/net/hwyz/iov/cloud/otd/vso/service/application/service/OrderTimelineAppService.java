@@ -45,6 +45,13 @@ public class OrderTimelineAppService {
             OrderTimelineEventType.ORDER_ACTIVATED
     );
 
+    /**
+     * 内部运营事件：仅 MPT 时间线可见，C 端订单进度不得返回（CR-010 INV-022）
+     */
+    private static final Set<OrderTimelineEventType> INTERNAL_ONLY_EVENTS = EnumSet.of(
+            OrderTimelineEventType.DELIVERY_PERSON_ASSIGNED
+    );
+
     private final OrderTimelineRepository orderTimelineRepository;
 
     /**
@@ -75,6 +82,26 @@ public class OrderTimelineAppService {
         return orderTimelineRepository.findByOrderId(orderId).stream()
                 .map(this::toResult)
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * 查询 C 端可见的订单时间线（过滤内部运营事件）
+     * <p>
+     * 内部事件（如交付人员分配）含运营操作人信息，默认不对客户端暴露（CR-010 INV-022）。
+     */
+    public List<OrderTimelineResult> customerTimelineOf(String orderId) {
+        return orderTimelineRepository.findByOrderId(orderId).stream()
+                .filter(timeline -> !isInternalOnly(timeline.getEventType()))
+                .map(this::toResult)
+                .collect(Collectors.toList());
+    }
+
+    private boolean isInternalOnly(String eventType) {
+        if (eventType == null || eventType.isEmpty()) {
+            return false;
+        }
+        return INTERNAL_ONLY_EVENTS.stream()
+                .anyMatch(type -> type.getCode().equals(eventType));
     }
 
     private OrderTimelineResult toResult(OrderTimeline timeline) {

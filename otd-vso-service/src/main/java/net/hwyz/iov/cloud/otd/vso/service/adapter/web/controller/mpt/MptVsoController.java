@@ -10,9 +10,7 @@ import net.hwyz.iov.cloud.edd.org.api.vo.DealershipExService;
 import net.hwyz.iov.cloud.framework.audit.annotation.Log;
 import net.hwyz.iov.cloud.framework.audit.enums.BusinessType;
 import net.hwyz.iov.cloud.framework.common.bean.ApiResponse;
-import net.hwyz.iov.cloud.framework.common.bean.MptAccount;
 import net.hwyz.iov.cloud.framework.common.bean.PageResult;
-import net.hwyz.iov.cloud.framework.common.util.ParamHelper;
 import net.hwyz.iov.cloud.framework.security.annotation.RequiresPermissions;
 import net.hwyz.iov.cloud.framework.security.util.SecurityUtils;
 import net.hwyz.iov.cloud.framework.web.controller.BaseController;
@@ -70,7 +68,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -340,12 +337,14 @@ public class MptVsoController extends BaseController {
      */
     @RequiresPermissions("completeVehicle:order:assignDeliveryPerson:assign")
     @PostMapping("/action/assignDeliveryPerson")
-    public ApiResponse<Void> assignDeliveryPerson(@RequestBody @Valid AssignDeliveryPersonRequest request, @RequestHeader(required = false) MptAccount mptAccount) {
-        log.info("管理后台用户[{}]分配交付人员", ParamHelper.getMptAccountInfo(mptAccount));
+    public ApiResponse<Void> assignDeliveryPerson(@RequestBody @Valid AssignDeliveryPersonRequest request) {
+        String operatorId = SecurityUtils.getUsername();
+        log.info("管理后台用户[{}]分配交付人员", operatorId);
         vehicleSaleOrderAppService.assignDeliveryPerson(AssignDeliveryPersonCmd.builder()
                 .orderNo(request.getOrderNo())
                 .deliveryPersonId(request.getDeliveryPersonId())
                 .deliveryPersonName(request.getDeliveryPersonName())
+                .operatorId(operatorId)
                 .build());
         return ApiResponse.ok();
     }

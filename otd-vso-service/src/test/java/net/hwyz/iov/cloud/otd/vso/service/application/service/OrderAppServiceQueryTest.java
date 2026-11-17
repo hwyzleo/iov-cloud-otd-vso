@@ -79,6 +79,8 @@ class OrderAppServiceQueryTest {
     private BrandService brandService;
     @Mock
     private MdmProjectionService mdmProjectionService;
+    @Mock
+    private OrderTimelineAppService orderTimelineAppService;
 
     @InjectMocks
     private OrderAppService orderAppService;
@@ -397,6 +399,23 @@ class OrderAppServiceQueryTest {
                 "没有快照时 saleModelDesc 应为空或null");
         assertTrue(result.getTotalPrice() == null || BigDecimal.ZERO.compareTo(result.getTotalPrice()) == 0,
                 "没有快照时 totalPrice 应为0或null");
+    }
+
+    @Test
+    @DisplayName("C 端时间线只返回客户端可见事件（过滤内部运营事件）")
+    void 客户端时间线过滤内部事件() {
+        String orderId = "order_id_timeline";
+        String orderNo = "ORDER_NO_TIMELINE";
+        String accountId = "ACC_TIMELINE";
+        Order order = buildOrder(orderId, orderNo, OrderType.SMALL, OrderState.PREPARE_DELIVER);
+        when(orderRepository.findByOrderNoAndAccountId(orderNo, accountId)).thenReturn(Optional.of(order));
+        when(orderAmountRepository.findDomainByOrderId(orderId)).thenReturn(Optional.empty());
+        when(orderTimelineAppService.customerTimelineOf(orderId)).thenReturn(Collections.emptyList());
+
+        assertTrue(orderAppService.getOrderTimeline(accountId, orderNo).isEmpty(),
+                "C 端时间线应过滤内部运营事件（CR-010 INV-022）");
+        verify(orderTimelineAppService).customerTimelineOf(orderId);
+        verify(orderTimelineAppService, never()).timelineOf(anyString());
     }
 
     private OrderAmountPo buildOrderAmountPo(String orderId) {

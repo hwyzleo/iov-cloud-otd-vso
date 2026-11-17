@@ -36,6 +36,8 @@ public enum OrderTimelineEventType {
     DELIVERY_APPOINTMENT_CANCELLED("DELIVERY_APPOINTMENT_CANCELLED", "取消交付预约"),
     ORDER_DELIVERED("ORDER_DELIVERED", "已交付"),
     ORDER_ACTIVATED("ORDER_ACTIVATED", "已激活"),
+    /** 交付人员分配/改派（内部运营事件，CR-010：仅 MPT 时间线可见） */
+    DELIVERY_PERSON_ASSIGNED("DELIVERY_PERSON_ASSIGNED", "分配交付人员"),
     ORDER_REOPEN("ORDER_REOPEN", "订单重新发起支付");
 
     private final String code;
