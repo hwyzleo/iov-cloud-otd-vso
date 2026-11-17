@@ -7,6 +7,8 @@ import lombok.NoArgsConstructor;
 
 /**
  * 交付中心人员结果 DTO
+ * <p>
+ * 人员标识与展示信息来自 ORG 员工主数据（EDD-ORG-DSN-CR-003），不含 MPT 账号字段。
  *
  * @author VSO Team
  */
@@ -18,10 +20,22 @@ public class DeliveryStaffResult {
 
     private String dealershipCode;
     private String dealershipName;
-    private Long userId;
-    private String userName;
-    private String nickName;
-    private String phonenumber;
+    /**
+     * 员工ID（ORG tb_employee.id），作为交付人员标识
+     */
+    private Long employeeId;
+    /**
+     * 工号
+     */
+    private String employeeCode;
+    /**
+     * 员工姓名
+     */
+    private String employeeName;
+    /**
+     * 员工手机号（可空）
+     */
+    private String phone;
     private Integer notDeliveryOrderCount;
 
 }

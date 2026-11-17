@@ -450,9 +450,10 @@ class MptOrderQueryControllerTest {
                 Collections.singletonList(DeliveryStaffResult.builder()
                         .dealershipCode("D001")
                         .dealershipName("交付中心A")
-                        .userId(1001L)
-                        .userName("staff01")
-                        .nickName("张三")
+                        .employeeId(1001L)
+                        .employeeCode("E1001")
+                        .employeeName("张三")
+                        .phone("13800000000")
                         .notDeliveryOrderCount(3)
                         .build()),
                 21L, 2, 10));
@@ -463,8 +464,15 @@ class MptOrderQueryControllerTest {
                         .param("pageSize", "10"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.total").value(21))
-                .andExpect(jsonPath("$.data.items[0].userName").value("staff01"))
-                .andExpect(jsonPath("$.data.items[0].notDeliveryOrderCount").value(3));
+                .andExpect(jsonPath("$.data.items[0].employeeId").value(1001))
+                .andExpect(jsonPath("$.data.items[0].employeeCode").value("E1001"))
+                .andExpect(jsonPath("$.data.items[0].employeeName").value("张三"))
+                .andExpect(jsonPath("$.data.items[0].phone").value("13800000000"))
+                .andExpect(jsonPath("$.data.items[0].notDeliveryOrderCount").value(3))
+                .andExpect(jsonPath("$.data.items[0].userName").doesNotExist())
+                .andExpect(jsonPath("$.data.items[0].nickName").doesNotExist())
+                .andExpect(jsonPath("$.data.items[0].phonenumber").doesNotExist())
+                .andExpect(jsonPath("$.data.items[0].userId").doesNotExist());
 
         verify(orderAppService).searchDeliveryStaff("D001", 2, 10);
     }

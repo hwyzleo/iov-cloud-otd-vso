@@ -26,24 +26,24 @@ public class DeliveryCenterStaffMpt implements Serializable {
     private String dealershipName;
 
     /**
-     * 用户ID
+     * 员工ID（ORG tb_employee.id），作为交付人员标识
      */
-    private Long userId;
+    private Long employeeId;
 
     /**
-     * 用户账号
+     * 工号
      */
-    private String userName;
+    private String employeeCode;
 
     /**
-     * 用户昵称
+     * 员工姓名
      */
-    private String nickName;
+    private String employeeName;
 
     /**
-     * 手机号码
+     * 员工手机号（可空）
      */
-    private String phonenumber;
+    private String phone;
 
     /**
      * 未交付订单数

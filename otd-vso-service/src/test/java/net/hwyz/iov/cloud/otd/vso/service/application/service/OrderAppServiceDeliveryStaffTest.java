@@ -45,10 +45,10 @@ class OrderAppServiceDeliveryStaffTest {
         DealershipStaffExService staff = DealershipStaffExService.builder()
                 .dealershipCode("D001")
                 .dealershipName("交付中心A")
-                .userId(1001L)
-                .userName("staff01")
-                .nickName("张三")
-                .phonenumber("13800000000")
+                .employeeId(1001L)
+                .employeeCode("E1001")
+                .employeeName("张三")
+                .phone("13800000000")
                 .build();
         when(orgDealershipStaffService.searchPage("D001", 1, 20))
                 .thenReturn(new PageResult<>(List.of(staff), 1L, 1, 20));
@@ -61,8 +61,9 @@ class OrderAppServiceDeliveryStaffTest {
         assertEquals(1, result.getItems().size());
         assertEquals(1L, result.getTotal(), "总条数应来自组织服务分页结果");
         DeliveryStaffResult item = result.getItems().get(0);
-        assertEquals("staff01", item.getUserName());
+        assertEquals("E1001", item.getEmployeeCode());
         assertEquals("交付中心A", item.getDealershipName());
+        assertEquals(1001L, item.getEmployeeId(), "交付人员标识应为 ORG 员工ID");
         assertEquals(3, item.getNotDeliveryOrderCount(), "未交付订单数应按交付人员统计");
         verify(orderRepository).countUndeliveredByDeliveryPersonIds(List.of("1001"));
         verify(orderRepository, org.mockito.Mockito.never()).count(org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.any());
@@ -72,9 +73,9 @@ class OrderAppServiceDeliveryStaffTest {
     @DisplayName("多个交付人员的未交付订单数只查一次（批量 group by，不逐个 count）")
     void 多个交付人员只批量统计一次() {
         DealershipStaffExService staff1 = DealershipStaffExService.builder()
-                .dealershipCode("D001").userId(1001L).userName("staff01").build();
+                .dealershipCode("D001").employeeId(1001L).employeeCode("E1001").build();
         DealershipStaffExService staff2 = DealershipStaffExService.builder()
-                .dealershipCode("D001").userId(1002L).userName("staff02").build();
+                .dealershipCode("D001").employeeId(1002L).employeeCode("E1002").build();
         when(orgDealershipStaffService.searchPage("D001", 1, 20))
                 .thenReturn(new PageResult<>(List.of(staff1, staff2), 2L, 1, 20));
         when(orderRepository.countUndeliveredByDeliveryPersonIds(List.of("1001", "1002")))

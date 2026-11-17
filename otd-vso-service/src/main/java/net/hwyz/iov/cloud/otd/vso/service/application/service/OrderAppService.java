@@ -989,9 +989,9 @@ public class OrderAppService {
         }
         List<DealershipStaffExService> staffList = staffPage.getItems() == null
                 ? new ArrayList<>() : staffPage.getItems();
-        // 未交付订单数一次批量统计，避免逐个交付人员 count 查询
+        // 未交付订单数一次批量统计，避免逐个交付人员 count 查询（人员标识为 ORG 员工ID）
         List<String> deliveryPersonIds = staffList.stream()
-                .map(DealershipStaffExService::getUserId)
+                .map(DealershipStaffExService::getEmployeeId)
                 .filter(Objects::nonNull)
                 .map(String::valueOf)
                 .distinct()
@@ -1002,12 +1002,12 @@ public class OrderAppService {
                 .map(staff -> DeliveryStaffResult.builder()
                         .dealershipCode(staff.getDealershipCode())
                         .dealershipName(staff.getDealershipName())
-                        .userId(staff.getUserId())
-                        .userName(staff.getUserName())
-                        .nickName(staff.getNickName())
-                        .phonenumber(staff.getPhonenumber())
-                        .notDeliveryOrderCount(staff.getUserId() == null ? 0
-                                : undeliveredCountMap.getOrDefault(String.valueOf(staff.getUserId()), 0))
+                        .employeeId(staff.getEmployeeId())
+                        .employeeCode(staff.getEmployeeCode())
+                        .employeeName(staff.getEmployeeName())
+                        .phone(staff.getPhone())
+                        .notDeliveryOrderCount(staff.getEmployeeId() == null ? 0
+                                : undeliveredCountMap.getOrDefault(String.valueOf(staff.getEmployeeId()), 0))
                         .build())
                 .collect(Collectors.toList());
         return new PageResult<>(items, staffPage.getTotal(), staffPage.getPage(), staffPage.getSize());
