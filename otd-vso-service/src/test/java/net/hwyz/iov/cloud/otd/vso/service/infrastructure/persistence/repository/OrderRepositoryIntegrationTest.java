@@ -115,6 +115,49 @@ class OrderRepositoryIntegrationTest {
         assertTrue(candidates.stream().allMatch(o -> o.getOrderState() == OrderState.DOWN_PAYMENT_PAID));
     }
 
+    @Test
+    @DisplayName("分配状态过滤：hasDeliveryPerson=true 只返回已分配订单")
+    void 交付人员分配状态过滤() {
+        String suffix = String.valueOf(System.nanoTime());
+        Order assigned = persistOrderWithoutAmount("OID_ASSIGNED_" + suffix, "SO_ASSIGNED_" + suffix,
+                "DP_" + suffix, "交付员" + suffix);
+        Order unassigned = persistOrderWithoutAmount("OID_UNASSIGNED_" + suffix, "SO_UNASSIGNED_" + suffix,
+                null, null);
+
+        List<Order> onlyAssigned = orderRepository.searchByAccount(null, null, null, null, true, null, null);
+        List<Order> onlyUnassigned = orderRepository.searchByAccount(null, null, null, null, false, null, null);
+
+        assertTrue(onlyAssigned.stream().anyMatch(o -> o.getId().equals(assigned.getId())),
+                "已分配订单应被 hasDeliveryPerson=true 返回");
+        assertFalse(onlyAssigned.stream().anyMatch(o -> o.getId().equals(unassigned.getId())),
+                "未分配订单不得出现在已分配列表");
+        assertTrue(onlyUnassigned.stream().anyMatch(o -> o.getId().equals(unassigned.getId())),
+                "未分配订单应被 hasDeliveryPerson=false 返回");
+        assertFalse(onlyUnassigned.stream().anyMatch(o -> o.getId().equals(assigned.getId())),
+                "已分配订单不得出现在未分配列表（CR-011 改派入口依赖该过滤）");
+    }
+
+    private Order persistOrderWithoutAmount(String orderId, String orderNo,
+                                            String deliveryPersonId, String deliveryPersonName) {
+        Order order = Order.builder()
+                .id(orderId)
+                .orderNo(orderNo)
+                .orderType(OrderType.FORMAL)
+                .orderSource("capp")
+                .customerType("personal")
+                .orderState(OrderState.DOWN_PAYMENT_PAID)
+                .brandCode("OPENIOV")
+                .hasException(false)
+                .currentVersionNo(1)
+                .lockedFlag(false)
+                .reopenFlag(false)
+                .deliveryPersonId(deliveryPersonId)
+                .deliveryPersonName(deliveryPersonName)
+                .build();
+        orderRepository.save(order);
+        return order;
+    }
+
     private Order persistOrder(String accountId, String orderNo) {
         Order order = Order.builder()
                 .id("OID_" + orderNo)

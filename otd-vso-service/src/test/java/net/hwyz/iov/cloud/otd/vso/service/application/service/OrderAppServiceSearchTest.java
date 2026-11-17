@@ -89,6 +89,15 @@ class OrderAppServiceSearchTest {
     }
 
     @Test
+    @DisplayName("分配状态筛选原样透传到仓储（hasDeliveryPerson=true）")
+    void 分配状态筛选透传仓储() {
+        orderAppService.search(OrderQuery.builder().hasDeliveryPerson(true).build());
+
+        verify(orderRepository).searchByAccount(isNull(), isNull(), isNull(), isNull(), eq(true),
+                isNull(), isNull());
+    }
+
+    @Test
     @DisplayName("按订单号搜索应返回匹配订单")
     void testSearchWithOrderNo() {
         String orderId = "test_order_" + System.currentTimeMillis();

@@ -341,10 +341,22 @@ class MptOrderQueryControllerTest {
         for (String methodName : Arrays.asList("list", "listWithoutDeliveryPerson", "listTransport")) {
             Method method = findMethodByName(MptVsoController.class, methodName);
             assertNotNull(method, "列表端点应存在：" + methodName);
-            assertEquals(1, method.getParameterCount(), methodName + " 应只接受一个查询对象参数");
+            // CR-011：分配列表额外接受一个可选 Boolean(hasDeliveryPerson) 以支持已分配视图，其余列表仍只接受查询对象
+            boolean deliveryPersonFilter = "listWithoutDeliveryPerson".equals(methodName);
+            assertEquals(deliveryPersonFilter ? 2 : 1, method.getParameterCount(),
+                    methodName + " 应只接受查询对象" + (deliveryPersonFilter ? "与可选 hasDeliveryPerson" : ""));
             assertTrue(net.hwyz.iov.cloud.framework.common.bean.BaseRequest.class
                             .isAssignableFrom(method.getParameters()[0].getType()),
                     methodName + " 查询对象必须继承 BaseRequest，以支持 params[beginTime]/params[endTime]");
+            if (deliveryPersonFilter) {
+                java.lang.reflect.Parameter extra = method.getParameters()[1];
+                assertEquals(Boolean.class, extra.getType(),
+                        "hasDeliveryPerson 必须是 Boolean 类型（缺省 null 等价 false）");
+                org.springframework.web.bind.annotation.RequestParam requestParam =
+                        extra.getAnnotation(org.springframework.web.bind.annotation.RequestParam.class);
+                assertNotNull(requestParam, "hasDeliveryPerson 应声明为查询参数");
+                assertFalse(requestParam.required(), "hasDeliveryPerson 必须可选，保证缺省行为向后兼容");
+            }
             assertTrue(method.getGenericReturnType().getTypeName().contains("PageResult"),
                     methodName + " 必须返回 PageResult（数据库分页）");
         }
@@ -398,6 +410,34 @@ class MptOrderQueryControllerTest {
         params.put("beginTime", "2026-11-01 00:00:00");
         vo.setParams(params);
         assertNotNull(vo.getParams().get("beginTime"));
+    }
+
+    @Test
+    @DisplayName("分配列表默认按未分配过滤（不传参数等价 false）")
+    void 分配列表默认未分配() throws Exception {
+        when(orderAppService.search(any(OrderQuery.class))).thenReturn(Collections.emptyList());
+
+        mockMvc.perform(get(BASE + "/listWithoutDeliveryPerson"))
+                .andExpect(status().isOk());
+
+        ArgumentCaptor<OrderQuery> captor = ArgumentCaptor.forClass(OrderQuery.class);
+        verify(orderAppService).search(captor.capture());
+        assertEquals(Boolean.FALSE, captor.getValue().getHasDeliveryPerson(),
+                "缺省 hasDeliveryPerson 必须等价 false，保持既有调用方行为（CR-011 INV-025）");
+    }
+
+    @Test
+    @DisplayName("分配列表支持按已分配过滤，供改派入口使用（CR-011）")
+    void 分配列表可按已分配过滤() throws Exception {
+        when(orderAppService.search(any(OrderQuery.class))).thenReturn(Collections.emptyList());
+
+        mockMvc.perform(get(BASE + "/listWithoutDeliveryPerson").param("hasDeliveryPerson", "true"))
+                .andExpect(status().isOk());
+
+        ArgumentCaptor<OrderQuery> captor = ArgumentCaptor.forClass(OrderQuery.class);
+        verify(orderAppService).search(captor.capture());
+        assertEquals(Boolean.TRUE, captor.getValue().getHasDeliveryPerson(),
+                "已分配视图必须把 hasDeliveryPerson=true 透传到应用层");
     }
 
     @Test

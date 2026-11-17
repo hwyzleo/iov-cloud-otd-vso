@@ -153,19 +153,27 @@ public class MptVsoController extends BaseController {
      * <p>
      * 响应批量带出订单当前有效交付预约（appointmentNo/appointmentTime/appointmentStatus），
      * 避免交付人员分配页按订单逐条查询（N+1）。
+     * <p>
+     * 路径名为历史命名（OTD-VSO-DSN-CR-011 O-056）：{@code hasDeliveryPerson} 缺省为 {@code false}（未分配），
+     * 传 {@code true} 时返回已分配订单，供分配页查看并改派。
      *
-     * @param vehicleSaleOrder 车辆销售订单信息
+     * @param vehicleSaleOrder  车辆销售订单信息
+     * @param hasDeliveryPerson 是否已分配交付人员（缺省 false）
      * @return 车辆销售订单信息列表
      */
     @RequiresPermissions("completeVehicle:order:assignDeliveryPerson:list")
     @GetMapping(value = "/listWithoutDeliveryPerson")
-    public ApiResponse<PageResult<VehicleSaleOrderMpt>> listWithoutDeliveryPerson(VehicleSaleOrderMpt vehicleSaleOrder) {
-        log.info("管理后台用户[{}]分页查询没有交付人员的车辆销售订单信息", SecurityUtils.getUsername());
+    public ApiResponse<PageResult<VehicleSaleOrderMpt>> listWithoutDeliveryPerson(
+            VehicleSaleOrderMpt vehicleSaleOrder,
+            @RequestParam(required = false) Boolean hasDeliveryPerson) {
+        boolean assigned = Boolean.TRUE.equals(hasDeliveryPerson);
+        log.info("管理后台用户[{}]分页查询{}交付人员的车辆销售订单信息",
+                SecurityUtils.getUsername(), assigned ? "已分配" : "未分配");
         startPage();
         List<OrderListResult> result = vehicleSaleOrderAppService.search(OrderQuery.builder()
                 .orderNo(vehicleSaleOrder.getOrderNo())
                 .orderState(vehicleSaleOrder.getOrderState())
-                .hasDeliveryPerson(false)
+                .hasDeliveryPerson(assigned)
                 .beginTime(getBeginTime(vehicleSaleOrder))
                 .endTime(getEndTime(vehicleSaleOrder))
                 .build());
