@@ -4,6 +4,14 @@ iov:
       # FW-WEB-DSN-CR-003：date-format 默认即 iso（UTC + 固定 3 位毫秒），无需显式配置。
       # zone-id 用于把 LocalDateTime（本栈语义 = UTC 墙上时间）换算为瞬时；全 UTC 栈下与容器 TZ 一致。
       zone-id: UTC
+  # OTD-VSO-DSN-CR-012：VSO 作为 vso.transport.applied 的生产者，启动时声明并预创建该 Topic
+  kafka:
+    topic-provisioning:
+      enabled: ${VSO_TOPIC_PROVISIONING_ENABLED:true}
+      topics:
+        - name: ${VSO_TOPIC_TRANSPORT_APPLIED:vso.transport.applied}
+          partitions: 3
+          replication-factor: 1
 
 vso:
   outbox:
