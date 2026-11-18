@@ -181,6 +181,7 @@ public class OrderAppService {
     private final VehicleAssignmentRepository vehicleAssignmentRepository;
     private final VehicleInventoryGateway vehicleInventoryGateway;
     private final SalesPolicyService salesPolicyService;
+    private final TransportFulfillmentAppService transportFulfillmentAppService;
 
     /** 业务时区：显式来源 {@code iov.web.jackson.zone-id}（禁止 systemDefault） */
     private BusinessTimeZone businessTimeZone = BusinessTimeZone.utc();
@@ -1023,6 +1024,8 @@ public class OrderAppService {
                 before, String.valueOf(order.getOrderState().getValue()),
                 cmd.getOperatorId(), "mpt", "mpt", null, null,
                 "发运申请人：" + cmd.getOperatorName());
+        // OTD-VSO-DSN-CR-012：发运申请事实入发件箱，与订单状态同一本地事务（INV-030）
+        transportFulfillmentAppService.appendTransportApplied(order);
     }
 
     /**

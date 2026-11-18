@@ -72,6 +72,17 @@ public interface OrderRepository {
     List<Order> findByAccountId(String accountId, List<OrderState> orderStateRange);
 
     /**
+     * 查询指定状态的发运订单（补偿通道，按发运申请时间与订单号升序）
+     * <p>
+     * 需配合 PageHelper 使用以得到数据库分页；不得在调用方内存截断（OTD-VSO-DSN-CR-012）。
+     *
+     * @param orderState         订单状态
+     * @param deliveryRegionCode 交付区域代码（可选）
+     * @return 订单列表
+     */
+    List<Order> findTransportApplied(OrderState orderState, String deliveryRegionCode);
+
+    /**
      * 查询定金支付时间早于或等于截止时间的定金已支付订单（自动锁单补偿扫描）
      */
     List<Order> findDownPaymentPaidBefore(Date deadline, int limit);

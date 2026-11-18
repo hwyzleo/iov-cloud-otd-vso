@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.mapper.VsoOutboxMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="baseResultMap" type="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.VsoOutboxPo">
+        <id column="id" property="id"/>
+        <result column="event_id" property="eventId"/>
+        <result column="event_type" property="eventType"/>
+        <result column="aggregate_type" property="aggregateType"/>
+        <result column="aggregate_id" property="aggregateId"/>
+        <result column="aggregate_version" property="aggregateVersion"/>
+        <result column="topic" property="topic"/>
+        <result column="message_key" property="messageKey"/>
+        <result column="payload" property="payload"/>
+        <result column="publish_state" property="publishState"/>
+        <result column="retry_count" property="retryCount"/>
+        <result column="next_retry_time" property="nextRetryTime"/>
+        <result column="published_at" property="publishedAt"/>
+        <result column="last_error" property="lastError"/>
+        <result column="description" property="description"/>
+        <result column="create_time" property="createTime"/>
+        <result column="create_by" property="createBy"/>
+        <result column="modify_time" property="modifyTime"/>
+        <result column="modify_by" property="modifyBy"/>
+        <result column="row_version" property="rowVersion"/>
+        <result column="row_valid" property="rowValid"/>
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="baseColumnList">
+        id, event_id, event_type, aggregate_type, aggregate_id, aggregate_version, topic, message_key, payload,
+        publish_state, retry_count, next_retry_time, published_at, last_error,
+        description, create_time, create_by, modify_time, modify_by, row_version, row_valid
+    </sql>
+
+    <!-- 写入待发布记录 -->
+    <insert id="insertPo" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO vso_outbox (event_id, event_type, aggregate_type, aggregate_id, aggregate_version,
+                                topic, message_key, payload, publish_state, retry_count,
+                                description, create_time, row_version, row_valid)
+        VALUES (#{eventId}, #{eventType}, #{aggregateType}, #{aggregateId}, #{aggregateVersion},
+                #{topic}, #{messageKey}, #{payload}, #{publishState}, #{retryCount},
+                #{description}, now(), 1, 1)
+    </insert>
+
+    <!-- 聚合生效事件计数（业务幂等） -->
+    <select id="countByEventTypeAndAggregateId" resultType="int">
+        SELECT COUNT(1)
+        FROM vso_outbox t
+        WHERE t.row_valid = 1
+        AND t.event_type = #{eventType}
+        AND t.aggregate_id = #{aggregateId}
+    </select>
+
+    <!-- 扫描可发布记录 -->
+    <select id="selectPublishable" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_outbox t
+        WHERE t.row_valid = 1
+        AND t.publish_state IN ('PENDING', 'FAILED_RETRYABLE')
+        AND (t.next_retry_time IS NULL OR t.next_retry_time &lt;= #{now})
+        ORDER BY t.id ASC
+        LIMIT #{limit}
+    </select>
+
+    <!-- 标记已发布 -->
+    <update id="markPublished">
+        UPDATE vso_outbox t
+        SET t.publish_state = 'PUBLISHED',
+            t.published_at  = now(),
+            t.last_error    = NULL,
+            t.row_version   = t.row_version + 1,
+            t.modify_time   = now()
+        WHERE t.id = #{id}
+          AND t.row_valid = 1
+    </update>
+
+    <!-- 标记可重试 -->
+    <update id="markRetryable">
+        UPDATE vso_outbox t
+        SET t.publish_state   = 'FAILED_RETRYABLE',
+            t.retry_count     = #{retryCount},
+            t.next_retry_time = #{nextRetryTime},
+            t.last_error      = #{error},
+            t.row_version     = t.row_version + 1,
+            t.modify_time     = now()
+        WHERE t.id = #{id}
+          AND t.row_valid = 1
+    </update>
+
+    <!-- 标记终态失败 -->
+    <update id="markDead">
+        UPDATE vso_outbox t
+        SET t.publish_state = 'DEAD',
+            t.last_error    = #{error},
+            t.row_version   = t.row_version + 1,
+            t.modify_time   = now()
+        WHERE t.id = #{id}
+          AND t.row_valid = 1
+    </update>
+
+</mapper>

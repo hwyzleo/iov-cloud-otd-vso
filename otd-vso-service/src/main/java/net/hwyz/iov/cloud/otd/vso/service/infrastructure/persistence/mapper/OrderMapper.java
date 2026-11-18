@@ -115,6 +115,12 @@ public interface OrderMapper extends BaseDao<OrderPo, Long> {
                                                      @Param("limit") int limit);
 
     /**
+     * 指定状态的发运订单查询（补偿通道，按发运申请时间与订单号升序）
+     */
+    java.util.List<OrderPo> selectTransportApplied(@Param("orderState") Integer orderState,
+                                                   @Param("deliveryRegionCode") String deliveryRegionCode);
+
+    /**
      * 条件状态更新（防止覆盖冲突终态）
      */
     int updateDownPaymentTime(@Param("orderNo") String orderNo,

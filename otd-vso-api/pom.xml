@@ -19,6 +19,12 @@
     </properties>
 
     <dependencies>
+        <!-- 框架公共契约（PageResult 等内部服务出参） -->
+        <dependency>
+            <groupId>net.hwyz.iov.cloud.framework</groupId>
+            <artifactId>framework-common</artifactId>
+        </dependency>
+
         <!-- Java Servlet -->
         <dependency>
             <groupId>jakarta.servlet</groupId>

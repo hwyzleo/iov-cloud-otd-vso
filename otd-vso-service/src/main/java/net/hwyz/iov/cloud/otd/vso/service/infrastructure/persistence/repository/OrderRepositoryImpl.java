@@ -219,6 +219,15 @@ public class OrderRepositoryImpl implements OrderRepository {
     }
 
     @Override
+    public List<Order> findTransportApplied(OrderState orderState, String deliveryRegionCode) {
+        return orderMapper.selectTransportApplied(
+                        orderState == null ? null : orderState.getValue(), deliveryRegionCode)
+                .stream()
+                .map(OrderPoConverter.INSTANCE::toDomain)
+                .collect(Collectors.toList());
+    }
+
+    @Override
     public int updateStateConditional(String orderNo, OrderState targetState, List<OrderState> expectedStates) {
         List<Integer> expected = expectedStates.stream().map(OrderState::getValue).collect(Collectors.toList());
         return orderMapper.updateOrderStateConditional(orderNo, targetState.getValue(), expected);

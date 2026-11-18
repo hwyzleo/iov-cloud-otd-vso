@@ -488,6 +488,18 @@
         LIMIT #{limit}
     </select>
 
+    <!-- 指定状态的发运订单（补偿通道，OTD-VSO-DSN-CR-012） -->
+    <select id="selectTransportApplied" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_order t
+        WHERE t.row_valid = 1
+        AND t.order_state = #{orderState}
+        <if test="deliveryRegionCode != null and deliveryRegionCode != ''">
+            AND t.delivery_region_code = #{deliveryRegionCode}
+        </if>
+        ORDER BY t.transport_apply_time ASC, t.order_no ASC
+    </select>
+
     <!-- 更新定金支付完成时间 -->
     <update id="updateDownPaymentTime">
         UPDATE vso_order t SET

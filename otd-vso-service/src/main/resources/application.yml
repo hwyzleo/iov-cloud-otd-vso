@@ -5,5 +5,19 @@ iov:
       # zone-id 用于把 LocalDateTime（本栈语义 = UTC 墙上时间）换算为瞬时；全 UTC 栈下与容器 TZ 一致。
       zone-id: UTC
 
+vso:
+  outbox:
+    aggregate-type: ORDER
+    topics:
+      # 发运申请事实（VSO → TMS），OTD-VSO-DSN-CR-012
+      transport-applied: ${VSO_TOPIC_TRANSPORT_APPLIED:vso.transport.applied}
+    relay:
+      enabled: ${VSO_OUTBOX_RELAY_ENABLED:true}
+      scan-interval-ms: ${VSO_OUTBOX_RELAY_SCAN_INTERVAL_MS:10000}
+      batch-size: 100
+      max-retry: 10
+      base-backoff-ms: 5000
+      max-backoff-ms: 300000
+
 mybatis-plus:
   type-aliases-package: net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po
