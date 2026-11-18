@@ -3,6 +3,7 @@ package net.hwyz.iov.cloud.otd.vso.service.adapter.web.controller.service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import net.hwyz.iov.cloud.otd.vso.api.service.VsoOrderService;
 import net.hwyz.iov.cloud.otd.vso.api.vo.request.OrderStateChangeRequest;
+import net.hwyz.iov.cloud.otd.vso.service.adapter.web.handler.WebRequestExceptionHandler;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.ActivateCmd;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.DeliveredCmd;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.PrepareDeliveryCmd;
@@ -60,7 +61,9 @@ class ServiceOrderControllerTest {
     @BeforeEach
     void setUp() {
         mockMvc = MockMvcBuilders.standaloneSetup(
-                new ServiceOrderController(orderAppService, transportFulfillmentAppService)).build();
+                        new ServiceOrderController(orderAppService, transportFulfillmentAppService))
+                .setControllerAdvice(new WebRequestExceptionHandler())
+                .build();
     }
 
     @Test
@@ -148,6 +151,15 @@ class ServiceOrderControllerTest {
                 .andExpect(jsonPath("$.items[0].orderState").value(470))
                 .andExpect(jsonPath("$.items[0].vin").value("VIN0000000000001"))
                 .andExpect(jsonPath("$.total").value(1));
+    }
+
+    @Test
+    @DisplayName("待发运查询缺必填参数时返回 400 参数校验失败，而非 500 系统内部错误")
+    void shouldReturnBadRequestWhenRequiredParameterMissing() throws Exception {
+        mockMvc.perform(get("/api/service/order/v1/order/list"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("201001"))
+                .andExpect(jsonPath("$.message").value("缺少必填参数: orderState"));
     }
 
     private Method findMethod(String name) {
