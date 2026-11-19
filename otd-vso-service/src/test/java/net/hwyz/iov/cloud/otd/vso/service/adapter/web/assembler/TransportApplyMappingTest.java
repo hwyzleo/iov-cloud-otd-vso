@@ -12,7 +12,7 @@ import java.util.Date;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * 发运申请信息回显映射测试（OTD-VSO-DSN-CR-014）
+ * 发运申请信息回显映射测试（OTD-VSO-DSN-CR-013）
  * <p>
  * 事故现象：管理后台点击“申请发运”后，时间线已有节点、数据库 vso_order 也已写入
  * transport_apply_person_id/name/time，但运输列表的“发运申请人/发运申请时间”仍为空。

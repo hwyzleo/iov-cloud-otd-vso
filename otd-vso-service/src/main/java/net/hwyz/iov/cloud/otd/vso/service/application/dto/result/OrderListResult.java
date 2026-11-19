@@ -235,7 +235,7 @@ public class OrderListResult {
     private Date lockTime;
 
     /**
-     * 发运申请人 ID（OTD-VSO-DSN-CR-014：运输列表需回显申请人与申请时间）
+     * 发运申请人 ID（OTD-VSO-DSN-CR-013：运输列表需回显申请人与申请时间）
      */
     private String transportApplyPersonId;
 
