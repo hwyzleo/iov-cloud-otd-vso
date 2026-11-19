@@ -1,37 +1,13 @@
-spring:
-  cloud:
-    refresh:
-      # 必须显式追加 Druid 数据源，否则每次 Nacos 配置推送都会走
-      # ConfigurationPropertiesRebinder：对 dataSource Bean 执行 initializeBean（再次
-      # afterPropertiesSet + 重新绑定属性），Druid 连接池被“就地重绑定”：
-      #   1) Druid 属性 setter 在池已初始化后重复执行并抛错 → Nacos 记录 notify-error，
-      #      随后每 5s 重推一次，形成重试风暴；
-      #   2) 绑定过程中还会调用 DruidDataSource#getConnection() 取走连接且不归还 → 连接泄漏。
-      # 实测三次推送即泄漏满 max-active，此后全部 DB 请求挂死（OTD-VSO-DSN-CR-013）。
-      # Spring Cloud 默认只保护 HikariDataSource，VSO 使用 Druid，需自行补齐名单；
-      # 名单按 Bean 实际类型全名匹配，数据源配置变更需重启生效（不走热刷新）。
-      never-refreshable: com.zaxxer.hikari.HikariDataSource,com.alibaba.druid.spring.boot3.autoconfigure.DruidDataSourceWrapper,com.alibaba.druid.pool.DruidDataSource
-
 iov:
-  web:
-    jackson:
-      # FW-WEB-DSN-CR-003：date-format 默认即 iso（UTC + 固定 3 位毫秒），无需显式配置。
-      # zone-id 用于把 LocalDateTime（本栈语义 = UTC 墙上时间）换算为瞬时；全 UTC 栈下与容器 TZ 一致。
-      zone-id: UTC
   # OTD-VSO-DSN-CR-012：VSO 作为 vso.transport.applied 的生产者，启动时声明并预创建该 Topic
   kafka:
     topic-provisioning:
-      enabled: ${VSO_TOPIC_PROVISIONING_ENABLED:true}
       topics:
         - name: ${VSO_TOPIC_TRANSPORT_APPLIED:vso.transport.applied}
           partitions: 3
           replication-factor: 1
 
 vso:
-  # OTD-VSO-DSN-CR-014：Mock 电子签服务端自回调，默认关闭（合同停留 SIGNING 等待合法外部回调）
-  esign:
-    mock:
-      auto-callback: ${VSO_ESIGN_MOCK_AUTO_CALLBACK:false}
   outbox:
     aggregate-type: ORDER
     topics:
