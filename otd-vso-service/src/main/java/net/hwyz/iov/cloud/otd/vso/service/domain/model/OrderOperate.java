@@ -36,8 +36,8 @@ public enum OrderOperate {
     PREPARE_DELIVERY,
     /** 已交付 **/
     DELIVERED,
-    /** 车辆激活 **/
-    VEHICLE_ACTIVATE,
+    /** 订单完成（MPT 人工办结，OTD-VSO-DSN-CR-016） **/
+    ORDER_COMPLETE,
     /** 订单取消 **/
     ORDER_CANCEL,
     /** 订单删除 **/

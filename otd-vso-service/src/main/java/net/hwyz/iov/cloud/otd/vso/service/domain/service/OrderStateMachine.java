@@ -116,18 +116,19 @@ public class OrderStateMachine {
         Set<OrderState> finalPaymentPaidTransitions = EnumSet.of(OrderState.DELIVERED, OrderState.CANCEL);
         STATE_TRANSITIONS.put(620, finalPaymentPaidTransitions);
         
-        // DELIVERED(650) -> ACTIVATED(700), CANCEL(950)
-        Set<OrderState> deliveredTransitions = EnumSet.of(OrderState.ACTIVATED, OrderState.CANCEL);
+        // DELIVERED(650) -> COMPLETED(900), CANCEL(950)
+        // OTD-VSO-DSN-CR-016：交付后由 MPT 人工核查办结，900 为正常终态；激活已退出订单生命周期
+        Set<OrderState> deliveredTransitions = EnumSet.of(OrderState.COMPLETED, OrderState.CANCEL);
         STATE_TRANSITIONS.put(650, deliveredTransitions);
         
         // REFUND_APPLY(920) -> REFUND_COMPLETE(925)
         Set<OrderState> refundApplyTransitions = EnumSet.of(OrderState.REFUND_COMPLETE);
         STATE_TRANSITIONS.put(920, refundApplyTransitions);
 
-        // ACTIVATED(700) -> 终态，无转移
-        Set<OrderState> activatedTransitions = EnumSet.noneOf(OrderState.class);
-        STATE_TRANSITIONS.put(700, activatedTransitions);
-        
+        // COMPLETED(900) -> 终态，无转移（OTD-VSO-DSN-CR-016：替代原 ACTIVATED(700) 正常终态）
+        Set<OrderState> completedTransitions = EnumSet.noneOf(OrderState.class);
+        STATE_TRANSITIONS.put(900, completedTransitions);
+
         // CANCEL(950) -> 终态，无转移
         Set<OrderState> cancelTransitions = EnumSet.noneOf(OrderState.class);
         STATE_TRANSITIONS.put(950, cancelTransitions);
@@ -242,7 +243,7 @@ public class OrderStateMachine {
      * @return 是否是结束状态
      */
     public static boolean isEndState(Integer stateValue) {
-        Set<OrderState> endStates = Set.of(OrderState.ACTIVATED, OrderState.CANCEL, OrderState.EXPIRED, OrderState.CLOSED);
+        Set<OrderState> endStates = Set.of(OrderState.COMPLETED, OrderState.CANCEL, OrderState.EXPIRED, OrderState.CLOSED);
         OrderState state = OrderState.fromValue(stateValue);
         return state != null && endStates.contains(state);
     }

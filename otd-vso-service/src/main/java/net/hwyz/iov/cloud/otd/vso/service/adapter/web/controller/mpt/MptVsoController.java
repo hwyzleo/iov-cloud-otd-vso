@@ -25,6 +25,7 @@ import net.hwyz.iov.cloud.otd.vso.api.vo.mpt.request.AssignDeliveryPersonRequest
 import net.hwyz.iov.cloud.otd.vso.api.vo.mpt.request.ModifyOrderConfigByOperatorRequest;
 import net.hwyz.iov.cloud.otd.vso.api.vo.mpt.request.AssignVehicleRequest;
 import net.hwyz.iov.cloud.otd.vso.api.vo.mpt.request.CompleteDeliveryRequest;
+import net.hwyz.iov.cloud.otd.vso.api.vo.mpt.request.CompleteOrderRequest;
 import net.hwyz.iov.cloud.otd.vso.api.vo.mpt.request.ReassignVehicleRequest;
 import net.hwyz.iov.cloud.otd.vso.api.vo.mpt.request.UnbindVehicleRequest;
 import net.hwyz.iov.cloud.otd.vso.service.adapter.web.assembler.DeliveryCenterStaffMptAssembler;
@@ -40,6 +41,7 @@ import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.AssignDeliveryPers
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.AssignVehicleCmd;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.AuditOrderCmd;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.CancelOrderCmd;
+import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.CompleteOrderCmd;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.DeliveredCmd;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.DeleteOrderCmd;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.LockOrderCmd;
@@ -364,6 +366,30 @@ public class MptVsoController extends BaseController {
     }
 
     // ==================== 订单写操作 ====================
+
+    /**
+     * 管理后台完成订单（650 → 900 人工核查办结，OTD-VSO-DSN-CR-016）
+     * <p>
+     * 路径参数为业务订单 ID；操作人取自安全上下文，办结时间由服务端生成；备注可选。
+     * 900 重复请求幂等成功且不追加事实。
+     *
+     * @param orderId 订单业务 ID（非数据库主键）
+     * @param request 完成订单请求（仅可选办结备注）
+     */
+    @RequiresPermissions("completeVehicle:order:info:complete")
+    @PostMapping(value = "/{orderId}/complete")
+    public ApiResponse<Void> completeOrder(@PathVariable("orderId") String orderId,
+                                           @Valid @RequestBody(required = false) CompleteOrderRequest request) {
+        String operatorId = SecurityUtils.getUsername();
+        String completionRemark = request == null ? null : request.getCompletionRemark();
+        log.info("管理后台用户[{}]完成订单[{}]，备注[{}]", operatorId, orderId, completionRemark);
+        vehicleSaleOrderAppService.completeOrder(CompleteOrderCmd.builder()
+                .orderId(orderId)
+                .operatorId(operatorId)
+                .completionRemark(completionRemark)
+                .build());
+        return ApiResponse.ok();
+    }
 
     /**
      * 分配交付人员

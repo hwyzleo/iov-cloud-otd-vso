@@ -6,6 +6,10 @@ iov:
         - name: ${VSO_TOPIC_TRANSPORT_APPLIED:vso.transport.applied}
           partitions: 3
           replication-factor: 1
+        # OTD-VSO-DSN-CR-016：交付事实 Topic（VSO 为生产者）
+        - name: ${VSO_TOPIC_ORDER_DELIVERED:vso.order.delivered}
+          partitions: 3
+          replication-factor: 1
 
 vso:
   outbox:
@@ -13,6 +17,8 @@ vso:
     topics:
       # 发运申请事实（VSO → TMS），OTD-VSO-DSN-CR-012
       transport-applied: ${VSO_TOPIC_TRANSPORT_APPLIED:vso.transport.applied}
+      # 交付事实（VSO 为生产者，OTD-VSO-DSN-CR-016）
+      order-delivered: ${VSO_TOPIC_ORDER_DELIVERED:vso.order.delivered}
     relay:
       enabled: ${VSO_OUTBOX_RELAY_ENABLED:true}
       scan-interval-ms: ${VSO_OUTBOX_RELAY_SCAN_INTERVAL_MS:10000}

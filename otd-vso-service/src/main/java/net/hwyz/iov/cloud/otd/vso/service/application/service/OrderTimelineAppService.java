@@ -42,7 +42,7 @@ public class OrderTimelineAppService {
             OrderTimelineEventType.TRANSPORTING,
             OrderTimelineEventType.PREPARE_DELIVERY,
             OrderTimelineEventType.ORDER_DELIVERED,
-            OrderTimelineEventType.ORDER_ACTIVATED
+            OrderTimelineEventType.ORDER_COMPLETED
     );
 
     /**

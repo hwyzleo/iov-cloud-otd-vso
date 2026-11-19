@@ -14,7 +14,6 @@ import net.hwyz.iov.cloud.otd.vso.api.vo.response.OrderDetailResponse;
 import net.hwyz.iov.cloud.otd.vso.api.vo.response.TransportOrderBriefResponse;
 import net.hwyz.iov.cloud.otd.vso.service.adapter.web.assembler.OrderDetailResponseAssembler;
 import net.hwyz.iov.cloud.otd.vso.service.adapter.web.assembler.TransportOrderBriefAssembler;
-import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.ActivateCmd;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.DeliveredCmd;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.PrepareDeliveryCmd;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.PrepareTransportCmd;
@@ -123,14 +122,6 @@ public class ServiceOrderController extends BaseController implements VsoOrderSe
                 .operateSource("delivery_service")
                 .deliveryRemark("外部交付服务确认已交付")
                 .build());
-        return success();
-    }
-
-    @Override
-    @PostMapping("/order/action/activate")
-    public AjaxResult activate(@RequestBody @Valid OrderStateChangeRequest request) {
-        log.info("外部服务触发订单[{}]激活", request.getOrderNo());
-        orderAppService.activate(ActivateCmd.builder().orderNo(request.getOrderNo()).build());
         return success();
     }
 }

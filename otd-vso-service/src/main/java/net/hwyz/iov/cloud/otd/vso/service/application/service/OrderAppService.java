@@ -62,6 +62,7 @@ import net.hwyz.iov.cloud.otd.vso.service.domain.model.shared.OrganizationInfo;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.shared.VehicleInfo;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.OrderPartyRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.DeliveryAppointment;
+import net.hwyz.iov.cloud.otd.vso.service.domain.model.DeliveryRecord;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.DeliveryRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.OrderAssignmentRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.OrderAmountRepository;
@@ -115,6 +116,8 @@ import net.hwyz.iov.cloud.otd.vso.service.common.time.BusinessTimeZone;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -184,6 +187,7 @@ public class OrderAppService {
     private final VehicleInventoryGateway vehicleInventoryGateway;
     private final SalesPolicyService salesPolicyService;
     private final TransportFulfillmentAppService transportFulfillmentAppService;
+    private final DeliveryFulfillmentAppService deliveryFulfillmentAppService;
 
     /** 业务时区：显式来源 {@code iov.web.jackson.zone-id}（禁止 systemDefault） */
     private BusinessTimeZone businessTimeZone = BusinessTimeZone.utc();
@@ -425,17 +429,64 @@ public class OrderAppService {
     }
 
     /**
-     * 完成订单
+     * 完成订单（MPT 人工核查办结，650 → 900，OTD-VSO-DSN-CR-016）
+     * <p>
+     * 复用既有订单锁与状态机：900 幂等成功且不追加事实；ORDER_COMPLETED 与订单保存同一事务；
+     * DELIVERED_TIMEOUT 提醒在事务提交后取消（取消失败仅告警，不回滚已提交事实）。
      */
     @Transactional(rollbackFor = Exception.class)
     public void completeOrder(CompleteOrderCmd cmd) {
-        log.info("完成订单：orderId={}, operatorId={}", cmd.getOrderId(), cmd.getOperatorId());
+        log.info("完成订单：orderId={}, operatorId={}, completionRemark={}",
+                cmd.getOrderId(), cmd.getOperatorId(), cmd.getCompletionRemark());
 
-        orderLockService.executeWithLock(cmd.getOrderId(), cmd.getOperatorId(), "complete", () -> {
-            orderDomainService.completeOrder(cmd.getOrderId());
+        String operatorId = StrUtil.blankToDefault(cmd.getOperatorId(), "system");
+        orderLockService.executeWithLock(cmd.getOrderId(), operatorId, "complete", () -> {
+            // 锁内重新加载并重检状态，并发重复请求只会产生一次办结事实
+            Order order = orderRepository.findByOrderId(cmd.getOrderId())
+                    .orElseThrow(() -> new OrderNotExistException(cmd.getOrderId()));
+            if (order.getOrderState() == OrderState.COMPLETED) {
+                log.info("订单已办结，完成请求幂等：orderId={}", order.getId());
+                return;
+            }
+            if (order.getOrderState() != OrderState.DELIVERED) {
+                throw new OrderStateNotAllowedException("车辆销售订单[" + cmd.getOrderId() + "]当前状态["
+                        + order.getOrderState() + "]不允许办结，仅 DELIVERED 可办结");
+            }
+            String before = String.valueOf(order.getOrderState().getValue());
+            order.complete();
+            orderRepository.save(order);
+            // 真实 MPT 操作上下文，不得使用 system/旧时间线写链
+            orderTimelineAppService.record(order.getId(), OrderTimelineEventType.ORDER_COMPLETED,
+                    before, String.valueOf(order.getOrderState().getValue()),
+                    operatorId, "mpt_operator", "mpt", null, null,
+                    StrUtil.blankToDefault(cmd.getCompletionRemark(), "管理后台人工核查完成"));
+            cancelDeliveredTimeoutAfterCommit(order.getId());
         });
 
         log.info("订单完成成功：orderId={}", cmd.getOrderId());
+    }
+
+    /**
+     * 办结后取消交付待办结提醒：必须在数据库事务提交后执行，不得参与回滚
+     */
+    private void cancelDeliveredTimeoutAfterCommit(String orderId) {
+        Runnable cancelTask = () -> {
+            try {
+                timeoutNotifyService.cancelByOrderIdAndType(orderId, "DELIVERED_TIMEOUT");
+            } catch (Exception e) {
+                log.warn("办结后取消交付待办结提醒失败：orderId={}, reason={}", orderId, e.getMessage());
+            }
+        };
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    cancelTask.run();
+                }
+            });
+        } else {
+            cancelTask.run();
+        }
     }
 
     /**
@@ -853,7 +904,7 @@ public class OrderAppService {
         boolean tailPaid = successfulPayments.stream()
                 .anyMatch(payment -> PaymentStage.TAIL_PAYMENT.name().equals(payment.getPaymentStage()));
         if (tailPaid || state == OrderState.FINAL_PAYMENT_PAID || state == OrderState.INVOICED
-                || state == OrderState.DELIVERED || state == OrderState.ACTIVATED) {
+                || state == OrderState.DELIVERED || state == OrderState.COMPLETED) {
             return PayState.FINAL_PAYMENT_PAID.value;
         }
         if (state == OrderState.REFUND_COMPLETE) {
@@ -2267,9 +2318,9 @@ public class OrderAppService {
         orderLockService.executeWithLock(located.getId(), operatorId, "delivered", () -> {
             Order order = orderRepository.findByOrderId(located.getId())
                     .orElseThrow(() -> new OrderNotExistException(located.getId()));
-            // OTD-VSO-DSN-CR-014：仅 FINAL_PAYMENT_PAID(620) 可交付，600 直接交付被拒绝；650 幂等
-            if (order.getOrderState() == OrderState.DELIVERED) {
-                log.info("订单已交付，交付回调幂等：orderId={}", order.getId());
+            // OTD-VSO-DSN-CR-016：仅 FINAL_PAYMENT_PAID(620) 可交付；650/900 幂等且不重复写事实
+            if (order.getOrderState() == OrderState.DELIVERED || order.getOrderState() == OrderState.COMPLETED) {
+                log.info("订单已交付/已办结，交付回调幂等：orderId={}", order.getId());
                 return;
             }
             if (order.getOrderState() != OrderState.FINAL_PAYMENT_PAID) {
@@ -2279,10 +2330,12 @@ public class OrderAppService {
             timeoutNotifyService.cancelByOrderIdAndType(order.getId(), "PREPARE_DELIVER_TIMEOUT");
             // 交付记录需读取订单真实前状态（620），因此在状态推进前完成预约/交付记录写入；
             // ORDER_DELIVERED 时间线由 completeDelivery() 单点写入，外层不得重复追加
-            deliveryAppService.completeDelivery(order, operatorId, operatorRole, operateSource,
-                    cmd.getDeliveryRemark());
+            DeliveryRecord deliveryRecord = deliveryAppService.completeDelivery(order, operatorId, operatorRole,
+                    operateSource, cmd.getDeliveryRemark());
             order.delivered();
             orderRepository.save(order);
+            // 交付事实与 vso_outbox 同事务写入，Broker 故障不得影响已完成交付（OTD-VSO-DSN-CR-016）
+            deliveryFulfillmentAppService.appendDelivered(order, deliveryRecord);
             timeoutNotifyService.createTimeoutTask(order.getId(), "DELIVERED_TIMEOUT", "remind", 4320);
         });
     }
@@ -2303,25 +2356,6 @@ public class OrderAppService {
         }
         return orderRepository.findByOrderNo(cmd.getOrderNo())
                 .orElseThrow(() -> new OrderNotExistException(cmd.getOrderNo()));
-    }
-
-    public void activate(ActivateCmd cmd) {
-        Order order = findOrderByOrderNo(cmd.getOrderNo());
-        if (order.getOrderState() != OrderState.DELIVERED && order.getOrderState() != OrderState.ACTIVATED) {
-            throw new OrderStateNotAllowedException("车辆销售订单[" + cmd.getOrderNo() + "]当前状态["
-                    + order.getOrderState() + "]不允许激活，仅 DELIVERED 可激活");
-        }
-        if (order.getOrderState() == OrderState.ACTIVATED) {
-            log.info("订单已激活，激活回调幂等：orderNo={}", cmd.getOrderNo());
-            return;
-        }
-        String before = String.valueOf(order.getOrderState().getValue());
-        timeoutNotifyService.cancelByOrderIdAndType(order.getId(), "DELIVERED_TIMEOUT");
-        order.activate();
-        orderRepository.save(order);
-        orderTimelineAppService.record(order.getId(), OrderTimelineEventType.ORDER_ACTIVATED,
-                before, String.valueOf(order.getOrderState().getValue()),
-                "system", "service", "vehicle_service", null, null, "外部车辆服务确认已激活");
     }
 
     /**

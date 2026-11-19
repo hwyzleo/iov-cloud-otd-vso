@@ -33,7 +33,7 @@ class OrderStateConfigModifiableTest {
     @DisplayName("已锁单/已交付/已取消等状态不允许改配")
     void 其他状态不允许改配() {
         for (OrderState state : Arrays.asList(OrderState.ARRANGE_PRODUCTION, OrderState.ALLOCATION_VEHICLE,
-                OrderState.PREPARE_DELIVER, OrderState.DELIVERED, OrderState.ACTIVATED,
+                OrderState.PREPARE_DELIVER, OrderState.DELIVERED, OrderState.COMPLETED,
                 OrderState.CANCEL, OrderState.CLOSED, OrderState.EARNEST_MONEY_UNPAID,
                 OrderState.REFUND_APPLY)) {
             assertFalse(state.isConfigModifiable(), state + " 不应允许改配");

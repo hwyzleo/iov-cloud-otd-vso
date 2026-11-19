@@ -93,12 +93,4 @@ public interface VsoOrderService {
     @PostMapping("/order/action/delivered")
     AjaxResult delivered(@RequestBody @Valid OrderStateChangeRequest request);
 
-    /**
-     * 激活车辆
-     *
-     * @param request 订单状态推进请求
-     */
-    @PostMapping("/order/action/activate")
-    AjaxResult activate(@RequestBody @Valid OrderStateChangeRequest request);
-
 }

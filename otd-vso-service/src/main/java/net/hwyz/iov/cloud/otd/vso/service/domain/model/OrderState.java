@@ -46,8 +46,6 @@ public enum OrderState {
     INVOICED(630),
     /** 已交付 **/
     DELIVERED(650),
-    /** 已激活 **/
-    ACTIVATED(700),
     /** 退车申请 **/
     RETURN_APPLY(800),
     /** 退车入库 **/
@@ -56,7 +54,7 @@ public enum OrderState {
     RETURN_AUDIT(840),
     /** 退车完成 **/
     RETURN_COMPLETED(860),
-    /** 已完成（正常结束） **/
+    /** 已完成（MPT 人工办结后的正常终态，OTD-VSO-DSN-CR-016） **/
     COMPLETED(900),
     /** 退款申请 **/
     REFUND_APPLY(920),

@@ -5,6 +5,7 @@ import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.DeliveredCmd;
 import net.hwyz.iov.cloud.otd.vso.service.common.exception.OrderNotExistException;
 import net.hwyz.iov.cloud.otd.vso.service.common.exception.OrderStateNotAllowedException;
 import net.hwyz.iov.cloud.otd.vso.service.common.exception.VsoBaseException;
+import net.hwyz.iov.cloud.otd.vso.service.domain.model.DeliveryRecord;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.Order;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.OrderState;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.OrderRepository;
@@ -54,6 +55,8 @@ class OrderAppServiceDeliveredTest {
     @Mock
     private DeliveryAppService deliveryAppService;
     @Mock
+    private DeliveryFulfillmentAppService deliveryFulfillmentAppService;
+    @Mock
     private TimeoutNotifyService timeoutNotifyService;
 
     @InjectMocks
@@ -65,6 +68,14 @@ class OrderAppServiceDeliveredTest {
             ((Runnable) invocation.getArgument(3)).run();
             return null;
         }).when(orderLockService).executeWithLock(anyString(), anyString(), anyString(), any(Runnable.class));
+        lenient().when(deliveryAppService.completeDelivery(any(), anyString(), anyString(), anyString(), any()))
+                .thenReturn(DeliveryRecord.builder()
+                        .deliveryRecordId("DR1")
+                        .orderId(ORDER_ID)
+                        .deliveryStatus("delivered")
+                        .deliveryStoreCode("STORE001")
+                        .vehicleVin("VIN001")
+                        .build());
     }
 
     @Test
@@ -86,6 +97,7 @@ class OrderAppServiceDeliveredTest {
         verify(deliveryAppService).completeDelivery(order, "mpt-user", "mpt_operator", "mpt",
                 "车辆及资料已现场移交");
         verify(orderRepository).save(order);
+        verify(deliveryFulfillmentAppService).appendDelivered(eq(order), any(DeliveryRecord.class));
         verify(timeoutNotifyService).cancelByOrderIdAndType(ORDER_ID, "PREPARE_DELIVER_TIMEOUT");
         verify(timeoutNotifyService).createTimeoutTask(ORDER_ID, "DELIVERED_TIMEOUT", "remind", 4320);
     }
@@ -121,8 +133,22 @@ class OrderAppServiceDeliveredTest {
 
         verify(deliveryAppService, never()).completeDelivery(any(), anyString(), anyString(), anyString(), any());
         verify(orderRepository, never()).save(any());
+        verify(deliveryFulfillmentAppService, never()).appendDelivered(any(), any());
         verify(timeoutNotifyService, never()).cancelByOrderIdAndType(anyString(), anyString());
         verify(timeoutNotifyService, never()).createTimeoutTask(anyString(), anyString(), anyString(), anyInt());
+    }
+
+    @Test
+    @DisplayName("900 已办结幂等：不重复写记录、不重复入箱")
+    void 已办结幂等() {
+        Order order = order(OrderState.COMPLETED);
+        when(orderRepository.findByOrderId(ORDER_ID)).thenReturn(Optional.of(order));
+
+        orderAppService.delivered(DeliveredCmd.builder().orderId(ORDER_ID).build());
+
+        verify(deliveryAppService, never()).completeDelivery(any(), anyString(), anyString(), anyString(), any());
+        verify(orderRepository, never()).save(any());
+        verify(deliveryFulfillmentAppService, never()).appendDelivered(any(), any());
     }
 
     @Test

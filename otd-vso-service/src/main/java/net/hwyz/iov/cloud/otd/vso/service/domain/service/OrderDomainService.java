@@ -219,22 +219,6 @@ public class OrderDomainService {
     }
 
     /**
-     * 完成订单
-     */
-    @Transactional(rollbackFor = Exception.class)
-    public void completeOrder(String orderId) {
-        Order order = loadOrder(orderId);
-        Integer beforeStatus = order.getOrderState() != null ? order.getOrderState().getValue() : null;
-        order.complete();
-        saveOrder(order);
-        
-        saveTimeline(orderId, "ORDER_COMPLETE", "订单完成",
-                String.valueOf(beforeStatus),
-                order.getOrderState() != null ? String.valueOf(order.getOrderState().getValue()) : null,
-                "system", "system", "system", null, "success", null, "订单已完成");
-    }
-
-    /**
      * VIN占用超时释放，订单状态回退
      */
     public void unassignVehicle(String orderId) {

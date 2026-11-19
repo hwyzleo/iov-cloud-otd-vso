@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import net.hwyz.iov.cloud.otd.vso.api.service.VsoOrderService;
 import net.hwyz.iov.cloud.otd.vso.api.vo.request.OrderStateChangeRequest;
 import net.hwyz.iov.cloud.otd.vso.service.adapter.web.handler.WebRequestExceptionHandler;
-import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.ActivateCmd;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.DeliveredCmd;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.PrepareDeliveryCmd;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.PrepareTransportCmd;
@@ -27,9 +26,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 
 import java.lang.reflect.Method;
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -72,18 +73,25 @@ class ServiceOrderControllerTest {
         RequestMapping mapping = ServiceOrderController.class.getAnnotation(RequestMapping.class);
         assertThat(mapping.value()).containsExactly("/api/service/order/v1");
 
-        for (String action : List.of("prepareTransport", "transporting", "prepareDelivery", "delivered", "activate")) {
+        for (String action : List.of("prepareTransport", "transporting", "prepareDelivery", "delivered")) {
             Method method = findMethod(action);
             PostMapping postMapping = method.getAnnotation(PostMapping.class);
             assertThat(postMapping).as(action + " 必须声明 POST 路径").isNotNull();
             assertThat(postMapping.value()[0]).isEqualTo("/order/action/" + action);
         }
+        assertThat(Arrays.stream(ServiceOrderController.class.getDeclaredMethods())
+                .noneMatch(method -> "activate".equals(method.getName())))
+                .as("OTD-VSO-DSN-CR-016：activate 契约必须删除")
+                .isTrue();
+        assertThatThrownBy(() -> VsoOrderService.class.getMethod("activate", OrderStateChangeRequest.class))
+                .as("OTD-VSO-DSN-CR-016：Feign 声明不得保留 activate")
+                .isInstanceOf(NoSuchMethodException.class);
         assertThat(VsoOrderService.class.getAnnotation(
                 org.springframework.cloud.openfeign.FeignClient.class).path()).isEqualTo("/api/service/order/v1");
     }
 
     @Test
-    @DisplayName("5 个状态回写动作使用统一 VO 入参并透传订单号")
+    @DisplayName("4 个状态回写动作使用统一 VO 入参并透传订单号")
     void shouldAcceptUnifiedRequestVo() throws Exception {
         mockMvc.perform(post("/api/service/order/v1/order/action/prepareTransport")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -118,12 +126,6 @@ class ServiceOrderControllerTest {
         assertThat(delivered.getValue().getOperatorRole()).isEqualTo("service");
         assertThat(delivered.getValue().getOperateSource()).isEqualTo("delivery_service");
         assertThat(delivered.getValue().getDeliveryRemark()).isEqualTo("外部交付服务确认已交付");
-
-        mockMvc.perform(post("/api/service/order/v1/order/action/activate")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"orderNo\":\"SO1\"}"))
-                .andExpect(status().isOk());
-        verify(orderAppService).activate(any(ActivateCmd.class));
     }
 
     @Test

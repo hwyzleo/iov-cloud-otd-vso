@@ -35,7 +35,15 @@ public enum OrderTimelineEventType {
     DELIVERY_APPOINTMENT_RESCHEDULED("DELIVERY_APPOINTMENT_RESCHEDULED", "修改交付预约"),
     DELIVERY_APPOINTMENT_CANCELLED("DELIVERY_APPOINTMENT_CANCELLED", "取消交付预约"),
     ORDER_DELIVERED("ORDER_DELIVERED", "已交付"),
+    /**
+     * 已激活（历史只读：OTD-VSO-DSN-CR-016 已删除激活写链）
+     *
+     * @deprecated 仅用于历史时间线展示，禁止新写入
+     */
+    @Deprecated
     ORDER_ACTIVATED("ORDER_ACTIVATED", "已激活"),
+    /** 订单办结（OTD-VSO-DSN-CR-016：650 → 900 人工核查完成） */
+    ORDER_COMPLETED("ORDER_COMPLETED", "已完成"),
     /** 交付人员分配/改派（内部运营事件，CR-010：仅 MPT 时间线可见） */
     DELIVERY_PERSON_ASSIGNED("DELIVERY_PERSON_ASSIGNED", "分配交付人员"),
     ORDER_REOPEN("ORDER_REOPEN", "订单重新发起支付"),

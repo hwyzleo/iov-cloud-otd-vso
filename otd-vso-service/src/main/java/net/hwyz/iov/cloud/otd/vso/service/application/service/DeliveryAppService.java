@@ -30,7 +30,7 @@ import java.util.List;
  * 交付应用服务
  * <p>
  * US-009 / INV-004：唯一 booked 预约（订单锁保证）、改期/取消归属校验、
- * 交付时创建交付记录并完成预约、激活仅允许 DELIVERED → ACTIVATED。
+ * 交付时创建交付记录并完成预约；OTD-VSO-DSN-CR-016 起激活退出订单生命周期，交付后由 MPT 人工办结。
  *
  * @author VSO Team
  */
@@ -149,16 +149,18 @@ public class DeliveryAppService {
      * <p>
      * OTD-VSO-DSN-CR-015：操作人/操作角色/操作来源由调用入口显式传入，不再硬编码 delivery_service；
      * 实际交付时间取服务端时间，备注可选。
+     * OTD-VSO-DSN-CR-016：返回不可变交付记录，供调用方同事务写入交付事件，不得由调用方重新查询或伪造。
      *
      * @param order          订单（交付前真实状态）
      * @param operatorId     操作人 ID
      * @param operatorRole   操作角色
      * @param operateSource  操作来源
      * @param deliveryRemark 交付备注（可选）
+     * @return 已持久化的交付记录
      */
     @Transactional(rollbackFor = Exception.class)
-    public void completeDelivery(Order order, String operatorId, String operatorRole,
-                                 String operateSource, String deliveryRemark) {
+    public DeliveryRecord completeDelivery(Order order, String operatorId, String operatorRole,
+                                           String operateSource, String deliveryRemark) {
         DeliveryAppointment appointment = deliveryRepository.findBookedByOrderId(order.getId()).orElse(null);
         if (appointment != null) {
             appointment.complete();
@@ -184,6 +186,7 @@ public class DeliveryAppService {
                 String.valueOf(OrderState.DELIVERED.getValue()),
                 operatorId, operatorRole, operateSource, record.getDeliveryRecordId(), null,
                 "交付完成，VIN：" + record.getVehicleVin());
+        return record;
     }
 
     private DeliveryAppointmentResult toResult(Order order, DeliveryAppointment appointment) {
@@ -209,7 +212,7 @@ public class DeliveryAppService {
                 .deliveryPersonName(order.getDeliveryPersonName())
                 .vehicleVin(order.getDeliveryVin())
                 .delivered(order.getOrderState() == OrderState.DELIVERED
-                        || order.getOrderState() == OrderState.ACTIVATED)
+                        || order.getOrderState() == OrderState.COMPLETED)
                 .records(records)
                 .build();
     }

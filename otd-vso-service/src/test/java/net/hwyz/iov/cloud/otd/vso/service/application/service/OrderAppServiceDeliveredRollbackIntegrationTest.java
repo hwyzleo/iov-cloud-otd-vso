@@ -9,6 +9,7 @@ import net.hwyz.iov.cloud.otd.vso.service.domain.model.Order;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.OrderState;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.OrderTimelineEventType;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.DeliveryRepository;
+import net.hwyz.iov.cloud.otd.vso.service.domain.repository.OrderOutboxRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.OrderRepository;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -51,6 +52,8 @@ class OrderAppServiceDeliveredRollbackIntegrationTest {
     @Autowired
     private DeliveryRepository deliveryRepository;
     @Autowired
+    private OrderOutboxRepository orderOutboxRepository;
+    @Autowired
     private JdbcTemplate jdbcTemplate;
 
     @MockBean
@@ -62,9 +65,13 @@ class OrderAppServiceDeliveredRollbackIntegrationTest {
     void cleanup() {
         // 明确清理，避免无测试事务时污染本地库
         for (String table : new String[]{"vso_order_timeline", "vso_delivery_record",
-                "vso_delivery_appointment", "vso_timeout_task", "vso_order"}) {
+                "vso_delivery_appointment", "vso_timeout_task", "vso_outbox", "vso_order"}) {
             try {
-                jdbcTemplate.update("DELETE FROM " + table + " WHERE order_id = ?", "ORD_DLV_RB_" + testSuffix);
+                if ("vso_outbox".equals(table)) {
+                    jdbcTemplate.update("DELETE FROM " + table + " WHERE aggregate_id = ?", "ORD_DLV_RB_" + testSuffix);
+                } else {
+                    jdbcTemplate.update("DELETE FROM " + table + " WHERE order_id = ?", "ORD_DLV_RB_" + testSuffix);
+                }
             } catch (Exception ignored) {
                 // 部分表可能不存在于精简测试库，清理不应掩盖用例结果
             }
@@ -133,5 +140,7 @@ class OrderAppServiceDeliveredRollbackIntegrationTest {
                 "交付记录必须随事务回滚");
         assertTrue(orderAppService.getTimelineByOrderId(orderId).isEmpty(),
                 "时间线必须随事务回滚");
+        assertTrue(!orderOutboxRepository.existsByEventTypeAndAggregateId("vso.order.delivered", orderId),
+                "交付事件必须随事务回滚");
     }
 }

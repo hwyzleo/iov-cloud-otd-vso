@@ -544,10 +544,11 @@ public class Order {
     }
 
     /**
-     * 完成订单
-     * 将订单状态置为已完成，标记订单流程结束
+     * 完成订单（MPT 人工核查办结，OTD-VSO-DSN-CR-016）
+     * 仅允许 DELIVERED(650) -> COMPLETED(900)，必须经状态机校验，不得无条件直接赋值
      */
     public void complete() {
+        OrderStateMachine.validateTransition(this.orderState.getValue(), OrderState.COMPLETED.getValue(), this.orderType);
         this.orderState = OrderState.COMPLETED;
         this.orderStateTime = new Date();
     }
@@ -826,20 +827,6 @@ public class Order {
         this.orderState = OrderState.EARNEST_MONEY_UNPAID;
         this.orderStateTime = new Date();
         this.reopenFlag = true;
-    }
-
-    /**
-     * 激活订单
-     * 仅允许 DELIVERED -> ACTIVATED（OTD-VSO-DSN-CR-002 US-009）
-     */
-    public void activate() {
-        if (this.orderState == OrderState.ACTIVATED) {
-            // 重复激活幂等
-            return;
-        }
-        OrderStateMachine.validateTransition(this.orderState.getValue(), OrderState.ACTIVATED.getValue(), this.orderType);
-        this.orderState = OrderState.ACTIVATED;
-        this.orderStateTime = new Date();
     }
 
     /**

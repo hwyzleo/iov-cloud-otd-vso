@@ -12,15 +12,15 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * 订单状态机测试（OTD-VSO-DSN-CR-002 §9.1 必测）
+ * 订单状态机测试（OTD-VSO-DSN-CR-002 §9.1 必测 / OTD-VSO-DSN-CR-016 终态修订）
  *
  * @author VSO Team
  */
-@DisplayName("订单状态机 - 主链/退款/非法迁移/激活限制")
+@DisplayName("订单状态机 - 主链/退款/非法迁移/办结限制")
 class OrderStateMachineTest {
 
     @Test
-    @DisplayName("完整主链：意向金→定金→锁单→配车→发运→运输→尾款→交付→激活")
+    @DisplayName("完整主链：意向金→定金→锁单→配车→发运→运输→尾款→交付→办结")
     void 完整主链状态迁移合法() {
         int[] chain = {
                 OrderState.EARNEST_MONEY_UNPAID.getValue(),
@@ -34,7 +34,7 @@ class OrderStateMachineTest {
                 OrderState.PREPARE_DELIVER.getValue(),
                 OrderState.FINAL_PAYMENT_PAID.getValue(),
                 OrderState.DELIVERED.getValue(),
-                OrderState.ACTIVATED.getValue()
+                OrderState.COMPLETED.getValue()
         };
         for (int i = 0; i < chain.length - 1; i++) {
             int from = chain[i];
@@ -59,32 +59,41 @@ class OrderStateMachineTest {
     @DisplayName("非法跨状态迁移被拒绝")
     void 非法跨状态迁移被拒绝() {
         assertFalse(OrderStateMachine.canTransition(OrderState.EARNEST_MONEY_UNPAID.getValue(),
-                OrderState.ACTIVATED.getValue(), OrderType.SMALL));
+                OrderState.COMPLETED.getValue(), OrderType.SMALL));
         assertFalse(OrderStateMachine.canTransition(OrderState.DOWN_PAYMENT_PAID.getValue(),
                 OrderState.TRANSPORTING.getValue(), OrderType.FORMAL));
         assertFalse(OrderStateMachine.canTransition(OrderState.ARRANGE_PRODUCTION.getValue(),
                 OrderState.DELIVERED.getValue(), OrderType.FORMAL));
         assertThrows(IllegalStateException.class, () ->
                 OrderStateMachine.validateTransition(OrderState.EARNEST_MONEY_UNPAID.getValue(),
-                        OrderState.ACTIVATED.getValue(), OrderType.SMALL));
+                        OrderState.COMPLETED.getValue(), OrderType.SMALL));
     }
 
     @Test
-    @DisplayName("激活仅允许 DELIVERED → ACTIVATED")
-    void 激活仅允许已交付状态() {
+    @DisplayName("办结仅允许 DELIVERED → COMPLETED")
+    void 办结仅允许已交付状态() {
         Order delivered = Order.builder()
-                .orderNo("SO-ACT-1")
+                .orderNo("SO-CMP-1")
                 .orderType(OrderType.FORMAL)
                 .orderState(OrderState.DELIVERED)
                 .build();
-        assertDoesNotThrow(delivered::activate);
-        assertTrue(delivered.getOrderState() == OrderState.ACTIVATED);
+        assertDoesNotThrow(delivered::complete);
+        assertTrue(delivered.getOrderState() == OrderState.COMPLETED);
 
         Order paid = Order.builder()
-                .orderNo("SO-ACT-2")
+                .orderNo("SO-CMP-2")
                 .orderType(OrderType.FORMAL)
                 .orderState(OrderState.DOWN_PAYMENT_PAID)
                 .build();
-        assertThrows(IllegalStateException.class, paid::activate);
+        assertThrows(IllegalStateException.class, paid::complete);
+    }
+
+    @Test
+    @DisplayName("900 为正常终态，激活 700 已退出订单生命周期")
+    void 终态为已完成且不存在激活状态() {
+        assertTrue(OrderStateMachine.isEndState(OrderState.COMPLETED.getValue()));
+        assertFalse(OrderStateMachine.isEndState(OrderState.DELIVERED.getValue()));
+        assertTrue(OrderState.valOf(700) == null, "700 已删除，不得再被识别");
+        assertTrue(OrderStateMachine.getAllowedNextStates(900).isEmpty());
     }
 }

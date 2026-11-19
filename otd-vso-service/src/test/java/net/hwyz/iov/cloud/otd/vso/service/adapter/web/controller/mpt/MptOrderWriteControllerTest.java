@@ -114,7 +114,7 @@ class MptOrderWriteControllerTest {
                 "/action/applyTransport", "/action/reassignVehicle", "/action/unbindVehicle",
                 "/{orderId}/audit/pass", "/{orderId}/audit/reject", "/{orderId}/audit/resubmit",
                 "/{orderId}/lock", "/{orderId}/close", "/{orderId}/modifyConfig",
-                "/{orderId}/delivery/complete")) {
+                "/{orderId}/delivery/complete", "/{orderId}/complete")) {
             assertTrue(postPaths.contains(path), "写动作路由应存在：" + path);
         }
         assertFalse(postPaths.stream().anyMatch(p -> p.endsWith("/action/pay")),
@@ -180,6 +180,50 @@ class MptOrderWriteControllerTest {
                 net.hwyz.iov.cloud.otd.vso.api.vo.mpt.request.CompleteDeliveryRequest.class.getDeclaredFields();
         assertEquals(1, fields.length, "确认交付请求只应包含 deliveryRemark，不得接收操作人或交付时间");
         assertEquals("deliveryRemark", fields[0].getName());
+    }
+
+    @Test
+    @DisplayName("完成订单：650→900 委托应用服务，备注透传、操作人取自安全上下文")
+    void 完成订单委托() throws Exception {
+        mockMvc.perform(post(BASE + "/ORD1/complete")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"completionRemark\":\"交付资料及手续已核查\"}"))
+                .andExpect(status().isOk());
+
+        ArgumentCaptor<net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.CompleteOrderCmd> captor =
+                ArgumentCaptor.forClass(net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.CompleteOrderCmd.class);
+        verify(orderAppService).completeOrder(captor.capture());
+        assertEquals("ORD1", captor.getValue().getOrderId());
+        assertEquals("交付资料及手续已核查", captor.getValue().getCompletionRemark());
+
+        java.lang.reflect.Field[] fields =
+                net.hwyz.iov.cloud.otd.vso.api.vo.mpt.request.CompleteOrderRequest.class.getDeclaredFields();
+        assertEquals(1, fields.length, "完成订单请求只应包含 completionRemark，不得接收操作人/角色/目标状态/办结时间");
+        assertEquals("completionRemark", fields[0].getName());
+    }
+
+    @Test
+    @DisplayName("完成订单不传备注体时正常委托")
+    void 完成订单无请求体() throws Exception {
+        mockMvc.perform(post(BASE + "/ORD1/complete"))
+                .andExpect(status().isOk());
+
+        ArgumentCaptor<net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.CompleteOrderCmd> captor =
+                ArgumentCaptor.forClass(net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.CompleteOrderCmd.class);
+        verify(orderAppService).completeOrder(captor.capture());
+        assertEquals("ORD1", captor.getValue().getOrderId());
+        assertEquals(null, captor.getValue().getCompletionRemark());
+    }
+
+    @Test
+    @DisplayName("完成订单备注超过 255 字符时返回参数错误")
+    void 完成订单备注超长() throws Exception {
+        mockMvc.perform(post(BASE + "/ORD1/complete")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"completionRemark\":\"" + "x".repeat(256) + "\"}"))
+                .andExpect(status().isBadRequest());
+
+        verify(orderAppService, org.mockito.Mockito.never()).completeOrder(any());
     }
 
     @Test

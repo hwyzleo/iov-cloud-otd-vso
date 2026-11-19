@@ -12,6 +12,7 @@ import net.hwyz.iov.cloud.otd.vso.service.domain.model.Order;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.OrderState;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.OrderTimelineEventType;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.DeliveryRepository;
+import net.hwyz.iov.cloud.otd.vso.service.domain.repository.OrderOutboxRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.OrderRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -56,6 +57,8 @@ class OrderAppServiceDeliveredIntegrationTest {
     private OrderRepository orderRepository;
     @Autowired
     private DeliveryRepository deliveryRepository;
+    @Autowired
+    private OrderOutboxRepository orderOutboxRepository;
 
     @MockBean
     private ConfigurationService configurationService;
@@ -101,6 +104,8 @@ class OrderAppServiceDeliveredIntegrationTest {
         assertEquals("mpt_operator", event.getOperatorRole());
         assertEquals("mpt", event.getOperateSource());
         assertEquals(record.getDeliveryRecordId(), event.getRelatedDocNo());
+        assertTrue(orderOutboxRepository.existsByEventTypeAndAggregateId("vso.order.delivered", orderId),
+                "交付事实必须同事务写入 vso_outbox");
 
         // 650 幂等：不重复写记录/时间线，不再次推进状态
         orderAppService.delivered(mptCommand("重复提交"));
@@ -147,6 +152,8 @@ class OrderAppServiceDeliveredIntegrationTest {
         assertEquals(OrderState.PREPARE_DELIVER, orderRepository.findByOrderId(orderId).orElseThrow().getOrderState());
         assertTrue(deliveryRepository.findRecordByOrderId(orderId).isEmpty(), "非法状态不得写交付记录");
         assertTrue(deliveredEvents().isEmpty(), "非法状态不得写交付时间线");
+        assertTrue(!orderOutboxRepository.existsByEventTypeAndAggregateId("vso.order.delivered", orderId),
+                "非法状态不得写交付事件");
     }
 
     private DeliveredCmd mptCommand(String remark) {

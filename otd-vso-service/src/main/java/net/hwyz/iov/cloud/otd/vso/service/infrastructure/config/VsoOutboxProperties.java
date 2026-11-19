@@ -47,6 +47,12 @@ public class VsoOutboxProperties {
          */
         @NotBlank
         private String transportApplied = "vso.transport.applied";
+
+        /**
+         * 交付事实 Topic（OTD-VSO-DSN-CR-016）
+         */
+        @NotBlank
+        private String orderDelivered = "vso.order.delivered";
     }
 
     /**

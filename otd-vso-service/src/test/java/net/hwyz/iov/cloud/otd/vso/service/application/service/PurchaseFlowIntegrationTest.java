@@ -248,7 +248,7 @@ class PurchaseFlowIntegrationTest {
         assertCallbackPaid(account, orderNo, tailPayment.getPaymentNo(), "180000.00", PaymentStage.TAIL_PAYMENT);
         assertEquals(OrderState.FINAL_PAYMENT_PAID, stateOf(orderNo));
 
-        // 交付 + 激活
+        // 交付 + MPT 人工办结（OTD-VSO-DSN-CR-016）
         orderAppService.delivered(net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.DeliveredCmd.builder()
                 .orderNo(orderNo).build());
         assertEquals(OrderState.DELIVERED, stateOf(orderNo));
@@ -256,9 +256,13 @@ class PurchaseFlowIntegrationTest {
         assertEquals("completed", delivered.getAppointmentStatus(), "交付时应完成有效预约");
         assertFalse(delivered.getRecords().isEmpty(), "交付应生成交付记录");
 
-        orderAppService.activate(net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.ActivateCmd.builder()
-                .orderNo(orderNo).build());
-        assertEquals(OrderState.ACTIVATED, stateOf(orderNo));
+        String orderId = orderRepository.findByOrderNo(orderNo).orElseThrow().getId();
+        orderAppService.completeOrder(net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.CompleteOrderCmd.builder()
+                .orderId(orderId)
+                .operatorId("mpt-user")
+                .completionRemark("交付资料及手续已核查")
+                .build());
+        assertEquals(OrderState.COMPLETED, stateOf(orderNo));
 
         // 时间线完整且正序
         List<OrderTimelineResult> timeline = orderAppService.getOrderTimeline(account, orderNo);
@@ -274,7 +278,7 @@ class PurchaseFlowIntegrationTest {
                 && "620".equals(t.getAfterStatus())), "尾款支付成功应记录 600→620 时间线（CR-014）");
         assertTrue(timeline.stream().anyMatch(t -> "ORDER_LOCKED".equals(t.getEventType())));
         assertTrue(timeline.stream().anyMatch(t -> "VEHICLE_ASSIGNED".equals(t.getEventType())));
-        assertTrue(timeline.stream().anyMatch(t -> "ORDER_ACTIVATED".equals(t.getEventType())));
+        assertTrue(timeline.stream().anyMatch(t -> "ORDER_COMPLETED".equals(t.getEventType())));
     }
 
     @Test
