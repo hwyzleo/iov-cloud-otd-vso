@@ -1,6 +1,7 @@
 package net.hwyz.iov.cloud.otd.vso.service.application.service;
 
 import cn.hutool.core.util.IdUtil;
+import cn.hutool.core.util.StrUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.DeliveryAppointmentResult;
@@ -145,9 +146,19 @@ public class DeliveryAppService {
 
     /**
      * 交付完成：创建交付记录并完成有效预约（与订单交付同一事务）
+     * <p>
+     * OTD-VSO-DSN-CR-015：操作人/操作角色/操作来源由调用入口显式传入，不再硬编码 delivery_service；
+     * 实际交付时间取服务端时间，备注可选。
+     *
+     * @param order          订单（交付前真实状态）
+     * @param operatorId     操作人 ID
+     * @param operatorRole   操作角色
+     * @param operateSource  操作来源
+     * @param deliveryRemark 交付备注（可选）
      */
     @Transactional(rollbackFor = Exception.class)
-    public void completeDelivery(Order order, String operatorId) {
+    public void completeDelivery(Order order, String operatorId, String operatorRole,
+                                 String operateSource, String deliveryRemark) {
         DeliveryAppointment appointment = deliveryRepository.findBookedByOrderId(order.getId()).orElse(null);
         if (appointment != null) {
             appointment.complete();
@@ -163,14 +174,15 @@ public class DeliveryAppService {
                 .deliveryPlace(appointment == null ? null : appointment.getAppointmentPlace())
                 .deliveryStoreCode(order.getDeliveryStoreCode())
                 .vehicleVin(order.getDeliveryVin())
-                .deliveryRemark("外部交付服务确认已交付")
+                .deliveryRemark(StrUtil.blankToDefault(deliveryRemark, "外部交付服务确认已交付"))
                 .build();
         deliveryRepository.saveRecord(record);
-        // 时间线使用订单真实前状态（OTD-VSO-DSN-CR-014：620 → 650，不得硬编码 600）
+        // 时间线使用订单真实前状态（OTD-VSO-DSN-CR-014：620 → 650，不得硬编码 600）；
+        // ORDER_DELIVERED 在本方法单点写入，MPT 操作人/角色/来源必须真实留痕
         orderTimelineAppService.record(order.getId(), OrderTimelineEventType.ORDER_DELIVERED,
                 String.valueOf(order.getOrderState().getValue()),
                 String.valueOf(OrderState.DELIVERED.getValue()),
-                operatorId, "service", "delivery_service", record.getDeliveryRecordId(), null,
+                operatorId, operatorRole, operateSource, record.getDeliveryRecordId(), null,
                 "交付完成，VIN：" + record.getVehicleVin());
     }
 

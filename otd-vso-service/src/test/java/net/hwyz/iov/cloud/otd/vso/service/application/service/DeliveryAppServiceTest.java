@@ -148,18 +148,26 @@ class DeliveryAppServiceTest {
     }
 
     @Test
-    @DisplayName("交付完成：创建交付记录并完成预约")
+    @DisplayName("交付完成：创建交付记录并完成预约，使用 MPT 上下文与备注")
     void 交付完成() {
         DeliveryAppointment appointment = appointment("DA1", DeliveryAppointmentStatus.BOOKED);
         when(deliveryRepository.findBookedByOrderId("OID1")).thenReturn(Optional.of(appointment));
 
-        deliveryAppService.completeDelivery(order, "delivery_service");
+        deliveryAppService.completeDelivery(order, "mpt-user", "mpt_operator", "mpt", "车辆及资料已现场移交");
 
         assertEquals(DeliveryAppointmentStatus.COMPLETED, appointment.getAppointmentStatus());
         ArgumentCaptor<DeliveryRecord> captor = ArgumentCaptor.forClass(DeliveryRecord.class);
         verify(deliveryRepository).saveRecord(captor.capture());
         assertEquals("delivered", captor.getValue().getDeliveryStatus());
         assertEquals("VIN001", captor.getValue().getVehicleVin());
+        assertEquals("DAID-DA1", captor.getValue().getDeliveryAppointmentId());
+        assertEquals("STORE001", captor.getValue().getDeliveryStoreCode());
+        assertEquals("A", captor.getValue().getDeliveryPlace());
+        assertEquals("车辆及资料已现场移交", captor.getValue().getDeliveryRemark());
+        verify(orderTimelineAppService).record(eq("OID1"),
+                eq(net.hwyz.iov.cloud.otd.vso.service.domain.model.OrderTimelineEventType.ORDER_DELIVERED),
+                eq("600"), eq("650"), eq("mpt-user"), eq("mpt_operator"), eq("mpt"),
+                anyString(), any(), anyString());
     }
 
     @Test
@@ -180,19 +188,40 @@ class DeliveryAppServiceTest {
     }
 
     @Test
-    @DisplayName("620 交付完成：时间线使用真实前状态 620 → 650")
+    @DisplayName("620 无预约交付：直接建记录且服务端上下文/备注留痕")
     void 尾款已付交付时间线() {
         Order paidOrder = Order.builder()
                 .id("OID1").orderNo("SO001").orderType(OrderType.FORMAL)
                 .orderState(OrderState.FINAL_PAYMENT_PAID).deliveryVin("VIN001").build();
         when(deliveryRepository.findBookedByOrderId("OID1")).thenReturn(Optional.empty());
 
-        deliveryAppService.completeDelivery(paidOrder, "delivery_service");
+        deliveryAppService.completeDelivery(paidOrder, "system", "service", "delivery_service",
+                "外部交付服务确认已交付");
 
+        ArgumentCaptor<DeliveryRecord> recordCaptor = ArgumentCaptor.forClass(DeliveryRecord.class);
+        verify(deliveryRepository).saveRecord(recordCaptor.capture());
+        org.junit.jupiter.api.Assertions.assertNull(recordCaptor.getValue().getDeliveryAppointmentId(),
+                "无有效预约时不得虚构预约关联");
+        org.junit.jupiter.api.Assertions.assertNull(recordCaptor.getValue().getDeliveryPlace(),
+                "无有效预约时交付地点保持空");
+        org.junit.jupiter.api.Assertions.assertNotNull(recordCaptor.getValue().getActualDeliveryTime(),
+                "实际交付时间必须由服务端生成");
         verify(orderTimelineAppService).record(eq("OID1"),
                 eq(net.hwyz.iov.cloud.otd.vso.service.domain.model.OrderTimelineEventType.ORDER_DELIVERED),
-                eq("620"), eq("650"), eq("delivery_service"), eq("service"), eq("delivery_service"),
+                eq("620"), eq("650"), eq("system"), eq("service"), eq("delivery_service"),
                 anyString(), any(), anyString());
+    }
+
+    @Test
+    @DisplayName("交付备注为空时使用内部兼容默认文本")
+    void 交付备注为空回退默认() {
+        when(deliveryRepository.findBookedByOrderId("OID1")).thenReturn(Optional.empty());
+
+        deliveryAppService.completeDelivery(order, "system", "service", "delivery_service", "  ");
+
+        ArgumentCaptor<DeliveryRecord> captor = ArgumentCaptor.forClass(DeliveryRecord.class);
+        verify(deliveryRepository).saveRecord(captor.capture());
+        assertEquals("外部交付服务确认已交付", captor.getValue().getDeliveryRemark());
     }
 
     @Test

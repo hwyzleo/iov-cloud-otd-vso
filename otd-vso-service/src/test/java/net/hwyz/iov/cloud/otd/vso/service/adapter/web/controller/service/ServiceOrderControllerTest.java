@@ -110,7 +110,14 @@ class ServiceOrderControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"orderNo\":\"SO1\"}"))
                 .andExpect(status().isOk());
-        verify(orderAppService).delivered(any(DeliveredCmd.class));
+        ArgumentCaptor<DeliveredCmd> delivered = ArgumentCaptor.forClass(DeliveredCmd.class);
+        verify(orderAppService).delivered(delivered.capture());
+        assertThat(delivered.getValue().getOrderNo()).isEqualTo("SO1");
+        assertThat(delivered.getValue().getOrderId()).isNull();
+        assertThat(delivered.getValue().getOperatorId()).isEqualTo("system");
+        assertThat(delivered.getValue().getOperatorRole()).isEqualTo("service");
+        assertThat(delivered.getValue().getOperateSource()).isEqualTo("delivery_service");
+        assertThat(delivered.getValue().getDeliveryRemark()).isEqualTo("外部交付服务确认已交付");
 
         mockMvc.perform(post("/api/service/order/v1/order/action/activate")
                         .contentType(MediaType.APPLICATION_JSON)

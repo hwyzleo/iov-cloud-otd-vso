@@ -24,6 +24,7 @@ import net.hwyz.iov.cloud.otd.vso.api.vo.mpt.request.ApplyTransportRequest;
 import net.hwyz.iov.cloud.otd.vso.api.vo.mpt.request.AssignDeliveryPersonRequest;
 import net.hwyz.iov.cloud.otd.vso.api.vo.mpt.request.ModifyOrderConfigByOperatorRequest;
 import net.hwyz.iov.cloud.otd.vso.api.vo.mpt.request.AssignVehicleRequest;
+import net.hwyz.iov.cloud.otd.vso.api.vo.mpt.request.CompleteDeliveryRequest;
 import net.hwyz.iov.cloud.otd.vso.api.vo.mpt.request.ReassignVehicleRequest;
 import net.hwyz.iov.cloud.otd.vso.api.vo.mpt.request.UnbindVehicleRequest;
 import net.hwyz.iov.cloud.otd.vso.service.adapter.web.assembler.DeliveryCenterStaffMptAssembler;
@@ -39,6 +40,7 @@ import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.AssignDeliveryPers
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.AssignVehicleCmd;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.AuditOrderCmd;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.CancelOrderCmd;
+import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.DeliveredCmd;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.DeleteOrderCmd;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.LockOrderCmd;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.ModifyOrderConfigByOperatorCmd;
@@ -334,6 +336,31 @@ public class MptVsoController extends BaseController {
     public ApiResponse<DeliveryAppointmentResult> getDelivery(@PathVariable("orderId") String orderId) {
         log.info("管理后台用户[{}]查询订单[{}]交付信息", SecurityUtils.getUsername(), orderId);
         return ApiResponse.ok(deliveryAppService.getByOrderId(orderId));
+    }
+
+    /**
+     * 管理后台确认交付（620 → 650）
+     * <p>
+     * 路径参数为业务订单 ID；操作人取自安全上下文，交付时间由服务端生成；备注可选。
+     *
+     * @param orderId 订单业务 ID（非数据库主键）
+     * @param request 确认交付请求（仅可选交付备注）
+     */
+    @RequiresPermissions("completeVehicle:order:delivery:complete")
+    @PostMapping(value = "/{orderId}/delivery/complete")
+    public ApiResponse<Void> completeDelivery(@PathVariable("orderId") String orderId,
+                                              @Valid @RequestBody(required = false) CompleteDeliveryRequest request) {
+        String operatorId = SecurityUtils.getUsername();
+        String deliveryRemark = request == null ? null : request.getDeliveryRemark();
+        log.info("管理后台用户[{}]确认订单[{}]交付，备注[{}]", operatorId, orderId, deliveryRemark);
+        vehicleSaleOrderAppService.delivered(DeliveredCmd.builder()
+                .orderId(orderId)
+                .operatorId(operatorId)
+                .operatorRole("mpt_operator")
+                .operateSource("mpt")
+                .deliveryRemark(StrUtil.blankToDefault(deliveryRemark, "管理后台确认交付"))
+                .build());
+        return ApiResponse.ok();
     }
 
     // ==================== 订单写操作 ====================

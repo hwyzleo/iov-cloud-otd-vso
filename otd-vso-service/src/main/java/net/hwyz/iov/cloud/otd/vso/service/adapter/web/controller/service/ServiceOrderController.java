@@ -116,7 +116,13 @@ public class ServiceOrderController extends BaseController implements VsoOrderSe
     @PostMapping("/order/action/delivered")
     public AjaxResult delivered(@RequestBody @Valid OrderStateChangeRequest request) {
         log.info("外部服务触发订单[{}]已交付", request.getOrderNo());
-        orderAppService.delivered(DeliveredCmd.builder().orderNo(request.getOrderNo()).build());
+        orderAppService.delivered(DeliveredCmd.builder()
+                .orderNo(request.getOrderNo())
+                .operatorId("system")
+                .operatorRole("service")
+                .operateSource("delivery_service")
+                .deliveryRemark("外部交付服务确认已交付")
+                .build());
         return success();
     }
 

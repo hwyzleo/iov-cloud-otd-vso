@@ -40,6 +40,8 @@ import net.hwyz.iov.cloud.otd.vso.service.common.exception.OrderReopenLimitExcee
 import net.hwyz.iov.cloud.otd.vso.service.common.exception.OrderReopenNotAllowedException;
 import net.hwyz.iov.cloud.otd.vso.service.common.exception.OrderStateNotAllowedException;
 import net.hwyz.iov.cloud.otd.vso.service.common.exception.PaymentChannelNotAvailableException;
+import net.hwyz.iov.cloud.otd.vso.service.common.exception.VsoBaseException;
+import net.hwyz.iov.cloud.otd.vso.service.common.exception.VsoErrorCode;
 import net.hwyz.iov.cloud.otd.vso.service.common.exception.SaleModelNotExistException;
 import net.hwyz.iov.cloud.otd.vso.service.common.exception.WishlistNotExistException;
 import net.hwyz.iov.cloud.otd.vso.service.domain.service.MdmProjectionService;
@@ -2256,26 +2258,51 @@ public class OrderAppService {
 
     @Transactional(rollbackFor = Exception.class)
     public void delivered(DeliveredCmd cmd) {
-        Order order = findOrderByOrderNo(cmd.getOrderNo());
-        // OTD-VSO-DSN-CR-014：仅 FINAL_PAYMENT_PAID(620) 可交付，600 直接交付被拒绝；650 幂等
-        if (order.getOrderState() != OrderState.FINAL_PAYMENT_PAID) {
+        // OTD-VSO-DSN-CR-015：MPT 按订单业务 ID、内部服务按订单号定位，二者必须且只能存在一个
+        Order located = locateDeliveredOrder(cmd);
+        String operatorId = StrUtil.blankToDefault(cmd.getOperatorId(), "system");
+        String operatorRole = StrUtil.blankToDefault(cmd.getOperatorRole(), "service");
+        String operateSource = StrUtil.blankToDefault(cmd.getOperateSource(), "delivery_service");
+        // 同一业务订单键互斥：MPT 与内部入口必须落到同一把锁，锁内重新加载并重检状态
+        orderLockService.executeWithLock(located.getId(), operatorId, "delivered", () -> {
+            Order order = orderRepository.findByOrderId(located.getId())
+                    .orElseThrow(() -> new OrderNotExistException(located.getId()));
+            // OTD-VSO-DSN-CR-014：仅 FINAL_PAYMENT_PAID(620) 可交付，600 直接交付被拒绝；650 幂等
             if (order.getOrderState() == OrderState.DELIVERED) {
-                log.info("订单已交付，交付回调幂等：orderNo={}", cmd.getOrderNo());
+                log.info("订单已交付，交付回调幂等：orderId={}", order.getId());
                 return;
             }
-            throw new OrderStateNotAllowedException("车辆销售订单[" + cmd.getOrderNo() + "]当前状态["
-                    + order.getOrderState() + "]不允许交付，仅 FINAL_PAYMENT_PAID 可交付");
+            if (order.getOrderState() != OrderState.FINAL_PAYMENT_PAID) {
+                throw new OrderStateNotAllowedException("车辆销售订单[" + order.getId() + "]当前状态["
+                        + order.getOrderState() + "]不允许交付，仅 FINAL_PAYMENT_PAID 可交付");
+            }
+            timeoutNotifyService.cancelByOrderIdAndType(order.getId(), "PREPARE_DELIVER_TIMEOUT");
+            // 交付记录需读取订单真实前状态（620），因此在状态推进前完成预约/交付记录写入；
+            // ORDER_DELIVERED 时间线由 completeDelivery() 单点写入，外层不得重复追加
+            deliveryAppService.completeDelivery(order, operatorId, operatorRole, operateSource,
+                    cmd.getDeliveryRemark());
+            order.delivered();
+            orderRepository.save(order);
+            timeoutNotifyService.createTimeoutTask(order.getId(), "DELIVERED_TIMEOUT", "remind", 4320);
+        });
+    }
+
+    /**
+     * 交付入口订单定位：orderId（MPT）与 orderNo（内部服务）必须且只能提供一个
+     */
+    private Order locateDeliveredOrder(DeliveredCmd cmd) {
+        boolean hasOrderId = StrUtil.isNotBlank(cmd.getOrderId());
+        boolean hasOrderNo = StrUtil.isNotBlank(cmd.getOrderNo());
+        if (hasOrderId == hasOrderNo) {
+            throw new VsoBaseException(VsoErrorCode.INVALID_PARAM,
+                    "orderId 与 orderNo 必须且只能提供一个");
         }
-        String before = String.valueOf(order.getOrderState().getValue());
-        timeoutNotifyService.cancelByOrderIdAndType(order.getId(), "PREPARE_DELIVER_TIMEOUT");
-        // 交付记录需读取订单真实前状态（620），因此在状态推进前完成预约/交付记录写入
-        deliveryAppService.completeDelivery(order, "delivery_service");
-        order.delivered();
-        orderRepository.save(order);
-        orderTimelineAppService.record(order.getId(), OrderTimelineEventType.ORDER_DELIVERED,
-                before, String.valueOf(order.getOrderState().getValue()),
-                "system", "service", "delivery_service", null, null, "外部交付服务确认已交付");
-        timeoutNotifyService.createTimeoutTask(order.getId(), "DELIVERED_TIMEOUT", "remind", 4320);
+        if (hasOrderId) {
+            return orderRepository.findByOrderId(cmd.getOrderId())
+                    .orElseThrow(() -> new OrderNotExistException(cmd.getOrderId()));
+        }
+        return orderRepository.findByOrderNo(cmd.getOrderNo())
+                .orElseThrow(() -> new OrderNotExistException(cmd.getOrderNo()));
     }
 
     public void activate(ActivateCmd cmd) {

@@ -6,6 +6,7 @@ import net.hwyz.iov.cloud.framework.common.bean.BaseRequest;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.AssignDeliveryPersonCmd;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.AssignVehicleCmd;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.CancelOrderCmd;
+import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.DeliveredCmd;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.LockOrderCmd;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.ModifyOrderConfigByOperatorCmd;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.ReassignVehicleCmd;
@@ -112,7 +113,8 @@ class MptOrderWriteControllerTest {
         for (String path : Arrays.asList("/action/assignDeliveryPerson", "/action/assignVehicle",
                 "/action/applyTransport", "/action/reassignVehicle", "/action/unbindVehicle",
                 "/{orderId}/audit/pass", "/{orderId}/audit/reject", "/{orderId}/audit/resubmit",
-                "/{orderId}/lock", "/{orderId}/close", "/{orderId}/modifyConfig")) {
+                "/{orderId}/lock", "/{orderId}/close", "/{orderId}/modifyConfig",
+                "/{orderId}/delivery/complete")) {
             assertTrue(postPaths.contains(path), "写动作路由应存在：" + path);
         }
         assertFalse(postPaths.stream().anyMatch(p -> p.endsWith("/action/pay")),
@@ -156,6 +158,50 @@ class MptOrderWriteControllerTest {
         ArgumentCaptor<LockOrderCmd> captor = ArgumentCaptor.forClass(LockOrderCmd.class);
         verify(orderAppService).lockOrder(captor.capture());
         assertEquals("ORD1", captor.getValue().getOrderId());
+    }
+
+    @Test
+    @DisplayName("确认交付按业务订单 ID 委托并注入 MPT 操作上下文")
+    void 确认交付委托() throws Exception {
+        mockMvc.perform(post(BASE + "/ORD1/delivery/complete")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"deliveryRemark\":\"车辆及资料已现场移交\"}"))
+                .andExpect(status().isOk());
+
+        ArgumentCaptor<DeliveredCmd> captor = ArgumentCaptor.forClass(DeliveredCmd.class);
+        verify(orderAppService).delivered(captor.capture());
+        assertEquals("ORD1", captor.getValue().getOrderId());
+        assertEquals(null, captor.getValue().getOrderNo());
+        assertEquals("mpt_operator", captor.getValue().getOperatorRole());
+        assertEquals("mpt", captor.getValue().getOperateSource());
+        assertEquals("车辆及资料已现场移交", captor.getValue().getDeliveryRemark());
+
+        java.lang.reflect.Field[] fields =
+                net.hwyz.iov.cloud.otd.vso.api.vo.mpt.request.CompleteDeliveryRequest.class.getDeclaredFields();
+        assertEquals(1, fields.length, "确认交付请求只应包含 deliveryRemark，不得接收操作人或交付时间");
+        assertEquals("deliveryRemark", fields[0].getName());
+    }
+
+    @Test
+    @DisplayName("确认交付不传备注时使用 MPT 默认备注")
+    void 确认交付默认备注() throws Exception {
+        mockMvc.perform(post(BASE + "/ORD1/delivery/complete"))
+                .andExpect(status().isOk());
+
+        ArgumentCaptor<DeliveredCmd> captor = ArgumentCaptor.forClass(DeliveredCmd.class);
+        verify(orderAppService).delivered(captor.capture());
+        assertEquals("管理后台确认交付", captor.getValue().getDeliveryRemark());
+    }
+
+    @Test
+    @DisplayName("确认交付备注超过 255 字符时返回参数错误")
+    void 确认交付备注超长() throws Exception {
+        mockMvc.perform(post(BASE + "/ORD1/delivery/complete")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"deliveryRemark\":\"" + "x".repeat(256) + "\"}"))
+                .andExpect(status().isBadRequest());
+
+        verify(orderAppService, org.mockito.Mockito.never()).delivered(any());
     }
 
     @Test
