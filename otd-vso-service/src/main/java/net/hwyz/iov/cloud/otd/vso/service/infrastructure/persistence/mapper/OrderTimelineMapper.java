@@ -21,6 +21,13 @@ public interface OrderTimelineMapper extends BaseDao<OrderTimelinePo, Long> {
      */
     int countByOrderIdAndEventType(@Param("orderId") String orderId, @Param("eventType") String eventType);
 
+    /**
+     * 统计指定订单、事件类型与关联单号的事件次数（CR-014：同一订单多次支付按支付单号去重）
+     */
+    int countByOrderIdAndEventTypeAndRelatedDocNo(@Param("orderId") String orderId,
+                                                  @Param("eventType") String eventType,
+                                                  @Param("relatedDocNo") String relatedDocNo);
+
     OrderTimelinePo selectPoById(Long id);
 
     /**

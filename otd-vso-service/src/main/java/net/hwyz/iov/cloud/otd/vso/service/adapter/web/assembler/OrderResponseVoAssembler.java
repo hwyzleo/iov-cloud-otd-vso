@@ -18,6 +18,7 @@ public interface OrderResponseVoAssembler {
 
     OrderResponseVoAssembler INSTANCE = Mappers.getMapper(OrderResponseVoAssembler.class);
 
+    @Mapping(target = "tailPaymentAmount", source = "orderAmount.tailPaymentAmount.amount")
     OrderResponseVo toVo(OrderDetailResult result);
 
     @Mapping(target = "accountId", source = "accountId")

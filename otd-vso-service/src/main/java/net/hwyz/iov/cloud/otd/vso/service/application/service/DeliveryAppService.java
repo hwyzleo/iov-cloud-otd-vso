@@ -51,7 +51,9 @@ public class DeliveryAppService {
         return orderLockService.executeWithLock(orderNo, accountId, "deliveryAppointment", () -> {
             Order order = orderRepository.findByOrderNoAndAccountId(orderNo, accountId)
                     .orElseThrow(() -> new OrderNotExistException(orderNo));
-            if (order.getOrderState() != OrderState.PREPARE_DELIVER) {
+            // OTD-VSO-DSN-CR-014：600/620 均可预约，避免支付尾款后失去预约入口
+            if (order.getOrderState() != OrderState.PREPARE_DELIVER
+                    && order.getOrderState() != OrderState.FINAL_PAYMENT_PAID) {
                 throw new OrderStateNotAllowedException(
                         "车辆销售订单[" + orderNo + "]当前状态[" + order.getOrderState() + "]不允许创建交付预约");
             }
@@ -164,8 +166,9 @@ public class DeliveryAppService {
                 .deliveryRemark("外部交付服务确认已交付")
                 .build();
         deliveryRepository.saveRecord(record);
+        // 时间线使用订单真实前状态（OTD-VSO-DSN-CR-014：620 → 650，不得硬编码 600）
         orderTimelineAppService.record(order.getId(), OrderTimelineEventType.ORDER_DELIVERED,
-                String.valueOf(OrderState.PREPARE_DELIVER.getValue()),
+                String.valueOf(order.getOrderState().getValue()),
                 String.valueOf(OrderState.DELIVERED.getValue()),
                 operatorId, "service", "delivery_service", record.getDeliveryRecordId(), null,
                 "交付完成，VIN：" + record.getVehicleVin());

@@ -16,6 +16,12 @@ public interface ContractMapper extends BaseDao<ContractPo, Long> {
 
     ContractPo selectByOrderIdAndType(@Param("orderId") String orderId, @Param("contractType") String contractType);
 
+    ContractPo selectByContractId(@Param("contractId") String contractId);
+
+    ContractPo selectBySignNo(@Param("signNo") String signNo);
+
+    ContractPo selectByContractNo(@Param("contractNo") String contractNo);
+
     ContractPo selectPoById(Long id);
 
     List<ContractPo> selectPoByMap(@Param("params") Map<String, Object> params);

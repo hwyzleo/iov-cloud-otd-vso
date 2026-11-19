@@ -2,6 +2,7 @@ package net.hwyz.iov.cloud.otd.vso.service.domain.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import net.hwyz.iov.cloud.otd.vso.api.enums.PaymentStage;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.event.PaymentSuccessDomainEvent;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
@@ -34,6 +35,11 @@ public class PaymentSuccessEventListener {
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handlePaymentSuccess(PaymentSuccessDomainEvent event) {
         if (event == null || event.getOrderId() == null) {
+            return;
+        }
+        // OTD-VSO-DSN-CR-014：尾款不触发无意义的小订单超时任务操作
+        if (event.getPaymentStage() != PaymentStage.EARNEST_MONEY
+                && event.getPaymentStage() != PaymentStage.DOWN_PAYMENT) {
             return;
         }
         try {

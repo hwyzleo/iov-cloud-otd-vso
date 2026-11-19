@@ -53,6 +53,11 @@ public class OrderTimelineRepositoryImpl implements OrderTimelineRepository {
     }
 
     @Override
+    public boolean existsByOrderIdAndEventTypeAndRelatedDocNo(String orderId, String eventType, String relatedDocNo) {
+        return orderTimelineMapper.countByOrderIdAndEventTypeAndRelatedDocNo(orderId, eventType, relatedDocNo) > 0;
+    }
+
+    @Override
     public int countByOrderIdAndEventType(String orderId, String eventType) {
         return orderTimelineMapper.countByOrderIdAndEventType(orderId, eventType);
     }

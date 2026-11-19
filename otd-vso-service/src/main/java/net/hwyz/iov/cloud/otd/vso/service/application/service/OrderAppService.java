@@ -1289,6 +1289,10 @@ public class OrderAppService {
         order.saveOrderPerson(cmd.getAccountId(), cmd.getOrderPersonType(), cmd.getOrderPersonName(),
                 cmd.getOrderPersonIdType(), cmd.getOrderPersonIdNum());
         order.savePurchasePlan(cmd.getPurchasePlan());
+        // OTD-VSO-DSN-CR-014：直接定金下单的全款方案在金额快照构建后初始化尾款（INV-043）
+        if (order.getOrderAmount() != null) {
+            order.getOrderAmount().initializeTailPaymentForFullPayment(order.getPaymentMethod());
+        }
         order.saveLicenseCity(cmd.getLicenseCityCode());
         
         if (StrUtil.isNotBlank(cmd.getOrderStoreCode())) {
@@ -1809,6 +1813,12 @@ public class OrderAppService {
             // 保存补充信息
             saveSupplementaryInfo(order, cmd);
 
+            // OTD-VSO-DSN-CR-014：确认 full_payment 方案时同步初始化尾款快照（INV-043）
+            if (order.getOrderAmount() != null) {
+                order.getOrderAmount().initializeTailPaymentForFullPayment(order.getPaymentMethod());
+                orderRepository.save(order);
+            }
+
             // 计算差额
             if (order.getOrderAmount() == null) {
                 log.error("订单金额信息缺失，无法执行意向金转定金：orderNo={}, orderId={}", cmd.getOrderNo(), order.getId());
@@ -2247,19 +2257,21 @@ public class OrderAppService {
     @Transactional(rollbackFor = Exception.class)
     public void delivered(DeliveredCmd cmd) {
         Order order = findOrderByOrderNo(cmd.getOrderNo());
-        if (order.getOrderState() != OrderState.PREPARE_DELIVER) {
+        // OTD-VSO-DSN-CR-014：仅 FINAL_PAYMENT_PAID(620) 可交付，600 直接交付被拒绝；650 幂等
+        if (order.getOrderState() != OrderState.FINAL_PAYMENT_PAID) {
             if (order.getOrderState() == OrderState.DELIVERED) {
                 log.info("订单已交付，交付回调幂等：orderNo={}", cmd.getOrderNo());
                 return;
             }
             throw new OrderStateNotAllowedException("车辆销售订单[" + cmd.getOrderNo() + "]当前状态["
-                    + order.getOrderState() + "]不允许交付");
+                    + order.getOrderState() + "]不允许交付，仅 FINAL_PAYMENT_PAID 可交付");
         }
         String before = String.valueOf(order.getOrderState().getValue());
         timeoutNotifyService.cancelByOrderIdAndType(order.getId(), "PREPARE_DELIVER_TIMEOUT");
+        // 交付记录需读取订单真实前状态（620），因此在状态推进前完成预约/交付记录写入
+        deliveryAppService.completeDelivery(order, "delivery_service");
         order.delivered();
         orderRepository.save(order);
-        deliveryAppService.completeDelivery(order, "delivery_service");
         orderTimelineAppService.record(order.getId(), OrderTimelineEventType.ORDER_DELIVERED,
                 before, String.valueOf(order.getOrderState().getValue()),
                 "system", "service", "delivery_service", null, null, "外部交付服务确认已交付");

@@ -14,6 +14,7 @@
         <result column="sign_effective_rule" property="signEffectiveRule" />
         <result column="file_url" property="fileUrl" />
         <result column="external_contract_no" property="externalContractNo" />
+        <result column="sign_no" property="signNo" />
         <result column="generate_time" property="generateTime" />
         <result column="sign_time" property="signTime" />
         <result column="effective_time" property="effectiveTime" />
@@ -30,7 +31,7 @@
     <sql id="baseColumnList">
         t.id, t.contract_id, t.order_id, t.contract_no, t.contract_type, t.version_no,
         t.contract_status, t.sign_mode, t.sign_effective_rule, t.file_url,
-        t.external_contract_no, t.generate_time, t.sign_time, t.effective_time,
+        t.external_contract_no, t.sign_no, t.generate_time, t.sign_time, t.effective_time,
         t.invalid_time, t.invalid_reason, t.create_time, t.create_by,
         t.modify_time, t.modify_by, t.row_version, t.row_valid
     </sql>
@@ -40,6 +41,41 @@
         FROM vso_contract t
         WHERE t.order_id = #{orderId}
         AND t.row_valid = 1
+    </select>
+
+    <select id="selectByOrderIdAndType" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_contract t
+        WHERE t.order_id = #{orderId}
+        AND t.contract_type = #{contractType}
+        AND t.row_valid = 1
+        ORDER BY t.version_no DESC, t.id DESC
+        LIMIT 1
+    </select>
+
+    <select id="selectByContractId" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_contract t
+        WHERE t.contract_id = #{contractId}
+        AND t.row_valid = 1
+    </select>
+
+    <select id="selectBySignNo" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_contract t
+        WHERE t.sign_no = #{signNo}
+        AND t.row_valid = 1
+        ORDER BY t.id DESC
+        LIMIT 1
+    </select>
+
+    <select id="selectByContractNo" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_contract t
+        WHERE t.contract_no = #{contractNo}
+        AND t.row_valid = 1
+        ORDER BY t.id DESC
+        LIMIT 1
     </select>
 
     <select id="selectPoById" parameterType="Long" resultMap="baseResultMap">
@@ -65,6 +101,9 @@
         <if test="contractStatus != null and contractStatus != ''">
             AND t.contract_status = #{contractStatus}
         </if>
+        <if test="signNo != null and signNo != ''">
+            AND t.sign_no = #{signNo}
+        </if>
         ORDER BY t.id DESC
     </select>
 
@@ -80,6 +119,9 @@
         </if>
         <if test="params.contractStatus != null and params.contractStatus != ''">
             AND t.contract_status = #{params.contractStatus}
+        </if>
+        <if test="params.signNo != null and params.signNo != ''">
+            AND t.sign_no = #{params.signNo}
         </if>
         ORDER BY t.id DESC
     </select>
@@ -97,13 +139,13 @@
         INSERT INTO vso_contract (
             contract_id, order_id, contract_no, contract_type, version_no,
             contract_status, sign_mode, sign_effective_rule, file_url, external_contract_no,
-            generate_time, sign_time, effective_time, invalid_time, invalid_reason,
+            sign_no, generate_time, sign_time, effective_time, invalid_time, invalid_reason,
             create_time, create_by, modify_time, modify_by, row_version, row_valid
         )
         VALUES (
             #{contractId}, #{orderId}, #{contractNo}, #{contractType}, #{versionNo},
             #{contractStatus}, #{signMode}, #{signEffectiveRule}, #{fileUrl}, #{externalContractNo},
-            #{generateTime}, #{signTime}, #{effectiveTime}, #{invalidTime}, #{invalidReason},
+            #{signNo}, #{generateTime}, #{signTime}, #{effectiveTime}, #{invalidTime}, #{invalidReason},
             now(), #{createBy}, now(), #{modifyBy}, 1, 1
         )
     </insert>
@@ -112,7 +154,7 @@
         INSERT INTO vso_contract (
             contract_id, order_id, contract_no, contract_type, version_no,
             contract_status, sign_mode, sign_effective_rule, file_url, external_contract_no,
-            generate_time, sign_time, effective_time, invalid_time, invalid_reason,
+            sign_no, generate_time, sign_time, effective_time, invalid_time, invalid_reason,
             create_time, create_by, modify_time, modify_by, row_version, row_valid
         )
         VALUES
@@ -120,7 +162,7 @@
             (
                 #{item.contractId}, #{item.orderId}, #{item.contractNo}, #{item.contractType}, #{item.versionNo},
                 #{item.contractStatus}, #{item.signMode}, #{item.signEffectiveRule}, #{item.fileUrl}, #{item.externalContractNo},
-                #{item.generateTime}, #{item.signTime}, #{item.effectiveTime}, #{item.invalidTime}, #{item.invalidReason},
+                #{item.signNo}, #{item.generateTime}, #{item.signTime}, #{item.effectiveTime}, #{item.invalidTime}, #{item.invalidReason},
                 now(), #{item.createBy}, now(), #{item.modifyBy}, 1, 1
             )
         </foreach>
@@ -136,6 +178,15 @@
         </if>
         <if test="fileUrl != null and fileUrl != ''">
             t.file_url = #{fileUrl},
+        </if>
+        <if test="externalContractNo != null and externalContractNo != ''">
+            t.external_contract_no = #{externalContractNo},
+        </if>
+        <if test="signNo != null and signNo != ''">
+            t.sign_no = #{signNo},
+        </if>
+        <if test="generateTime != null">
+            t.generate_time = #{generateTime},
         </if>
         <if test="signTime != null">
             t.sign_time = #{signTime},

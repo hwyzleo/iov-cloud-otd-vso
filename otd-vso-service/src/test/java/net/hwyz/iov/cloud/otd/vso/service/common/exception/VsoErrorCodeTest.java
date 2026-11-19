@@ -41,6 +41,15 @@ class VsoErrorCodeTest {
 
     @Test
     void should_have_correct_error_code_count() {
-        assertEquals(59, VsoErrorCode.values().length, "错误码数量应为59个（CR-005 新增 201057~201059，CR-008 新增 201060）");
+        assertEquals(63, VsoErrorCode.values().length,
+                "错误码数量应为63个（CR-005 新增 201057~201059，CR-008 新增 201060，CR-014 新增 201061~201064）");
+    }
+
+    @Test
+    void should_have_cr014_contract_and_tail_payment_codes() {
+        assertEquals("201061", VsoErrorCode.CONTRACT_NOT_EXIST.getCode());
+        assertEquals("201062", VsoErrorCode.CONTRACT_STATUS_NOT_ALLOWED.getCode());
+        assertEquals("201063", VsoErrorCode.ESIGN_GATEWAY_FAILED.getCode());
+        assertEquals("201064", VsoErrorCode.TAIL_PAYMENT_NOT_ALLOWED.getCode());
     }
 }

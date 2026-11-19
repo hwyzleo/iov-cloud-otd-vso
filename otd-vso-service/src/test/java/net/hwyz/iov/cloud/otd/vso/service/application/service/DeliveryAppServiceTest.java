@@ -30,6 +30,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -159,6 +160,39 @@ class DeliveryAppServiceTest {
         verify(deliveryRepository).saveRecord(captor.capture());
         assertEquals("delivered", captor.getValue().getDeliveryStatus());
         assertEquals("VIN001", captor.getValue().getVehicleVin());
+    }
+
+    @Test
+    @DisplayName("620 尾款已付：仍可创建交付预约")
+    void 尾款已付可预约() {
+        Order paidOrder = Order.builder()
+                .id("OID1").orderNo("SO001").orderType(OrderType.FORMAL)
+                .orderState(OrderState.FINAL_PAYMENT_PAID).build();
+        when(orderRepository.findByOrderNoAndAccountId("SO001", "ACC1")).thenReturn(Optional.of(paidOrder));
+        when(deliveryRepository.findBookedByOrderId("OID1")).thenReturn(Optional.empty());
+        when(deliveryRepository.findRecordByOrderId("OID1")).thenReturn(Optional.empty());
+
+        DeliveryAppointmentResult result = deliveryAppService.create("ACC1", "SO001",
+                LocalDateTime.now().plusDays(2), "STORE001", "交付中心 A");
+
+        assertEquals("booked", result.getAppointmentStatus());
+        verify(deliveryRepository).saveAppointment(any(DeliveryAppointment.class));
+    }
+
+    @Test
+    @DisplayName("620 交付完成：时间线使用真实前状态 620 → 650")
+    void 尾款已付交付时间线() {
+        Order paidOrder = Order.builder()
+                .id("OID1").orderNo("SO001").orderType(OrderType.FORMAL)
+                .orderState(OrderState.FINAL_PAYMENT_PAID).deliveryVin("VIN001").build();
+        when(deliveryRepository.findBookedByOrderId("OID1")).thenReturn(Optional.empty());
+
+        deliveryAppService.completeDelivery(paidOrder, "delivery_service");
+
+        verify(orderTimelineAppService).record(eq("OID1"),
+                eq(net.hwyz.iov.cloud.otd.vso.service.domain.model.OrderTimelineEventType.ORDER_DELIVERED),
+                eq("620"), eq("650"), eq("delivery_service"), eq("service"), eq("delivery_service"),
+                anyString(), any(), anyString());
     }
 
     @Test

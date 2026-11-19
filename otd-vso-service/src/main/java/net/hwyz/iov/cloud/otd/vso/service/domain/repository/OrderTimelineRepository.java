@@ -27,6 +27,11 @@ public interface OrderTimelineRepository {
     boolean existsByOrderIdAndEventType(String orderId, String eventType);
 
     /**
+     * 判断指定订单、事件类型与关联单号是否已存在（同一订单多次支付按支付单号去重）
+     */
+    boolean existsByOrderIdAndEventTypeAndRelatedDocNo(String orderId, String eventType, String relatedDocNo);
+
+    /**
      * 统计指定订单指定事件类型的次数（OTD-VSO-DSN-CR-005：恢复次数以时间线计数）
      */
     int countByOrderIdAndEventType(String orderId, String eventType);

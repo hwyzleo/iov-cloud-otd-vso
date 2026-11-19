@@ -66,6 +66,11 @@
         <if test="params.orderId != null and params.orderId != ''">
             AND t.order_id = #{params.orderId}
         </if>
+        <!-- OTD-VSO-DSN-CR-014：按支付单号定位补款单必须带 payment_id 条件，
+             否则尾款回调会误命中同订单历史补款单，跳过订单 600→620 推进 -->
+        <if test="params.paymentId != null and params.paymentId != ''">
+            AND t.payment_id = #{params.paymentId}
+        </if>
         <if test="params.supplementaryStatus != null and params.supplementaryStatus != ''">
             AND t.supplementary_status = #{params.supplementaryStatus}
         </if>

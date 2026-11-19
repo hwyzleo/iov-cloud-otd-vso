@@ -27,6 +27,8 @@ import net.hwyz.iov.cloud.otd.vso.service.common.exception.OrderNotExistExceptio
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.Order;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.OrderAmount;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.OrderState;
+import net.hwyz.iov.cloud.otd.vso.service.domain.model.Contract;
+import net.hwyz.iov.cloud.otd.vso.service.domain.repository.ContractRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.RefundStatus;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.OrderAmountRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.OrderRepository;
@@ -116,6 +118,8 @@ class PurchaseFlowIntegrationTest {
     private SaleModelMapper saleModelMapper;
     @Autowired
     private SaleModelVariantPolicyMapper saleModelVariantPolicyMapper;
+    @Autowired
+    private ContractRepository contractRepository;
 
     @MockBean
     private ConfigurationService configurationService;
@@ -227,6 +231,23 @@ class PurchaseFlowIntegrationTest {
                 LocalDateTime.now().plusDays(3), "STORE001", "交付中心A");
         assertEquals("booked", appointment.getAppointmentStatus());
 
+        // OTD-VSO-DSN-CR-014：全款订单必须先签署合同并支付尾款，才能交付
+        Contract contract = Contract.draft("CID" + System.nanoTime(),
+                orderRepository.findByOrderNo(orderNo).orElseThrow().getId(),
+                "CT" + System.nanoTime());
+        contract.markGenerated("MOCK-ESIGN-FLOW", "mock://esign/contract/FLOW", LocalDateTime.now());
+        contract.markSigning("SIGN-FLOW-" + orderNo);
+        contract.markSigned(LocalDateTime.now());
+        contractRepository.save(contract);
+
+        InitiatePaymentResult tailPayment = paymentAppService.initiatePayment(InitiatePaymentCmd.builder()
+                .accountId(account).orderNo(orderNo).paymentChannel(PaymentChannel.WECHAT).build());
+        assertEquals(PaymentStage.TAIL_PAYMENT.name(), tailPayment.getPaymentStage(),
+                "合同签署后应可发起尾款");
+        assertEquals(0, new BigDecimal("180000.00").compareTo(tailPayment.getPaymentAmount()));
+        assertCallbackPaid(account, orderNo, tailPayment.getPaymentNo(), "180000.00", PaymentStage.TAIL_PAYMENT);
+        assertEquals(OrderState.FINAL_PAYMENT_PAID, stateOf(orderNo));
+
         // 交付 + 激活
         orderAppService.delivered(net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.DeliveredCmd.builder()
                 .orderNo(orderNo).build());
@@ -249,6 +270,8 @@ class PurchaseFlowIntegrationTest {
         assertTrue(timeline.stream().anyMatch(t -> "ORDER_CREATED".equals(t.getEventType())));
         assertTrue(timeline.stream().anyMatch(t -> "PAYMENT_SUCCESS".equals(t.getEventType())));
         assertTrue(timeline.stream().anyMatch(t -> "EARNEST_TO_DOWN_COMPLETED".equals(t.getEventType())));
+        assertTrue(timeline.stream().anyMatch(t -> "PAYMENT_SUCCESS".equals(t.getEventType())
+                && "620".equals(t.getAfterStatus())), "尾款支付成功应记录 600→620 时间线（CR-014）");
         assertTrue(timeline.stream().anyMatch(t -> "ORDER_LOCKED".equals(t.getEventType())));
         assertTrue(timeline.stream().anyMatch(t -> "VEHICLE_ASSIGNED".equals(t.getEventType())));
         assertTrue(timeline.stream().anyMatch(t -> "ORDER_ACTIVATED".equals(t.getEventType())));

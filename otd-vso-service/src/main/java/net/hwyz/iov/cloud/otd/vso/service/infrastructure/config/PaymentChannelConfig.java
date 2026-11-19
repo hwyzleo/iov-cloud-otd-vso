@@ -24,6 +24,11 @@ public class PaymentChannelConfig {
     private Integer downPaymentTimeoutMinutes = 60;
 
     /**
+     * 尾款支付单有效分钟数（OTD-VSO-DSN-CR-014；缺失或非法按 60）
+     */
+    private Integer tailPaymentTimeoutMinutes = 60;
+
+    /**
      * 处理中支付单失联宽限分钟数（OTD-VSO-DSN-CR-005）
      * <p>
      * PROCESSING 支付单超过 expireTime + 该值视为失联，允许关闭并重建。
@@ -35,6 +40,13 @@ public class PaymentChannelConfig {
      */
     public int processingStaleMinutesOrDefault() {
         return processingStaleMinutes == null || processingStaleMinutes <= 0 ? 30 : processingStaleMinutes;
+    }
+
+    /**
+     * 尾款支付超时分钟数（缺失或 <=0 按 60 处理）
+     */
+    public int tailPaymentTimeoutMinutesOrDefault() {
+        return tailPaymentTimeoutMinutes == null || tailPaymentTimeoutMinutes <= 0 ? 60 : tailPaymentTimeoutMinutes;
     }
 
     @Data

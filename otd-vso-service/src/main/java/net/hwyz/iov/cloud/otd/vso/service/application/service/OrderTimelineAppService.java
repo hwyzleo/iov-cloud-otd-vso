@@ -66,13 +66,27 @@ public class OrderTimelineAppService {
             return;
         }
         if (failReason == null && DEDUPE_SUCCESS_EVENTS.contains(type)
-                && orderTimelineRepository.existsByOrderIdAndEventType(orderId, type.getCode())) {
-            log.debug("时间线成功事件已存在，跳过重复追加：orderId={}, eventType={}", orderId, type.getCode());
+                && isAlreadyRecorded(type, orderId, relatedDocNo)) {
+            log.debug("时间线成功事件已存在，跳过重复追加：orderId={}, eventType={}, relatedDocNo={}",
+                    orderId, type.getCode(), relatedDocNo);
             return;
         }
         orderTimelineRepository.append(OrderTimeline.of(IdUtil.fastSimpleUUID(), orderId, type,
                 beforeStatus, afterStatus, operatorId, operatorRole, operateSource,
                 relatedDocNo, failReason, remark));
+    }
+
+    /**
+     * 成功事件去重：同一订单可多次支付（意向金/补款/尾款），PAYMENT_SUCCESS 按支付单号去重，
+     * 其余成功事件保持整单唯一（OTD-VSO-DSN-CR-014：尾款时间线不能被历史支付事件吃掉）。
+     */
+    private boolean isAlreadyRecorded(OrderTimelineEventType type, String orderId, String relatedDocNo) {
+        if (type == OrderTimelineEventType.PAYMENT_SUCCESS
+                && relatedDocNo != null && !relatedDocNo.isBlank()) {
+            return orderTimelineRepository.existsByOrderIdAndEventTypeAndRelatedDocNo(
+                    orderId, type.getCode(), relatedDocNo);
+        }
+        return orderTimelineRepository.existsByOrderIdAndEventType(orderId, type.getCode());
     }
 
     /**

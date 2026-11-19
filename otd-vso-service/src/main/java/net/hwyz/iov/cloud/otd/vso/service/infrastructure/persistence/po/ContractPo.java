@@ -48,6 +48,12 @@ public class ContractPo implements Serializable {
     @TableField("external_contract_no")
     private String externalContractNo;
 
+    /**
+     * 当前签署任务号（OTD-VSO-DSN-CR-014）
+     */
+    @TableField("sign_no")
+    private String signNo;
+
     @TableField("generate_time")
     private LocalDateTime generateTime;
 

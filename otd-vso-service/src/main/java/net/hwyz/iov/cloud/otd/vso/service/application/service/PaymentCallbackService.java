@@ -148,6 +148,20 @@ public class PaymentCallbackService {
                     .build();
         }
 
+        // OTD-VSO-DSN-CR-014：尾款成功回调要求订单仍为 600，不匹配不推进并保留人工核查证据
+        if (stage == PaymentStage.TAIL_PAYMENT && targetStatus == PaymentStatus.PAID) {
+            Order tailOrder = orderRepository.findByOrderId(payment.getOrderId()).orElse(null);
+            if (tailOrder == null || tailOrder.getOrderState() != OrderState.PREPARE_DELIVER) {
+                String actual = tailOrder == null ? "null" : tailOrder.getOrderState().name();
+                saveCallbackLog(payment.getOrderId(), cmd, buildIdempotentKey(cmd), "FAIL",
+                        "尾款支付回调订单状态不匹配，当前状态：" + actual);
+                return PaymentCallbackResult.builder()
+                        .code(PaymentCallbackResultCode.CONFLICT)
+                        .message("尾款支付回调订单状态不匹配，需人工核查")
+                        .build();
+            }
+        }
+
         switch (targetStatus) {
             case PAID -> handlePaid(payment, stage, cmd);
             case PROCESSING -> handleProcessing(payment, cmd);

@@ -51,6 +51,16 @@
         AND t.row_valid = 1
     </select>
 
+    <!-- CR-014：同一订单多次支付成功，按支付单号去重（尾款不能被意向金/定金事件吃掉） -->
+    <select id="countByOrderIdAndEventTypeAndRelatedDocNo" resultType="int">
+        SELECT COUNT(1)
+        FROM vso_order_timeline t
+        WHERE t.order_id = #{orderId}
+        AND t.event_type = #{eventType}
+        AND t.related_doc_no = #{relatedDocNo}
+        AND t.row_valid = 1
+    </select>
+
     <!-- 批量查询多个订单的最新事件时间（避免 N+1） -->
     <select id="selectLatestEventTimeByOrderIds" resultMap="baseResultMap">
         SELECT t.order_id, MAX(t.event_time) AS event_time

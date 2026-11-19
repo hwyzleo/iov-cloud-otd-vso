@@ -107,9 +107,14 @@ public class OrderStateMachine {
         Set<OrderState> transportingTransitions = EnumSet.of(OrderState.PREPARE_DELIVER, OrderState.CANCEL);
         STATE_TRANSITIONS.put(550, transportingTransitions);
         
-        // PREPARE_DELIVER(600) -> DELIVERED(650), CANCEL(950)
-        Set<OrderState> prepareDeliverTransitions = EnumSet.of(OrderState.DELIVERED, OrderState.CANCEL);
+        // PREPARE_DELIVER(600) -> FINAL_PAYMENT_PAID(620), CANCEL(950)
+        // OTD-VSO-DSN-CR-014：禁止 600 直接到 650，必须先结清尾款
+        Set<OrderState> prepareDeliverTransitions = EnumSet.of(OrderState.FINAL_PAYMENT_PAID, OrderState.CANCEL);
         STATE_TRANSITIONS.put(600, prepareDeliverTransitions);
+
+        // FINAL_PAYMENT_PAID(620) -> DELIVERED(650), CANCEL(950)
+        Set<OrderState> finalPaymentPaidTransitions = EnumSet.of(OrderState.DELIVERED, OrderState.CANCEL);
+        STATE_TRANSITIONS.put(620, finalPaymentPaidTransitions);
         
         // DELIVERED(650) -> ACTIVATED(700), CANCEL(950)
         Set<OrderState> deliveredTransitions = EnumSet.of(OrderState.ACTIVATED, OrderState.CANCEL);

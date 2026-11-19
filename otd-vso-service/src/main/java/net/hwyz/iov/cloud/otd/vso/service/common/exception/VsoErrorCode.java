@@ -108,7 +108,13 @@ public enum VsoErrorCode implements ErrorCode {
     ORDER_REOPEN_LIMIT_EXCEEDED("201059", "重新支付次数已用尽，请重新下单"),
 
     // OTD-VSO-DSN-CR-008 订单详情销售/交付门店查询薄封装
-    DEALERSHIP_QUERY_FAILED("201060", "门店查询失败，请稍后重试");
+    DEALERSHIP_QUERY_FAILED("201060", "门店查询失败，请稍后重试"),
+
+    // OTD-VSO-DSN-CR-014 购车合同 Mock 电子签与全款尾款支付
+    CONTRACT_NOT_EXIST("201061", "购车合同不存在"),
+    CONTRACT_STATUS_NOT_ALLOWED("201062", "合同当前状态不允许该操作或回调状态冲突"),
+    ESIGN_GATEWAY_FAILED("201063", "电子签生成、签署任务或状态查询失败"),
+    TAIL_PAYMENT_NOT_ALLOWED("201064", "合同未签署、非全款、订单状态或支付金额事实不满足尾款条件");
 
     private final String code;
     private final String message;

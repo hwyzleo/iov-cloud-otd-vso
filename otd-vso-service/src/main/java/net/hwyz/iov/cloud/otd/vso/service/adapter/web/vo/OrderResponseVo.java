@@ -40,6 +40,11 @@ public class OrderResponseVo {
     private List<String> saleModelImages;
     private String saleModelDesc;
 
+    /**
+     * 尾款金额（OTD-VSO-DSN-CR-014：只读服务端金额事实，供客户端展示）
+     */
+    private BigDecimal tailPaymentAmount;
+
     @Data
     @NoArgsConstructor
     @AllArgsConstructor

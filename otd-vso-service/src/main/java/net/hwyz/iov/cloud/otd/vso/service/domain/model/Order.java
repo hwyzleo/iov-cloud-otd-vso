@@ -468,6 +468,12 @@ public class Order {
                 this.downPaymentAmount = payAmount;
                 this.payState = PayState.DOWN_PAYMENT_PAID;
             }
+            // OTD-VSO-DSN-CR-014：全款订单尾款支付成功，600 → 620（尾款时刻以支付单 payTime/时间线为准）
+            case PREPARE_DELIVER -> {
+                this.orderState = OrderState.FINAL_PAYMENT_PAID;
+                this.orderStateTime = now;
+                this.payState = PayState.FINAL_PAYMENT_PAID;
+            }
             default -> throw new OrderStateNotAllowedException("车辆销售订单[" + this.orderNo + "]当前状态[" + this.orderState + "]不允许支付");
         }
     }

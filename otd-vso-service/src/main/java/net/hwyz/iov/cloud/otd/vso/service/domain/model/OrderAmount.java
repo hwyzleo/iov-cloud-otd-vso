@@ -338,6 +338,27 @@ public class OrderAmount {
     }
 
     /**
+     * 初始化全款订单尾款快照（OTD-VSO-DSN-CR-014 INV-043）
+     * <p>
+     * 仅在 full_payment 金额快照构建或确认 full_payment 方案时调用，不在通用 recalculate 中隐式覆盖，
+     * 避免贷款方案或后续金额调整意外重算金融事实。
+     *
+     * @param paymentMethod 支付方式（全款 full_payment 时才初始化）
+     */
+    public void initializeTailPaymentForFullPayment(String paymentMethod) {
+        if (!"full_payment".equals(paymentMethod)) {
+            return;
+        }
+        if (netReceivableTotal == null || downPaymentAmount == null) {
+            throw new IllegalStateException("订单金额快照缺失，无法初始化尾款金额");
+        }
+        if (netReceivableTotal.isLessThan(downPaymentAmount)) {
+            throw new IllegalStateException("净应收金额小于首付款金额，无法初始化尾款金额");
+        }
+        this.tailPaymentAmount = netReceivableTotal.subtract(downPaymentAmount);
+    }
+
+    /**
      * 设置定金金额
      */
     public void setDepositAmount(Money depositAmount) {

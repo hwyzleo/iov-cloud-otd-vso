@@ -38,7 +38,12 @@ public enum OrderTimelineEventType {
     ORDER_ACTIVATED("ORDER_ACTIVATED", "已激活"),
     /** 交付人员分配/改派（内部运营事件，CR-010：仅 MPT 时间线可见） */
     DELIVERY_PERSON_ASSIGNED("DELIVERY_PERSON_ASSIGNED", "分配交付人员"),
-    ORDER_REOPEN("ORDER_REOPEN", "订单重新发起支付");
+    ORDER_REOPEN("ORDER_REOPEN", "订单重新发起支付"),
+    /** 购车合同事件（CR-014：合同事件前后主状态均为 600，C 端可见） */
+    CONTRACT_GENERATED("CONTRACT_GENERATED", "生成购车合同"),
+    CONTRACT_SIGNING("CONTRACT_SIGNING", "合同签署中"),
+    CONTRACT_SIGNED("CONTRACT_SIGNED", "合同已签署"),
+    CONTRACT_INVALID("CONTRACT_INVALID", "合同已失效");
 
     private final String code;
     private final String name;

@@ -20,7 +20,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class OrderStateMachineTest {
 
     @Test
-    @DisplayName("完整主链：意向金→定金→锁单→配车→发运→运输→交付→激活")
+    @DisplayName("完整主链：意向金→定金→锁单→配车→发运→运输→尾款→交付→激活")
     void 完整主链状态迁移合法() {
         int[] chain = {
                 OrderState.EARNEST_MONEY_UNPAID.getValue(),
@@ -32,6 +32,7 @@ class OrderStateMachineTest {
                 OrderState.PREPARE_TRANSPORT.getValue(),
                 OrderState.TRANSPORTING.getValue(),
                 OrderState.PREPARE_DELIVER.getValue(),
+                OrderState.FINAL_PAYMENT_PAID.getValue(),
                 OrderState.DELIVERED.getValue(),
                 OrderState.ACTIVATED.getValue()
         };

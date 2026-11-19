@@ -25,6 +25,9 @@ public class InitiatePaymentResult {
     /** 支付状态（OTD-VSO-DSN-CR-002 §11.1） */
     private String paymentStatus;
 
+    /** 支付阶段（OTD-VSO-DSN-CR-014：尾款返回 TAIL_PAYMENT） */
+    private String paymentStage;
+
     /** 外部交易单号 */
     private String externalTradeNo;
 

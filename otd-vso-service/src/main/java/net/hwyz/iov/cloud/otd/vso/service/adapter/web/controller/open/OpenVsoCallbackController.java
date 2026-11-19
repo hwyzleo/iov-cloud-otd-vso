@@ -6,11 +6,15 @@ import lombok.extern.slf4j.Slf4j;
 import net.hwyz.iov.cloud.framework.common.bean.ApiResponse;
 import net.hwyz.iov.cloud.framework.web.controller.BaseController;
 import net.hwyz.iov.cloud.otd.vso.service.adapter.web.vo.request.PaymentCallbackRequest;
+import net.hwyz.iov.cloud.otd.vso.service.adapter.web.vo.request.ContractCallbackRequest;
+import net.hwyz.iov.cloud.otd.vso.api.enums.ContractStatus;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.PaymentCallbackCmd;
+import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.ContractCallbackCmd;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.enums.PaymentCallbackResultCode;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.PaymentCallbackResult;
 import net.hwyz.iov.cloud.otd.vso.service.adapter.web.vo.request.RefundCallbackRequest;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.RefundCallbackCmd;
+import net.hwyz.iov.cloud.otd.vso.service.application.service.ContractCallbackService;
 import net.hwyz.iov.cloud.otd.vso.service.application.service.PaymentCallbackService;
 import net.hwyz.iov.cloud.otd.vso.service.application.service.RefundCallbackService;
 import org.springframework.web.bind.annotation.*;
@@ -31,6 +35,7 @@ public class OpenVsoCallbackController extends BaseController {
 
     private final PaymentCallbackService paymentCallbackService;
     private final RefundCallbackService refundCallbackService;
+    private final ContractCallbackService contractCallbackService;
 
     /**
      * 支付回调
@@ -102,23 +107,45 @@ public class OpenVsoCallbackController extends BaseController {
     }
 
     /**
-     * 电子签回调
+     * 电子签回调（OTD-VSO-DSN-CR-014：强类型请求 + 生产验签/幂等/状态机路径）
      */
     @PostMapping("/contract")
-    public ApiResponse<Void> contractCallback(@RequestBody Map<String, Object> payload,
+    public ApiResponse<Void> contractCallback(@Valid @RequestBody ContractCallbackRequest request,
                                               @RequestHeader(value = "X-Signature", required = false) String signature) {
-        log.info("电子签回调：payload={}", payload);
-
+        log.info("电子签回调：contractNo={}, signNo={}, status={}",
+                request.getContractNo(), request.getSignNo(), request.getStatus());
         try {
-            // TODO: 1. 验证签名
-            // TODO: 2. 幂等处理
-            // TODO: 3. 更新合同状态
-
-            return ApiResponse.ok();
+            ContractCallbackCmd cmd = ContractCallbackCmd.builder()
+                    .contractNo(request.getContractNo())
+                    .signNo(request.getSignNo())
+                    .status(parseContractStatus(request.getStatus()))
+                    .occurredAt(request.getOccurredAt())
+                    .idempotentKey(request.getIdempotentKey())
+                    .failReason(request.getFailReason())
+                    .build();
+            PaymentCallbackResult result = contractCallbackService.handleCallback(cmd, signature,
+                    request.getTimestamp(), request.getNonce());
+            if (result.getCode() == PaymentCallbackResultCode.SUCCESS
+                    || result.getCode() == PaymentCallbackResultCode.DUPLICATE) {
+                return ApiResponse.ok();
+            }
+            return ApiResponse.fail(result.getMessage());
         } catch (Exception e) {
             log.error("电子签回调异常", e);
             return ApiResponse.fail("回调处理失败");
         }
+    }
+
+    private ContractStatus parseContractStatus(String status) {
+        if (status == null) {
+            return null;
+        }
+        for (ContractStatus value : ContractStatus.values()) {
+            if (value.name().equalsIgnoreCase(status)) {
+                return value;
+            }
+        }
+        return null;
     }
 
     /**

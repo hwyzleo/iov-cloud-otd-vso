@@ -16,14 +16,17 @@ import net.hwyz.iov.cloud.otd.vso.service.common.exception.OrderStateNotAllowedE
 import net.hwyz.iov.cloud.otd.vso.service.common.exception.PaymentChannelNotAvailableException;
 import net.hwyz.iov.cloud.otd.vso.service.common.exception.PaymentConflictException;
 import net.hwyz.iov.cloud.otd.vso.service.common.exception.PaymentNotExistException;
+import net.hwyz.iov.cloud.otd.vso.service.common.exception.TailPaymentNotAllowedException;
 import net.hwyz.iov.cloud.otd.vso.service.domain.gateway.PaymentAdapter;
 import net.hwyz.iov.cloud.otd.vso.service.domain.gateway.PaymentGatewayResult;
+import net.hwyz.iov.cloud.otd.vso.service.domain.model.Contract;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.Order;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.OrderAmount;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.OrderState;
 import net.hwyz.iov.cloud.otd.vso.service.domain.model.Payment;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.OrderAmountRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.OrderRepository;
+import net.hwyz.iov.cloud.otd.vso.service.domain.repository.ContractRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.repository.PaymentRepository;
 import net.hwyz.iov.cloud.otd.vso.service.domain.service.OrderLockService;
 import net.hwyz.iov.cloud.otd.vso.service.infrastructure.config.PaymentChannelConfig;
@@ -54,6 +57,7 @@ public class PaymentAppService {
     private final OrderRepository orderRepository;
     private final OrderAmountRepository orderAmountRepository;
     private final PaymentRepository paymentRepository;
+    private final ContractRepository contractRepository;
     private final OrderLockService orderLockService;
     private final PaymentAdapter paymentAdapter;
     private final PaymentChannelConfig paymentChannelConfig;
@@ -194,6 +198,21 @@ public class PaymentAppService {
         if (state == OrderState.DOWN_PAYMENT_UNPAID) {
             return PaymentStage.DOWN_PAYMENT;
         }
+        // OTD-VSO-DSN-CR-014：全款订单合同签署后可发起尾款（复用既有支付入口与回调）
+        if (state == OrderState.PREPARE_DELIVER) {
+            if (!"full_payment".equals(order.getPaymentMethod())) {
+                throw new TailPaymentNotAllowedException(
+                        "车辆销售订单[" + order.getOrderNo() + "]非全款订单，不允许发起尾款支付");
+            }
+            Contract contract = contractRepository
+                    .findByOrderIdAndType(order.getId(), Contract.TYPE_VEHICLE_PURCHASE)
+                    .orElse(null);
+            if (contract == null || !contract.isSignEffectiveForTailPayment()) {
+                throw new TailPaymentNotAllowedException(
+                        "车辆销售订单[" + order.getOrderNo() + "]购车合同未签署，不允许发起尾款支付");
+            }
+            return PaymentStage.TAIL_PAYMENT;
+        }
         // OTD-VSO-DSN-CR-005：已失效订单返回可识别错误码，供客户端引导重新支付
         if (state == OrderState.EXPIRED) {
             throw new OrderExpiredException(
@@ -208,14 +227,42 @@ public class PaymentAppService {
      */
     private BigDecimal resolvePaymentAmount(Order order, PaymentStage stage) {
         OrderAmount amount = order.getOrderAmount();
-        BigDecimal payable = stage == PaymentStage.EARNEST_MONEY
-                ? amount.getDepositAmount().getAmount()
-                : amount.getDownPaymentAmount().getAmount();
+        BigDecimal payable = switch (stage) {
+            case EARNEST_MONEY -> amount.getDepositAmount().getAmount();
+            case TAIL_PAYMENT -> resolveTailPaymentAmount(order, amount);
+            default -> amount.getDownPaymentAmount().getAmount();
+        };
         if (payable == null || payable.compareTo(BigDecimal.ZERO) <= 0) {
             throw new OrderAmountSnapshotMissingException(
                     "订单[" + order.getOrderNo() + "]阶段[" + stage + "]应付金额缺失，需人工修复");
         }
         return payable;
+    }
+
+    /**
+     * 尾款金额只取订单金额快照（INV-043）：
+     * 快照缺失/尾款不大于零/net<down/unpaid 不一致 → 人工修复；paid≠down → 拒绝尾款。
+     */
+    private BigDecimal resolveTailPaymentAmount(Order order, OrderAmount amount) {
+        BigDecimal tail = amount.getTailPaymentAmount() == null
+                ? null : amount.getTailPaymentAmount().getAmount();
+        if (tail == null || tail.compareTo(BigDecimal.ZERO) <= 0
+                || amount.getNetReceivableTotal() == null || amount.getDownPaymentAmount() == null
+                || amount.getNetReceivableTotal().isLessThan(amount.getDownPaymentAmount())) {
+            throw new OrderAmountSnapshotMissingException(
+                    "订单[" + order.getOrderNo() + "]尾款金额快照异常，需人工修复");
+        }
+        BigDecimal paid = amount.getPaidTotal() == null ? BigDecimal.ZERO : amount.getPaidTotal().getAmount();
+        if (paid.compareTo(amount.getDownPaymentAmount().getAmount()) != 0) {
+            throw new TailPaymentNotAllowedException(
+                    "订单[" + order.getOrderNo() + "]已支付金额与首付款不一致，不允许发起尾款支付");
+        }
+        BigDecimal unpaid = amount.getUnpaidTotal() == null ? null : amount.getUnpaidTotal().getAmount();
+        if (unpaid == null || unpaid.compareTo(tail) != 0) {
+            throw new OrderAmountSnapshotMissingException(
+                    "订单[" + order.getOrderNo() + "]待支付金额与尾款快照不一致，需人工修复");
+        }
+        return tail;
     }
 
     private Payment obtainActiveOrNewPayment(Order order, PaymentStage stage, BigDecimal amount,
@@ -246,9 +293,12 @@ public class PaymentAppService {
 
     private Payment createPendingPayment(Order order, PaymentStage stage, BigDecimal amount,
                                          String accountId, PaymentChannel channel) {
-        int timeoutMinutes = stage == PaymentStage.EARNEST_MONEY
-                ? paymentChannelConfig.getSmallOrderTimeoutMinutes()
-                : paymentChannelConfig.getDownPaymentTimeoutMinutes();
+        int timeoutMinutes = switch (stage) {
+            case EARNEST_MONEY -> paymentChannelConfig.getSmallOrderTimeoutMinutes();
+            case DOWN_PAYMENT -> paymentChannelConfig.getDownPaymentTimeoutMinutes();
+            case TAIL_PAYMENT -> paymentChannelConfig.tailPaymentTimeoutMinutesOrDefault();
+            default -> paymentChannelConfig.getDownPaymentTimeoutMinutes();
+        };
         Payment payment = Payment.builder()
                 .paymentId(IdUtil.nanoId(15))
                 .paymentNo("P" + IdUtil.nanoId(12))
@@ -292,6 +342,7 @@ public class PaymentAppService {
                 .paymentChannel(channel)
                 .paymentAmount(payment.getPaymentAmount())
                 .paymentStatus(payment.getPaymentStatus() == null ? null : payment.getPaymentStatus().name())
+                .paymentStage(payment.getPaymentStage())
                 .externalTradeNo(payment.getExternalTradeNo())
                 .expireTime(payment.getExpireTime())
                 .paymentMerchant(merchant)

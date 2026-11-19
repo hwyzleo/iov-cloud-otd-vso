@@ -28,6 +28,10 @@ iov:
           replication-factor: 1
 
 vso:
+  # OTD-VSO-DSN-CR-014：Mock 电子签服务端自回调，默认关闭（合同停留 SIGNING 等待合法外部回调）
+  esign:
+    mock:
+      auto-callback: ${VSO_ESIGN_MOCK_AUTO_CALLBACK:false}
   outbox:
     aggregate-type: ORDER
     topics:
@@ -43,3 +47,7 @@ vso:
 
 mybatis-plus:
   type-aliases-package: net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po
+
+# 支付渠道配置（PaymentChannelConfig，OTD-VSO-DSN-CR-014 新增尾款超时）
+payment:
+  tail-payment-timeout-minutes: ${VSO_TAIL_PAYMENT_TIMEOUT_MINUTES:60}

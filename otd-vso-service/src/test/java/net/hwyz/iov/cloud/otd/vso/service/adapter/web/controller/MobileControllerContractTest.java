@@ -1,5 +1,6 @@
 package net.hwyz.iov.cloud.otd.vso.service.adapter.web.controller;
 
+import net.hwyz.iov.cloud.otd.vso.service.adapter.web.controller.mobile.MobileContractController;
 import net.hwyz.iov.cloud.otd.vso.service.adapter.web.controller.mobile.MobileOrderDealershipController;
 import net.hwyz.iov.cloud.otd.vso.service.adapter.web.controller.mobile.MobileSaleModelController;
 import net.hwyz.iov.cloud.otd.vso.service.adapter.web.controller.mobile.MobileVsoController;
@@ -61,6 +62,36 @@ class MobileControllerContractTest {
 
         List<String> dealershipGet = collectMappings(MobileOrderDealershipController.class, GetMapping.class);
         assertTrue(dealershipGet.contains("/dealership/list"), "订单详情门店选项查询路由应存在（CR-008）");
+    }
+
+    @Test
+    @DisplayName("电子签与尾款接口存在（CR-014）")
+    void 电子签与尾款接口存在() {
+        List<String> contractPost = collectMappings(MobileContractController.class, PostMapping.class);
+        List<String> contractGet = collectMappings(MobileContractController.class, GetMapping.class);
+        assertTrue(contractPost.contains("/order/action/initiateContractSign"), "发起合同签署路由应存在");
+        assertTrue(contractGet.contains("/order/{orderNo}/contract"), "查询合同路由应存在");
+
+        List<String> callbackPost = collectMappings(OpenVsoCallbackController.class, PostMapping.class);
+        assertTrue(callbackPost.contains("/contract"), "电子签回调路由应存在");
+    }
+
+    @Test
+    @DisplayName("电子签回调请求必须提交时间、幂等键与签名时间戳（CR-014）")
+    void 电子签回调请求校验契约() throws Exception {
+        Class<?> request = Class.forName("net.hwyz.iov.cloud.otd.vso.service.adapter.web.vo.request.ContractCallbackRequest");
+        assertNotNull(request.getDeclaredField("contractNo").getAnnotation(
+                jakarta.validation.constraints.NotBlank.class), "contractNo 必须校验非空");
+        assertNotNull(request.getDeclaredField("signNo").getAnnotation(
+                jakarta.validation.constraints.NotBlank.class), "signNo 必须校验非空");
+        assertNotNull(request.getDeclaredField("occurredAt").getAnnotation(
+                jakarta.validation.constraints.NotNull.class), "occurredAt 必须校验非空");
+        assertNotNull(request.getDeclaredField("idempotentKey").getAnnotation(
+                jakarta.validation.constraints.NotBlank.class), "idempotentKey 必须校验非空");
+        assertNotNull(request.getDeclaredField("timestamp").getAnnotation(
+                jakarta.validation.constraints.NotNull.class), "timestamp 必须校验非空");
+        assertNotNull(request.getDeclaredField("nonce").getAnnotation(
+                jakarta.validation.constraints.NotBlank.class), "nonce 必须校验非空");
     }
 
     @Test
