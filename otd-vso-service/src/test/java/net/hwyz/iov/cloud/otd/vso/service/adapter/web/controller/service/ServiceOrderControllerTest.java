@@ -9,6 +9,7 @@ import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.PrepareDeliveryCmd
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.PrepareTransportCmd;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.TransportingCmd;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.TransportOrderBriefResult;
+import net.hwyz.iov.cloud.otd.vso.service.application.service.BindingFactsQueryAppService;
 import net.hwyz.iov.cloud.otd.vso.service.application.service.OrderAppService;
 import net.hwyz.iov.cloud.otd.vso.service.application.service.TransportFulfillmentAppService;
 import org.junit.jupiter.api.BeforeEach;
@@ -56,13 +57,16 @@ class ServiceOrderControllerTest {
     private OrderAppService orderAppService;
     @Mock
     private TransportFulfillmentAppService transportFulfillmentAppService;
+    @Mock
+    private BindingFactsQueryAppService bindingFactsQueryAppService;
 
     private MockMvc mockMvc;
 
     @BeforeEach
     void setUp() {
         mockMvc = MockMvcBuilders.standaloneSetup(
-                        new ServiceOrderController(orderAppService, transportFulfillmentAppService))
+                        new ServiceOrderController(orderAppService, transportFulfillmentAppService,
+                                bindingFactsQueryAppService))
                 .setControllerAdvice(new WebRequestExceptionHandler())
                 .build();
     }

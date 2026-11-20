@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 绑车事实只读查询（OTD-VSO-DSN-CR-017）：只读最小列，无写入语句 -->
+<mapper namespace="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.mapper.BindingFactsMapper">
+
+    <!-- 候选订单：先限定账号与 VIN，再读取最小列；limit 由应用层显式传入用于歧义探测 -->
+    <select id="selectCandidateOrders"
+            resultType="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.BindingFactsOrderPo">
+        SELECT o.order_id         AS orderId,
+               o.order_no         AS orderNo,
+               o.order_state      AS orderState,
+               o.vehicle_vin      AS vehicleVin,
+               o.row_version      AS rowVersion,
+               o.create_time      AS createTime
+        FROM vso_order o
+        WHERE o.row_valid = 1
+          AND (o.vehicle_vin = #{vin}
+               OR EXISTS (SELECT 1
+                          FROM vso_delivery_record r
+                          WHERE r.order_id = o.order_id
+                            AND r.row_valid = 1
+                            AND r.vehicle_vin = #{vin}))
+          AND EXISTS (SELECT 1
+                      FROM vso_order_party p
+                      WHERE p.order_id = o.order_id
+                        AND p.user_id = #{accountId}
+                        AND p.row_valid = 1
+                        AND p.party_role IN
+                        <foreach collection="roles" item="role" open="(" separator="," close=")">
+                            #{role}
+                        </foreach>)
+        ORDER BY o.create_time, o.order_id
+        LIMIT #{limit}
+    </select>
+
+    <!-- 本账号匹配主体行：集合查询，返回原始 party_role 与真实版本 -->
+    <select id="selectMatchedParties"
+            resultType="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.BindingFactsPartyPo">
+        SELECT p.party_id    AS partyId,
+               p.order_id    AS orderId,
+               p.party_role  AS partyRole,
+               p.row_version AS rowVersion
+        FROM vso_order_party p
+        WHERE p.row_valid = 1
+          AND p.user_id = #{accountId}
+          AND p.order_id IN
+          <foreach collection="orderIds" item="orderId" open="(" separator="," close=")">
+              #{orderId}
+          </foreach>
+          AND p.party_role IN
+          <foreach collection="roles" item="role" open="(" separator="," close=")">
+              #{role}
+          </foreach>
+        ORDER BY p.order_id, p.party_role, p.party_id
+    </select>
+
+    <!-- 有效交付记录：集合查询，保留全部行以识别多条互斥交付事实 -->
+    <select id="selectDeliveryRecords"
+            resultType="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.BindingFactsDeliveryPo">
+        SELECT r.delivery_record_id  AS deliveryRecordId,
+               r.order_id            AS orderId,
+               r.delivery_status     AS deliveryStatus,
+               r.actual_delivery_time AS actualDeliveryTime,
+               r.vehicle_vin         AS vehicleVin,
+               r.row_version         AS rowVersion
+        FROM vso_delivery_record r
+        WHERE r.row_valid = 1
+          AND r.order_id IN
+          <foreach collection="orderIds" item="orderId" open="(" separator="," close=")">
+              #{orderId}
+          </foreach>
+        ORDER BY r.order_id, r.delivery_record_id
+    </select>
+
+</mapper>

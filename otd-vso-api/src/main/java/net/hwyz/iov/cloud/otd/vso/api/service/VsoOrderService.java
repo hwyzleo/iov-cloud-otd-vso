@@ -3,7 +3,9 @@ package net.hwyz.iov.cloud.otd.vso.api.service;
 import jakarta.validation.Valid;
 import net.hwyz.iov.cloud.framework.common.bean.AjaxResult;
 import net.hwyz.iov.cloud.framework.common.bean.PageResult;
+import net.hwyz.iov.cloud.otd.vso.api.vo.request.BindingFactsQueryRequest;
 import net.hwyz.iov.cloud.otd.vso.api.vo.request.OrderStateChangeRequest;
+import net.hwyz.iov.cloud.otd.vso.api.vo.response.BindingFactsQueryResponse;
 import net.hwyz.iov.cloud.otd.vso.api.vo.response.OrderDetailResponse;
 import net.hwyz.iov.cloud.otd.vso.api.vo.response.TransportOrderBriefResponse;
 import org.springframework.cloud.openfeign.FeignClient;
@@ -92,5 +94,17 @@ public interface VsoOrderService {
      */
     @PostMapping("/order/action/delivered")
     AjaxResult delivered(@RequestBody @Valid OrderStateChangeRequest request);
+
+    /**
+     * 查询账号与 VIN 的订单关联及交付事实（内部只读，OTD-VSO-DSN-CR-017）
+     * <p>
+     * 只读、可重复调用、无业务写副作用；返回最小化事实与核验状态，不是绑车资格结论。
+     * 技术失败按既有技术失败语义返回，不得捕获后改成 NO_MATCH 空成功。
+     *
+     * @param request 账号与 VIN 查询条件
+     * @return 最小化事实与核验状态
+     */
+    @PostMapping("/order/binding-facts/query")
+    BindingFactsQueryResponse queryBindingFacts(@RequestBody @Valid BindingFactsQueryRequest request);
 
 }
