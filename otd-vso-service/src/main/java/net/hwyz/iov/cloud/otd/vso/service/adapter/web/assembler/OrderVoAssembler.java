@@ -23,6 +23,7 @@ public interface OrderVoAssembler {
 
     OrderVoAssembler INSTANCE = Mappers.getMapper(OrderVoAssembler.class);
 
+    @Mapping(target = "vin", source = "deliveryVin")
     OrderVo toVo(OrderListResult result);
 
     List<OrderVo> toVoList(List<OrderListResult> results);

@@ -28,6 +28,11 @@ public class OrderVo {
     private Integer orderState;
 
     /**
+     * 车辆 VIN（未交付车辆时为空）
+     */
+    private String vin;
+
+    /**
      * 下单时间
      */
     private Date orderTime;

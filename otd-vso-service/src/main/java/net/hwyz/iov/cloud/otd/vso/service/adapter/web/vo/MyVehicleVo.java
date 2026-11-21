@@ -21,6 +21,11 @@ public class MyVehicleVo {
     private String type;
     private String displayName;
     private Integer state;
+
+    /**
+     * 车辆 VIN（心愿单为空；订单未交付车辆时为空）
+     */
+    private String vin;
     private List<String> saleModelImages;
     private BigDecimal totalPrice;
     private String saleModelDesc;
