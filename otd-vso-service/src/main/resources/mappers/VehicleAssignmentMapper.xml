@@ -40,6 +40,13 @@
         AND t.row_valid = 1
     </select>
 
+    <select id="selectByVehicleAssignmentId" resultMap="baseResultMap">
+        SELECT <include refid="baseColumnList"/>
+        FROM vso_vehicle_assignment t
+        WHERE t.vehicle_assignment_id = #{vehicleAssignmentId}
+        AND t.row_valid = 1
+    </select>
+
     <select id="selectPoById" parameterType="Long" resultMap="baseResultMap">
         SELECT <include refid="baseColumnList"/>
         FROM vso_vehicle_assignment t
@@ -120,8 +127,26 @@
 
     <update id="updatePo" parameterType="net.hwyz.iov.cloud.otd.vso.service.infrastructure.persistence.po.VehicleAssignmentPo">
         UPDATE vso_vehicle_assignment t SET
+        <if test="assignmentType != null and assignmentType != ''">
+            t.assignment_type = #{assignmentType},
+        </if>
+        <if test="vehicleSourceType != null and vehicleSourceType != ''">
+            t.vehicle_source_type = #{vehicleSourceType},
+        </if>
         <if test="assignStatus != null and assignStatus != ''">
             t.assign_status = #{assignStatus},
+        </if>
+        <if test="manualAssignFlag != null">
+            t.manual_assign_flag = #{manualAssignFlag},
+        </if>
+        <if test="manualAssignReason != null and manualAssignReason != ''">
+            t.manual_assign_reason = #{manualAssignReason},
+        </if>
+        <if test="occupyExpireTime != null">
+            t.occupy_expire_time = #{occupyExpireTime},
+        </if>
+        <if test="assignTime != null">
+            t.assign_time = #{assignTime},
         </if>
         <if test="vin != null and vin != ''">
             t.vin = #{vin},

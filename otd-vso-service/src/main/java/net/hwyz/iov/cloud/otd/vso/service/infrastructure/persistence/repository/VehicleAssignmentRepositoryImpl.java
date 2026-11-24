@@ -44,10 +44,9 @@ public class VehicleAssignmentRepositoryImpl implements VehicleAssignmentReposit
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void delete(String vehicleAssignmentId) {
-        VehicleAssignmentPo vehicleAssignmentPo = vehicleAssignmentMapper.selectPoById(Long.valueOf(vehicleAssignmentId));
-        if (vehicleAssignmentPo != null) {
-            vehicleAssignmentPo.setRowValid(0);
-            vehicleAssignmentMapper.updatePo(vehicleAssignmentPo);
+        VehicleAssignmentPo vehicleAssignmentPo = vehicleAssignmentMapper.selectByVehicleAssignmentId(vehicleAssignmentId);
+        if (vehicleAssignmentPo != null && vehicleAssignmentPo.getId() != null) {
+            vehicleAssignmentMapper.logicalDeletePo(vehicleAssignmentPo.getId());
         }
     }
 
@@ -79,9 +78,11 @@ public class VehicleAssignmentRepositoryImpl implements VehicleAssignmentReposit
 
     private VehicleAssignmentPo convertToPo(VehicleAssignment assignment) {
         VehicleAssignmentPo po = new VehicleAssignmentPo();
+        po.setId(assignment.getId());
         po.setVehicleAssignmentId(assignment.getVehicleAssignmentId());
         po.setOrderId(assignment.getOrderId());
         po.setAssignmentType(assignment.getAssignmentType().getCode());
+        po.setVehicleSourceType(assignment.getVehicleSourceType());
         po.setVin(assignment.getVin());
         po.setVehicleId(assignment.getVehicleId());
         po.setAssignStatus(assignment.getAssignStatus().getCode());
@@ -97,6 +98,7 @@ public class VehicleAssignmentRepositoryImpl implements VehicleAssignmentReposit
 
     private VehicleAssignment convertToDomain(VehicleAssignmentPo po) {
         return VehicleAssignment.builder()
+                .id(po.getId())
                 .vehicleAssignmentId(po.getVehicleAssignmentId())
                 .orderId(po.getOrderId())
                 .assignmentType(AssignmentType.fromCode(po.getAssignmentType()))

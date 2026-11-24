@@ -17,6 +17,11 @@ public interface VehicleAssignmentMapper extends BaseDao<VehicleAssignmentPo, Lo
 
     VehicleAssignmentPo selectByOrderId(@Param("orderId") String orderId);
 
+    /**
+     * 根据配车业务 ID 查找有效配车记录
+     */
+    VehicleAssignmentPo selectByVehicleAssignmentId(@Param("vehicleAssignmentId") String vehicleAssignmentId);
+
     VehicleAssignmentPo selectPoById(Long id);
 
     List<VehicleAssignmentPo> selectPoByMap(@Param("params") Map<String, Object> params);

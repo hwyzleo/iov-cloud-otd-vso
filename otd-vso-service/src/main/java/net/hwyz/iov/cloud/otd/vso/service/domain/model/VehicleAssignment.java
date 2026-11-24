@@ -22,6 +22,11 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class VehicleAssignment {
 
+    /**
+     * 持久化主键（仅用于仓储层判定新增/更新，业务逻辑不应依赖该字段）
+     */
+    private Long id;
+
     private String vehicleAssignmentId;
     private String orderId;
     private AssignmentType assignmentType;
