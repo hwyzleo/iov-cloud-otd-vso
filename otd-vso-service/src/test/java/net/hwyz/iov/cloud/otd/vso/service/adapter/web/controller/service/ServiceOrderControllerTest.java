@@ -3,7 +3,7 @@ package net.hwyz.iov.cloud.otd.vso.service.adapter.web.controller.service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import net.hwyz.iov.cloud.otd.vso.api.service.VsoOrderService;
 import net.hwyz.iov.cloud.otd.vso.api.vo.request.OrderStateChangeRequest;
-import net.hwyz.iov.cloud.otd.vso.service.adapter.web.handler.WebRequestExceptionHandler;
+import net.hwyz.iov.cloud.otd.vso.service.adapter.web.handler.VsoWebRequestExceptionHandler;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.DeliveredCmd;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.PrepareDeliveryCmd;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.cmd.PrepareTransportCmd;
@@ -67,7 +67,7 @@ class ServiceOrderControllerTest {
         mockMvc = MockMvcBuilders.standaloneSetup(
                         new ServiceOrderController(orderAppService, transportFulfillmentAppService,
                                 bindingFactsQueryAppService))
-                .setControllerAdvice(new WebRequestExceptionHandler())
+                .setControllerAdvice(new VsoWebRequestExceptionHandler())
                 .build();
     }
 

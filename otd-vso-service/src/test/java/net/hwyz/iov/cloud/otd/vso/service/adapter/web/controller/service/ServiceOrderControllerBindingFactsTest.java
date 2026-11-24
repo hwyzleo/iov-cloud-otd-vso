@@ -7,7 +7,7 @@ import net.hwyz.iov.cloud.otd.vso.api.enums.BindingLookupStatus;
 import net.hwyz.iov.cloud.otd.vso.api.service.VsoOrderService;
 import net.hwyz.iov.cloud.framework.web.jackson.IovIsoWriteModule;
 import net.hwyz.iov.cloud.otd.vso.api.vo.request.BindingFactsQueryRequest;
-import net.hwyz.iov.cloud.otd.vso.service.adapter.web.handler.WebRequestExceptionHandler;
+import net.hwyz.iov.cloud.otd.vso.service.adapter.web.handler.VsoWebRequestExceptionHandler;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.query.BindingFactsQuery;
 import net.hwyz.iov.cloud.otd.vso.service.application.dto.result.BindingFactsResult;
 import net.hwyz.iov.cloud.otd.vso.service.application.service.BindingFactsQueryAppService;
@@ -70,7 +70,7 @@ class ServiceOrderControllerBindingFactsTest {
         mockMvc = MockMvcBuilders.standaloneSetup(
                         new ServiceOrderController(orderAppService, transportFulfillmentAppService,
                                 bindingFactsQueryAppService))
-                .setControllerAdvice(new WebRequestExceptionHandler())
+                .setControllerAdvice(new VsoWebRequestExceptionHandler())
                 .setMessageConverters(new MappingJackson2HttpMessageConverter(mvcObjectMapper))
                 .build();
     }

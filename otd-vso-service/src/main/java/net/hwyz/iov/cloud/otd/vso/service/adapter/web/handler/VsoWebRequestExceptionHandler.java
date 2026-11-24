@@ -20,13 +20,19 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
  * 框架 {@code GlobalExceptionHandler} 只兜底 {@link Exception}，会把“缺少必填参数 / 参数类型不合法”
  * 统一报成 {@code 100002 系统内部错误} + HTTP 500，调用方无法区分“请求写错”和“服务故障”。
  * 这里对入参类异常前置处理，返回 HTTP 400 + VSO 参数校验错误码。
+ * <p>
+ * 类名带 {@code Vso} 前缀是必需的：framework-web-starter 自 0.0.1-SNAPSHOT(2026-11-24) 起
+ * 在 {@code WebAutoConfiguration} 中以 {@code webRequestExceptionHandler} 为名注册了同职责 Bean，
+ * 若本类沿用 {@code WebRequestExceptionHandler} 简名，两者 Bean 名相同，在
+ * {@code spring.main.allow-bean-definition-overriding=false}（默认）下会导致
+ * {@code BeanDefinitionOverrideException}，服务无法启动。
  *
  * @author VSO Team
  */
 @Slf4j
 @Order(Ordered.HIGHEST_PRECEDENCE)
 @RestControllerAdvice
-public class WebRequestExceptionHandler {
+public class VsoWebRequestExceptionHandler {
 
     /**
      * 缺少必填请求参数，例如内部服务调用 {@code /order/list} 时未传 {@code orderState}
